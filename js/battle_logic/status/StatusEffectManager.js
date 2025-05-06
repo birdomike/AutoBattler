@@ -125,6 +125,7 @@ class StatusEffectManager {
             // TEMPORARY DEBUG: Log the source object being passed to addStatusEffect to confirm its type and content
             if (source !== undefined && source !== null) {
                 console.log(`%c[DEBUG SEM.addStatusEffect] For effectId: ${effectId} on character: ${character ? character.name : 'TARGET_NULL'}, the 'source' parameter received IS AN OBJECT:`, "color: green; font-weight: bold;", source, `(Name: ${source.name || 'No Name Prop'})`);
+                console.log(`%c[DEBUG SEM.addStatusEffect] Storing sourceId: ${source.uniqueId || 'NO_UNIQUE_ID'}`, "color: green;");
                 try {
                     console.log(`%c[DEBUG SEM.addStatusEffect] Full 'source' object JSON:`, "color: green;", JSON.stringify(source));
                 } catch (e) {
@@ -138,7 +139,7 @@ class StatusEffectManager {
             const newEffect = {
                 id: effectId,
                 duration: duration,
-                source: source, // CORRECTED: Store the actual source object reference (or null/undefined if that's what was passed)
+                sourceId: source ? source.uniqueId : null, // CORRECTED: Store source uniqueId instead of source object
                 stacks: definition.stackable ? stacks : 1
             };
             
@@ -316,11 +317,26 @@ class StatusEffectManager {
                 'damage'
             );
             
+            // Resolve the source character from sourceId
+            let sourceCharacter = null;
+            if (effect.sourceId) { // New property
+                sourceCharacter = this.battleManager.getCharacterByUniqueId(effect.sourceId);
+                console.log(`%c[DEBUG SEM._processDamageEffect] Retrieved sourceCharacter via sourceId '${effect.sourceId}': ${sourceCharacter ? sourceCharacter.name : 'NOT FOUND'}`,"color: purple;");
+            } else if (typeof effect.source === 'string' && effect.source !== 'unknown') { // Backward compatibility for old string name
+                console.warn(`%c[DEBUG SEM._processDamageEffect] Attempting to find source by old string name: '${effect.source}' (Effect ID: ${effect.id})`, "color: orange;");
+                // For damage effects, we don't default to character itself
+            } else if (effect.source && typeof effect.source === 'object' && effect.source.uniqueId) { // If somehow an object still sneaks in
+                console.warn(`%c[DEBUG SEM._processDamageEffect] effect.source was unexpectedly an object. Using its uniqueId: ${effect.source.uniqueId}`, "color: orange;");
+                sourceCharacter = this.battleManager.getCharacterByUniqueId(effect.source.uniqueId);
+            }
+            
+            console.log(`%c[DEBUG SEM._processDamageEffect] FINAL Source for applyDamage: ${sourceCharacter ? sourceCharacter.name : (effect.sourceId || 'No Source ID/Unknown')}`,"color: blue; font-weight: bold;");
+            
             // HOTFIX (0.5.27.2_Hotfix8): Use applyDamage instead of dealDamage
             this.battleManager.applyDamage(
                 character,         // target
                 damage,            // amount
-                effect.source,     // source
+                sourceCharacter,   // source (resolved from sourceId, can be null)
                 null,              // ability (null for status effects)
                 effect.id || 'status_effect'  // damageType (use effect.id if available)
             );
@@ -350,20 +366,33 @@ class StatusEffectManager {
             
             // Use appropriate method from BattleManager
             if (typeof this.battleManager.applyHealing === 'function') {
-                // TEMPORARY DEBUGGING CODE - TO BE REMOVED LATER
-                console.log(`%c[DEBUG SEM._processHealingEffect] BEFORE applyHealing call`, "color: orange; font-weight: bold;");
-                console.log(`%c[DEBUG SEM._processHealingEffect] Character:`, "color: orange;", character);
-                console.log(`%c[DEBUG SEM._processHealingEffect] effect.source:`, "color: orange;", effect.source);
-                console.log(`%c[DEBUG SEM._processHealingEffect] Will call with source:`, "color: orange;", 
-                           effect.source || character, 
-                           `(Using fallback: ${effect.source === null || effect.source === undefined})`);
+                // Resolve the source character from sourceId
+                let sourceCharacter = null;
+                if (effect.sourceId) { // New property
+                    sourceCharacter = this.battleManager.getCharacterByUniqueId(effect.sourceId);
+                    console.log(`%c[DEBUG SEM._processHealingEffect] Retrieved sourceCharacter via sourceId '${effect.sourceId}': ${sourceCharacter ? sourceCharacter.name : 'NOT FOUND'}`,"color: purple;");
+                } else if (typeof effect.source === 'string' && effect.source !== 'unknown') { // Backward compatibility for old string name
+                    // Attempt to find by name IF uniqueId not present and source is a non-"unknown" string
+                    // This is less reliable than uniqueId, should be phased out.
+                    console.warn(`%c[DEBUG SEM._processHealingEffect] Attempting to find source by old string name: '${effect.source}' (Effect ID: ${effect.id})`, "color: orange;");
+                    // You might need a getCharacterByName method in BattleManager if uniqueId wasn't always the primary way.
+                    // For now, we'll assume this case leads to an unknown source if not found quickly,
+                    // or prioritize the fallback to 'character' for self-heals.
+                } else if (effect.source && typeof effect.source === 'object' && effect.source.uniqueId) { // If somehow an object still sneaks in
+                     console.warn(`%c[DEBUG SEM._processHealingEffect] effect.source was unexpectedly an object. Using its uniqueId: ${effect.source.uniqueId}`, "color: orange;");
+                     sourceCharacter = this.battleManager.getCharacterByUniqueId(effect.source.uniqueId);
+                }
+
+                const finalSourceForApplyHealing = sourceCharacter || character; // Fallback to the target character for self-effects
+
+                console.log(`%c[DEBUG SEM._processHealingEffect] FINAL Source for applyHealing: ${finalSourceForApplyHealing ? finalSourceForApplyHealing.name : 'NULL/UNDEFINED'}`, "color: blue; font-weight: bold;");
                 
                 // HOTFIX (0.5.27.2_Hotfix8): Fix parameter order - character being healed must be first
                 this.battleManager.applyHealing(
                     character,       // target (character being healed)
                     healing,         // amount
-                    effect.source || character, // source (use effect.source or default to self)
-                    'Regeneration'   // ability name
+                    finalSourceForApplyHealing, // source (resolved from sourceId or fallback to self)
+                    definition.name || 'Regeneration'   // ability name
                 );
                 
                 // TEMPORARY DEBUGGING CODE - TO BE REMOVED LATER

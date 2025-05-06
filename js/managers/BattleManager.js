@@ -1247,6 +1247,29 @@ class BattleManager {
     }
     
     /**
+     * Get a character by its uniqueId from any team
+     * @param {string} uniqueId - The uniqueId of the character to find
+     * @returns {Object|null} - The character object or null if not found
+     */
+    getCharacterByUniqueId(uniqueId) {
+        if (!uniqueId) return null;
+        
+        // Check player team
+        let foundChar = this.playerTeam.find(char => char && char.uniqueId === uniqueId);
+        if (foundChar) return foundChar;
+        
+        // Check enemy team
+        foundChar = this.enemyTeam.find(char => char && char.uniqueId === uniqueId);
+        
+        // Add a log if a character is not found for a given ID, can be helpful for debugging
+        if (!foundChar) {
+            console.warn(`[BattleManager.getCharacterByUniqueId] Character with uniqueId '${uniqueId}' not found.`);
+        }
+        
+        return foundChar || null;
+    }
+    
+    /**
      * Shuffle an array randomly
      * @param {Array} array - The array to shuffle
      * @returns {Array} The shuffled array

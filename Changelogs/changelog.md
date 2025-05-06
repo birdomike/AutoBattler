@@ -1,6 +1,18 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.2_Hotfix10 - Fix for Circular References in Status Effects (2025-05-06)
+### Fixed
+- **Status Effect Source Reference**: Fixed circular reference when storing status effect sources
+  - Changed `StatusEffectManager` to store `sourceId` instead of direct object references
+  - Added `getCharacterByUniqueId` method to `BattleManager` for object resolution
+  - Added backward compatibility for older status effects
+  - Fixed error: "TypeError: Converting circular structure to JSON"
+  - Resolved "Invalid character: missing name property" errors in PassiveAbilityManager
+  - Fixed healing attribution in battle log messages
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.2_Hotfix10_CircularReferenceFix.md*
+
 ## Version 0.5.27.2_Hotfix9 - Status Effect Processing Fixes (2025-05-06)
 ### Fixed
 - **Status Effect Manager Method Issues**: Fixed critical errors in status effect processing
