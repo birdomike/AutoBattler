@@ -1,0 +1,26 @@
+# OS/Editor artifacts
+.DS_Store
+Thumbs.db
+*.log
+
+# VSCode and IDE settings
+.vscode/
+.idea/
+
+# Scripts and output
+*.ps1
+*.bak
+*.tmp
+
+# AI tooling and file combiner output
+_CombinedForAI/
+*.txt
+
+# Game assets - skip bulky art/audio
+assets/images/Character Art/
+assets/audio/InCombat_Sounds/
+
+# Changelogs and generated docs
+Changelogs/
+patch_notes.md
+GeminiSuggestions.md
