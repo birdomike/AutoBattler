@@ -25,8 +25,15 @@ class HealingProcessor {
      */
     applyHealing(target, amount, source, ability, healType = 'healing') {
         // TEMPORARY DEBUGGING CODE - TO BE REMOVED LATER
-        console.log(`[DEBUG HealingProcessor START] Target: ${target ? target.name : 'null/undefined'}, HP: ${target ? target.currentHp : 'N/A'}. Source: ${source ? source.name : 'null/undefined'}`);
-        
+        console.log(`%c[DEBUG HealingProcessor START] Target: ${target ? target.name : 'null/undefined'}, HP: ${target ? target.currentHp : 'N/A'}. Source: ${source ? source.name : 'null/undefined'}`, "color: blue; font-weight: bold;");
+        if (source) {
+            try {
+                console.log(`%c[DEBUG HealingProcessor START] Full source object:`, "color: blue;", JSON.stringify(source));
+            } catch (e) {
+                console.warn(`%c[DEBUG HealingProcessor START] Could not stringify source:`, "color: orange;", e);
+                console.log(`%c[DEBUG HealingProcessor START] Raw source object:`, "color: blue;", source);
+            }
+        }
         if (!target) {
             console.error('[HealingProcessor] Cannot heal null target');
             return { actualHealing: 0, revived: false };
@@ -74,8 +81,16 @@ class HealingProcessor {
         const result = { actualHealing, revived };
 
         // TEMPORARY DEBUGGING CODE - TO BE REMOVED LATER
-        console.log(`[DEBUG HealingProcessor END] Target: ${target ? target.name : 'null/undefined'}, HP: ${target ? target.currentHp : 'N/A'}. Source: ${source ? source.name : 'null/undefined'}`);
-        console.log('[DEBUG HealingProcessor END] Returning result:', JSON.stringify(result));
+        console.log(`%c[DEBUG HealingProcessor END] Target: ${target ? target.name : 'null/undefined'}, HP: ${target ? target.currentHp : 'N/A'}. Source: ${source ? source.name : 'null/undefined'}`, "color: purple; font-weight: bold;");
+        if (source) {
+            try {
+                console.log(`%c[DEBUG HealingProcessor END] Full source object:`, "color: purple;", JSON.stringify(source));
+            } catch (e) {
+                console.warn(`%c[DEBUG HealingProcessor END] Could not stringify source:`, "color: orange;", e);
+                console.log(`%c[DEBUG HealingProcessor END] Raw source object:`, "color: purple;", source);
+            }
+        }
+        console.log('%c[DEBUG HealingProcessor END] Returning result:', "color: purple;", JSON.stringify(result));
         
         return result;
     }

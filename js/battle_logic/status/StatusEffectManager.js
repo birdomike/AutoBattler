@@ -124,9 +124,14 @@ class StatusEffectManager {
         } else {
             // TEMPORARY DEBUG: Log the source object being passed to addStatusEffect to confirm its type and content
             if (source !== undefined && source !== null) {
-                console.log(`[DEBUG SEM.addStatusEffect] For effectId: ${effectId}, the 'source' parameter received is:`, source, `(Name: ${source.name || 'No Name Prop'})`);
+                console.log(`%c[DEBUG SEM.addStatusEffect] For effectId: ${effectId} on character: ${character ? character.name : 'TARGET_NULL'}, the 'source' parameter received IS AN OBJECT:`, "color: green; font-weight: bold;", source, `(Name: ${source.name || 'No Name Prop'})`);
+                try {
+                    console.log(`%c[DEBUG SEM.addStatusEffect] Full 'source' object JSON:`, "color: green;", JSON.stringify(source));
+                } catch (e) {
+                    console.warn(`%c[DEBUG SEM.addStatusEffect] Could not stringify 'source' object:`, "color: orange;", e);
+                }
             } else {
-                console.log(`[DEBUG SEM.addStatusEffect] For effectId: ${effectId}, the 'source' parameter received is: ${source}`);
+                console.log(`%c[DEBUG SEM.addStatusEffect] For effectId: ${effectId} on character: ${character ? character.name : 'TARGET_NULL'}, the 'source' parameter received IS: ${source}`, "color: green; font-weight: bold;");
             }
 
             // New effect - create and add
@@ -325,6 +330,12 @@ class StatusEffectManager {
     _processHealingEffect(character, effect, definition) {
         if (!character) return;
         
+        // TEMPORARY DEBUGGING CODE - TO BE REMOVED LATER
+        console.log(`%c[DEBUG SEM._processHealingEffect] Character: ${character.name}, Effect ID: ${effect.id}`, "color: orange; font-weight: bold;");
+        console.log(`%c[DEBUG SEM._processHealingEffect] Effect object:`, "color: orange;", effect);
+        console.log(`%c[DEBUG SEM._processHealingEffect] Effect.source:`, "color: orange;", effect.source, 
+                    `(Type: ${typeof effect.source}, Is null: ${effect.source === null}, Is undefined: ${effect.source === undefined})`);
+        
         // Calculate healing based on stacks
         const baseHealing = definition.value;
         const stacks = effect.stacks || 1;
@@ -339,6 +350,14 @@ class StatusEffectManager {
             
             // Use appropriate method from BattleManager
             if (typeof this.battleManager.applyHealing === 'function') {
+                // TEMPORARY DEBUGGING CODE - TO BE REMOVED LATER
+                console.log(`%c[DEBUG SEM._processHealingEffect] BEFORE applyHealing call`, "color: orange; font-weight: bold;");
+                console.log(`%c[DEBUG SEM._processHealingEffect] Character:`, "color: orange;", character);
+                console.log(`%c[DEBUG SEM._processHealingEffect] effect.source:`, "color: orange;", effect.source);
+                console.log(`%c[DEBUG SEM._processHealingEffect] Will call with source:`, "color: orange;", 
+                           effect.source || character, 
+                           `(Using fallback: ${effect.source === null || effect.source === undefined})`);
+                
                 // HOTFIX (0.5.27.2_Hotfix8): Fix parameter order - character being healed must be first
                 this.battleManager.applyHealing(
                     character,       // target (character being healed)
@@ -346,6 +365,9 @@ class StatusEffectManager {
                     effect.source || character, // source (use effect.source or default to self)
                     'Regeneration'   // ability name
                 );
+                
+                // TEMPORARY DEBUGGING CODE - TO BE REMOVED LATER
+                console.log(`%c[DEBUG SEM._processHealingEffect] AFTER applyHealing call`, "color: orange; font-weight: bold;");
             } else {
                 // Fallback for older versions
                 character.stats.hp = Math.min(
