@@ -118,6 +118,9 @@ class StatusEffectDefinitionLoader {
     setupFallbackDefinitions() {
         console.log('[StatusEffectDefinitionLoader] Setting up fallback definitions');
         
+        // HOTFIX (0.5.27.2_Hotfix1): Add additional common status effect IDs with "status_" prefix
+        // This addresses issues with status_regen and status_spd_down specifically
+        
         // Core status effects as fallback
         const fallbackEffects = [
             {
@@ -265,9 +268,158 @@ class StatusEffectDefinitionLoader {
             this.effectDefinitions.set(effect.id, effect);
         });
         
-        console.log(`[StatusEffectDefinitionLoader] Added ${fallbackEffects.length} fallback definitions`);
+        // HOTFIX (0.5.27.2_Hotfix1): Add specific definitions for problematic status effects
+        // Add status_regen effect
+        this.effectDefinitions.set('status_regen', {
+            id: 'status_regen',
+            name: 'Regeneration',
+            description: 'Recovering health over time',
+            effectType: 'healing',
+            value: 5,
+            duration: 3,
+            stackable: true,
+            maxStacks: 3,
+            iconPath: 'assets/images/icons/status/status-icons/regeneration.png',
+            behavior: {
+                trigger: 'onTurnStart',
+                action: 'Heal',
+                valueType: 'PercentMaxHP',
+                value: 0.05
+            }
+        });
+        
+        // Add status_spd_down effect
+        this.effectDefinitions.set('status_spd_down', {
+            id: 'status_spd_down',
+            name: 'Speed Down',
+            description: 'Speed is decreased',
+            effectType: 'statModifier',
+            stat: 'speed',
+            value: -2,
+            duration: 3,
+            stackable: false,
+            iconPath: 'assets/images/icons/status/status-icons/speeddown.png'
+        });
+        
+        console.log(`[StatusEffectDefinitionLoader] Added ${fallbackEffects.length + 2} fallback definitions (including specific additions for status_regen and status_spd_down)`);
     }
 
+    generateFallbackDefinition(effectId) {
+        // HOTFIX: Helper to generate meaningful fallback definitions based on the effectId
+        // Handles specific problematic status effects like status_regen and status_spd_down
+        const lowerEffectId = effectId.toLowerCase();
+        
+        // Auto-detect effect type based on name
+        let effectType = 'unknown';
+        let duration = 2;
+        let value = 0;
+        let stackable = false;
+        let stat = null;
+        let name = `Unknown Effect (${effectId})`;
+        let description = 'An unknown status effect';
+        let iconPath = 'assets/images/icons/status/status-icons/unknown.png';
+        
+        // Try to intelligently determine effect type from ID
+        if (lowerEffectId.includes('burn') || lowerEffectId.includes('poison') || lowerEffectId.includes('bleed')) {
+            effectType = 'damage';
+            value = 5;
+            duration = 3;
+            stackable = true;
+            name = lowerEffectId.includes('burn') ? 'Burn' : 
+                  lowerEffectId.includes('poison') ? 'Poison' : 'Bleed';
+            description = `Taking damage over time from ${name.toLowerCase()}`;
+            iconPath = `assets/images/icons/status/status-icons/${name.toLowerCase()}.png`;
+        }
+        else if (lowerEffectId.includes('regen') || lowerEffectId.includes('heal')) {
+            effectType = 'healing';
+            value = 5;
+            duration = 3;
+            stackable = true;
+            name = 'Regeneration';
+            description = 'Recovering health over time';
+            iconPath = 'assets/images/icons/status/status-icons/regeneration.png';
+        }
+        else if (lowerEffectId.includes('stun') || lowerEffectId.includes('freeze') || lowerEffectId.includes('paralyze')) {
+            effectType = 'control';
+            duration = 1;
+            name = lowerEffectId.includes('stun') ? 'Stun' : 
+                  lowerEffectId.includes('freeze') ? 'Freeze' : 'Paralyze';
+            description = 'Unable to take actions';
+            iconPath = `assets/images/icons/status/status-icons/${name.toLowerCase()}.png`;
+        }
+        else if (lowerEffectId.includes('shield') || lowerEffectId.includes('protect')) {
+            effectType = 'shield';
+            value = 10;
+            duration = 2;
+            name = 'Shield';
+            description = 'Absorbs incoming damage';
+            iconPath = 'assets/images/icons/status/status-icons/shield.png';
+        }
+        // Stat modifiers
+        else if (lowerEffectId.includes('atk') || lowerEffectId.includes('attack')) {
+            effectType = 'statModifier';
+            stat = 'attack';
+            value = lowerEffectId.includes('down') ? -5 : 5;
+            duration = 3;
+            name = value > 0 ? 'Attack Up' : 'Attack Down';
+            description = `Attack power is ${value > 0 ? 'increased' : 'decreased'}`;
+            iconPath = `assets/images/icons/status/status-icons/${name.replace(' ', '').toLowerCase()}.png`;
+        }
+        else if (lowerEffectId.includes('def') || lowerEffectId.includes('defense')) {
+            effectType = 'statModifier';
+            stat = 'defense';
+            value = lowerEffectId.includes('down') ? -5 : 5;
+            duration = 3;
+            name = value > 0 ? 'Defense Up' : 'Defense Down';
+            description = `Defense is ${value > 0 ? 'increased' : 'decreased'}`;
+            iconPath = `assets/images/icons/status/status-icons/${name.replace(' ', '').toLowerCase()}.png`;
+        }
+        else if (lowerEffectId.includes('spd') || lowerEffectId.includes('speed')) {
+            effectType = 'statModifier';
+            stat = 'speed';
+            value = lowerEffectId.includes('down') ? -2 : 2;
+            duration = 3;
+            name = value > 0 ? 'Speed Up' : 'Speed Down';
+            description = `Speed is ${value > 0 ? 'increased' : 'decreased'}`;
+            iconPath = `assets/images/icons/status/status-icons/${name.replace(' ', '').toLowerCase()}.png`;
+        }
+        
+        const fallbackDefinition = {
+            id: effectId,
+            name: name,
+            description: description,
+            effectType: effectType,
+            duration: duration,
+            stackable: stackable,
+            iconPath: iconPath
+        };
+        
+        // Add type-specific properties
+        if (effectType === 'damage' || effectType === 'healing' || effectType === 'shield') {
+            fallbackDefinition.value = value;
+        }
+        if (effectType === 'statModifier') {
+            fallbackDefinition.stat = stat;
+            fallbackDefinition.value = value;
+        }
+        if (stackable) {
+            fallbackDefinition.maxStacks = 3; // Default max stacks
+        }
+        
+        // For healing effects like regeneration, add a behavior property
+        if (effectType === 'healing') {
+            fallbackDefinition.behavior = {
+                trigger: 'onTurnStart',
+                action: 'Heal',
+                valueType: 'PercentMaxHP',
+                value: 0.05
+            };
+        }
+        
+        console.warn(`[StatusEffectDefinitionLoader] Generated fallback definition for '${effectId}': ${JSON.stringify(fallbackDefinition)}`);
+        return fallbackDefinition;
+    }
+    
     getDefinition(effectId) {
         if (!effectId) {
             console.warn('[StatusEffectDefinitionLoader] getDefinition called with null/undefined effectId');
@@ -276,18 +428,12 @@ class StatusEffectDefinitionLoader {
         
         const definition = this.effectDefinitions.get(effectId);
         
+        // HOTFIX (0.5.27.2_Hotfix1): Handle problematic status effects specifically
         if (!definition) {
             console.warn(`[StatusEffectDefinitionLoader] Effect definition not found for: ${effectId}`);
-            // Return a generic unknown effect
-            return {
-                id: effectId,
-                name: `Unknown Effect (${effectId})`,
-                description: 'An unknown status effect',
-                effectType: 'unknown',
-                duration: 1,
-                stackable: false,
-                iconPath: 'assets/images/icons/status/status-icons/unknown.png'
-            };
+            
+            // Generate a smarter fallback based on the effect ID name
+            return this.generateFallbackDefinition(effectId);
         }
         
         return definition;

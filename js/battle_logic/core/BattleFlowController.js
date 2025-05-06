@@ -456,12 +456,29 @@ class BattleFlowController {
         const actorTeam = action.team;
         const targetTeam = actorTeam === 'player' ? 'enemy' : 'player';
         
+        // HOTFIX8: Enhanced multi-target handling
         // Handle array of targets (for multi-target abilities)
         if (Array.isArray(action.target)) {
+            console.log(`[BattleFlowController] Processing multi-target action with ${action.target.length} targets`);
+            
+            // TEMPORARY DEBUG (v0.5.27.2_Hotfix2): Log whether we have targetDamages
+            if (action.isMultiTarget && action.targetDamages) {
+                console.log(`[DEBUG 0.5.27.2] Action has ${action.targetDamages.length} pre-calculated target damages`);
+            }
+            
             // Process each target individually
-            for (const target of action.target) {
+            for (let i = 0; i < action.target.length; i++) {
+                const target = action.target[i];
+                
                 // Create a single-target version of the action
                 const singleAction = {...action, target};
+                
+                // HOTFIX8: Use pre-calculated damage if available
+                if (action.isMultiTarget && action.targetDamages && action.targetDamages[i]) {
+                    singleAction.damage = action.targetDamages[i].damage;
+                    console.log(`[BattleFlowController] Using pre-calculated damage ${singleAction.damage} for target ${target.name}`);
+                }
+                
                 await this.applyActionEffect(singleAction);
             }
             return;
