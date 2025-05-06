@@ -45,7 +45,7 @@ js/
 - CHECKPOINT: Test ability execution with toggle on/off
 - CLEANUP: Remove original ability processing code
 
-### Stage 6: Passive Ability System ⏳ In Progress
+### Stage 6: Passive Ability System ⏳ Completed
 - Implement PassiveAbilityManager and PassiveTriggerTracker
 - CHECKPOINT: Test passive triggers with toggle on/off
 - CLEANUP: Remove original passive code

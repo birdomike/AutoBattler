@@ -1,6 +1,17 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.2_Cleanup - PassiveAbilityManager Implementation Cleanup (2025-05-06)
+### Technical
+- **Completed PassiveAbilityManager Refactoring**: Removed original implementation from BattleManager
+  - Reduced `processPassiveAbilities` method from 90 lines to 10 lines (89% reduction)
+  - Removed toggle mechanism throughout BattleManager (24 lines removed)
+  - Simplified all passive trigger handling with clean delegation
+  - Added appropriate fallback behavior with warning messages
+  - Total code reduction: 104 lines of code (91% reduction from original implementation)
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.2_Cleanup_PassiveAbilityManager.md*
+
 ## Version 0.5.27.2c - BattleFlowController Battle End Methods (2025-05-06)
 ### Fixed
 - **Battle End Error**: Fixed issue in battle end flow

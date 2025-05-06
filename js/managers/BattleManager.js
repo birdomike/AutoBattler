@@ -42,7 +42,6 @@ class BattleManager {
         };
 
         // REFACTORING: Component manager references
-        this.useNewImplementation = true; // Toggle set to ON for PassiveAbilityManager implementation
 
         // REFACTORING: References to component managers
         this.battleFlowController = null;
@@ -65,12 +64,12 @@ class BattleManager {
      * Display a summary of all characters' health at the end of a turn
      */
     displayTurnSummary() {
-        // REFACTORING: Use new implementation if toggle is enabled
-        if (this.useNewImplementation && this.battleLogManager) {
+        // Delegate to BattleLogManager if available
+        if (this.battleLogManager) {
             return this.battleLogManager.displayTurnSummary();
         }
 
-        // Original implementation
+        // Fallback implementation
         this.logMessage('------ END OF TURN SUMMARY ------', 'info');
         
         // Show player team summary
@@ -96,14 +95,7 @@ class BattleManager {
         this.logMessage('--------------------------------', 'info');
     }
     
-    /**
-     * Add a toggle method for testing
-     */
-    toggleImplementation() {
-        this.useNewImplementation = !this.useNewImplementation;
-        console.log(`Implementation toggled. Using new implementation: ${this.useNewImplementation}`);
-        return this.useNewImplementation;
-    }
+    // toggleImplementation method removed in v0.5.27.2_Cleanup
     
     /**
      * Initialize all component managers in proper dependency order
@@ -238,8 +230,8 @@ class BattleManager {
      * Load status effect definitions from JSON file
      */
     async loadStatusEffectDefinitions() {
-        // REFACTORING: Use new implementation if toggle is enabled
-        if (this.useNewImplementation && this.statusEffectLoader) {
+        // Delegate to status effect loader if available
+        if (this.statusEffectLoader) {
             return this.statusEffectLoader.getDefinition ? true : false; // Just check if method exists
         }
 
@@ -303,8 +295,8 @@ class BattleManager {
      * Setup fallback status effect definitions if loading fails
      */
     setupFallbackStatusEffects() {
-        // REFACTORING: Use new implementation if toggle is enabled
-        if (this.useNewImplementation && this.statusEffectLoader) {
+        // Delegate to status effect loader if available
+        if (this.statusEffectLoader) {
             return this.statusEffectLoader.setupFallbackDefinitions ? this.statusEffectLoader.setupFallbackDefinitions() : false;
         }
 
@@ -353,21 +345,10 @@ class BattleManager {
             // Initialize component managers in dependency order
             await this.initializeComponentManagers();
             
-            // Set useNewImplementation flag based on successful initialization of required components
-            this.useNewImplementation = !!(this.statusEffectLoader && 
-                                          this.statusEffectManager && 
-                                          this.battleFlowController && 
-                                          this.typeEffectivenessCalculator &&
-                                          this.damageCalculator &&
-                                          this.healingProcessor &&
-                                          this.abilityProcessor &&
-                                          this.targetingSystem &&
-                                          this.passiveTriggerTracker);
-            console.log(`BattleManager: Using new implementation: ${this.useNewImplementation}`);
+            // Component initialization completed
+            console.log('BattleManager: Components initialized successfully');
         } catch (error) {
             console.error('BattleManager: Error initializing component managers:', error);
-            this.useNewImplementation = false;
-            console.log('BattleManager: Falling back to original implementation due to initialization error');
         }
         
         try {
@@ -548,8 +529,8 @@ class BattleManager {
      * @param {Object} action - The action to apply
      */
     applyActionEffect(action) {
-        // REFACTORING: Use new implementation if toggle is enabled
-        if (this.useNewImplementation && this.abilityProcessor) {
+        // Delegate to the ability processor if available
+        if (this.abilityProcessor) {
             // Delegate directly to the component for a clean implementation
             return this.abilityProcessor.applyActionEffect(action);
         }
@@ -835,8 +816,8 @@ class BattleManager {
      * @returns {Object|null} The action or null
      */
     generateCharacterAction(character, team) {
-        // REFACTORING: Use new implementation if toggle is enabled
-        if (this.useNewImplementation && this.actionGenerator) {
+        // Delegate to the action generator if available
+        if (this.actionGenerator) {
             return this.actionGenerator.generateCharacterAction(character, team);
         }
         
@@ -853,8 +834,8 @@ class BattleManager {
      * @param {Object} target - The character to affect
      */
     applyRandomStatusEffect(target) {
-        // REFACTORING: Use new implementation if toggle is enabled
-        if (this.useNewImplementation && this.abilityProcessor) {
+        // Delegate to the ability processor if available
+        if (this.abilityProcessor) {
             return this.abilityProcessor.applyRandomStatusEffect(target);
         }
         
@@ -872,8 +853,8 @@ class BattleManager {
      * @param {Object} ability - The ability being used
      */
     processEffect(effect, actor, target, ability) {
-        // REFACTORING: Use new implementation if toggle is enabled
-        if (this.useNewImplementation && this.abilityProcessor) {
+        // Delegate to the ability processor if available
+        if (this.abilityProcessor) {
             return this.abilityProcessor.processEffect(effect, actor, target, ability);
         }
         
@@ -942,113 +923,14 @@ class BattleManager {
      * @returns {Array} Array of executed passive results
      */
     processPassiveAbilities(trigger, character, additionalData = {}) {
-        // REFACTORING: Use new implementation if toggle is enabled
-        if (this.useNewImplementation && this.passiveAbilityManager) {
+        // Delegate to PassiveAbilityManager if available
+        if (this.passiveAbilityManager) {
             return this.passiveAbilityManager.processPassiveAbilities(trigger, character, additionalData);
         }
         
-        // Skip if character is defeated or has no passive abilities
-        if (!character || character.isDead || character.currentHp <= 0 || !character.passiveAbilities || !character.passiveAbilities.length) {
-            return [];
-        }
-        
-        // Will store results from executed passives
-        const results = [];
-        
-        // Skip if we don't have the behavior system
-        if (!this.battleBehaviors) {
-            return results;
-        }
-        
-        // Check for PassiveTriggerTracker component
-        if (!this.passiveTriggerTracker) {
-            console.warn("[BattleManager] PassiveTriggerTracker not available for processing passive abilities");
-        }
-        
-        // Process each passive ability
-        character.passiveAbilities.forEach(ability => {
-            // Skip if this passive has already been triggered this turn for this trigger type
-            const passiveId = ability.id || ability.name;
-            
-            let hasTriggeredThisTurn = false;
-            
-            if (this.passiveTriggerTracker) {
-                // Use the PassiveTriggerTracker to check if already triggered
-                hasTriggeredThisTurn = this.passiveTriggerTracker.hasFiredThisTurn(character, passiveId, trigger);
-            } else {
-                // Without tracker, default to allowing passives to trigger (permissive fallback)
-                hasTriggeredThisTurn = false;
-            }
-            
-            if (hasTriggeredThisTurn) {
-                console.debug(`Skipping duplicate trigger of ${passiveId} for ${character.name}, already triggered this turn`);
-                return; // Skip this passive ability
-            }
-            
-            // Special handling for onBattleStart trigger - needs battle-level tracking
-            if (trigger === 'onBattleStart') {
-                let hasTriggeredThisBattle = false;
-                
-                if (this.passiveTriggerTracker) {
-                    // Use the PassiveTriggerTracker to check if already triggered in battle
-                    hasTriggeredThisBattle = this.passiveTriggerTracker.hasFiredThisBattle(character, passiveId, trigger);
-                } else {
-                    // Without tracker, default to allowing passives to trigger
-                    hasTriggeredThisBattle = false;
-                }
-                
-                // Check if this has already been triggered in this battle
-                if (hasTriggeredThisBattle) {
-                    console.debug(`Skipping duplicate battle start trigger: ${ability.name} for ${character.name}`);
-                    return; // Skip this passive ability
-                }
-            }
-            
-            // Check if this passive has a trigger that matches the current trigger
-            if (ability.passiveTrigger === trigger) {
-                // Create context for the passive behavior
-                const passiveContext = {
-                    actor: character,
-                    ability: ability,
-                    battleManager: this,
-                    teamManager: this.teamManager,
-                    trigger: trigger,
-                    additionalData: additionalData
-                };
-                
-                // Get the behavior function name
-                const behaviorName = ability.passiveBehavior;
-                
-                // If the passive has a behavior function and our system has it registered
-                if (behaviorName && this.battleBehaviors.hasBehavior(behaviorName)) {
-                    try {
-                        // Execute the passive behavior
-                        const result = this.battleBehaviors.executePassiveBehavior(behaviorName, passiveContext);
-                        
-                        // If passive executed successfully, add to results and log message
-                        if (result && result.executed) {
-                            // Mark this passive as triggered for this turn and trigger type
-                            if (this.passiveTriggerTracker) {
-                                // Record in the PassiveTriggerTracker
-                                this.passiveTriggerTracker.recordTrigger(character, passiveId, trigger);
-                            }
-                            
-                            results.push(result);
-                            
-                            // Log the passive activation if a message was provided
-                            if (result.message) {
-                                const teamIdentifier = character.team === 'player' ? ' (ally)' : ' (enemy)';
-                                this.logMessage(`${character.name}${teamIdentifier}'s passive ability: ${result.message}`, 'action');
-                            }
-                        }
-                    } catch (error) {
-                        console.error(`Error executing passive ability '${ability.name}':`, error);
-                    }
-                }
-            }
-        });
-        
-        return results;
+        // Fallback with warning if PassiveAbilityManager is not available
+        console.warn("[BattleManager] PassiveAbilityManager not available for processing passive abilities");
+        return []; // Return empty results as fallback
     }
     
     /**
@@ -1162,8 +1044,8 @@ class BattleManager {
      * @param {string} type - The type of message (default, info, success, action, error)
      */
     logMessage(message, type = 'default') {
-        // REFACTORING: Use new implementation if toggle is enabled and BattleLogManager exists
-        if (this.useNewImplementation && this.battleLogManager) {
+        // Delegate to BattleLogManager if available
+        if (this.battleLogManager) {
             // Delegate to BattleLogManager without any additional dispatching here
             return this.battleLogManager.logMessage(message, type);
         }
@@ -1210,7 +1092,7 @@ class BattleManager {
      */
     checkAndResetDeathStatus(character) {
         // Delegate to HealingProcessor if available
-        if (this.useNewImplementation && this.healingProcessor) {
+        if (this.healingProcessor) {
             return this.healingProcessor.checkAndResetDeathStatus(character);
         }
         

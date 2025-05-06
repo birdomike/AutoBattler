@@ -470,7 +470,7 @@ Based on lessons learned in Version 0.5.1.3a, all component files must follow th
 - CHECKPOINT #5: Test ability execution with toggle on/off
 - CLEANUP: Remove original ability processing code after verification
 
-#### Stage 6: Passive Ability System
+#### Stage 6: Passive Ability System (✓ COMPLETED)
 - Implement PassiveAbilityManager.js and PassiveTriggerTracker.js
 - Connect to BattleFlowController and enable in toggle
 - CHECKPOINT #6: Test passive ability triggers with toggle on/off
