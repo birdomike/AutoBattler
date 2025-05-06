@@ -223,23 +223,214 @@ class BattleFlowController {
     }
     
     /**
-     * Processes battle start passive abilities
-     * @private
-     */
-    processBattleStartPassives() {
-        console.log("[BattleFlowController] Processing battle start passive abilities");
-        
-        const allCharacters = [
-            ...this.battleManager.playerTeam, 
-            ...this.battleManager.enemyTeam
-        ];
-        
-        allCharacters.forEach(character => {
-            if (character.currentHp > 0) {
-                this.battleManager.processPassiveAbilities('onBattleStart', character);
-            }
-        });
+    * Processes battle start passive abilities
+    * @private
+    */
+processBattleStartPassives() {
+    console.log("[BattleFlowController] Processing battle start passive abilities");
+    
+    const allCharacters = [
+    ...this.battleManager.playerTeam, 
+    ...this.battleManager.enemyTeam
+    ];
+    
+    allCharacters.forEach(character => {
+    // Enhanced validation before processing passives
+    if (!character) {
+    console.warn("[BattleFlowController] Skipping null character reference in battle start passives");
+    return;
     }
+    
+    // Validate character has required properties
+    if (!character.name) {
+    console.warn(`[BattleFlowController] Character missing name property in battle start passives`);
+    return;
+    }
+    
+    // Check character is alive
+    if (character.currentHp <= 0 || character.isDead) {
+    console.debug(`[BattleFlowController] Skipping passive processing for defeated character: ${character.name}`);
+    return;
+    }
+    
+    // Check character has passives to process
+    if (!Array.isArray(character.passiveAbilities) || character.passiveAbilities.length === 0) {
+    console.debug(`[BattleFlowController] Character has no passive abilities: ${character.name}`);
+    return;
+    }
+    
+    // All validation passed, process passive abilities
+    this.battleManager.processPassiveAbilities('onBattleStart', character);
+    });
+}
+
+/**
+ * Start the next turn in the battle sequence
+ * @returns {boolean} Success status
+ */
+startNextTurn() {
+    console.log("[BattleFlowController] Starting next turn");
+    
+    try {
+        // 1. Increment turn counter
+        this.battleManager.currentTurn++;
+        
+        // 2. Mark turn as in progress
+        this.battleManager.turnInProgress = true;
+        
+        // 3. Process status effects
+        this.battleManager.processStatusEffects();
+        
+        // 4. Process turn start passive abilities
+        this.processTurnStartPassives();
+        
+        // 5. Generate actions for all characters
+        this.battleManager.generateTurnActions();
+        
+        // 6. Start executing actions
+        if (this.battleManager.actionQueue && this.battleManager.actionQueue.length > 0) {
+            // Log the new turn
+            this.battleManager.logMessage(`Turn ${this.battleManager.currentTurn} begins!`, 'info');
+            
+            // Execute the first action
+            setTimeout(() => {
+                if (!this.battleManager.isPaused) {
+                    this.executeNextAction();
+                }
+            }, 1000);
+            
+            return true;
+        } else {
+            // No actions to execute
+            console.warn("[BattleFlowController] No actions to execute in turn");
+            this.finishTurn();
+            return false;
+        }
+    } catch (error) {
+        console.error("[BattleFlowController] Error starting next turn:", error);
+        return false;
+    }
+}
+
+/**
+ * Process turn start passive abilities for all characters
+ * @private
+ */
+processTurnStartPassives() {
+    console.log("[BattleFlowController] Processing turn start passive abilities");
+    
+    const allCharacters = [
+        ...this.battleManager.playerTeam, 
+        ...this.battleManager.enemyTeam
+    ];
+    
+    allCharacters.forEach(character => {
+        // Skip if character is invalid or defeated
+        if (!character || character.isDead || character.currentHp <= 0) {
+            return;
+        }
+        
+        // Process turn start passives
+        this.battleManager.processPassiveAbilities('onTurnStart', character);
+    });
+}
+
+/**
+ * Execute the next action in the queue
+ * @returns {boolean} Success status
+ */
+executeNextAction() {
+    console.log("[BattleFlowController] Executing next action");
+    
+    try {
+        // Check if battle is paused
+        if (this.battleManager.isPaused) {
+            console.log("[BattleFlowController] Battle is paused, not executing action");
+            return false;
+        }
+        
+        // Check if there are actions to execute
+        if (!this.battleManager.actionQueue || this.battleManager.actionQueue.length === 0) {
+            console.log("[BattleFlowController] No more actions in queue, finishing turn");
+            this.finishTurn();
+            return false;
+        }
+        
+        // Get the next action
+        const action = this.battleManager.actionQueue.shift();
+        
+        // Check if actor is still alive
+        if (action.actor.isDead || action.actor.currentHp <= 0) {
+            console.log(`[BattleFlowController] Actor ${action.actor.name} is defeated, skipping action`);
+            this.executeNextAction();
+            return false;
+        }
+        
+        // Apply the action
+        this.battleManager.applyActionEffect(action);
+        
+        // Schedule next action or finish turn
+        setTimeout(() => {
+            if (!this.battleManager.isPaused) {
+                // Check if battle has ended
+                if (this.battleManager.checkBattleEnd()) {
+                    console.log("[BattleFlowController] Battle has ended during action execution");
+                    return;
+                }
+                
+                // Execute next action or finish turn
+                if (this.battleManager.actionQueue && this.battleManager.actionQueue.length > 0) {
+                    this.executeNextAction();
+                } else {
+                    this.finishTurn();
+                }
+            }
+        }, this.battleManager.actionDelay);
+        
+        return true;
+    } catch (error) {
+        console.error("[BattleFlowController] Error executing action:", error);
+        return false;
+    }
+}
+
+/**
+ * Finish the current turn
+ * @returns {boolean} Success status
+ */
+finishTurn() {
+    console.log("[BattleFlowController] Finishing turn");
+    
+    try {
+        // Mark turn as not in progress
+        this.battleManager.turnInProgress = false;
+        
+        // Clear action queues
+        this.battleManager.actionQueue = [];
+        this.battleManager.turnActions = [];
+        
+        // Display turn summary
+        this.battleManager.displayTurnSummary();
+        
+        // Check if battle has ended
+        if (this.battleManager.checkBattleEnd()) {
+            console.log("[BattleFlowController] Battle has ended after turn completion");
+            return true;
+        }
+        
+        // Start next turn after delay
+        setTimeout(() => {
+            if (!this.battleManager.isPaused && this.battleManager.battleActive) {
+                this.battleManager.startNextTurn();
+            }
+        }, this.battleManager.turnDelay);
+        
+        return true;
+    } catch (error) {
+        console.error("[BattleFlowController] Error finishing turn:", error);
+        return false;
+    }
+}
 }
 
 // Make the class globally available
