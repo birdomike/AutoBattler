@@ -1,0 +1,1616 @@
+﻿
+
+===== FILE: Claude_Core.md =====
+# Claude's Core System Reference for AutoBattler
+
+> **PURPOSE OF THIS DOCUMENT:** This is the primary reference document for Claude to understand the AutoBattler game architecture and systems. It contains information about the core game systems, project structure, and development status. This document focuses on "what the system is" rather than implementation details. For guides on implementation, troubleshooting, and technical procedures, see the companion document "Claude_Implementation.md".
+
+> When Claude needs to understand the game's core architecture, planned features, or current development status, this is the document to reference. This approach reduces token usage while providing focused context about the game's design and systems.
+## Key Areas to Focus On
+- Phaser Battle Scene Implementation (current focus: modular component architecture)
+- Expanded Base Stats System (recently implemented: Strength, Intellect, Spirit)
+- Character Art System (most recent issue fixed: optimized battle-specific sprites in Combat_Version folder)
+- Team Builder UI and Battle UI interaction 
+- Battle Manager animation and status effect systems
+- Enhanced Passive Ability System (recently improved with visual feedback)
+- Project roadmap implementation status (see DEVELOPMENT_PLAN.md)
+
+## Game Concept
+This is an autobattler game where players select teams of characters that fight automatically against opponent teams. The core appeal is in team building, strategic selection of characters, and watching the battles unfold with some randomness. Characters will gain XP, level up, and unlock new abilities as they progress.
+
+## Project Structure
+```
+C:\Personal\AutoBattler\
+â”‚
+â”œâ”€â”€ assets/                   # All game assets
+â”‚   â”œâ”€â”€ images/               # Game images and sprites
+â”‚   â”‚   â”œâ”€â”€ Arena Art/        # Battle arena backgrounds (12 unique arenas)
+â”‚   â”‚   â”œâ”€â”€ Character Art/    # Character artwork
+â”‚   â”‚   â”‚   â””â”€â”€ Combat_Version/ # Battle-optimized (80x120px) character sprites
+â”‚   â”‚   â””â”€â”€ icons/            # UI and status effect icons
+â”‚   â”‚       â””â”€â”€ status/       # Status effect icons
+â”‚   â”‚           â””â”€â”€ status-icons/  # 25 status effect icon images
+â”‚   â”œâ”€â”€ css/                  # CSS stylesheets with UI styling
+â”‚   â””â”€â”€ audio/                # Sound effects and music
+â”‚       â””â”€â”€ InCombat_Sounds/  # Battle sound effects (75+ sound files)
+â”‚
+â”œâ”€â”€ Changelogs/               # Version history documentation
+â”‚   â”œâ”€â”€ changelog.md          # High-level changelog (main file)
+â”‚   â””â”€â”€ CHANGELOG_X.X.X.md    # Detailed technical changelogs for each version
+â”‚
+â”œâ”€â”€ Context/                  # Documentation for understanding project architecture
+â”‚   â”œâ”€â”€ Battle_Implementation_Plan.md     # Phaser implementation strategy
+â”‚   â”œâ”€â”€ Claude.md                         # This file - notes for Claude
+â”‚   â”œâ”€â”€ Lessons Learned.md                # Technical retrospectives
+â”‚   â””â”€â”€ Version 1.0 Vision.md             # Target feature set and roadmap
+â”‚
+â”œâ”€â”€ data/                     # Game data
+â”‚   â”œâ”€â”€ characters.json       # Character definitions with stats and abilities
+â”‚   â”œâ”€â”€ abilities.json        # Ability definitions
+â”‚   â”œâ”€â”€ status_effects/       # Status effect definitions directory
+â”‚   â””â”€â”€ status_effects.json   # Main status effect definitions
+â”‚
+â”œâ”€â”€ examples/                 # Example code and implementations
+â”‚   â”œâ”€â”€ passive_character.json           # Sample passive ability character
+â”‚   â””â”€â”€ PASSIVE_SYSTEM_IMPLEMENTATION.md # Passive system implementation guide
+â”‚
+â”œâ”€â”€ js/                       # JavaScript files
+â”‚   â”œâ”€â”€ battle_logic/         # Core battle system logic
+â”‚   â”‚   â”œâ”€â”€ BattleBehaviors.js       # Behavior system for battle actions
+â”‚   â”‚   â”œâ”€â”€ BehaviorRegistry.js      # Registry of all available behaviors
+â”‚   â”‚   â”œâ”€â”€ ActionDecisionBehaviors.js # Logic for choosing actions
+â”‚   â”‚   â”œâ”€â”€ TargetingBehaviors.js    # Logic for selecting targets
+â”‚   â”‚   â”œâ”€â”€ PassiveBehaviors.js      # Passive ability implementation
+â”‚   â”‚   â”œâ”€â”€ index.js                # Module exports
+â”‚   â”‚   â””â”€â”€ fallback/                # Fallback behaviors directory
+â”‚   â”‚
+â”‚   â”œâ”€â”€ entities/             # Character classes and entities
+â”‚   â”‚   â”œâ”€â”€ Character.js      # Base character class
+â”‚   â”‚   â””â”€â”€ Ability.js        # Abilities system
+â”‚   â”‚
+â”‚   â”œâ”€â”€ managers/             # Game managers
+â”‚   â”‚   â”œâ”€â”€ BattleManager.js  # Manages battle state and flow
+â”‚   â”‚   â”œâ”€â”€ BattleManager.js.hotfix  # Hotfix file for battle manager
+â”‚   â”‚   â”œâ”€â”€ BattleManager.js.updates  # Updates for battle manager
+â”‚   â”‚   â””â”€â”€ TeamManager.js    # Manages team composition
+â”‚   â”‚
+â”‚   â”œâ”€â”€ phaser/               # Phaser integration 
+â”‚   â”‚   â”œâ”€â”€ assets.js         # Asset management
+â”‚   â”‚   â”œâ”€â”€ bridge/           # Communication between game logic and Phaser
+â”‚   â”‚   â”‚   â”œâ”€â”€ BattleBridge.js     # Bridge class for battle events
+â”‚   â”‚   â”‚   â”œâ”€â”€ BattleBridgeInit.js # Bridge initialization
+â”‚   â”‚   â”‚   â””â”€â”€ BattleLogTester.js  # Utilities for testing log messages
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ audio/            # Phaser audio implementation
+â”‚   â”‚   â”‚   â””â”€â”€ PhaserSoundManager.js  # Sound system for Phaser
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ components/       # Reusable UI components
+â”‚   â”‚   â”‚   â”œâ”€â”€ battle/             # Battle-specific components
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ BattleControlPanel.js  # Battle controls (speed, pause, etc.)
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ BattleLogPanel.js      # Original panel-based battle log
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ CharacterSprite.js     # Individual character sprites
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ DirectBattleLog.js     # Simplified direct text battle log
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ TeamContainer.js       # Container for team organization
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â”œâ”€â”€ Button.js             # Reusable button component
+â”‚   â”‚   â”‚   â””â”€â”€ Panel.js              # Reusable panel component
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ debug/            # Development and debugging tools
+â”‚   â”‚   â”‚   â”œâ”€â”€ CoordinateDisplay.js  # Grid and coordinate visualization
+â”‚   â”‚   â”‚   â”œâ”€â”€ DebugManager.js       # Debug toolset manager
+â”‚   â”‚   â”‚   â””â”€â”€ ObjectIdentifier.js   # Object inspection utilities
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ scenes/           # Phaser scene definitions
+â”‚   â”‚   â”‚   â”œâ”€â”€ BattleScene.js       # Main battle scene
+â”‚   â”‚   â”‚   â”œâ”€â”€ BootScene.js         # Initial loading scene
+â”‚   â”‚   â”‚   â””â”€â”€ TeamBuilderScene.js  # Future Phaser team builder (not implemented)
+â”‚   â”‚   â”‚   
+â”‚   â”‚   â”œâ”€â”€ config.js         # Bridge configuration
+â”‚   â”‚   â”œâ”€â”€ PhaserConfig.js   # Phaser initialization config
+â”‚   â”‚   â””â”€â”€ uiManager.js      # UI mode management (DOM vs Phaser)
+â”‚   â”‚
+â”‚   â”œâ”€â”€ ui/                   # UI components (DOM-based)
+â”‚   â”‚   â”œâ”€â”€ BattleUI.js       # Original DOM-based battle interface
+â”‚   â”‚   â”œâ”€â”€ BattleUIDebug.js  # Debug utilities for battle UI
+â”‚   â”‚   â”œâ”€â”€ SoundManager.js   # Audio system management
+â”‚   â”‚   â”œâ”€â”€ TeamBuilderUI.js  # Team selection interface
+â”‚   â”‚   â”œâ”€â”€ TeamBuilderUIUpdates.js  # Updates for team builder
+â”‚   â”‚   â””â”€â”€ TooltipManager.js # UI tooltip system
+â”‚   â”‚
+â”‚   â”œâ”€â”€ utilities/            # Utility functions and helpers
+â”‚   â”‚   â”œâ”€â”€ DirectImageLoader.js       # Handles image loading for Battle UI
+â”‚   â”‚   â”œâ”€â”€ ImageDebugger.js           # Debugging tools for images
+â”‚   â”‚   â””â”€â”€ TeamBuilderImageLoader.js  # Handles image loading for Team Builder UI
+â”‚   â”‚
+â”‚   â””â”€â”€ game.js               # Main game initialization
+â”‚
+â”œâ”€â”€ lib/                      # Third-party libraries
+â”‚   â”œâ”€â”€ phaser-download-instructions.md  # Instructions for updating Phaser
+â”‚   â””â”€â”€ phaser.min.js         # Phaser.js library
+â”‚
+â”œâ”€â”€ _CombinedForAI/          # Utilities for AI assistance
+â”‚   â”œâ”€â”€ Changelogs.txt        # Combined changelog text
+â”‚   â”œâ”€â”€ CombineforAI_Tool.ps1 # Script to combine files for AI analysis
+â”‚   â”œâ”€â”€ ContextDocs.txt       # Combined context documentation
+â”‚   â”œâ”€â”€ Data_Examples.txt     # Sample data structures
+â”‚   â”œâ”€â”€ FolderStructure.txt   # Directory structure info
+â”‚   â”œâ”€â”€ Get_FileStructure_ofGame.ps1 # Script to generate folder structure
+â”‚   â”œâ”€â”€ JS_BattleLogic.txt    # Combined battle logic code
+â”‚   â”œâ”€â”€ JS_Core.txt           # Combined core game code
+â”‚   â”œâ”€â”€ JS_Managers.txt       # Combined manager code
+â”‚   â”œâ”€â”€ JS_Phaser.txt         # Combined Phaser implementation code
+â”‚   â””â”€â”€ JS_UI.txt             # Combined UI code
+â”‚
+â”œâ”€â”€ Development_Plan.md       # Original development roadmap
+â”œâ”€â”€ Role Base Stat Template.md     # Template for character stat distribution
+â”œâ”€â”€ Role Based Stat Multipliers.md # Stat growth rates for different roles
+â”œâ”€â”€ Role Chart.md                  # Details on character roles and specializations
+â”œâ”€â”€ Type Chart.md                  # Information on elemental types
+â”œâ”€â”€ Type Effectiveness Table.md    # Type advantage and weakness relationships
+â”œâ”€â”€ GeminiSuggestions.md      # AI-generated suggestions for game systems
+â”œâ”€â”€ project.config            # Phaser project configuration
+â”œâ”€â”€ index.html                # Main game HTML file
+â”œâ”€â”€ test_battle_log.html      # Battle log testing page
+â”œâ”€â”€ patch_notes.md            # Simplified patch notes
+â””â”€â”€ README.md                 # General project readme
+```
+
+## Changelog Documentation System
+
+The game uses a two-level changelog system to track version history:
+
+1. **High-Level Changelog** (`C:\Personal\AutoBattler\Changelogs\changelog.md`):
+   - Contains concise summaries of changes for each version
+   - Organized by version number and date
+   - Categories include: Added, Changed, Fixed, Improved, Technical
+   - Intended for quick reference and overview of changes
+
+2. **Detailed Technical Changelogs** (`C:\Personal\AutoBattler\Changelogs\CHANGELOG_X.X.X.md`):
+   - One file per version (e.g., `CHANGELOG_0.4.3.md`)
+   - Contains in-depth technical details about implementation
+   - Includes code snippets, before/after comparisons
+   - Documents problem analysis and solution approach
+   - Provides context for why changes were made
+   - Useful for developers who need to understand specific implementations
+
+### When Making Changes
+
+When implementing changes to the game:
+
+1. Update the high-level changelog with a concise summary
+2. Create a detailed technical changelog file if it's a significant version update
+3. Reference the detailed changelog in the high-level entry with: `*Note: For detailed information on specific implementation steps, see CHANGELOG_X.X.X.md*`
+
+This dual approach ensures both quick reference for general changes and detailed documentation for complex implementations.
+
+
+# System Overview
+
+## Core Game Systems
+
+### Characters System
+- Characters have: name, type, role, rarity, level, XP, and abilities
+- Characters start at level 1 and can progress to level 20
+- **Types**: Fire, Water, Nature, Electric, Ice, Rock, Metal, Air, Light, Dark, Psychic, Poison, Physical, Arcane, Mechanical, Void, Crystal, Storm, Ethereal, Blood, Plague, Gravity (with advantages/disadvantages and immunities)
+- **Roles**: Warrior, Sentinel (formerly Knight), Berserker, Ranger, Assassin, Bulwark (formerly Guardian), Mage, Invoker, Sorcerer, Summoner, Occultist (formerly Necromancer), Mystic (formerly Cleric), Champion (formerly Paladin), Wildcaller (formerly Druid), Striker (formerly Monk), Emissary (formerly Bard), Elementalist (formerly Shaman), Warden, Skirmisher, Battlemage, Venomancer, Trickster
+- Team synergies based on having multiple characters of same type/role
+- **Stats**:
+  - HP: Health points
+  - Attack: Power of auto-attacks
+  - Defense: Damage reduction
+  - Speed: Determines turn order
+  - Strength: Enhances physical ability damage
+  - Intellect: Enhances spell ability damage
+  - Spirit: Enhances healing effectiveness
+
+### Battle System
+- Turn-based auto-battle with initiative/speed system (fastest characters act first)
+- **Battle Visualization Evolution**:
+  - Original Battle UI: DOM-based implementation with Tailwind CSS
+  - Current approach: Phaser-based Battle Scene with modular component architecture
+  - Based on lessons from previous Phaser integration attempts (see `C:\Personal\AutoBattler\Context\Lessons Learned.md`)
+- **Combat features**:
+  - Type advantages/disadvantages system affecting damage
+  - Abilities with cooldowns and effects
+  - Status effects (burn, stun, regen, etc.)
+  - Critical hit (10%) and miss chance (5%) systems
+  - Damage variance (Â±20%)
+  - Auto-attacks and special abilities
+  - Ability damage scaling with Strength/Intellect/Spirit stats
+- **Battle UI includes**:
+  - Circle-based character representations with type-specific colors
+  - Health bars with dynamic coloring based on remaining health
+  - Status effect indicators with tooltips
+  - Battle log with detailed information and team identifiers
+  - Movement animations for attacks with directional awareness
+  - Floating damage/healing numbers
+  - Battle controls (speed, pause, next turn)
+  - Battle results screen (victory/defeat/draw)
+
+### Expanded Base Stats System
+- Implemented a new stat system beyond the basic HP, Attack, Defense stats:
+  - **Strength:** Increases physical ability damage (50% scaling)
+  - **Intellect:** Increases spell ability damage (50% scaling)
+  - **Spirit:** Increases healing effectiveness (50% scaling)
+- Added `damageType` property to abilities which determines stat scaling:
+  - `"physical"` - Scales with Strength
+  - `"spell"` - Scales with Intellect
+  - `"healing"` - Scales with Spirit
+  - `"utility"` - Effects scale with Spirit, but doesn't deal direct damage
+- **Role-specific stat distributions**:
+  - Each character has 325 total stat points distributed according to their role
+  - Mages have high Intellect, Warriors have high Strength, Clerics have high Spirit
+- **Battle calculations**:
+  - Physical damage: `base_damage + (strength * 0.5)`
+  - Spell damage: `base_damage + (intellect * 0.5)`
+  - Healing: `base_healing + (spirit * 0.5)`
+- **UI Display**:
+  - Added second row of stats in Hero Details panel
+  - Enhanced ability tooltips with detailed scaling formulas
+  - Battle log shows scaling contributions (e.g., "+73 from Intellect")
+
+### Passive Ability System
+- Characters can have special passive abilities that trigger automatically in response to battle events
+- **Trigger Types**:
+  - `onBattleStart`: Triggered when battle begins (team buffs, preparation effects)
+  - `onTurnStart`: Triggered at the start of each turn (regeneration, periodic effects)
+  - `onDamageTaken`: Triggered when character takes damage (counter, reflect, defensive reactions)
+  - `onDamageDealt`: Triggered when character deals damage (vampiric effects, bonus effects)
+  - `onHealed`: Triggered when character is healed (bonus health, amplification)
+  - `onHealingDone`: Triggered when character heals someone (bonus healing, secondary effects)
+  - `onKill`: Triggered when character defeats an enemy (bonus stats, special effects)
+  - `onDefeat`: Triggered when character is defeated (death effects, revenge)
+- **Key Components**:
+  - **PassiveBehaviors.js**: Contains behavior functions for different passive abilities
+  - `passiveTrigger`: Property on abilities defining when they trigger (corresponds to trigger types)
+  - `passiveBehavior`: Property on abilities referencing which behavior function to use
+  - `passiveData`: Optional configuration object to customize passive behavior
+- **Visual Feedback**: 
+  - Purple text notification appears above character when passive triggers
+  - Glowing effect surrounds character briefly
+  - Displays the name or effect of the passive ability that triggered
+- **Implementation**: 
+  - Added in version 0.4.4.3 with basic functionality
+  - Enhanced in version 0.4.4.6 with reflection depth tracking and battle-level tracking
+  - Further enhanced in version 0.4.4.7 with advanced behaviors and visual feedback
+- **Advanced Passive Behaviors**:
+  - `passive_OnKillEffect`: Triggers effects (healing, buffs, AoE damage) when killing enemies
+  - `passive_CriticalHitBoost`: Increases critical hit chance after specific battle events
+  - `passive_StatusOnHit`: Chance to apply status effects to targets when dealing damage
+  - `passive_DamageReflectOnHit`: Returns portion of damage back to attacker
+  - `passive_TeamBuffOnBattleStart`: Provides buffs to allies at battle start
+- **Example Implementation**:
+  ```json
+  {
+    "id": "character_bloodthirst",
+    "name": "Bloodthirst",
+    "description": "Heals for 10% of max HP when defeating an enemy",
+    "abilityType": "Passive",
+    "passiveTrigger": "onKill",
+    "passiveBehavior": "passive_OnKillEffect",
+    "passiveData": {
+      "effectType": "heal",
+      "value": 0.1
+    }
+  }
+  ```
+
+### Character Art System
+- **Image Loaders:** Two main systems handle character art:
+  1. `TeamBuilderImageLoader.js` - For Team Builder UI with advanced caching
+  2. `DirectImageLoader.js` - For Battle UI with animation support
+- **Multi-Resolution System:**
+  - High-resolution original art: Used in TeamBuilder UI
+  - Optimized 80x120px battle sprites: Used in Battle Scene (under `Combat_Version/` folder)
+  - Pre-sized sprites eliminate WebGL scaling artifacts and pixelation
+- **Global Caching:** Uses `window.CHARACTER_IMAGE_CACHE` object to store loaded images
+- **Positioning System:** Character art settings in `characters.json`:
+  ```json
+  "art": {                    // Default art positioning for Battle UI
+    "left": "-12px",         // Horizontal positioning
+    "top": "-52px",          // Vertical positioning
+    "width": "80px",          // Optional width override
+    "height": "120px"         // Optional height override
+  },
+  "teamBuilderArt": {...},   // Optional separate positioning for Team Builder UI
+  "detailArt": {...}         // Optional separate positioning for Detail View
+  ```
+- **Animation System:** Character art follows characters during attack animations using a cloning system
+  - Creates a clone of the character for movement
+  - Hides original character during animation
+  - Recent issue fixed: Characters would briefly display incorrect art during animations
+  - Fix implemented in v0.3.4: Improved clone creation and added protection system to prevent DirectImageLoader interference
+- **Key Files for Character Art:**
+  - `BattleUI.js` - `showAttackAnimation()` method (contains animation logic)
+  - `DirectImageLoader.js` - Battle UI image injection
+  - `TeamBuilderImageLoader.js` - Team Builder image loading 
+- **MutationObserver System for Art Loading**:
+  - Only watches specific containers that recycle DOM (#heroes-grid, #team-slots)
+  - Uses data attributes to track state and prevent redundant processing
+  - Provides early-exit conditions for elements that already have art
+  - Uses requestAnimationFrame throttling for performance
+
+### Team Builder UI
+- Implemented as vanilla JavaScript in `js/ui/TeamBuilderUI.js`
+- Uses CSS for styling in `assets/css/style.css`
+- Displays three panels: available heroes, team selection, and hero details
+- Allows selecting heroes, viewing their details, and building a team
+- Supports three battle modes: Random, Custom, and Campaign
+- Custom Battle mode lets players select both their team and their opponent's team
+- Enhanced to show expanded stat system (STR, INT, SPI) in detail view
+
+## Planned Systems
+
+### Character Progression System (To be implemented)
+- Characters gain XP from battles
+- Each level requires progressively more XP
+- Characters unlock additional abilities as they level up:
+  - Level 1: One default ability
+  - Level 5: Second ability unlocked
+  - Level 10: Third ability unlocked
+  - Level 15: Fourth ability unlocked
+- All characters have a default auto-attack regardless of level
+- UI will display locked abilities with level requirements
+
+### Role-Based Stat Growth (To be implemented)
+- Each role has unique stat growth multipliers applied per level
+- Stats are distributed across Attack, Health, Strength, Intellect, and Spirit
+- Each role gets a total of 5.0 stat points per level spread across all stats
+- Roles are specialized with distinct archetypes:
+  - **Physical Damage Dealers**:
+    - Warriors (Pure melee DPS-tank): High ATK/HP/STR (1.5/1.8/1.5)
+    - Berserkers (All-in bruiser): Very high ATK/STR (1.8/1.7)
+    - Rangers (Ranged glass cannon): Very high ATK/STR (1.7/1.9)
+    - Assassins (Burst finisher): Highest ATK/STR (1.9/1.9)
+  - **Tank Specialists**:
+    - Sentinels (Shielded striker): Highest HP with good STR (2.0/1.8)
+    - Bulwarks (Pure tank): Extreme HP with good STR (2.3/1.7)
+    - Wardens (Counter-tank/Disruptor): Very high HP (2.0)
+  - **Spell Casters**:
+    - Mages (Pure spell DPS): Very high INT with some SPI (2.4/0.8)
+    - Invokers (Supportive magic amplifier): Extreme INT (2.8) 
+    - Sorcerers (High-risk nuker): Extreme INT (2.8)
+  - **Healing/Support**:
+    - Mystics (Pure healer): Extreme SPI (2.5) 
+    - Champions (Tank-healer): Good HP with balanced stats (1.6 HP)
+    - Emissaries (Buffer/debuffer): High SPI (1.4)
+  - **Hybrid/Specialized**:
+    - Battlemages (Melee-caster): Balanced ATK/HP/STR/INT (1.3/1.4/1.3/1.4)
+    - Wildcallers (Nature hybrid): Balanced across all stats
+    - Venomancers (DoT specialist): High INT/SPI (1.8/1.2)
+    - Tricksters (Chaos/RNG): High SPI (1.5) with balanced other stats
+
+### Type Effectiveness System
+- Comprehensive type advantage/disadvantage system with 22 different types
+- Each type has specific strengths (does +50% damage) and weaknesses (does -50% damage)
+- Some types have immunities (e.g., Metal is immune to Poison, Physical cannot damage Ethereal)
+- Special interactions exist (e.g., Ethereal takes 3x damage from Light)
+- Example relationships:
+  - Fire is strong against Nature, Ice, and Metal but weak against Water and Rock
+  - Water is strong against Fire, Rock, and Metal but weak against Nature and Electric
+  - Light and Dark are opposing forces (strong against each other)
+  - Arcane is strong against itself and Nature
+  - Ethereal is immune to physical auto-attacks but very vulnerable to Light
+  - Mechanical types are strong against Arcane and Poison
+  - Void excels against Light and Psychic types
+
+### Arena System (Planned)
+- Multiple battle environments with distinct visual styles
+- Weather effects (rain, snow, fog) affecting battle conditions
+- Time of day variations (day, night, dusk)
+- Arena-specific bonuses for certain character types
+- Environmental hazards and obstacles
+- Arena selection interface before battles
+
+### Equipment System (Planned)
+- Characters can equip items that enhance their stats
+- Different item types (weapons, armor, accessories)
+- Item rarity system affecting bonus strength
+- Loot drops from battles
+- Inventory management interface
+
+## Current Implementation Status
+- Team Builder UI is fully functional with hero selection, team building, and custom battles (DOM-based)
+- Current development focus: Implementing Battle Scene in Phaser with modular component architecture
+- Previous DOM-based Battle UI is being replaced with a Phaser-based implementation
+- Expanded base stats system (STR, INT, SPI) fully implemented
+- Character progression system (leveling, ability unlocking) not yet implemented
+- Character art implemented for all characters with optimized battle versions
+- Core data structures and classes are defined and working
+- Initiative/speed system implemented for turn-based combat
+- Type advantages and status effects are functional
+- Implementation plan documented in `C:\Personal\AutoBattler\Context\Battle_Implementation_Plan.md`
+
+---
+
+===== FILE: Claude_Implementation.md =====
+# Claude's Implementation Guide for AutoBattler
+
+> **PURPOSE OF THIS DOCUMENT:** This is the technical implementation reference for Claude to assist with specific development tasks in the AutoBattler game. It contains detailed guides, code examples, troubleshooting steps, and technical patterns. While "Claude_Core.md" explains what the system is, this document focuses on how to work with the system.
+
+> When Claude needs to assist with adding new features, debugging issues, or understanding technical patterns, this is the document to reference. This focused approach reduces token usage while providing detailed implementation guidance without needing to load the entire system architecture documentation.
+
+> For understanding the overall game architecture, core systems, and development status, refer to the companion document "Claude_Core.md".
+
+
+# Implementation Guides
+
+## Guide: Adding New Arena Backgrounds
+
+This section provides instructions for adding new arena backgrounds to the battle system. When the user adds a new background image to `C:\Personal\AutoBattler\assets\images\Arena Art`, follow these steps to properly implement it:
+
+### Step 1: Add CSS for the New Background
+
+In `BattleUI.js`, find the Arena backgrounds CSS section (around line 445) and add a new entry for your background:
+
+```css
+.arena-newbackground {
+    background-image: url('assets/images/Arena Art/New Background.png');
+    background-size: cover;
+    background-position: center;
+}
+```
+
+Make sure to use the correct file name and extension, and note that we use relative paths starting with 'assets/' (not '/assets/').
+
+### Step 2: Update the Background Options in BattleUI
+
+Find the `showSettings` method in `BattleUI.js` and update the `bgOptions` array to include your new background. For example:
+
+```javascript
+// Only offer backgrounds that actually exist
+const bgOptions = ['default', 'grassyfield', 'newbackground'];
+```
+
+### Step 3: Update the Background Verification
+
+Find the `verifyBackgroundImages` call in the `initialize` method of BattleUI.js and add your new background to the array:
+
+```javascript
+this.verifyBackgroundImages(['default', 'grassyfield', 'newbackground']);
+```
+
+### Step 4: Update the setArenaBackground Method
+
+Modify the conditional check at the beginning of the `setArenaBackground` method to include your new background:
+
+```javascript
+// Accept valid backgrounds
+if (backgroundKey !== 'default' && backgroundKey !== 'grassyfield' && backgroundKey !== 'newbackground') {
+    console.log(`Background '${backgroundKey}' not implemented yet, using 'grassyfield' instead`);
+    backgroundKey = 'grassyfield';
+}
+```
+
+Also update the class removal line to include your new background:
+
+```javascript
+arenaElement.classList.remove('arena-default', 'arena-grassyfield', 'arena-newbackground');
+```
+
+Finally, modify the background image URL selection logic to handle your new background:
+
+```javascript
+if (backgroundKey !== 'default') {
+    let imageUrl;
+    
+    switch(backgroundKey) {
+        case 'grassyfield':
+            imageUrl = 'assets/images/Arena Art/Grassy Field.png';
+            break;
+        case 'newbackground':
+            imageUrl = 'assets/images/Arena Art/New Background.png';
+            break;
+        default:
+            imageUrl = 'assets/images/Arena Art/Grassy Field.png'; // fallback
+    }
+    
+    // Apply the background image
+    arenaElement.style.backgroundImage = `url("${imageUrl}")`;
+    // ... rest of the code
+}
+```
+
+### Step 5: Testing the New Background
+
+Test the new background by starting a battle and using the Settings button (gear icon) to select your new background. Make sure it loads correctly and displays properly in the battle arena.
+
+### Troubleshooting Common Issues
+
+1. **Background Not Showing**: Make sure the image path is correct and the file exists in the specified location.
+2. **Path Issues**: Ensure you're using relative paths starting with 'assets/' not '/assets/'.
+3. **CSS Not Applied**: Check that the CSS class name exactly matches the background key used in the code.
+4. **Image Format**: Make sure the image is in a web-friendly format (PNG, JPG, etc.)
+5. **File Size**: Large images may cause performance issues - consider optimizing large background images.
+
+## Guide: Integrating New Character Art
+
+This section provides instructions for adding new character art to the game. When the user adds new PNG files to `C:\Personal\AutoBattler\assets\images\Character Art`, follow these steps to properly implement them in both UI contexts.
+
+### Step 1: Update Character Image Paths
+
+The first step is to add the new image paths to both loader systems:
+
+#### In TeamBuilderImageLoader.js
+
+1. Locate the `characterImages` object in the constructor (around line 18)
+2. Add a new entry for each character following this format:
+   ```javascript
+   this.characterImages = {
+       'Aqualia': 'assets/images/Character Art/Aqualia.png',
+       'NewCharacterName': 'assets/images/Character Art/NewCharacterName.png'
+   };
+   ```
+
+#### In DirectImageLoader.js
+
+1. Locate the `characterImages` object (around line 21)
+2. Add the same entry to maintain consistency:
+   ```javascript
+   characterImages: {
+       'Aqualia': 'assets/images/Character Art/Aqualia.png',
+       'NewCharacterName': 'assets/images/Character Art/NewCharacterName.png'
+   },
+   ```
+
+### Step 2: Create Optimized Battle Version
+
+1. Create a battle-optimized version of the character art at exactly 80x120 pixels
+2. Save this optimized version in the `assets/images/Character Art/Combat_Version/` folder
+3. Ensure the filename matches the original filename exactly
+
+### Step 3: Add Positioning in characters.json
+
+The character's data in `characters.json` should be updated to include positioning information:
+
+```json
+{
+  "id": 7,
+  "name": "NewCharacterName",
+  "type": "fire",
+  "role": "Warrior",
+  "rarity": "Rare",
+  "stats": {
+    "hp": 95,
+    "attack": 18,
+    "defense": 10,
+    "speed": 12,
+    "strength": 95,
+    "intellect": 25,
+    "spirit": 24
+  },
+  "art": {                    // Base positioning for Battle UI
+    "left": "-12px",
+    "top": "-52px",
+    "width": "80px",
+    "height": "120px"
+  },
+  "teamBuilderArt": {        // Specific positioning for Team Builder UI
+    "left": "-20px",
+    "top": "-45px",
+    "width": "90px",
+    "height": "130px"
+  },
+  "detailArt": {             // Specific positioning for Detail View
+    "left": "-30px",
+    "top": "-45px",
+    "width": "140px",
+    "height": "140px"
+  },
+  "abilities": [
+    {
+      "name": "Sample Ability",
+      "damage": 25,
+      "cooldown": 3,
+      "isHealing": false,
+      "damageType": "physical",
+      "description": "A strong physical attack"
+    }
+  ]
+}
+```
+
+Each positioning context is optional. If a specific context isn't defined, the system will fall back to the next available one in this order:
+1. Context-specific setting (detailArt or teamBuilderArt)
+2. Generic art setting
+3. Default positioning
+
+### Step 4: Implementing in Team Builder UI
+
+The Team Builder UI automatically loads character art through the TeamBuilderImageLoader. Key points:
+
+1. Images are loaded when the Team Builder initializes
+2. The image cache is global and persists throughout the session
+3. Three UI contexts to consider:
+   - Available Heroes grid: Character card thumbnails
+   - Team Slots: Selected character thumbnails
+   - Hero Details: Larger character portrait
+
+The TeamBuilderImageLoader handles all three contexts based on the art positioning settings:
+- For grid and team slots: Uses `teamBuilderArt` or falls back to `art`
+- For detail view: Uses `detailArt` or falls back to `teamBuilderArt`, then `art`
+
+### Step 5: Implementing in Battle System UI
+
+The Battle UI loads character art through the DirectImageLoader (DOM version) or the CharacterSprite component (Phaser version). Key differences from Team Builder:
+
+1. Only uses the base `art` positioning (not teamBuilderArt or detailArt)
+2. DOM version: Injects art into circle elements with class `.character-circle`
+3. Phaser version: Uses optimized battle sprites from the Combat_Version folder
+4. Character name is identified through a sibling element with class `.text-sm.font-semibold`
+
+### Step 6: Testing Character Art Integration
+
+After adding new character art:
+
+1. Verify appearance in Team Builder:
+   - Check that art appears in the Available Heroes grid
+   - Check that art appears when character is selected in team slots
+   - Check that art appears properly in the Hero Details panel
+
+2. Verify appearance in Battle UI:
+   - Start a battle with the character on your team
+   - Check that art appears correctly positioned over the circle
+   - Verify that art moves correctly during attack animations
+
+3. Troubleshooting common issues:
+   - If art doesn't appear in Team Builder, check browser console for errors in TeamBuilderImageLoader
+   - If art doesn't appear in Battle UI, check browser console for errors in DirectImageLoader
+   - If art position is incorrect, adjust the positioning values in characters.json
+   - If art flickers, ensure the global CHARACTER_IMAGE_CACHE is properly populated
+
+### Example: Complete Implementation Process
+
+1. User adds new character art to `C:\Personal\AutoBattler\assets\images\Character Art\Drakarion.png`
+2. User creates optimized battle version at `C:\Personal\AutoBattler\assets\images\Character Art\Combat_Version\Drakarion.png`
+
+3. Update TeamBuilderImageLoader.js:
+   ```javascript
+   this.characterImages = {
+       'Aqualia': 'assets/images/Character Art/Aqualia.png',
+       'Drakarion': 'assets/images/Character Art/Drakarion.png'
+   };
+   ```
+
+4. Update DirectImageLoader.js:
+   ```javascript
+   characterImages: {
+       'Aqualia': 'assets/images/Character Art/Aqualia.png',
+       'Drakarion': 'assets/images/Character Art/Drakarion.png'
+   },
+   ```
+
+5. Update positioning in characters.json for Drakarion:
+   ```json
+   "art": {
+     "left": "-15px",
+     "top": "-50px",
+     "width": "85px",
+     "height": "125px"
+   },
+   "teamBuilderArt": {
+     "left": "-22px",
+     "top": "-48px"
+   },
+   "detailArt": {
+     "left": "-35px",
+     "top": "-50px",
+     "width": "150px",
+     "height": "150px"
+   }
+   ```
+
+6. Verify in browser that Drakarion's art appears correctly in all contexts
+
+## Guide: Using the Expanded Base Stats System
+
+This section provides detailed information on working with the expanded base stats system (Strength, Intellect, Spirit) that has been implemented in the game.
+
+### Stat Overview
+
+The AutoBattler game uses seven primary stats:
+
+1. **HP**: Health Points - How much damage a character can take before being defeated
+2. **Attack**: Attack Power - Determines basic attack damage
+3. **Defense**: Defense - Reduces damage taken from attacks
+4. **Speed**: Speed - Determines turn order in battle (higher goes first)
+5. **Strength**: Enhances physical ability damage
+6. **Intellect**: Enhances spell ability damage
+7. **Spirit**: Enhances healing and utility ability effectiveness
+
+### Ability Types and Stat Scaling
+
+Every ability has a `damageType` property that determines which stat affects its effectiveness:
+
+1. **physical**: Scales with Strength
+   - Formula: `base_damage + (strength * 0.5)`
+   - Example: A physical ability with 20 base damage used by a character with 100 Strength would deal 20 + (100 * 0.5) = 70 pre-defense damage
+
+2. **spell**: Scales with Intellect
+   - Formula: `base_damage + (intellect * 0.5)`
+   - Example: A spell ability with 30 base damage used by a character with 140 Intellect would deal 30 + (140 * 0.5) = 100 pre-defense damage
+
+3. **healing**: Scales with Spirit
+   - Formula: `base_healing + (spirit * 0.5)`
+   - Example: A healing ability with 25 base healing used by a character with 120 Spirit would restore 25 + (120 * 0.5) = 85 health
+
+4. **utility**: Effect scales with Spirit but doesn't deal direct damage
+   - These abilities provide effects like buffs, debuffs, or evasion
+   - The effectiveness or duration may scale with Spirit (currently a 30% scaling factor)
+
+### Creating Balanced Characters
+
+When balancing characters or creating new ones:
+
+1. **Maintain the 325 Point Total**: Each character should have exactly 325 points distributed across all seven stats to ensure balance
+2. **Follow Role Patterns**: Use the Base Stat Template as a guide for appropriate stat distribution by role
+3. **Primary Stat Focus**: Ensure characters have appropriate primary stats based on their role:
+   - Physical attackers (Warriors, Rangers, etc.): High Strength
+   - Spell casters (Mages, Sorcerers, etc.): High Intellect
+   - Healers (Clerics, Paladins, etc.): High Spirit
+
+### Adding New Abilities with Proper Scaling
+
+When adding new abilities to the game:
+
+1. Include the `damageType` property for every ability
+2. Choose the appropriate type based on the ability's nature:
+   ```json
+   {
+     "name": "Fireball",
+     "damage": 30,
+     "damageType": "spell",
+     "cooldown": 3,
+     "isHealing": false,
+     "description": "Launches a fiery projectile that deals spell damage"
+   }
+   ```
+3. For healing abilities, include both `isHealing: true` and `damageType: "healing"` for proper handling in both battle logic and UI
+4. For utility abilities that don't deal damage, use `damageType: "utility"` to indicate they scale with Spirit
+
+### Example Role-Based Stat Distributions
+
+Here are examples of appropriate stat distributions for different roles (level 1):
+
+1. **Warrior** (Physical Damage Dealer):
+   - HP: 122, ATK: 29, DEF: 21, SPD: 9
+   - STR: 95, INT: 25, SPI: 24
+   - Primary Focus: High Strength for physical abilities
+
+2. **Mage** (Spell Damage Dealer):
+   - HP: 82, ATK: 19, DEF: 8, SPD: 13
+   - STR: 13, INT: 146, SPI: 44
+   - Primary Focus: High Intellect for spell abilities
+
+3. **Cleric** (Healer):
+   - HP: 100, ATK: 19, DEF: 19, SPD: 8
+   - STR: 13, INT: 48, SPI: 118
+   - Primary Focus: High Spirit for healing abilities
+
+4. **Knight** (Defensive Tank):
+   - HP: 139, ATK: 26, DEF: 34, SPD: 6
+   - STR: 74, INT: 23, SPI: 23
+   - Primary Focus: High HP and Defense with moderate Strength
+
+### Testing and Troubleshooting
+
+When testing the expanded stat system:
+
+1. Verify each ability type correctly scales with its corresponding stat
+2. Check edge cases with very high or low stat values
+3. Ensure healing properly scales with Spirit
+4. Test utility abilities to confirm they benefit from Spirit
+5. Verify tooltips display correct scaling information
+6. Check that battle log messages show correct stat contributions
+
+---
+
+# Technical Reference
+
+## MutationObserver Pattern for Character Art
+
+The character art system uses an optimized MutationObserver pattern with these key features:
+
+1. **Targeted Observation**: Only specific DOM containers that recycle elements are watched
+   ```javascript
+   const targets = document.querySelectorAll('#heroes-grid, #team-slots');
+   targets.forEach(t => observer.observe(t, {...}));
+   ```
+
+2. **Idempotent Processing**: Uses data attributes to track state and prevent redundant work
+   ```javascript
+   // Early exit checks
+   if (container.querySelector('.character-art')) return; // Already has art
+   if (container.dataset.artSynced === '1') return;      // Already processed this frame
+   container.dataset.artSynced = '1';                    // Mark as processed
+   ```
+
+3. **Animation Frame Throttling**: Uses requestAnimationFrame instead of setTimeout
+   ```javascript
+   if (throttleId) return; // Already scheduled
+   throttleId = requestAnimationFrame(() => {
+     // Processing logic here
+     throttleId = null;
+   });
+   ```
+
+4. **Cleanup Before Adding**: Removes duplicate elements before adding new ones
+   ```javascript
+   const extraArts = artWrapper.querySelectorAll('.character-art:not(:first-child)');
+   extraArts.forEach(el => el.remove());
+   ```
+
+5. **Enable/Disable Control**: Global functions to disable during complex operations
+   ```javascript
+   window.disableArtObserver();  // Before complex DOM operations
+   // ... DOM changes ...
+   window.enableArtObserver();   // After changes complete
+   ```
+
+This pattern prevents performance issues, reduces console spam, and ensures stable rendering even with frequent DOM changes.
+
+## Project Design Guidelines
+
+- The game aims to be a fun, visually appealing autobattler with strategic depth and progression
+- Focus on creating engaging battle animations and visual feedback
+- Implement randomness in combat to keep battles interesting
+- RPG-style progression with character leveling and ability unlocking
+- The project is configured for a 1920x1080 resolution through project.config
+- Refer to DEVELOPMENT_PLAN.md for the complete roadmap
+
+
+===== FILE: Game_Explained.md =====
+# AutoBattler Game: How It All Works Together
+
+This document explains how the different components of the AutoBattler game interact with each other, written in understandable terms and with references to specific files where helpful.
+
+## Core Game Architecture
+
+The AutoBattler game uses a **Model-View-Controller (MVC)** pattern:
+
+- **Model**: Data files (JSON) and core entities (Character, Ability classes)
+- **View**: UI components (TeamBuilder UI, Battle UI - both DOM and Phaser-based)
+- **Controller**: Manager classes that handle game logic and state (BattleManager, TeamManager)
+
+### Startup Flow
+
+1. When the game loads in the browser, `index.html` includes all necessary JavaScript files
+2. `game.js` initializes the game when the window loads
+3. The TeamBuilder UI is displayed first, where players select characters
+4. When a battle starts, either the DOM-based BattleUI or Phaser-based BattleScene is shown
+
+## Data Management
+
+### Data Sources
+
+The game uses JSON files to store game data:
+
+- `data/characters.json`: Contains all character definitions with stats and abilities
+- `data/status_effects.json`: Defines status effects like stun, burn, etc.
+
+**Note**: While there is an `abilities.json` file in the data directory, it is defunct and not used by the game. All ability data is directly embedded within each character's definition in `characters.json`.
+
+These files are loaded once at startup and provide the foundation for all game entities.
+
+### Entity Classes
+
+Two key entity classes transform the raw JSON data into usable game objects:
+
+- `Character.js`: Creates character objects with methods for taking damage, healing, etc. Also parses and stores the character's embedded abilities.
+- `Ability.js`: Handles ability usage, cooldowns, and effects using the ability data extracted from characters.json
+
+Example of data flow:
+```
+JSON character data (including embedded abilities) â†’ Character object â†’ Added to team â†’ Displayed in UI â†’ Used in battle
+```
+
+## Manager Classes - The "Brains" of the Game
+
+### TeamManager (`js/managers/TeamManager.js`)
+
+**Purpose**: Handles everything related to character teams.
+
+**Responsibilities**:
+- Creating player and enemy teams
+- Storing selected characters
+- Generating random enemy teams
+- Team validation and balancing
+
+**Key Methods**:
+- `createTeam()`: Creates a team from selected character IDs
+- `generateEnemyTeam()`: Creates a balanced enemy team
+- `getTeam()`: Returns the current player or enemy team
+
+### BattleManager (`js/managers/BattleManager.js`)
+
+**Purpose**: Core battle logic controller - handles the entire battle process.
+
+**Responsibilities**:
+- Managing turn order based on speed
+- Processing character actions
+- Handling damage and healing
+- Managing status effects
+- Determining battle outcome
+
+**Key Methods**:
+- `startBattle()`: Initializes a new battle
+- `processTurn()`: Executes a single character's turn
+- `dealDamage()`: Applies damage to characters
+- `applyStatusEffect()`: Applies status effects to characters
+- `checkBattleEnd()`: Checks if the battle is over
+
+### Bridge Between Logic and Visuals
+
+BattleManager doesn't directly update the UI. Instead:
+
+1. BattleManager executes logic (e.g., a character takes damage)
+2. BattleManager dispatches events (e.g., "CHARACTER_DAMAGED")
+3. UI components listen for these events and update visuals accordingly
+
+This separation allows the same battle logic to work with either the DOM-based UI or the Phaser-based UI.
+
+## UI Systems
+
+The game has two UI systems: a traditional DOM-based UI and a newer Phaser-based UI.
+
+### DOM-based UI
+
+#### TeamBuilder UI (`js/ui/TeamBuilderUI.js`)
+
+**Purpose**: Allows players to select their team before battle.
+
+**Features**:
+- Character grid with filterable heroes
+- Team slots for selected characters
+- Character detail panel with stats and abilities
+- Battle mode selection (Quick, Custom, Campaign)
+
+#### DOM Battle UI (`js/ui/BattleUI.js`)
+
+**Purpose**: The original battle visualization system (being replaced by Phaser).
+
+**Features**:
+- Character circles with health bars
+- Status effect icons
+- Battle log with combat information
+- Attack animations
+- Battle controls (speed, pause)
+
+### Phaser-based UI
+
+#### Battle Scene (`js/phaser/scenes/BattleScene.js`)
+
+**Purpose**: The new battle visualization system using the Phaser game engine.
+
+**Features**:
+- Enhanced graphics with proper game objects
+- Optimized character sprites from Combat_Version folder
+- Smoother animations and visual effects
+- Modular component system for UI elements
+
+#### Component Architecture
+
+The Phaser implementation uses a component-based approach:
+
+- `TeamContainer.js`: Manages a team of characters
+- `CharacterSprite.js`: Handles individual character rendering
+- `BattleControlPanel.js`: UI controls for the battle
+- `DirectBattleLog.js`: Displays battle messages
+
+## Battle Bridge: Connecting Core Logic to Phaser
+
+The `BattleBridge` system (`js/phaser/bridge/BattleBridge.js`) acts as a communication layer between the core game logic and the Phaser visualization.
+
+**How it works**:
+1. BattleManager executes logic and dispatches events
+2. BattleBridge listens for these events
+3. BattleBridge forwards events to Phaser components
+4. Phaser components update visuals in response
+
+This bridge pattern allows the core battle logic to remain unchanged while supporting different visualization approaches.
+
+## Game Flow: From Start to Finish
+
+1. **Game Initialization**
+   - Load data files
+   - Initialize TeamBuilderUI
+   - Set up event listeners
+
+2. **Team Selection**
+   - Player selects characters in TeamBuilderUI
+   - TeamManager creates Character objects from selections
+   - Player chooses battle mode
+
+3. **Battle Initiation**
+   - Player clicks "Start Battle"
+   - TeamManager finalizes teams
+   - Either DOM BattleUI or Phaser BattleScene initializes
+   - BattleManager prepares the battle state
+
+4. **Battle Execution**
+   - BattleManager determines turn order based on Speed stat
+   - For each turn:
+     - Active character selects an action (auto-attack or ability)
+     - BattleManager executes the action
+     - Effects like damage, healing, and status effects are applied
+     - UI is updated through events
+   - Turns continue until one team is defeated
+
+5. **Battle Conclusion**
+   - BattleManager determines the outcome (victory/defeat)
+   - Result screen is displayed
+   - Player returns to TeamBuilder UI
+
+## Combat Mechanics
+
+### Turn Order System
+
+**How it works**: 
+- Characters are sorted by their Speed stat
+- Higher Speed characters act first
+- A complete round occurs when all characters have taken a turn
+- The process repeats until the battle ends
+
+### Damage Calculation
+
+Damage is calculated using:
+- Base ability damage (from the ability's "value" property)
+- Attacker's relevant stat (Strength for physical, Intellect for spell)
+  - Specified by the ability's "scalingStat" property
+  - With scaling factor defined in "scaleFactor" (typically 0.5)
+- Target's defense
+- Type effectiveness (bonus or penalty)
+- Random variance (Â±20%)
+- Critical hits (10% chance for +50% damage)
+
+Formula:
+```
+Final Damage = (Base Damage + Stat Scaling) * Type Multiplier * (1 - Defense Factor) * Variance * Critical Multiplier
+```
+
+### Type Effectiveness System
+
+Each character has a Type (Fire, Water, etc.) that influences damage:
+- Strong against certain types: deals +50% damage
+- Weak against certain types: deals -50% damage
+- Some immunities exist (Metal is immune to Poison)
+- Special interactions (Ethereal takes 3x damage from Light)
+
+The system is defined in `Type Effectiveness Table.md`.
+
+### Ability and Effect System
+
+Each character has several abilities defined directly in their character data. Abilities are structured as follows:
+
+**Ability Types**:
+- **Active**: Skills that must be manually triggered and have cooldowns
+- **Passive**: Automatic abilities that trigger under specific conditions
+
+**Active Ability Properties**:
+- `id`: Unique identifier (e.g., "drakarion_flame_strike")
+- `name`: Display name
+- `damage`: Base damage/healing amount
+- `cooldown`: Turns between uses
+- `damageType`: What stat it scales with ("physical", "spell", "healing", "utility")
+- `targetType`: Who it can target ("SingleEnemy", "AllEnemies", "Self", etc.)
+- `selectionWeight`: AI weighting for ability selection
+- `effects`: Array of specific effects the ability applies
+
+**Effect Types**:
+- `Damage`: Direct damage to targets
+- `Healing`: Direct healing to targets
+- `ApplyStatus`: Applies status effects like burn, stun, etc.
+
+**Passive Ability Properties**:
+- `passiveTrigger`: When it activates ("onBattleStart", "onTurnStart", "onDamageTaken", etc.)
+- `passiveBehavior`: Which function handles the effect (e.g., "passive_DamageReflectOnHit")
+- `passiveData`: Configuration data for the passive
+
+### Status Effects
+
+Status effects apply temporary conditions to characters:
+- Damage over time (burn, poison, bleed)
+- Disables (stun, freeze)
+- Stat modifications (attack up/down, defense up/down, speed up/down)
+- Special conditions (taunt, evade, shield, immune)
+
+Effects are processed at the start of each turn and expire after their set duration.
+
+## Audio System
+
+**[PLANNED BUT NOT FULLY IMPLEMENTED]**
+
+While there are audio files in the `assets/audio/` directory and a `SoundManager.js`, the audio system is not fully implemented. The current structure includes:
+
+- `js/ui/SoundManager.js`: Basic audio management
+- `js/phaser/audio/PhaserSoundManager.js`: Phaser-specific sound implementation
+
+The planned system will include:
+- Battle sound effects (attacks, abilities, etc.)
+- UI sounds (button clicks, character selection)
+- Background music
+- Volume controls
+
+## Character Art System
+
+The character art system manages the display of character images in the UI.
+
+**Components**:
+- `TeamBuilderImageLoader.js`: Loads character art for TeamBuilder
+- `DirectImageLoader.js`: Loads character art for DOM Battle UI
+- Combat_Version folder: Contains optimized 80x120px sprites for Phaser Battle Scene
+
+**Key Features**:
+- Global image caching to prevent repeated loading
+- Position customization through character data
+- Multi-resolution support (high-res for TeamBuilder, optimized for Battle)
+- MutationObserver pattern for efficient DOM updates
+
+## Debug and Development Tools
+
+The game includes several debugging tools to aid in development:
+
+- `CoordinateDisplay.js`: Grid overlay with coordinate tracking (toggle with Ctrl+G)
+- `ObjectIdentifier.js`: Inspect game objects
+- `DebugManager.js`: Central control for debug tools
+- `BattleUIDebug.js`: Special debug features for Battle UI
+- `ImageDebugger.js`: Tools for debugging image loading issues
+
+## Planned Systems (Not Yet Implemented)
+
+### 1. Character Progression System
+- Characters will gain XP and level up
+- New abilities unlock at specific levels
+- Stats increase based on role-specific growth rates
+
+### 2. Campaign Mode
+- Series of battles with increasing difficulty
+- Branching paths for player choice
+- Character shard collection to unlock new heroes
+- Persistent progression across multiple play sessions
+
+### 3. Equipment System
+- Items to boost character stats
+- Different equipment types (weapons, armor, accessories)
+- Rarity system affecting item power
+- Equipment management UI
+
+### 4. Expanded Arena System
+- Multiple battle environments with unique visuals
+- Weather effects affecting battles
+- Arena-specific bonuses for certain character types
+- Environmental hazards
+
+## Technical Implementation Details
+
+### Event System
+
+The game uses a custom event system for communication between components:
+
+1. Components dispatch events with data
+2. Other components listen for specific events
+3. When an event occurs, listener callbacks are executed
+
+Example events:
+- "CHARACTER_DAMAGED": When a character takes damage
+- "ABILITY_USED": When a character uses an ability
+- "BATTLE_ENDED": When a battle concludes
+- "STATUS_EFFECT_APPLIED": When a status effect is applied
+
+### Save System
+
+**[PLANNED BUT NOT IMPLEMENTED]**
+
+The game plans to include a save system with:
+- Three save slots
+- Local storage for progress
+- Character unlocks and progression
+- Team configurations
+
+### Performance Optimizations
+
+Several optimizations improve game performance:
+
+- Image caching to prevent repeated loading
+- Targeted DOM observation with MutationObserver
+- Request animation frame throttling
+- Pre-optimized battle sprites
+- Defensive loading patterns to prevent errors
+
+## File Structure Organization
+
+The codebase is organized into logical directories:
+
+- `assets/`: Game assets (images, audio)
+- `data/`: JSON data files
+- `js/`: All JavaScript code
+  - `battle_logic/`: Core battle mechanics
+  - `entities/`: Character and ability classes
+  - `managers/`: Manager classes
+  - `phaser/`: Phaser implementation
+  - `ui/`: DOM-based UI components
+  - `utilities/`: Helper functions
+
+## Conclusion
+
+The AutoBattler game uses a modular architecture with clear separation between data, logic, and presentation. This design allows for flexibility in implementation (like the transition from DOM to Phaser UI) while maintaining core gameplay mechanics.
+
+The event-based communication system enables loose coupling between components, making the code more maintainable and easier to extend with new features.
+
+As the game continues to develop, the planned systems will integrate with the existing architecture to create a more robust and feature-rich experience.
+
+
+===== FILE: Lessons Learned.md =====
+Lessons Learned:
+an in-depth "Lessons Learned" document that captures the specific technical challenges and solutions encountered during the first shot at our Phaser integration: (Focused on implementing a Team Builder UI with Phaser)
+
+Note: Versions listed are from a different branch- Just take the overall lesson, dont focus on version numbers. 
+
+# Phaser Integration - Comprehensive Lessons Learned
+
+## 1. Core Architecture and Initialization Issues
+
+### Key Problems Encountered
+- **Global Object Registration Failures**: Version 0.5.2.1 revealed critical errors where Phaser modules weren't properly attached to the window object, causing `Cannot read properties of undefined (reading 'initContainer')` errors.
+- **Scene Lifecycle Management**: Version 0.5.3.2 showed issues with scene state detection using non-existent `isPending()` method instead of directly checking `sys.status`.
+- **Incomplete Error Handling**: Early versions lacked comprehensive try/catch blocks, allowing silent failures that were difficult to diagnose.
+
+### Solutions That Worked
+- **Explicit Global Registration**: Adding explicit `window.ModuleName = ModuleName` statements with console verification.
+- **Immediate Visual Feedback**: Creating high-contrast visual elements to confirm scene creation.
+- **Defense in Depth**: Implementing multiple checks for object existence and multiple approaches for the same functionality.
+
+### Lesson for Future Implementation
+When integrating a Canvas-based framework like Phaser into an existing DOM application:
+1. **Create a Global Registration Pattern**: Standardize a pattern for attaching all modules to the global scope with verification.
+2. **Verify Scene States Correctly**: Use `scene.sys.status` rather than assuming method availability.
+3. **Implement Comprehensive Visibility Testing**: Add high-contrast elements during development to confirm rendering.
+
+## 2. UI Component Rendering Challenges
+
+### Key Problems Encountered
+- **Rounded Rectangle Errors**: Version 0.5.4.1b revealed that `setRoundedRectangle` calls don't exist in Phaser 3.55.2, causing visual elements to fail.
+- **Clipping/Masking Failures**: ScrollableList component showed `TypeError: this.contentContainer.setClipRect is not a function` in version 0.5.4.1d.
+- **Interactive Element Errors**: Multiple errors like `Container.setInteractive must specify a Shape or call setSize() first` in various components.
+
+### Solutions That Worked
+- **Proper Graphics API Usage**: Replaced non-existent methods with the proper Phaser 3.55.2 Graphics methods (`fillRoundedRect`, `strokeRoundedRect`).
+- **Multiple Masking Fallbacks**: Implemented a progressive fallback system with three different masking approaches (GeometryMask â†’ BitmapMask â†’ Scissor).
+- **Standardized Interactive Element Helper**: Created a centralized utility that follows the correct sequence: setSize() first, then setInteractive() with proper hit area.
+
+### Lesson for Future Implementation
+When creating UI components in Phaser:
+1. **Validate API Methods**: Explicitly check that the Phaser methods you're using exist in your specific version.
+2. **Implement Progressive Fallbacks**: Create multiple approaches for critical functionality with automatic detection and fallback.
+3. **Sequence Matters**: For interactive elements, follow a strict ordering: setSize() â†’ create hit area â†’ setInteractive() â†’ add event listeners.
+
+## 3. Data Access and State Management
+
+### Key Problems Encountered
+- **TeamManager Access Failures**: Multiple versions showed difficulty accessing the existing TeamManager from Phaser scenes.
+- **Method Binding Issues**: Functions were losing their `this` context when accessed across module boundaries.
+- **Inconsistent Data Access Patterns**: Different code used different approaches to access the same managers.
+
+### Solutions That Worked
+- **Bridge Design Pattern**: Implemented a "bridge" object that uses polling to continuously check for the real manager.
+- **Method Reference Binding**: Explicitly binding methods using `.bind(manager)` when storing references.
+- **Multiple Access Strategies**: Implementing multiple fallback approaches for accessing managers:
+  ```javascript
+  // Try multiple approaches to get TeamManager
+  if (window.teamManager) {
+      // Approach 1
+  } else if (window.TeamManager) {
+      // Approach 2
+  } else if (typeof teamManager !== 'undefined') {
+      // Approach 3
+  } else if (this.scene.sys.registry.has('teamManager')) {
+      // Approach 4
+  }
+  ```
+
+### Lesson for Future Implementation
+For data sharing between DOM and Canvas-based systems:
+1. **Use the Bridge Pattern**: Create a dedicated bridge object that handles communication between systems.
+2. **Preserve Method Context**: Always bind methods when storing them as references.
+3. **Implement Multiple Access Strategies**: Don't assume a single way of accessing shared state will always work.
+
+## 4. Debugging and Development Tools
+
+### Key Problems Encountered
+- **Limited Inspector Access**: Unlike DOM, Phaser canvas elements can't be inspected with browser tools.
+- **Position Identification Challenges**: Difficult to identify the exact coordinates for positioning elements.
+- **Object Identification**: No way to determine which object is under the cursor.
+
+### Solutions That Worked
+- **Custom Coordinate Display**: Created real-time X/Y coordinate tracking in version 0.5.5.2.
+- **Object Identification System**: Added object name display alongside coordinates when hovering over elements in 0.5.5.3.
+- **Interactive Layout Mode**: Implemented 'L' key toggle for drag-and-drop positioning with coordinate logging in 0.5.5.4.
+- **Clipboard Integration**: Added 'Y' key shortcut to copy object name to clipboard for easy referencing in code.
+
+### Lesson for Future Implementation
+For Canvas-based UI development:
+1. **Create Custom Inspector Tools**: Implement your own debugging tools since browser inspectors can't see inside Canvas.
+2. **Use Object Naming Conventions**: Systematically name all important objects for identification.
+3. **Implement Interactive Positioning**: Create tools for visually positioning elements and extracting coordinates.
+4. **Add Console Integration**: Enable copying element names to clipboard for direct use in your code.
+
+## 5. Component Design Patterns
+
+### Key Problems Encountered
+- **Inconsistent Component Initialization**: Different components followed different patterns for setup and initialization.
+- **Circular Dependencies**: Components sometimes referenced each other creating initialization race conditions.
+- **Error Propagation**: Errors in one component would cascade to others without proper isolation.
+
+### Solutions That Worked
+- **Standardized Component Lifecycle**: Implemented consistent initialization patterns across components.
+- **Centralized Interactive Helper**: Created `InteractiveHelper` utility for standardized interactive setup.
+- **Error Insulation**: Added targeted error handling within each component to prevent cascading failures.
+
+### Lesson for Future Implementation
+For component-based architecture:
+1. **Standardize Component Patterns**: Create consistent initialization and lifecycle patterns across all components.
+2. **Centralize Common Functionality**: Use utility classes for shared functionality instead of duplicating code.
+3. **Implement Component-Level Error Handling**: Each component should handle its own errors and prevent propagation.
+
+## 6. Specific Phaser API Pitfalls 
+
+### Key Problems Encountered
+- **Array Method Usage on Objects**: Errors like `TypeError: this.scene.manager.keys.includes is not a function` from version 0.5.3.0.
+- **Renderer-Specific Features**: Some features working in WebGL but not Canvas renderer or vice versa.
+- **Method Existence Assumptions**: Assuming methods exist without checking (e.g., `isPending()`, `setClipRect`).
+
+### Solutions That Worked
+- **Object Key Conversion**: Using `Object.keys(obj).includes()` instead of `obj.includes()`.
+- **Renderer Detection**: Implementing renderer-type detection and adaptive feature usage.
+- **Method Existence Checking**: Adding explicit checks before calling methods: `if (typeof obj.method === 'function')`.
+
+### Lesson for Future Implementation
+For Phaser API usage:
+1. **Verify Object Types**: Check if you're using array methods on actual arrays, not objects.
+2. **Detect Renderer Type**: Always check which renderer is active before using renderer-specific features.
+3. **Verify Method Existence**: Always check if methods exist before calling them, especially for less common API features.
+
+## 7. Parallel UI Management
+
+### Key Problems Encountered
+- **UI Toggling Issues**: Problems when switching between DOM and Phaser UIs.
+- **State Synchronization**: Keeping data in sync between two parallel UI systems.
+- **Resource Cleanup**: Memory leaks from improper cleanup when toggling UIs.
+
+### Solutions That Worked
+- **Enhanced Scene State Detection**: Properly checking `scene.sys.status` for accurate state management.
+- **Improved Event Handling**: Better event listeners for UI transitions with cleanup.
+- **Bridge Pattern for Data Sharing**: Using the TeamManager bridge to maintain synchronized state.
+
+### Lesson for Future Implementation
+For managing parallel UI systems:
+1. **Properly Manage Scene States**: Understand and correctly check scene states during transitions.
+2. **Implement Complete Cleanup**: Always remove all event listeners and dispose resources when switching UIs.
+3. **Use Data Bridges**: Implement dedicated bridge objects for data synchronization between UI systems.
+
+## 8. Recommendations for Battle UI Implementation
+
+Based on these lessons, here are specific recommendations for implementing the Battle UI with Phaser:
+
+1. **Start with Version 0.5.0.0** which contains the base Phaser integration without the TeamBuilder-specific code.
+
+2. **Transplant these critical debugging tools** from later versions:
+   - The coordinate display system from 0.5.5.2
+   - The object name identification system from 0.5.5.3
+   - The layout debug mode from 0.5.5.4 (modified for Battle UI elements)
+
+3. **Apply the Bridge Pattern** from 0.5.4.1d to connect BattleManager to Phaser's BattleScene.
+
+4. **Implement proper component initialization** following the patterns in 0.5.4.1c:
+   - Set sizes before making components interactive
+   - Use properly structured hit areas
+   - Implement comprehensive error handling
+
+5. **Use multi-level fallbacks** for critical systems like:
+   - Animation rendering
+   - Effect visualizations
+   - Character positioning
+
+6. **Create high-contrast debug visuals** during development to easily confirm proper rendering.
+
+7. **Establish a proper naming convention** for all Battle UI elements to support debugging.
+
+By applying these lessons learned from the TeamBuilder implementation challenges, you can create a more robust and maintainable Battle UI implementation while avoiding the pitfalls encountered in the previous integration effort.
+
+===== FILE: Potential Combat System Logic and Integration Improvements.md =====
+Okay, let's evaluate the combat system's logic and integration based on the code and design you've implemented.
+
+Overall Assessment:
+
+The combat system has a solid and well-thought-out foundation. The separation of concerns (BattleManager for flow, BehaviorRegistry/ActionDecisionBehaviors for AI logic, JSON files for data, UI classes for presentation) is a strong architectural choice that promotes modularity and flexibility. The move towards a data-driven approach for abilities (effects array) and status effects is excellent for future expansion.
+
+Strengths:
+
+Modularity: The core components are reasonably well-defined and separated. BattleManager doesn't need to know the specifics of how Lumina decides to heal, just that it needs to execute the "decideAction_PrioritizeHeal" behavior via the registry. This makes adding new character AI or abilities cleaner.
+
+Behavior System: Using a registry and dedicated behavior functions (ActionDecisionBehaviors.js, TargetingBehaviors.js, PassiveBehaviors.js) is highly flexible. You can create diverse character personalities and complex targeting rules without cluttering BattleManager.
+
+Data-Driven Design: Defining abilities, characters, and status effects in JSON (characters.json, status_effects.json) is the right way to go. It makes balancing, adding content, and modifying effects much easier than hardcoding values. The effects array in abilities is particularly powerful.
+
+Passive System: The trigger-based passive system (onTurnStart, onDamageTaken, etc.) is robust and covers most standard passive activation scenarios.
+
+Clear Turn Flow: The sequence of events within a turn (status processing -> action generation -> sorting -> execution -> cooldowns -> end-of-turn passives) is logical and follows common turn-based patterns.
+
+Potential Missing Pieces / Areas for Improvement:
+
+Action Resolution Detail:
+
+Accuracy/Evasion: Currently, calculateDamage has a flat 5% miss chance. A more robust system would involve character stats for Accuracy and Evasion, factoring them into hit checks before damage calculation. status_evade exists but isn't part of the core calculation yet.
+
+Critical Hits: Similar to misses, crits are a flat 10% chance in calculateDamage. Adding Critical Hit Chance and Critical Damage stats to characters would allow for more build diversity. status_crit_up exists but needs stat integration.
+
+Resistances/Vulnerabilities: Beyond basic type advantages (calculateTypeMultiplier), you could add resistances/vulnerabilities to specific damage types (e.g., Fire Resistance) or status effects (e.g., Stun Resistance) as character stats or passive effects.
+
+Block/Parry: No mechanics seem present for actively mitigating damage through blocking or parrying, which could add depth for defensive roles.
+
+Targeting Nuances:
+
+Advanced Logic: Current targeting is good (HP, random, allies/enemies). More advanced options could include targeting based on buffs/debuffs (e.g., target lowest defense, target highest attack), specific roles, or threat/aggro (though maybe not intended).
+
+AoE Patterns: targetAllEnemies, targetAllAllies, and targetAdjacentEnemies cover basics. More complex patterns (rows, columns, specific shapes) might be needed later.
+
+Multi-Target Application: Ensure applyActionEffect correctly handles abilities that target multiple entities simultaneously (e.g., applying damage/effects to all targets returned by targetAllEnemies, not just the first).
+
+AI Depth:
+
+Contextual Awareness: The current decision behaviors are good starting points. More advanced AI could consider the entire battle state: ally/enemy buffs/debuffs, remaining cooldowns, enemy types, potential lethal damage, setting up combos, etc.
+
+Adaptive Logic: AI could potentially change its behavior based on the situation (e.g., switch from offensive to defensive when low HP, even if not using decideAction_Defensive).
+
+Status Effect Interactions:
+
+Stacking/Overwriting: The status_effects.json has maxStacks. Ensure addStatusEffect correctly handles stacking values/durations and respects these limits. Define rules for how new effects interact with existing ones (e.g., does a stronger "Attack Up" replace a weaker one? Does "Stun" remove "Regen"?).
+
+Cleansing/Dispelling: No mechanics mentioned for removing buffs from enemies or debuffs from allies.
+
+Resource Management: Currently, only cooldowns limit ability use. Adding a resource system (Mana, Energy, Rage, etc.) could introduce another layer of strategic decision-making for ability usage.
+
+Battle Log Verbosity: The log is functional, but could be enhanced to show why decisions were made (e.g., "Lumina targets Drakarion (Lowest HP Ally)"), indicate critical hits/misses clearly, and show type effectiveness multipliers applied.
+
+Code Structure (BattleManager): As more mechanics get added, BattleManager.js could become very large. Consider if parts of its logic (e.g., processStatusEffects, applyActionEffect, calculateDamage) could be further broken down into helper classes or modules for better organization.
+
+Conclusion:
+
+You have a very well-structured and logical combat system core, particularly with the behavior delegation pattern. It's definitely not "missing" anything fundamental for an auto-battler of this type. The main areas for potential improvement involve adding more depth and nuance to the core mechanics (crits, accuracy, resistances), expanding the AI's decision-making capabilities, and potentially adding resource management. These are typical areas that get refined and expanded as game development progresses and complexity increases. The current foundation is strong enough to build upon.
+
+===== FILE: Version 1.0 Vision.md =====
+# VersionÂ 1.0 â€“Â First to Fall
+
+---
+## Game Loop: First to Fall
+
+1. **SaveÂ Slot Selection**  
+   When first launching the game, players choose one of three save slots (SlotÂ 1,Â 2,Â 3).  
+   Each slot holds an independent profileâ€”including unlocked heroes, progression, inventory, and talent data.
+
+2. **Team Builder Phase**  
+   **Screen:** TeamBuilderUI (`#team-builder-container`) -No Phaser Integration- DOM based UI for Teambuilder
+
+   - **Available Characters:** 8 initial heroes displayed with art, Type, Role, stats & abilities.  
+   - **Filters:** Sort by Role or Type.  
+   - **Selection:** Click a hero to animate them into one of 6 shaded team slots.  
+   - **Modes:**  
+     - **Quick Battle:** Instantly face a random AI team.  
+     - **Custom Battle:** Player picks both ally and enemy teams.  
+     - **Progression Mode (Campaign):** Series of battles, leveling, and hero unlocks on a **branching, nonâ€‘linear** mapâ€”players choose routes each act for meaningful agency.
+
+3. **Team Setup**  
+   - Selected heroes animate into midâ€‘screen slots (3 active slots).  
+   - Slots display: Hero name, HP, Type/Role, basic stats & a remove button.  
+   - Enemy team slots fill during Custom Battle or autoâ€‘populate in Quick Battle.
+
+4. **Battle Initiation**  
+   **Screen:** BattleÂ UI (`#game-container` + Phaser canvas)
+
+   **Visuals & Animations:**  
+   - Animated HP bars, statusâ€‘effect icons (burn, stun, regen), floating text for damage/healing/passive triggers.  
+   - Autoâ€‘attack â€œbonk & returnâ€ animations; full ability spells with particles (inspired by Hearthstone).  
+
+   **Mechanics:**  
+   - Turnâ€‘based autoâ€‘battler via **BattleManager**.  
+   - Speed stat â†’ turn order.  
+   - Process status effects at turn start.  
+   - **Type advantages** apply +/â€“ damage multipliers (see Type Effectiveness Table).  
+   - Each hero has 1 Passive (unlocked at lvlÂ 12 in campaign) and 3 Actives (unlock at lvlÂ 1,Â 5,Â 18 in campaign; all available in Quick/Custom).
+
+   **UI Features**  
+   - Phaser UI overlays integrated with the Phaser canvas: speed toggle, pause, next-turn & return implemented as Phaser Buttons, styled via Tailwind and positioned by scene layout.  
+   - Scrolling battle log rendered in a Phaser UI container, displaying passive triggers, critical hits, misses, and type-effect annotations, with tooltip support.  
+   - Themed arena backgrounds loaded as Phaser Sprites or Tilemaps (e.g. â€œGrassy Fieldâ€), with optional parallax or shader effects for added atmosphere.  
+
+5. **Battle Outcome**  
+   - Show Victory/Defeat overlay.  
+   - Grant XP & Shards in Campaign Mode.  
+   - Return to Team Builder or advance along the Campaign map.
+
+6. **Progression Mode (Campaign)**  
+   *(Structure draft)*  
+   - Heroes begin at LevelÂ 1; max LevelÂ 20.  
+   - **Ability Unlock Timeline:**  
+     - LvlÂ 1Â â†’ first Active ability  
+     - LvlÂ 5Â â†’ second Active ability  
+     - LvlÂ 12Â â†’ Passive unlocked  
+     - LvlÂ 18Â â†’ Ultimate ability unlocked  
+   - Leveling raises stats per Role growth profile.  
+   - **Branching Routes:** Players choose varied node paths each act, ensuring nonâ€‘linearity & replay variety.  
+   - **Hero Shard System**:  
+     - Defeating elites/bosses drops shards of that hero.  
+     - Collect 10 shards â†’ permanently unlock the hero.  
+     - Duplicate shards convert to **AscensionÂ XP**, raising the heroâ€™s max Level cap for extra power.
+
+   **Optional Systems:**  
+   - **Inventory/Loot System**: Relics, gear & consumables drop from nodes; equip to boost stats or unlock effects.  
+   - **Talent Tree System (per hero)**: Spend talent points at levelâ€‘up to specialize abilities, passives or stat nodes.
+
+7. **Character Design System**  
+   - **22 Roles** and **22 Types** deliver massive variety, teamâ€‘synergies & playstyles.  
+   - Each hero is unique in look, lore & mechanicsâ€”fueling the â€œgotta unlock â€™em allâ€ drive.
+
+   ### Role and Archetype Chart
+   | #  | Role                                    | Archetype                         |
+   |----|-----------------------------------------|-----------------------------------|
+   | 1  | **Warrior**                             | Pure melee DPSâ€‘tank               |
+   | 2  | **Sentinel** *(formerly Knight)*        | Shielded striker                  |
+   | 3  | **Berserker**                           | Allâ€‘in bruiser                    |
+   | 4  | **Ranger**                              | Ranged glass cannon               |
+   | 5  | **Assassin**                            | Burst finisher                    |
+   | 6  | **Bulwark** *(formerly Guardian)*       | Pure tank                         |
+   | 7  | **Mage**                                | Pure spell DPS                    |
+   | 8  | **Invoker**                             | Supportive Caster / Spell Booster |
+   | 9  | **Sorcerer**                            | Highâ€‘risk nuker                   |
+   | 10 | **Summoner**                            | Petâ€‘centric caster                |
+   | 11 | **Occultist** *(formerly Necromancer)*  | MinionÂ + DoT controller           |
+   | 12 | **Mystic** *(formerly Cleric)*          | Pure healer                       |
+   | 13 | **Champion** *(formerly Paladin)*       | Hybrid tankâ€‘healer                |
+   | 14 | **Wildcaller** *(formerly Druid)*       | Nature hybrid                     |
+   | 15 | **Striker** *(formerly Monk)*           | Agile skirmisher                  |
+   | 16 | **Emissary** *(formerly Bard)*          | Buffer / debuffer                 |
+   | 17 | **Elementalist** *(formerly Shaman)*    | Elemental support                 |
+   | 18 | **Warden**                              | Counterâ€‘Tank / Disruptor           |
+   | 19 | **Skirmisher**                          | Hitâ€‘andâ€‘run ranged DPS            |
+   | 20 | **Battlemage**                          | Hybrid meleeâ€‘caster brawler       |
+   | 21 | **Venomancer**                          | Damageâ€‘overâ€‘time Specialist       |
+   | 22 | **Trickster**                           | Chaos Controller / RNG Manipulator |
+
+   ### Type Description Table
+   | Type          | Description                                       |
+   |:--------------|:--------------------------------------------------|
+   | **Fire**      | Heat, flame, destructive energy.                  |
+   | **Water**     | Fluidity, healing, relentless force.               |
+   | **Nature**    | Plants, earth life, natural growth.               |
+   | **Electric**  | Energy, speed, sudden shocks.                     |
+   | **Ice**       | Cold, stillness, slowing effects.                 |
+   | **Rock**      | Durability, raw earth toughness.                  |
+   | **Air**       | Wind, agility, freedom.                           |
+   | **Light**     | Purity, illumination, righteousness.              |
+   | **Dark**      | Shadows, corruption, forbidden power.             |
+   | **Metal**     | Armor, resilience, forged strength.               |
+   | **Psychic**   | Mind, willpower, telekinetic forces.              |
+   | **Poison**    | Toxicity, decay, subversion.                      |
+   | **Physical**  | Brute force, martial prowess.                     |
+   | **Arcane**    | Ancient magic, mystical forces.                   |
+   | **Mechanical**| Constructs, machines, automation.                 |
+   | **Void**      | Entropy, corruption of reality, nothingness.      |
+   | **Crystal**   | Hardness, magical resonance, energy storage.      |
+   | **Storm**     | Tempests, violent weather, unleashed energy.      |
+   | **Ethereal**  | Ghosts, phasing, intangible existence.            |
+   | **Blood**     | Sacrificial magic, vitality, lifeâ€‘force mastery.  |
+   | **Plague**    | Diseases, rot, uncontrollable spread of corruption.|
+   | **Gravity**   | Force manipulation, crushing weight distortion.   |
+
+8. **Replayability & Engagement**  
+   - Build & refine teams with unlocked heroes  
+   - Experiment with Roles/Types for synergies  
+   - Chase Hero Shards & Ascension for power growth  
+   - Optional Loot + Talent systems deepen customization  
+   - Quick/Custom modes offer theorycraft playground  
+
+---
+*End of VersionÂ 1.0 Document*
+
+

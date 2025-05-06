@@ -1,0 +1,377 @@
+{
+  "status_effects": [
+    {
+      "id": "status_burn",
+      "name": "Burn",
+      "description": "Taking fire damage over time",
+      "icon": "assets/images/icons/status/burn.png",
+      "type": "DoT",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "trigger": "onTurnStart",
+        "action": "Damage",
+        "valueType": "PercentMaxHP",
+        "value": 0.05,
+        "damageType": "fire"
+      }
+    },
+    {
+      "id": "status_poison",
+      "name": "Poison",
+      "description": "Taking poison damage over time",
+      "icon": "assets/images/icons/status/poison.png",
+      "type": "DoT",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "trigger": "onTurnStart",
+        "action": "Damage",
+        "valueType": "Flat",
+        "value": 10,
+        "scalingStat": "Intellect",
+        "scaleFactor": 0.1,
+        "damageType": "poison"
+      }
+    },
+    {
+      "id": "status_regen",
+      "name": "Regeneration",
+      "description": "Healing over time",
+      "icon": "assets/images/icons/status/regen.png",
+      "type": "HoT",
+      "defaultDuration": 3,
+      "maxStacks": 1,
+      "behavior": {
+        "trigger": "onTurnStart",
+        "action": "Heal",
+        "valueType": "PercentMaxHP",
+        "value": 0.05,
+        "scalingStat": "Spirit",
+        "scaleFactor": 0.01
+      }
+    },
+    {
+      "id": "status_stun",
+      "name": "Stunned",
+      "description": "Unable to take actions",
+      "icon": "assets/images/icons/status/stun.png",
+      "type": "Control",
+      "defaultDuration": 1,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "PreventAction",
+        "value": true
+      }
+    },
+    {
+      "id": "status_freeze",
+      "name": "Frozen",
+      "description": "Unable to take actions and takes extra damage from fire",
+      "icon": "assets/images/icons/status/freeze.png",
+      "type": "Control",
+      "defaultDuration": 1,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "PreventAction",
+        "value": true,
+        "vulnerabilityType": "fire",
+        "vulnerabilityMod": 1.5
+      }
+    },
+    {
+      "id": "status_shield",
+      "name": "Shield",
+      "description": "Absorbs incoming damage",
+      "icon": "assets/images/icons/status/shield.png",
+      "type": "Shield",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "AbsorbDamage",
+        "valueType": "Flat",
+        "value": 0
+      }
+    },
+    {
+      "id": "status_atk_up",
+      "name": "Attack Up",
+      "description": "Attack increased by 25%",
+      "icon": "assets/images/icons/status/atk_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Attack",
+        "value": 0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_atk_down",
+      "name": "Attack Down",
+      "description": "Attack decreased by 25%",
+      "icon": "assets/images/icons/status/atk_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Attack",
+        "value": -0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_def_up",
+      "name": "Defense Up",
+      "description": "Defense increased by 30%",
+      "icon": "assets/images/icons/status/def_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Defense",
+        "value": 0.3,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_def_down",
+      "name": "Defense Down",
+      "description": "Defense decreased by 30%",
+      "icon": "assets/images/icons/status/def_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Defense",
+        "value": -0.3,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_spd_up",
+      "name": "Speed Up",
+      "description": "Speed increased by 20%",
+      "icon": "assets/images/icons/status/spd_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Speed",
+        "value": 0.2,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_spd_down",
+      "name": "Speed Down",
+      "description": "Speed decreased by 20%",
+      "icon": "assets/images/icons/status/spd_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Speed",
+        "value": -0.2,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_str_up",
+      "name": "Strength Up",
+      "description": "Strength increased by 25%",
+      "icon": "assets/images/icons/status/str_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Strength",
+        "value": 0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_str_down",
+      "name": "Strength Down",
+      "description": "Strength decreased by 25%",
+      "icon": "assets/images/icons/status/str_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Strength",
+        "value": -0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_int_up",
+      "name": "Intellect Up",
+      "description": "Intellect increased by 25%",
+      "icon": "assets/images/icons/status/int_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Intellect",
+        "value": 0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_int_down",
+      "name": "Intellect Down",
+      "description": "Intellect decreased by 25%",
+      "icon": "assets/images/icons/status/int_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Intellect",
+        "value": -0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_spi_up",
+      "name": "Spirit Up",
+      "description": "Spirit increased by 25%",
+      "icon": "assets/images/icons/status/spi_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Spirit",
+        "value": 0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_spi_down",
+      "name": "Spirit Down",
+      "description": "Spirit decreased by 25%",
+      "icon": "assets/images/icons/status/spi_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Spirit",
+        "value": -0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_taunt",
+      "name": "Taunt",
+      "description": "Forces enemies to target this character",
+      "icon": "assets/images/icons/status/taunt.png",
+      "type": "Control",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "ForceTarget",
+        "value": true
+      }
+    },
+    {
+      "id": "status_evade",
+      "name": "Evasion",
+      "description": "50% chance to avoid attacks",
+      "icon": "assets/images/icons/status/evade.png",
+      "type": "Buff",
+      "defaultDuration": 1,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "AvoidChance",
+        "value": 0.5
+      }
+    },
+    {
+      "id": "status_bleed",
+      "name": "Bleeding",
+      "description": "Taking physical damage over time that increases with movement",
+      "icon": "assets/images/icons/status/bleed.png",
+      "type": "DoT",
+      "defaultDuration": 3,
+      "maxStacks": 3,
+      "behavior": {
+        "trigger": "onTurnStart",
+        "action": "Damage",
+        "valueType": "Flat",
+        "value": 8,
+        "scalingStat": "Strength",
+        "scaleFactor": 0.1,
+        "damageType": "physical"
+      }
+    },
+    {
+      "id": "status_reflect",
+      "name": "Damage Reflect",
+      "description": "Returns 30% of damage taken back to attacker",
+      "icon": "assets/images/icons/status/reflect.png",
+      "type": "Buff",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "trigger": "onDamageTaken",
+        "action": "ReflectDamage",
+        "valueType": "PercentDamage",
+        "value": 0.3
+      }
+    },
+    {
+      "id": "status_vulnerable",
+      "name": "Vulnerable",
+      "description": "Takes 25% increased damage from all sources",
+      "icon": "assets/images/icons/status/vulnerable.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "DamageModifier",
+        "value": 1.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_immune",
+      "name": "Immunity",
+      "description": "Immune to status effects",
+      "icon": "assets/images/icons/status/immune.png",
+      "type": "Buff",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "StatusImmunity",
+        "value": true
+      }
+    },
+    {
+      "id": "status_crit_up",
+      "name": "Critical Boost",
+      "description": "Critical hit chance increased by 15%",
+      "icon": "assets/images/icons/status/crit_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "CriticalModifier",
+        "value": 0.15,
+        "isAdditive": true
+      }
+    }
+  ]
+}

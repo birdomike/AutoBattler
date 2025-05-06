@@ -1,0 +1,1921 @@
+﻿
+
+===== FILE: ActionDecisionBehaviors.js =====
+/**
+ * ActionDecisionBehaviors.js
+ * 
+ * Collection of action decision behavior functions for the battle system.
+ * These functions determine how characters decide which ability to use (or basic attack).
+ */
+
+import behaviorRegistry from './BehaviorRegistry.js';
+
+/**
+ * Context object expected for action decision behaviors:
+ * {
+ *   actor: Character,              // The character taking the action
+ *   availableAbilities: Object[],  // List of abilities with cooldown === 0
+ *   battleManager: BattleManager,  // Reference to BattleManager for battle state
+ *   teamManager: TeamManager       // Reference to TeamManager for team data
+ * }
+ */
+
+/**
+ * Default 50% chance to use an ability if available (matches original behavior)
+ * @param {object} context - Action decision context
+ * @returns {object|null} - Selected ability or null for basic attack
+ */
+function decideAction_Random50Percent(context) {
+    const { availableAbilities } = context;
+    
+    // If no abilities are available, use basic attack
+    if (!availableAbilities || availableAbilities.length === 0) {
+        return null; // Null indicates basic attack
+    }
+    
+    // 50% chance to use an ability (from original BattleManager)
+    if (Math.random() > 0.5) {
+        // Select random ability from available ones
+        const randomIndex = Math.floor(Math.random() * availableAbilities.length);
+        return availableAbilities[randomIndex];
+    }
+    
+    // Use basic attack
+    return null;
+}
+
+/**
+ * Uses weighted random selection for ability choice
+ * @param {object} context - Action decision context
+ * @returns {object|null} - Selected ability or null for basic attack
+ */
+function decideAction_WeightedRandomAbility(context) {
+    const { actor, availableAbilities } = context;
+    
+    // If no abilities are available, use basic attack
+    if (!availableAbilities || availableAbilities.length === 0) {
+        return null; // Null indicates basic attack
+    }
+    
+    // Use character's abilityAffinity if defined, or default to 0.7 (70% chance to consider ability)
+    const abilityAffinity = actor.abilityAffinity || 0.7;
+    
+    // Check if we should consider using an ability at all
+    if (Math.random() < abilityAffinity) {
+        // Calculate total weight of all available abilities
+        let totalWeight = 0;
+        for (const ability of availableAbilities) {
+            // Use ability's selectionWeight or default to 1.0
+            const weight = ability.selectionWeight || 1.0;
+            totalWeight += weight;
+        }
+        
+        // Generate random weight
+        let randomWeight = Math.random() * totalWeight;
+        
+        // Find the ability that corresponds to this weight
+        for (const ability of availableAbilities) {
+            const weight = ability.selectionWeight || 1.0;
+            randomWeight -= weight;
+            
+            if (randomWeight <= 0) {
+                return ability;
+            }
+        }
+        
+        // Fallback in case of rounding errors
+        return availableAbilities[availableAbilities.length - 1];
+    }
+    
+    // Use basic attack
+    return null;
+}
+
+/**
+ * Prioritizes healing abilities when allies are below health threshold
+ * @param {object} context - Action decision context
+ * @returns {object|null} - Selected ability or null for basic attack
+ */
+function decideAction_PrioritizeHeal(context) {
+    const { actor, availableAbilities, teamManager, battleManager } = context;
+    
+    // If no abilities are available, use basic attack
+    if (!availableAbilities || availableAbilities.length === 0) {
+        return null;
+    }
+    
+    // Get actor's team
+    const actorTeam = teamManager.getCharacterTeam(actor);
+    
+    // Check team health status
+    const allCharacters = battleManager.getAllCharacters();
+    const allies = allCharacters.filter(character => 
+        teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
+    );
+    
+    // Calculate average health percentage of team
+    let totalHealthPercent = 0;
+    allies.forEach(ally => {
+        totalHealthPercent += (ally.currentHp / ally.stats.hp);
+    });
+    const avgHealthPercent = totalHealthPercent / allies.length;
+    
+    // Check if any ally is below 50% health
+    const needsHealing = allies.some(ally => (ally.currentHp / ally.stats.hp) < 0.5);
+    
+    // If healing is needed
+    if (needsHealing) {
+        // Find healing abilities
+        const healingAbilities = availableAbilities.filter(ability => 
+            ability.isHealing || ability.damageType === 'healing'
+        );
+        
+        if (healingAbilities.length > 0) {
+            // Get the healing ability with highest selectionWeight
+            return healingAbilities.reduce((best, current) => {
+                const currentWeight = current.selectionWeight || 1.0;
+                const bestWeight = best.selectionWeight || 1.0;
+                return currentWeight > bestWeight ? current : best;
+            }, healingAbilities[0]);
+        }
+    }
+    
+    // If team is healthy or no healing abilities available
+    // Use weighted random selection like normal
+    return decideAction_WeightedRandomAbility(context);
+}
+
+/**
+ * Always prioritizes offensive abilities
+ * @param {object} context - Action decision context
+ * @returns {object|null} - Selected ability or null for basic attack
+ */
+function decideAction_PrioritizeOffense(context) {
+    const { availableAbilities } = context;
+    
+    // If no abilities are available, use basic attack
+    if (!availableAbilities || availableAbilities.length === 0) {
+        return null;
+    }
+    
+    // Filter out healing/utility abilities
+    const offensiveAbilities = availableAbilities.filter(ability => 
+        !ability.isHealing && ability.damageType !== 'healing' && ability.damageType !== 'utility'
+    );
+    
+    if (offensiveAbilities.length > 0) {
+        // Select the offensive ability with highest selectionWeight
+        return offensiveAbilities.reduce((best, current) => {
+            const currentWeight = current.selectionWeight || 1.0;
+            const bestWeight = best.selectionWeight || 1.0;
+            return currentWeight > bestWeight ? current : best;
+        }, offensiveAbilities[0]);
+    }
+    
+    // If no offensive abilities available, fall back to weighted random selection
+    return decideAction_WeightedRandomAbility(context);
+}
+
+/**
+ * Prioritizes defensive abilities, especially when health is low
+ * @param {object} context - Action decision context
+ * @returns {object|null} - Selected ability or null for basic attack
+ */
+function decideAction_Defensive(context) {
+    const { actor, availableAbilities, teamManager, battleManager } = context;
+    
+    // If no abilities are available, use basic attack
+    if (!availableAbilities || availableAbilities.length === 0) {
+        return null;
+    }
+    
+    // Calculate health percentage
+    const healthPercent = actor.currentHp / actor.stats.hp;
+    
+    // Check if health is below 50%
+    const isLowHealth = healthPercent < 0.5;
+    
+    // Higher chance to use abilities when health is low
+    const abilityAffinity = isLowHealth ? 0.9 : 0.7;
+    
+    // First check if we should consider using an ability at all
+    if (Math.random() < abilityAffinity) {
+        // Categorize available abilities
+        const defensiveAbilities = availableAbilities.filter(ability => {
+            // Consider abilities that provide shields, healing, or defensive buffs
+            if (ability.isHealing || ability.damageType === 'healing') return true;
+            if (ability.damageType === 'utility') return true;
+            
+            // Check for defensive effects in the effects array
+            if (ability.effects && Array.isArray(ability.effects)) {
+                return ability.effects.some(effect => 
+                    (effect.type === 'ApplyStatus' && 
+                    ['status_def_up', 'status_shield', 'status_regen', 'status_evade'].includes(effect.statusEffectId)) ||
+                    (effect.type === 'StatBuff' && 
+                    ['Defense', 'MaxHP'].includes(effect.targetStat))
+                );
+            }
+            
+            return false;
+        });
+        
+        // If low health and defensive abilities available, use them
+        if (isLowHealth && defensiveAbilities.length > 0) {
+            // Select defensive ability with highest weight
+            return defensiveAbilities.reduce((best, current) => {
+                const currentWeight = current.selectionWeight || 1.0;
+                const bestWeight = best.selectionWeight || 1.0;
+                return currentWeight > bestWeight ? current : best;
+            }, defensiveAbilities[0]);
+        }
+        
+        // Otherwise use weighted selection from all abilities
+        // Calculate total weight with higher weight for defensive abilities
+        let totalWeight = 0;
+        for (const ability of availableAbilities) {
+            let weight = ability.selectionWeight || 1.0;
+            
+            // Increase weight for defensive abilities
+            if (defensiveAbilities.includes(ability)) {
+                weight *= 1.5; // 50% higher weight for defensive abilities
+            }
+            
+            totalWeight += weight;
+        }
+        
+        // Generate random weight
+        let randomWeight = Math.random() * totalWeight;
+        
+        // Find the ability that corresponds to this weight
+        for (const ability of availableAbilities) {
+            let weight = ability.selectionWeight || 1.0;
+            
+            // Increase weight for defensive abilities
+            if (defensiveAbilities.includes(ability)) {
+                weight *= 1.5;
+            }
+            
+            randomWeight -= weight;
+            
+            if (randomWeight <= 0) {
+                return ability;
+            }
+        }
+        
+        // Fallback in case of rounding errors
+        return availableAbilities[availableAbilities.length - 1];
+    }
+    
+    // Use basic attack
+    return null;
+}
+
+/**
+ * Always tries to use abilities if available, prioritizing by selection weight
+ * @param {object} context - Action decision context
+ * @returns {object|null} - Selected ability or null for basic attack
+ */
+function decideAction_AlwaysUseAbilities(context) {
+    const { availableAbilities } = context;
+    
+    // If no abilities are available, use basic attack
+    if (!availableAbilities || availableAbilities.length === 0) {
+        return null;
+    }
+    
+    // Select the ability with highest selectionWeight
+    return availableAbilities.reduce((best, current) => {
+        const currentWeight = current.selectionWeight || 1.0;
+        const bestWeight = best.selectionWeight || 1.0;
+        return currentWeight > bestWeight ? current : best;
+    }, availableAbilities[0]);
+}
+
+// Register all action decision behaviors
+behaviorRegistry.registerActionDecisionBehavior('decideAction_Random50Percent', decideAction_Random50Percent, true); // Set as default
+behaviorRegistry.registerActionDecisionBehavior('decideAction_WeightedRandomAbility', decideAction_WeightedRandomAbility);
+behaviorRegistry.registerActionDecisionBehavior('decideAction_PrioritizeHeal', decideAction_PrioritizeHeal);
+behaviorRegistry.registerActionDecisionBehavior('decideAction_PrioritizeOffense', decideAction_PrioritizeOffense);
+behaviorRegistry.registerActionDecisionBehavior('decideAction_AlwaysUseAbilities', decideAction_AlwaysUseAbilities);
+behaviorRegistry.registerActionDecisionBehavior('decideAction_Defensive', decideAction_Defensive);
+
+// Export individual behaviors for direct use if needed
+export {
+    decideAction_Random50Percent,
+    decideAction_WeightedRandomAbility,
+    decideAction_PrioritizeHeal,
+    decideAction_PrioritizeOffense,
+    decideAction_AlwaysUseAbilities,
+    decideAction_Defensive
+};
+
+
+===== FILE: BattleBehaviors.js =====
+/**
+ * BattleBehaviors.js
+ * 
+ * Main entry point for the battle behavior system.
+ * Imports and re-exports all behavior functionality.
+ */
+
+import behaviorRegistry from './BehaviorRegistry.js';
+
+// Import all behaviors to ensure they're registered
+import * as targetingBehaviors from './TargetingBehaviors.js';
+import * as actionDecisionBehaviors from './ActionDecisionBehaviors.js';
+import * as passiveBehaviors from './PassiveBehaviors.js';
+
+/**
+ * A centralized interface for executing behavior functions
+ */
+class BattleBehaviors {
+    constructor() {
+        this.registry = behaviorRegistry;
+    }
+    
+    /**
+     * Selects a target for an ability or action based on targeting logic
+     * @param {string|null} targetingLogic - Name of targeting logic to use
+     * @param {object} context - Targeting context
+     * @returns {Character|Character[]|null} - Selected target(s) or null if no valid target
+     */
+    selectTarget(targetingLogic, context) {
+        return this.registry.executeTargetingBehavior(targetingLogic, context);
+    }
+    
+    /**
+     * Decides which ability to use (or basic attack)
+     * @param {string|null} decisionLogic - Name of action decision logic to use
+     * @param {object} context - Action decision context
+     * @returns {object|null} - Selected ability or null for basic attack
+     */
+    decideAction(decisionLogic, context) {
+        return this.registry.executeActionDecisionBehavior(decisionLogic, context);
+    }
+    
+    /**
+     * Processes a passive ability
+     * @param {string} passiveName - Name of passive behavior to execute
+     * @param {object} context - Passive context
+     * @returns {object} - Result of the passive ability
+     */
+    executePassiveBehavior(passiveName, context) {
+        return this.registry.executePassiveBehavior(passiveName, context);
+    }
+    
+    /**
+     * Utility function to check if a specific behavior exists
+     * @param {string} behaviorName - Name of the behavior to check
+     * @returns {boolean} - Whether the behavior exists
+     */
+    hasBehavior(behaviorName) {
+        return !!this.registry.allBehaviors[behaviorName];
+    }
+    
+    /**
+     * Utility function to get the default targeting behavior
+     * @returns {string} - Name of the default targeting behavior
+     */
+    getDefaultTargetingBehavior() {
+        return this.registry.defaultTargetingBehavior;
+    }
+    
+    /**
+     * Utility function to get the default action decision behavior
+     * @returns {string} - Name of the default action decision behavior
+     */
+    getDefaultActionDecisionBehavior() {
+        return this.registry.defaultActionDecisionBehavior;
+    }
+    
+    /**
+     * Maps targetType strings to targeting behavior names
+     * @param {string} targetType - Type of targeting from ability data
+     * @returns {string} - Name of the corresponding targeting behavior
+     */
+    getTargetingBehaviorFromType(targetType) {
+        const mapping = {
+            'SingleEnemy': 'targetRandomEnemy',
+            'AllEnemies': 'targetAllEnemies',
+            'Self': 'targetSelf',
+            'SingleAlly': 'targetLowestHpAlly',
+            'AllAllies': 'targetAllAllies',
+            'LowestHpEnemy': 'targetLowestHpEnemy',
+            'HighestHpEnemy': 'targetHighestHpEnemy',
+            'LowestHpAlly': 'targetLowestHpAlly'
+        };
+        
+        return mapping[targetType] || this.registry.defaultTargetingBehavior;
+    }
+}
+
+// Create and export singleton instance
+const battleBehaviors = new BattleBehaviors();
+export default battleBehaviors;
+
+// Re-export everything for convenience
+export {
+    behaviorRegistry,
+    targetingBehaviors,
+    actionDecisionBehaviors,
+    passiveBehaviors
+};
+
+
+===== FILE: BehaviorRegistry.js =====
+/**
+ * BehaviorRegistry.js
+ * 
+ * Centralized registry for all behavior functions used in the battle system.
+ * This enables a flexible "behavior delegation" pattern where specific logic
+ * can be referenced by name and dynamically executed.
+ */
+
+class BehaviorRegistry {
+    constructor() {
+        // Initialize registries for different behavior types
+        this.targetingBehaviors = {};
+        this.actionDecisionBehaviors = {};
+        this.passiveBehaviors = {};
+        
+        // Track all registered behaviors for debugging
+        this.allBehaviors = {};
+        
+        // Default behaviors
+        this.defaultTargetingBehavior = null;
+        this.defaultActionDecisionBehavior = null;
+    }
+
+    /**
+     * Register a targeting behavior function
+     * @param {string} name - Unique name to reference this behavior
+     * @param {Function} behaviorFn - The behavior function
+     * @param {boolean} isDefault - Whether this should be the default behavior
+     * @returns {BehaviorRegistry} - For method chaining
+     */
+    registerTargetingBehavior(name, behaviorFn, isDefault = false) {
+        this.targetingBehaviors[name] = behaviorFn;
+        this.allBehaviors[name] = { type: 'targeting', fn: behaviorFn };
+        
+        if (isDefault) {
+            this.defaultTargetingBehavior = name;
+        }
+        
+        return this;
+    }
+
+    /**
+     * Register an action decision behavior function
+     * @param {string} name - Unique name to reference this behavior
+     * @param {Function} behaviorFn - The behavior function
+     * @param {boolean} isDefault - Whether this should be the default behavior
+     * @returns {BehaviorRegistry} - For method chaining
+     */
+    registerActionDecisionBehavior(name, behaviorFn, isDefault = false) {
+        this.actionDecisionBehaviors[name] = behaviorFn;
+        this.allBehaviors[name] = { type: 'actionDecision', fn: behaviorFn };
+        
+        if (isDefault) {
+            this.defaultActionDecisionBehavior = name;
+        }
+        
+        return this;
+    }
+
+    /**
+     * Register a passive behavior function
+     * @param {string} name - Unique name to reference this behavior
+     * @param {Function} behaviorFn - The behavior function
+     * @returns {BehaviorRegistry} - For method chaining
+     */
+    registerPassiveBehavior(name, behaviorFn) {
+        this.passiveBehaviors[name] = behaviorFn;
+        this.allBehaviors[name] = { type: 'passive', fn: behaviorFn };
+        
+        return this;
+    }
+
+    /**
+     * Get a targeting behavior function by name
+     * @param {string} name - Name of the behavior to retrieve
+     * @returns {Function|null} - The behavior function or null if not found
+     */
+    getTargetingBehavior(name) {
+        // If name is null/undefined or behavior doesn't exist, return default
+        if (!name || !this.targetingBehaviors[name]) {
+            if (this.defaultTargetingBehavior) {
+                return this.targetingBehaviors[this.defaultTargetingBehavior];
+            }
+            console.warn(`No targeting behavior found for '${name}' and no default set`);
+            return null;
+        }
+        
+        return this.targetingBehaviors[name];
+    }
+
+    /**
+     * Get an action decision behavior function by name
+     * @param {string} name - Name of the behavior to retrieve
+     * @returns {Function|null} - The behavior function or null if not found
+     */
+    getActionDecisionBehavior(name) {
+        // If name is null/undefined or behavior doesn't exist, return default
+        if (!name || !this.actionDecisionBehaviors[name]) {
+            if (this.defaultActionDecisionBehavior) {
+                return this.actionDecisionBehaviors[this.defaultActionDecisionBehavior];
+            }
+            console.warn(`No action decision behavior found for '${name}' and no default set`);
+            return null;
+        }
+        
+        return this.actionDecisionBehaviors[name];
+    }
+
+    /**
+     * Get a passive behavior function by name
+     * @param {string} name - Name of the behavior to retrieve
+     * @returns {Function|null} - The behavior function or null if not found
+     */
+    getPassiveBehavior(name) {
+        // If name is null/undefined or behavior doesn't exist, return null
+        if (!name || !this.passiveBehaviors[name]) {
+            console.warn(`No passive behavior found for '${name}'`);
+            return null;
+        }
+        
+        return this.passiveBehaviors[name];
+    }
+
+    /**
+     * Execute a targeting behavior with provided context
+     * @param {string} name - Name of the behavior to execute
+     * @param {object} context - Data to pass to the behavior function
+     * @returns {object|null} - Result of the behavior function or null if not found
+     */
+    executeTargetingBehavior(name, context) {
+        const behaviorFn = this.getTargetingBehavior(name);
+        if (!behaviorFn) return null;
+        
+        try {
+            return behaviorFn(context);
+        } catch (error) {
+            console.error(`Error executing targeting behavior '${name}':`, error);
+            // Fall back to default if available
+            if (name !== this.defaultTargetingBehavior && this.defaultTargetingBehavior) {
+                console.warn(`Falling back to default targeting behavior`);
+                return this.executeTargetingBehavior(this.defaultTargetingBehavior, context);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Execute an action decision behavior with provided context
+     * @param {string} name - Name of the behavior to execute
+     * @param {object} context - Data to pass to the behavior function
+     * @returns {object|null} - Result of the behavior function or null if not found
+     */
+    executeActionDecisionBehavior(name, context) {
+        const behaviorFn = this.getActionDecisionBehavior(name);
+        if (!behaviorFn) return null;
+        
+        try {
+            return behaviorFn(context);
+        } catch (error) {
+            console.error(`Error executing action decision behavior '${name}':`, error);
+            // Fall back to default if available
+            if (name !== this.defaultActionDecisionBehavior && this.defaultActionDecisionBehavior) {
+                console.warn(`Falling back to default action decision behavior`);
+                return this.executeActionDecisionBehavior(this.defaultActionDecisionBehavior, context);
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Execute a passive behavior with provided context
+     * @param {string} name - Name of the behavior to execute
+     * @param {object} context - Data to pass to the behavior function
+     * @returns {object|null} - Result of the behavior function or null if not found
+     */
+    executePassiveBehavior(name, context) {
+        const behaviorFn = this.getPassiveBehavior(name);
+        if (!behaviorFn) return null;
+        
+        try {
+            return behaviorFn(context);
+        } catch (error) {
+            console.error(`Error executing passive behavior '${name}':`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Utility method to list all registered behaviors
+     * @returns {object} - Map of all registered behaviors by type
+     */
+    listAllBehaviors() {
+        return {
+            targeting: Object.keys(this.targetingBehaviors),
+            actionDecision: Object.keys(this.actionDecisionBehaviors),
+            passive: Object.keys(this.passiveBehaviors),
+            defaultTargeting: this.defaultTargetingBehavior,
+            defaultActionDecision: this.defaultActionDecisionBehavior
+        };
+    }
+}
+
+// Create singleton instance
+const behaviorRegistry = new BehaviorRegistry();
+
+// Export singleton
+export default behaviorRegistry;
+
+
+===== FILE: BehaviorRegistryTest.js =====
+/**
+ * BehaviorRegistryTest.js
+ * 
+ * A simple test utility to validate the behavior registry system.
+ * This can be run directly in the browser console.
+ */
+
+import battleBehaviors from './BattleBehaviors.js';
+
+/**
+ * Test mock character
+ */
+class MockCharacter {
+    constructor(name, team, hp = 100, attk = 10, def = 5, spd = 10) {
+        this.name = name;
+        this.team = team;
+        this.stats = { hp, attack: attk, defense: def, speed: spd };
+        this.currentHp = hp;
+        this.defeated = false;
+    }
+}
+
+/**
+ * Test mock TeamManager
+ */
+class MockTeamManager {
+    constructor() {
+        this.characterTeams = new Map();
+    }
+    
+    getCharacterTeam(character) {
+        return character.team;
+    }
+    
+    addCharacter(character, team) {
+        character.team = team;
+        this.characterTeams.set(character, team);
+    }
+}
+
+/**
+ * Test mock BattleManager
+ */
+class MockBattleManager {
+    constructor() {
+        this.characters = [];
+        this.statusEffects = new Map();
+    }
+    
+    getAllCharacters() {
+        return this.characters;
+    }
+    
+    addCharacter(character) {
+        this.characters.push(character);
+    }
+    
+    addStatusEffect(character, statusId, duration) {
+        if (!this.statusEffects.has(character)) {
+            this.statusEffects.set(character, []);
+        }
+        
+        this.statusEffects.get(character).push({
+            id: statusId,
+            duration,
+            appliedAt: Date.now()
+        });
+        
+        console.log(`Added status ${statusId} to ${character.name} for ${duration} turns`);
+    }
+    
+    applyDamage(target, amount, source, ability, type) {
+        console.log(`${source.name} deals ${amount} ${type || ''} damage to ${target.name}`);
+        target.currentHp -= amount;
+        if (target.currentHp <= 0) {
+            target.defeated = true;
+            console.log(`${target.name} is defeated!`);
+        }
+    }
+}
+
+/**
+ * Run tests for targeting behaviors
+ */
+function testTargetingBehaviors() {
+    console.log("=== Testing Targeting Behaviors ===");
+    
+    // Setup test data
+    const teamManager = new MockTeamManager();
+    const actor = new MockCharacter("Hero", "ally", 100, 10, 5, 10);
+    const enemy1 = new MockCharacter("Enemy1", "enemy", 100, 10, 5, 10);
+    const enemy2 = new MockCharacter("Enemy2", "enemy", 50, 15, 3, 12);
+    const ally1 = new MockCharacter("Ally1", "ally", 30, 8, 4, 9);
+    
+    const potentialTargets = [actor, enemy1, enemy2, ally1];
+    
+    // Test context
+    const context = {
+        actor,
+        potentialTargets,
+        teamManager,
+        ability: { name: "Test Ability" }
+    };
+    
+    // Test targeting behaviors
+    console.log("targetRandomEnemy:", battleBehaviors.selectTarget('targetRandomEnemy', context)?.name);
+    console.log("targetLowestHpEnemy:", battleBehaviors.selectTarget('targetLowestHpEnemy', context)?.name);
+    console.log("targetHighestHpEnemy:", battleBehaviors.selectTarget('targetHighestHpEnemy', context)?.name);
+    console.log("targetAllEnemies:", battleBehaviors.selectTarget('targetAllEnemies', context)?.map(t => t.name));
+    console.log("targetLowestHpAlly:", battleBehaviors.selectTarget('targetLowestHpAlly', context)?.name);
+    console.log("targetAllAllies:", battleBehaviors.selectTarget('targetAllAllies', context)?.map(t => t.name));
+    console.log("targetSelf:", battleBehaviors.selectTarget('targetSelf', context)?.name);
+    
+    // Test targetType to behavior mapping
+    console.log("Behavior for 'SingleEnemy':", battleBehaviors.getTargetingBehaviorFromType('SingleEnemy'));
+    console.log("Behavior for 'AllEnemies':", battleBehaviors.getTargetingBehaviorFromType('AllEnemies'));
+    console.log("Behavior for 'LowestHpAlly':", battleBehaviors.getTargetingBehaviorFromType('LowestHpAlly'));
+    
+    // Test default behavior
+    console.log("Default targeting behavior:", battleBehaviors.getDefaultTargetingBehavior());
+    console.log("Using default for unknown behavior:", battleBehaviors.selectTarget('nonexistent', context)?.name);
+}
+
+/**
+ * Run tests for action decision behaviors
+ */
+function testActionDecisionBehaviors() {
+    console.log("=== Testing Action Decision Behaviors ===");
+    
+    // Setup test data
+    const actor = new MockCharacter("Hero", "ally", 100, 10, 5, 10);
+    const battleManager = new MockBattleManager();
+    const teamManager = new MockTeamManager();
+    
+    const availableAbilities = [
+        {
+            id: "ability1",
+            name: "Fireball",
+            damageType: "spell",
+            isHealing: false,
+            selectionWeight: 1.0
+        },
+        {
+            id: "ability2",
+            name: "Heal",
+            damageType: "healing",
+            isHealing: true,
+            selectionWeight: 1.2
+        },
+        {
+            id: "ability3",
+            name: "Shield",
+            damageType: "utility",
+            isHealing: false,
+            selectionWeight: 0.8
+        }
+    ];
+    
+    // Test context
+    const context = {
+        actor,
+        availableAbilities,
+        battleManager,
+        teamManager
+    };
+    
+    // Test multiple times to observe randomness
+    console.log("=== decideAction_Random50Percent (multiple runs) ===");
+    for (let i = 0; i < 5; i++) {
+        const result = battleBehaviors.decideAction('decideAction_Random50Percent', context);
+        console.log(`Run ${i + 1}:`, result ? result.name : "Basic Attack");
+    }
+    
+    console.log("=== decideAction_WeightedRandomAbility (multiple runs) ===");
+    for (let i = 0; i < 5; i++) {
+        const result = battleBehaviors.decideAction('decideAction_WeightedRandomAbility', context);
+        console.log(`Run ${i + 1}:`, result ? result.name : "Basic Attack");
+    }
+    
+    console.log("=== decideAction_PrioritizeOffense ===");
+    const offensiveResult = battleBehaviors.decideAction('decideAction_PrioritizeOffense', context);
+    console.log("Result:", offensiveResult ? offensiveResult.name : "Basic Attack");
+    
+    console.log("=== decideAction_AlwaysUseAbilities ===");
+    const alwaysAbilityResult = battleBehaviors.decideAction('decideAction_AlwaysUseAbilities', context);
+    console.log("Result:", alwaysAbilityResult ? alwaysAbilityResult.name : "Basic Attack");
+    
+    // Test with healing priority when allies are injured
+    console.log("=== decideAction_PrioritizeHeal (allies need healing) ===");
+    
+    // Create injured allies
+    const ally1 = new MockCharacter("InjuredAlly", "ally", 100, 10, 5, 10);
+    ally1.currentHp = 30; // 30% health
+    
+    battleManager.addCharacter(actor);
+    battleManager.addCharacter(ally1);
+    teamManager.addCharacter(actor, "ally");
+    teamManager.addCharacter(ally1, "ally");
+    
+    const healingResult = battleBehaviors.decideAction('decideAction_PrioritizeHeal', context);
+    console.log("Result:", healingResult ? healingResult.name : "Basic Attack");
+}
+
+/**
+ * Run tests for passive behaviors
+ */
+function testPassiveBehaviors() {
+    console.log("=== Testing Passive Behaviors ===");
+    
+    // Setup test data
+    const actor = new MockCharacter("Hero", "ally", 100, 10, 5, 10);
+    const enemy = new MockCharacter("Enemy", "enemy", 100, 10, 5, 10);
+    const battleManager = new MockBattleManager();
+    const teamManager = new MockTeamManager();
+    
+    // Add characters
+    battleManager.addCharacter(actor);
+    battleManager.addCharacter(enemy);
+    teamManager.addCharacter(actor, "ally");
+    teamManager.addCharacter(enemy, "enemy");
+    
+    // Test passive_ApplyRegenOnTurnStart
+    console.log("=== passive_ApplyRegenOnTurnStart ===");
+    
+    const regenContext = {
+        actor,
+        ability: { name: "Regeneration", passiveType: "onTurnStart" },
+        battleManager,
+        teamManager,
+        trigger: 'onTurnStart'
+    };
+    
+    const regenResult = battleBehaviors.processPassive('passive_ApplyRegenOnTurnStart', regenContext);
+    console.log("Result:", regenResult);
+    
+    // Test passive_DamageReflectOnHit
+    console.log("=== passive_DamageReflectOnHit ===");
+    
+    const reflectContext = {
+        actor,
+        ability: { name: "Thorns", passiveType: "onDamageTaken" },
+        battleManager,
+        teamManager,
+        trigger: 'onDamageTaken',
+        additionalData: {
+            source: enemy,
+            damageAmount: 20
+        }
+    };
+    
+    const reflectResult = battleBehaviors.processPassive('passive_DamageReflectOnHit', reflectContext);
+    console.log("Result:", reflectResult);
+    
+    // Test passive_TeamBuffOnBattleStart
+    console.log("=== passive_TeamBuffOnBattleStart ===");
+    
+    const buffContext = {
+        actor,
+        ability: { 
+            name: "Team Spirit", 
+            passiveType: "onBattleStart",
+            passiveData: {
+                statusId: "status_atk_up",
+                duration: 3
+            }
+        },
+        battleManager,
+        teamManager,
+        trigger: 'onBattleStart'
+    };
+    
+    const buffResult = battleBehaviors.processPassive('passive_TeamBuffOnBattleStart', buffContext);
+    console.log("Result:", buffResult);
+}
+
+/**
+ * Run all tests
+ */
+function runAllTests() {
+    console.log("======= BEHAVIOR REGISTRY TEST =======");
+    
+    // List all registered behaviors
+    console.log("=== REGISTERED BEHAVIORS ===");
+    console.log(battleBehaviors.registry.listAllBehaviors());
+    
+    // Run individual tests
+    testTargetingBehaviors();
+    testActionDecisionBehaviors();
+    testPassiveBehaviors();
+    
+    console.log("======= TEST COMPLETE =======");
+}
+
+// Export test functions
+export {
+    runAllTests,
+    testTargetingBehaviors,
+    testActionDecisionBehaviors,
+    testPassiveBehaviors
+};
+
+// Automatically run tests when imported directly
+if (typeof window !== 'undefined') {
+    window.runBehaviorTests = runAllTests;
+    console.log("Test utility loaded. Run tests with window.runBehaviorTests()");
+}
+
+
+===== FILE: index.js =====
+/**
+ * Index file for the battle logic system
+ * Provides a central point for importing all battle behavior components
+ */
+
+// Export main interface
+export { default as battleBehaviors } from './BattleBehaviors.js';
+
+// Export registry and individual behavior collections
+export { default as behaviorRegistry } from './BehaviorRegistry.js';
+export * as targetingBehaviors from './TargetingBehaviors.js';
+export * as actionDecisionBehaviors from './ActionDecisionBehaviors.js';
+export * as passiveBehaviors from './PassiveBehaviors.js';
+
+// Export test utilities
+export * as behaviorTesting from './BehaviorRegistryTest.js';
+
+// For direct script inclusion, attach to window
+if (typeof window !== 'undefined') {
+    // Import and set up on window for direct browser usage
+    import('./BattleBehaviors.js').then(module => {
+        window.battleBehaviors = module.default;
+        console.log('Battle Behaviors system loaded and available at window.battleBehaviors');
+    });
+}
+
+
+===== FILE: PassiveBehaviors.js =====
+/**
+ * PassiveBehaviors.js
+ * 
+ * Collection of passive behavior functions for the battle system.
+ * These functions define how passive abilities trigger and what effects they apply.
+ */
+
+import behaviorRegistry from './BehaviorRegistry.js';
+
+/**
+ * Context object expected for passive behaviors:
+ * {
+ *   actor: Character,              // The character with the passive ability
+ *   ability: Object,               // The passive ability being triggered
+ *   battleManager: BattleManager,  // Reference to BattleManager for battle state
+ *   teamManager: TeamManager,      // Reference to TeamManager for team data
+ *   trigger: String,               // What triggered this passive (onTurnStart, onHit, etc.)
+ *   additionalData: Object         // Contextual data based on the trigger (damage amount, source, etc.)
+ * }
+ */
+
+/**
+ * -----------------------------------------------
+ * Passive Trigger Types Reference
+ * -----------------------------------------------
+ * onBattleStart    - When battle begins
+ * onBattleEnd      - When battle ends
+ * onTurnStart      - At start of a new turn
+ * onTurnEnd        - At end of a turn
+ * onActionStart    - Before an action is executed
+ * onActionEnd      - After an action is executed
+ * onDamageDealt    - After dealing damage to a target
+ * onDamageTaken    - After taking damage from a source
+ * onHealed         - After being healed
+ * onHealingDone    - After healing a target
+ * onKill           - After defeating an enemy
+ * onDefeat         - When character is defeated
+ * onRevive         - When character is revived
+ * onStatusApplied  - When a status effect is applied to character
+ * onStatusRemoved  - When a status effect expires or is removed
+ * -----------------------------------------------
+ */
+
+/**
+ * Applies regeneration status effect at the start of the turn
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_ApplyRegenOnTurnStart(context) {
+    const { actor, battleManager, trigger } = context;
+    
+    // Only execute if trigger matches
+    if (trigger !== 'onTurnStart') return { executed: false };
+    
+    // Verify character has valid health before proceeding
+    if (!actor || !actor.stats || !actor.stats.hp || isNaN(actor.currentHp)) {
+        console.error('Cannot apply regen to character with invalid health state:', actor);
+        return { executed: false };
+    }
+    
+    // Apply regeneration status effect
+    battleManager.addStatusEffect(actor, 'status_regen', 2);
+    
+    return {
+        executed: true,
+        message: `${actor.name}'s passive ability grants Regeneration!`
+    };
+}
+
+/**
+ * Reflects a portion of damage back to the attacker when hit
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_DamageReflectOnHit(context) {
+    const { actor, battleManager, trigger, additionalData } = context;
+    
+    // Only execute if trigger matches and additional data is provided
+    if (trigger !== 'onDamageTaken' || !additionalData) return { executed: false };
+    
+    const { source, damageAmount, reflectionDepth = 0 } = additionalData;
+    
+    // Limit reflection depth to prevent infinite chains
+    if (reflectionDepth >= 2) { // Maximum of 2 reflection cycles (initial hit + 2 reflections)
+        console.debug(`Max reflection depth (${reflectionDepth}) reached, stopping reflection chain`);
+        return { executed: false };
+    }
+    
+    // Do nothing if source is not defined or it's self-damage
+    if (!source || source === actor) return { executed: false };
+    
+    // Validate damage amount before calculations
+    if (typeof damageAmount !== 'number' || isNaN(damageAmount) || damageAmount <= 0) {
+        console.error('Invalid damage amount for reflection:', damageAmount);
+        return { executed: false };
+    }
+    
+    // Check if source is valid
+    if (!source || !source.currentHp || isNaN(source.currentHp)) {
+        console.error('Invalid source for damage reflection');
+        return { executed: false };
+    }
+    
+    // Check if source and actor are on different teams (prevent friendly fire)
+    if (source.team === actor.team) {
+        console.debug(`Skipping damage reflection to ${source.name} as they are on the same team as ${actor.name}`);
+        return { executed: false };
+    }
+    
+    // Calculate reflected damage (20% of damage taken)
+    const reflectAmount = Math.round(Math.max(1, damageAmount * 0.2));
+    
+    // Implement a minimum threshold for reflection to prevent endless small reflections
+    if (reflectAmount <= 2 && reflectionDepth > 0) {
+        console.debug(`Reflection amount (${reflectAmount}) too small for secondary reflection, stopping chain`);
+        return { executed: false };
+    }
+    
+    // Apply reflected damage with increased reflection depth
+    battleManager.applyDamage(
+        source,                 // target (the original attacker)
+        reflectAmount,          // damage amount
+        actor,                  // source (self)
+        null,                   // no ability
+        'reflected',            // damage type
+        { reflectionDepth: reflectionDepth + 1 } // Track reflection depth
+    );
+    
+    return {
+        executed: true,
+        message: `${actor.name}'s passive ability reflects ${reflectAmount} damage back to ${source.name}!`
+    };
+}
+
+/**
+ * Has a chance to apply a status effect to the attacker when hit
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_ApplyStatusOnHit(context) {
+    const { actor, ability, battleManager, trigger, additionalData } = context;
+    
+    // Only execute if trigger matches and additional data is provided
+    if (trigger !== 'onDamageTaken' || !additionalData) return { executed: false };
+    
+    const { source } = additionalData;
+    
+    // Do nothing if source is not defined or it's self-damage
+    if (!source || source === actor) return { executed: false };
+    
+    // Check for ability-specific configuration
+    const statusId = ability.passiveData?.statusId || 'status_spd_down';
+    const chance = ability.passiveData?.chance || 0.25;
+    const duration = ability.passiveData?.duration || 2;
+    
+    // Random chance to apply status
+    if (Math.random() < chance) {
+        battleManager.addStatusEffect(source, statusId, duration);
+        
+        return {
+            executed: true,
+            message: `${actor.name}'s passive ability applies a status effect to ${source.name}!`
+        };
+    }
+    
+    return { executed: false };
+}
+
+/**
+ * Provides a buff to allies at the start of battle
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_TeamBuffOnBattleStart(context) {
+    const { actor, ability, battleManager, teamManager, trigger } = context;
+    
+    // Only execute if trigger matches
+    if (trigger !== 'onBattleStart') return { executed: false };
+    
+    // Get all allies
+    const actorTeam = teamManager.getCharacterTeam(actor);
+    const allies = battleManager.getAllCharacters().filter(character => 
+        teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
+    );
+    
+    // Check for ability-specific configuration
+    let statusId = 'status_atk_up';
+    let duration = 3;
+    
+    // Safely extract passiveData if it exists
+    if (ability && ability.passiveData) {
+        statusId = ability.passiveData.statusId || statusId;
+        duration = ability.passiveData.duration || duration;
+    }
+    
+    // Apply buff to all allies
+    let applied = 0;
+    allies.forEach(ally => {
+        // Skip if ally has invalid health
+        if (!ally || isNaN(ally.currentHp)) {
+            console.warn('Skipping buff application to ally with invalid health:', ally);
+            return;
+        }
+        
+        battleManager.addStatusEffect(ally, statusId, duration);
+        applied++;
+    });
+    
+    return {
+        executed: true,
+        message: `${actor.name}'s passive ability buffs the team at the start of battle!`,
+        affected: applied
+    };
+}
+
+/**
+ * Increases critical hit chance after landing a critical hit
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_CriticalMomentum(context) {
+    const { actor, battleManager, trigger, additionalData } = context;
+    
+    // Only execute if trigger matches and was a critical hit
+    if (trigger !== 'onDamageDealt' || !additionalData || !additionalData.wasCritical) {
+        return { executed: false };
+    }
+    
+    // Apply critical chance buff
+    battleManager.addStatusEffect(actor, 'status_crit_up', 2);
+    
+    return {
+        executed: true,
+        message: `${actor.name}'s passive ability increases critical chance after landing a critical hit!`
+    };
+}
+
+/**
+ * Applies a damage buff after killing an enemy
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_KillBuff(context) {
+    const { actor, battleManager, trigger, additionalData } = context;
+    
+    // Only execute if trigger matches
+    if (trigger !== 'onKill') return { executed: false };
+    
+    // Apply attack up buff after a kill
+    battleManager.addStatusEffect(actor, 'status_atk_up', 2);
+    
+    return {
+        executed: true,
+        message: `${actor.name}'s bloodlust increases attack after defeating an enemy!`
+    };
+}
+
+/**
+ * Applies a healing effect to the character when their HP falls below a threshold
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_LastStand(context) {
+    const { actor, ability, battleManager, trigger, additionalData } = context;
+    
+    // Only execute if trigger matches and has damage data
+    if (trigger !== 'onDamageTaken' || !additionalData) return { executed: false };
+    
+    // Check health threshold (default 30% of max HP)
+    const threshold = ability.passiveData?.threshold || 0.3;
+    const healthPercent = actor.currentHp / actor.stats.hp;
+    
+    // Check if we crossed the threshold with this damage
+    const previousHealth = actor.currentHp + additionalData.damageAmount;
+    const previousPercent = previousHealth / actor.stats.hp;
+    
+    if (previousPercent >= threshold && healthPercent < threshold) {
+        // We just crossed the threshold, trigger the heal
+        const healAmount = Math.floor(actor.stats.hp * 0.15); // Heal for 15% of max HP
+        
+        // Apply healing
+        battleManager.applyHealing(actor, healAmount, actor, null, 'passive');
+        
+        // Apply defense buff
+        battleManager.addStatusEffect(actor, 'status_def_up', 2);
+        
+        return {
+            executed: true,
+            message: `${actor.name}'s last stand activates at low health, granting healing and defense!`
+        };
+    }
+    
+    return { executed: false };
+}
+
+/**
+ * Applies a shield to allies at low health
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_ProtectiveInstinct(context) {
+    const { actor, battleManager, teamManager, trigger } = context;
+    
+    // Only execute if trigger matches
+    if (trigger !== 'onTurnStart') return { executed: false };
+    
+    // Get all allies
+    const actorTeam = teamManager.getCharacterTeam(actor);
+    const allies = battleManager.getAllCharacters().filter(character => 
+        teamManager.getCharacterTeam(character) === actorTeam && 
+        character !== actor && // Not self
+        !character.defeated && 
+        (character.currentHp / character.stats.hp) < 0.4 // Below 40% health
+    );
+    
+    // If there are low-health allies, protect them
+    if (allies.length > 0) {
+        let protectedCount = 0;
+        
+        // Apply shield to up to 2 allies
+        for (let i = 0; i < Math.min(2, allies.length); i++) {
+            battleManager.addStatusEffect(allies[i], 'status_shield', 1);
+            protectedCount++;
+        }
+        
+        if (protectedCount > 0) {
+            return {
+                executed: true,
+                message: `${actor.name}'s protective instinct shields ${protectedCount} injured ${protectedCount === 1 ? 'ally' : 'allies'}!`,
+                affected: protectedCount
+            };
+        }
+    }
+    
+    return { executed: false };
+}
+
+/**
+ * Provides a counter-attack when taking damage
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_Counterattack(context) {
+    const { actor, battleManager, trigger, additionalData } = context;
+    
+    // Only execute if trigger matches
+    if (trigger !== 'onDamageTaken' || !additionalData || !additionalData.source) {
+        return { executed: false };
+    }
+    
+    // Get the attacker
+    const attacker = additionalData.source;
+    
+    // Check if attacker is valid and still alive
+    if (!attacker || attacker.isDead || attacker.currentHp <= 0) {
+        return { executed: false };
+    }
+    
+    // Counter with 40% of strength as damage
+    const counterDamage = Math.floor(actor.stats.strength * 0.4);
+    
+    // Apply counter damage
+    const result = battleManager.applyDamage(
+        attacker,           // target (original attacker)
+        counterDamage,      // damage amount
+        actor,              // source (self)
+        null,               // no ability
+        'counter'           // damage type
+    );
+    
+    return {
+        executed: true,
+        message: `${actor.name} counters the attack, dealing ${counterDamage} damage to ${attacker.name}!`,
+        damage: result.damage
+    };
+}
+
+/**
+ * Applies a debuff to enemies when the turn starts
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_Intimidate(context) {
+    const { actor, ability, battleManager, teamManager, trigger } = context;
+    
+    // Only execute on turn start and with 25% chance
+    if (trigger !== 'onTurnStart' || Math.random() > 0.25) {
+        return { executed: false };
+    }
+    
+    // Get enemies
+    const actorTeam = teamManager.getCharacterTeam(actor);
+    const enemies = battleManager.getAllCharacters().filter(character => 
+        teamManager.getCharacterTeam(character) !== actorTeam && 
+        !character.defeated
+    );
+    
+    // If there are enemies, intimidate them
+    if (enemies.length > 0) {
+        // Choose a random enemy
+        const target = enemies[Math.floor(Math.random() * enemies.length)];
+        
+        // Check for ability-specific configuration
+        const statusId = ability.passiveData?.statusId || 'status_atk_down';
+        const duration = ability.passiveData?.duration || 1;
+        
+        // Apply status effect
+        battleManager.addStatusEffect(target, statusId, duration);
+        
+        return {
+            executed: true,
+            message: `${actor.name}'s intimidating presence weakens ${target.name}!`
+        };
+    }
+    
+    return { executed: false };
+}
+
+/**
+ * Apply an effect when killing an enemy
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_OnKillEffect(context) {
+    const { actor, battleManager, trigger, additionalData, ability } = context;
+    
+    // Only execute if trigger matches and has defeated data
+    if (trigger !== 'onKill' || !additionalData || !additionalData.defeated) {
+        return { executed: false };
+    }
+    
+    // Get the defeated enemy
+    const defeated = additionalData.defeated;
+    
+    // Get effect data from passive configuration
+    const effectType = ability.passiveData?.effectType || 'heal';
+    const effectValue = ability.passiveData?.value || 0.1; // Default to 10% of max HP
+    const statusId = ability.passiveData?.statusId || 'status_atk_up';
+    const duration = ability.passiveData?.duration || 2;
+    
+    // Apply different effects based on configuration
+    switch (effectType) {
+        case 'heal':
+            // Heal self based on max HP
+            const healAmount = Math.floor(actor.stats.hp * effectValue);
+            battleManager.applyHealing(actor, healAmount, actor, null, 'passive');
+            
+            return {
+                executed: true,
+                message: `${actor.name} absorbs life essence, healing for ${healAmount} HP!`
+            };
+            
+        case 'buff':
+            // Apply a status buff to self
+            battleManager.addStatusEffect(actor, statusId, duration);
+            
+            return {
+                executed: true,
+                message: `${actor.name}'s power grows after defeating ${defeated.name}!`
+            };
+            
+        case 'aoe_damage':
+            // Apply AoE damage to all enemies
+            const enemyTeam = defeated.team === 'player' ? battleManager.playerTeam : battleManager.enemyTeam;
+            const damageAmount = Math.floor(actor.stats.strength * 0.2); // Base on strength
+            let damageCount = 0;
+            
+            enemyTeam.forEach(enemy => {
+                if (enemy.currentHp > 0 && enemy !== defeated) {
+                    battleManager.applyDamage(enemy, damageAmount, actor, null, 'passive');
+                    damageCount++;
+                }
+            });
+            
+            if (damageCount > 0) {
+                return {
+                    executed: true,
+                    message: `${actor.name}'s power explodes, dealing ${damageAmount} damage to nearby enemies!`
+                };
+            }
+            break;
+    }
+    
+    return { executed: false };
+}
+
+/**
+ * Increases critical hit chance after certain triggers
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_CriticalHitBoost(context) {
+    const { actor, battleManager, trigger, additionalData, ability } = context;
+    
+    // Get configuration
+    const triggers = ability.passiveData?.triggers || ['onDamageDealt'];
+    const duration = ability.passiveData?.duration || 2;
+    const bonusAmount = ability.passiveData?.bonusAmount || 0.15; // 15% increased crit chance
+    
+    // Check if this trigger is in our list of valid triggers
+    if (!triggers.includes(trigger)) {
+        return { executed: false };
+    }
+    
+    // Add validation for specific trigger conditions
+    if (trigger === 'onDamageDealt') {
+        // Only trigger on significant damage (more than 15% of target's max HP)
+        if (!additionalData || !additionalData.target || !additionalData.damageAmount) {
+            return { executed: false };
+        }
+        
+        const target = additionalData.target;
+        const damage = additionalData.damageAmount;
+        const damagePercent = target.stats.hp > 0 ? damage / target.stats.hp : 0;
+        
+        if (damagePercent < 0.15) {
+            return { executed: false };
+        }
+    }
+    
+    // Apply critical hit buff
+    battleManager.addStatusEffect(actor, 'status_crit_up', duration, { value: bonusAmount });
+    
+    return {
+        executed: true,
+        message: `${actor.name}'s critical hit chance increases!`
+    };
+}
+
+/**
+ * Applies a status effect to targets when hitting them
+ * @param {object} context - Passive behavior context
+ * @returns {object} - Result of the passive ability
+ */
+function passive_StatusOnHit(context) {
+    const { actor, battleManager, trigger, additionalData, ability } = context;
+    
+    // Only execute on damage dealt
+    if (trigger !== 'onDamageDealt' || !additionalData || !additionalData.target) {
+        return { executed: false };
+    }
+    
+    const target = additionalData.target;
+    
+    // Skip if target is already defeated
+    if (target.currentHp <= 0 || target.isDead) {
+        return { executed: false };
+    }
+    
+    // Get configuration from passive data
+    const statusId = ability.passiveData?.statusId || 'status_bleed';
+    const chance = ability.passiveData?.chance || 0.25; // 25% chance by default
+    const duration = ability.passiveData?.duration || 2;
+    
+    // Roll for chance
+    if (Math.random() < chance) {
+        // Apply the status effect
+        battleManager.addStatusEffect(target, statusId, duration);
+        
+        // Get a readable name for the status
+        let statusName = statusId;
+        if (statusId.startsWith('status_')) {
+            statusName = statusId.replace('status_', '').replace('_', ' ');
+            // Capitalize first letter
+            statusName = statusName.charAt(0).toUpperCase() + statusName.slice(1);
+        }
+        
+        return {
+            executed: true,
+            message: `${actor.name}'s attack inflicts ${statusName} on ${target.name}!`
+        };
+    }
+    
+    return { executed: false };
+}
+
+// Register all passive behaviors
+behaviorRegistry.registerPassiveBehavior('passive_ApplyRegenOnTurnStart', passive_ApplyRegenOnTurnStart);
+behaviorRegistry.registerPassiveBehavior('passive_DamageReflectOnHit', passive_DamageReflectOnHit);
+behaviorRegistry.registerPassiveBehavior('passive_ApplyStatusOnHit', passive_ApplyStatusOnHit);
+behaviorRegistry.registerPassiveBehavior('passive_TeamBuffOnBattleStart', passive_TeamBuffOnBattleStart);
+behaviorRegistry.registerPassiveBehavior('passive_CriticalMomentum', passive_CriticalMomentum);
+behaviorRegistry.registerPassiveBehavior('passive_KillBuff', passive_KillBuff);
+behaviorRegistry.registerPassiveBehavior('passive_LastStand', passive_LastStand);
+behaviorRegistry.registerPassiveBehavior('passive_ProtectiveInstinct', passive_ProtectiveInstinct);
+behaviorRegistry.registerPassiveBehavior('passive_Counterattack', passive_Counterattack);
+behaviorRegistry.registerPassiveBehavior('passive_Intimidate', passive_Intimidate);
+behaviorRegistry.registerPassiveBehavior('passive_OnKillEffect', passive_OnKillEffect);
+behaviorRegistry.registerPassiveBehavior('passive_CriticalHitBoost', passive_CriticalHitBoost);
+behaviorRegistry.registerPassiveBehavior('passive_StatusOnHit', passive_StatusOnHit);
+
+// Export individual behaviors for direct use if needed
+export {
+    passive_ApplyRegenOnTurnStart,
+    passive_DamageReflectOnHit,
+    passive_ApplyStatusOnHit,
+    passive_TeamBuffOnBattleStart,
+    passive_CriticalMomentum,
+    passive_KillBuff,
+    passive_LastStand,
+    passive_ProtectiveInstinct,
+    passive_Counterattack,
+    passive_Intimidate,
+    passive_OnKillEffect,
+    passive_CriticalHitBoost,
+    passive_StatusOnHit
+};
+
+
+===== FILE: TargetingBehaviors.js =====
+/**
+ * TargetingBehaviors.js
+ * 
+ * Collection of targeting behavior functions for the battle system.
+ * These functions determine how characters select targets for their actions.
+ */
+
+import behaviorRegistry from './BehaviorRegistry.js';
+
+/**
+ * Context object expected for targeting behaviors:
+ * {
+ *   actor: Character,              // The character taking the action
+ *   potentialTargets: Character[], // List of possible targets
+ *   teamManager: TeamManager,      // Reference to TeamManager for team data
+ *   ability: Object,               // The ability being used (if applicable)
+ *   battleManager: BattleManager   // Reference to BattleManager for battle state
+ * }
+ */
+
+/**
+ * Targets a random enemy (default behavior)
+ * @param {object} context - Targeting context
+ * @returns {Character|null} - Selected target or null if no valid target
+ */
+function targetRandomEnemy(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include enemies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Select random target
+    const randomIndex = Math.floor(Math.random() * validTargets.length);
+    return validTargets[randomIndex];
+}
+
+/**
+ * Targets the enemy with the lowest HP
+ * @param {object} context - Targeting context
+ * @returns {Character|null} - Selected target or null if no valid target
+ */
+function targetLowestHpEnemy(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include enemies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Find target with lowest HP
+    return validTargets.reduce((lowestTarget, currentTarget) => {
+        return (currentTarget.currentHp < lowestTarget.currentHp) ? currentTarget : lowestTarget;
+    }, validTargets[0]);
+}
+
+/**
+ * Targets the enemy with the highest HP
+ * @param {object} context - Targeting context
+ * @returns {Character|null} - Selected target or null if no valid target
+ */
+function targetHighestHpEnemy(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include enemies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Find target with highest HP
+    return validTargets.reduce((highestTarget, currentTarget) => {
+        return (currentTarget.currentHp > highestTarget.currentHp) ? currentTarget : highestTarget;
+    }, validTargets[0]);
+}
+
+/**
+ * Targets all enemies
+ * @param {object} context - Targeting context
+ * @returns {Character[]|null} - Array of targets or null if no valid targets
+ */
+function targetAllEnemies(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include enemies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    return validTargets;
+}
+
+/**
+ * Targets the ally with the lowest HP
+ * @param {object} context - Targeting context
+ * @returns {Character|null} - Selected target or null if no valid target
+ */
+function targetLowestHpAlly(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include allies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) === teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Find ally with lowest HP
+    return validTargets.reduce((lowestTarget, currentTarget) => {
+        return (currentTarget.currentHp < lowestTarget.currentHp) ? currentTarget : lowestTarget;
+    }, validTargets[0]);
+}
+
+/**
+ * Targets all allies
+ * @param {object} context - Targeting context
+ * @returns {Character[]|null} - Array of targets or null if no valid targets
+ */
+function targetAllAllies(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include allies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) === teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    return validTargets;
+}
+
+/**
+ * Targets self
+ * @param {object} context - Targeting context
+ * @returns {Character} - The actor
+ */
+function targetSelf(context) {
+    return context.actor;
+}
+
+/**
+ * Targets the enemy with the highest attack
+ * @param {object} context - Targeting context
+ * @returns {Character|null} - Selected target or null if no valid target
+ */
+function targetHighestAttackEnemy(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include enemies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Find target with highest attack
+    return validTargets.reduce((highestTarget, currentTarget) => {
+        return (currentTarget.stats.attack > highestTarget.stats.attack) ? currentTarget : highestTarget;
+    }, validTargets[0]);
+}
+
+/**
+ * Targets the enemy with the highest intellect
+ * @param {object} context - Targeting context
+ * @returns {Character|null} - Selected target or null if no valid target
+ */
+function targetHighestIntellectEnemy(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include enemies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Find target with highest intellect
+    return validTargets.reduce((highestTarget, currentTarget) => {
+        return (currentTarget.stats.intellect > highestTarget.stats.intellect) ? currentTarget : highestTarget;
+    }, validTargets[0]);
+}
+
+/**
+ * Targets adjacent enemies (main target plus adjacent ones)
+ * @param {object} context - Targeting context
+ * @returns {Character[]|null} - Array of targets or null if no valid targets
+ */
+function targetAdjacentEnemies(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include enemies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Get primary target (usually the one with lowest HP or random)
+    const primaryTarget = validTargets.reduce((lowestTarget, currentTarget) => {
+        return (currentTarget.currentHp < lowestTarget.currentHp) ? currentTarget : lowestTarget;
+    }, validTargets[0]);
+    
+    // Get adjacent targets (implementation depends on how character positions are stored)
+    // For this basic implementation, we'll just get up to 2 additional random enemies
+    const otherTargets = validTargets.filter(target => target !== primaryTarget);
+    const adjacentTargets = [primaryTarget];
+    
+    // Add up to 2 more random enemies if available
+    if (otherTargets.length > 0) {
+        // Shuffle other targets
+        const shuffled = [...otherTargets].sort(() => 0.5 - Math.random());
+        // Add up to 2 more
+        for (let i = 0; i < Math.min(2, shuffled.length); i++) {
+            adjacentTargets.push(shuffled[i]);
+        }
+    }
+    
+    return adjacentTargets;
+}
+
+/**
+ * Targets a random ally excluding self
+ * @param {object} context - Targeting context
+ * @returns {Character|null} - Selected target or null if no valid target
+ */
+function targetRandomAlly(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include allies (excluding self) that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) === teamManager.getCharacterTeam(actor) && 
+               target !== actor && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Select random ally
+    const randomIndex = Math.floor(Math.random() * validTargets.length);
+    return validTargets[randomIndex];
+}
+
+/**
+ * Targets the most injured ally (lowest HP percentage)
+ * @param {object} context - Targeting context
+ * @returns {Character|null} - Selected target or null if no valid target
+ */
+function targetMostInjuredAlly(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    
+    // Filter to only include allies that are alive
+    const validTargets = potentialTargets.filter(target => {
+        return teamManager.getCharacterTeam(target) === teamManager.getCharacterTeam(actor) && 
+               !target.defeated;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    // Find ally with lowest HP percentage
+    return validTargets.reduce((mostInjured, current) => {
+        const currentHpPercent = current.currentHp / current.stats.hp;
+        const mostInjuredHpPercent = mostInjured.currentHp / mostInjured.stats.hp;
+        return (currentHpPercent < mostInjuredHpPercent) ? current : mostInjured;
+    }, validTargets[0]);
+}
+
+/**
+ * Targets all characters but marks team relationships
+ * @param {object} context - Targeting context
+ * @returns {Character[]|null} - Array of targets or null if no valid targets
+ */
+function targetAllCharacters(context) {
+    const { actor, potentialTargets, teamManager } = context;
+    const actorTeam = actor.team || teamManager.getCharacterTeam(actor);
+    
+    // Filter living characters and add team relationship info
+    const validTargets = potentialTargets.filter(target => !target.defeated).map(target => {
+        // Add this crucial property to identify team relationship
+        const targetTeam = target.team || teamManager.getCharacterTeam(target);
+        target.isAllyOf = targetTeam === actorTeam;
+        return target;
+    });
+    
+    if (validTargets.length === 0) return null;
+    
+    return validTargets;
+}
+
+// Register all targeting behaviors
+behaviorRegistry.registerTargetingBehavior('targetRandomEnemy', targetRandomEnemy, true);  // Set as default
+behaviorRegistry.registerTargetingBehavior('targetLowestHpEnemy', targetLowestHpEnemy);
+behaviorRegistry.registerTargetingBehavior('targetHighestHpEnemy', targetHighestHpEnemy);
+behaviorRegistry.registerTargetingBehavior('targetAllEnemies', targetAllEnemies);
+behaviorRegistry.registerTargetingBehavior('targetLowestHpAlly', targetLowestHpAlly);
+behaviorRegistry.registerTargetingBehavior('targetAllAllies', targetAllAllies);
+behaviorRegistry.registerTargetingBehavior('targetSelf', targetSelf);
+// Register new targeting behaviors
+behaviorRegistry.registerTargetingBehavior('targetHighestAttackEnemy', targetHighestAttackEnemy);
+behaviorRegistry.registerTargetingBehavior('targetHighestIntellectEnemy', targetHighestIntellectEnemy);
+behaviorRegistry.registerTargetingBehavior('targetAdjacentEnemies', targetAdjacentEnemies);
+behaviorRegistry.registerTargetingBehavior('targetRandomAlly', targetRandomAlly);
+behaviorRegistry.registerTargetingBehavior('targetMostInjuredAlly', targetMostInjuredAlly);
+behaviorRegistry.registerTargetingBehavior('targetAllCharacters', targetAllCharacters);
+
+// Export individual behaviors for direct use if needed
+export {
+    targetRandomEnemy,
+    targetLowestHpEnemy,
+    targetHighestHpEnemy,
+    targetAllEnemies,
+    targetLowestHpAlly,
+    targetAllAllies,
+    targetSelf,
+    // Export new targeting behaviors
+    targetHighestAttackEnemy,
+    targetHighestIntellectEnemy,
+    targetAdjacentEnemies,
+    targetRandomAlly,
+    targetMostInjuredAlly,
+    targetAllCharacters
+};
+

@@ -1,0 +1,73 @@
+{
+  "id": 10,
+  "name": "Seraphina",
+  "type": "light",
+  "role": "Paladin",
+  "rarity": "Epic",
+  "stats": {
+    "hp": 110,
+    "attack": 20,
+    "defense": 18,
+    "speed": 9,
+    "strength": 65,
+    "intellect": 40,
+    "spirit": 90
+  },
+  "abilities": [
+    {
+      "name": "Radiant Strike",
+      "damage": 28,
+      "cooldown": 2,
+      "isHealing": false,
+      "damageType": "physical",
+      "description": "Channels divine energy into a powerful strike",
+      "effects": [
+        {
+          "type": "Damage",
+          "value": 28,
+          "damageType": "physical",
+          "scalingStat": "Strength", 
+          "scaleFactor": 0.5
+        }
+      ]
+    },
+    {
+      "name": "Divine Blessing",
+      "damage": 25,
+      "cooldown": 3,
+      "isHealing": true,
+      "damageType": "healing",
+      "description": "Calls upon divine power to heal an ally",
+      "effects": [
+        {
+          "type": "Healing",
+          "value": 25,
+          "healType": "divine",
+          "scalingStat": "Spirit",
+          "scaleFactor": 0.6
+        }
+      ]
+    },
+    {
+      "name": "Light's Protection",
+      "abilityType": "Passive",
+      "passiveTrigger": "onBattleStart",
+      "passiveBehavior": "passive_TeamBuffOnBattleStart",
+      "description": "Grants all allies a protective shield at the start of battle",
+      "passiveData": {
+        "statusId": "status_def_up",
+        "duration": 3
+      }
+    },
+    {
+      "name": "Divine Retribution",
+      "abilityType": "Passive",
+      "passiveTrigger": "onDamageTaken",
+      "passiveBehavior": "passive_DamageReflectOnHit",
+      "description": "Reflects a portion of damage taken back to the attacker",
+      "passiveData": {
+        "reflectPercent": 0.2
+      }
+    }
+  ]
+}

@@ -1,0 +1,450 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1033\deflangfe2052{\fonttbl{\f0\fswiss\fprq2\fcharset0 Arial;}{\f1\fnil\fcharset0 Roboto Mono;}{\f2\fnil\fcharset1 Segoe UI Symbol;}{\f3\fnil\fcharset2 Symbol;}}
+{\colortbl ;\red0\green0\blue0;\red24\green128\blue56;}
+{\*\generator Riched20 10.0.22621}{\*\mmathPr\mnaryLim0\mdispDef1\mwrapIndent1440 }\viewkind4\uc1 
+\pard\widctlpar\sb240\sa240\sl276\slmult1\cf1\ul\b\f0\fs26 Revised Stage 4 Implementation Plan: Damage and Healing System\par
+\ulnone\b0\i\fs22 See "C:\\Personal\\AutoBattler\\Context\\BattleManager_Refactoring_Plan_Updated.md" for big picture plan.\par
+\b\i0 Preamble: Staged Refactoring Context\b0  This plan involves extracting logic that \i originally\i0  resided in the monolithic \cf2\f1 BattleManager.js\cf1\f0 . However, due to the staged nature of the refactoring:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Stage 3 (Completed):\b0  Moved core battle flow logic (including \cf2\f1 applyActionEffect\cf1\f0 ) from \cf2\f1 BattleManager.js\cf1\f0  into \cf2\f1 BattleFlowController.js\cf1\f0 .\par
+{\pntext\f3\'B7\tab}\b Therefore:\b0  For subsequent steps involving damage/healing \i application\i0  (part of the action execution flow), the code being modified or replaced will be located within \cf2\f1 BattleFlowController.js\cf1\f0 , even though the overall goal is refactoring the original \cf2\f1 BattleManager\cf1\f0 's responsibilities. Modifications to \cf2\f1 BattleManager.js\cf1\f0  in these stages will primarily involve adding toggles or replacing original methods with thin facades delegating to new components.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.21: TypeEffectivenessCalculator Extraction (Complete)\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Extract type effectiveness calculations (logic originally in \cf2\f1 BattleManager.js\cf1\f0 ) into \cf2\f1 TypeEffectivenessCalculator\cf1\f0  component.\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Create \cf2\f1 TypeEffectivenessCalculator.js\cf1\f0  based on the logic previously in \cf2\f1 BattleManager.calculateTypeMultiplier\cf1\f0 .\par
+{\pntext\f3\'B7\tab}Ensure method signature matches: \cf2\f1 calculateTypeMultiplier(attackerType, defenderType)\cf1\f0 .\par
+{\pntext\f3\'B7\tab}Carefully preserve all logging message formats and content.\par
+{\pntext\f3\'B7\tab}Verify \cf2\f1 this\cf1\f0  context is properly maintained for all \cf2\f1 BattleManager\cf1\f0  references.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Add toggle in \cf2\f1 BattleManager.calculateTypeMultiplier\cf1\f0  to use \cf2\f1 TypeEffectivenessCalculator\cf1\f0 :\line JavaScript\line if (this.useNewImplementation && this.typeEffectivenessCalculator) \{\par
+{\pntext\f3\'B7\tab}    return this.typeEffectivenessCalculator.calculateTypeMultiplier(attackerType, defenderType);\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+{\pntext\f3\'B7\tab}Add script tag to \cf2\f1 index.html\cf1\f0  in proper load order (before \cf2\f1 BattleManager.js\cf1\f0 ).\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Add initialization logic in \cf2\f1 BattleManager.initializeComponentManagers()\cf1\f0 :\line JavaScript\line if (window.TypeEffectivenessCalculator) \{\par
+{\pntext\f3\'B7\tab}    this.typeEffectivenessCalculator = new window.TypeEffectivenessCalculator(this);\par
+{\pntext\f3\'B7\tab}    console.log('BattleManager: TypeEffectivenessCalculator initialized');\par
+{\pntext\f3\'B7\tab}    // Diagnostic check\par
+{\pntext\f3\'B7\tab}    console.log('>>> TypeEffectivenessCalculator instance check:',\par
+{\pntext\f3\'B7\tab}        typeof this.typeEffectivenessCalculator.calculateTypeMultiplier);\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Test all type combinations (e.g., Fire vs. Nature, Water vs. Fire, Fire vs. Water) to verify exact multiplier values match between toggle on/off.\par
+{\pntext\f3\'B7\tab}Verify battle log messages for type advantages ("super effective", "not very effective") are identical in format and content.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Verification Checklist:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 [\f2\u10003?\f0 ] Script path in \cf2\f1 index.html\cf1\f0  verified.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Method signature and context preserved.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Output values match exactly between original and extracted code.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Type advantage messages match exactly.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.21_Cleanup: TypeEffectivenessCalculator Legacy Code Removal (Complete)\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Remove original type effectiveness calculation code from \cf2\f1 BattleManager\cf1\f0  after successful extraction.\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Remove original logic from \cf2\f1 BattleManager.calculateTypeMultiplier\cf1\f0 .\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Replace with a thin facade method in \cf2\f1 BattleManager.js\cf1\f0  that directly delegates:\line JavaScript\line calculateTypeMultiplier(attackerType, defenderType) \{\par
+{\pntext\f3\'B7\tab}    // Delegate to the specialized calculator component\par
+{\pntext\f3\'B7\tab}    if (!this.typeEffectivenessCalculator) \{\par
+{\pntext\f3\'B7\tab}        console.error("TypeEffectivenessCalculator not initialized!");\par
+{\pntext\f3\'B7\tab}        return 1; // Default multiplier on error\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}    return this.typeEffectivenessCalculator.calculateTypeMultiplier(attackerType, defenderType);\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+{\pntext\f3\'B7\tab}Update all reference comments to point to the new component.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Repeat all tests from Version 0.5.21 to ensure functionality remains unchanged after cleanup.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.22: DamageCalculator Extraction (Calculation Logic) (Complete)\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Extract damage \i calculation\i0  logic (formula, scaling, crit, variance - logic originally in \cf2\f1 BattleManager.js\cf1\f0 ) into \cf2\f1 DamageCalculator\cf1\f0  component.\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Create \cf2\f1 DamageCalculator.js\cf1\f0  and implement \cf2\f1 calculateDamage(attacker, target, ability, effect = null)\cf1\f0  based on the logic previously in \cf2\f1 BattleManager.calculateDamage\cf1\f0 .\par
+{\pntext\f3\'B7\tab}Ensure all parameter handling matches original implementation.\par
+{\pntext\f3\'B7\tab}Maintain exact formula calculations for stat scaling, variance, and critical hits.\par
+{\pntext\f3\'B7\tab}Verify references to \cf2\f1 this.battleManager.typeEffectivenessCalculator\cf1\f0  are correct within the new class.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Add toggle in \cf2\f1 BattleManager.calculateDamage\cf1\f0  to use \cf2\f1 DamageCalculator\cf1\f0 :\line JavaScript\line if (this.useNewImplementation && this.damageCalculator) \{\par
+{\pntext\f3\'B7\tab}     // Ensure the calculator has access to the type effectiveness component\par
+{\pntext\f3\'B7\tab}     if (!this.damageCalculator.typeEffectivenessCalculator && this.typeEffectivenessCalculator) \{\par
+{\pntext\f3\'B7\tab}         this.damageCalculator.typeEffectivenessCalculator = this.typeEffectivenessCalculator;\par
+{\pntext\f3\'B7\tab}     \}\par
+{\pntext\f3\'B7\tab}    return this.damageCalculator.calculateDamage(attacker, target, ability, effect);\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+{\pntext\f3\'B7\tab}Update script tag in \cf2\f1 index.html\cf1\f0  to ensure proper load order (after \cf2\f1 TypeEffectivenessCalculator.js\cf1\f0 , before \cf2\f1 BattleManager.js\cf1\f0 ).\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Add initialization in \cf2\f1 BattleManager.initializeComponentManagers()\cf1\f0 :\line JavaScript\line // Note: Initialize after TypeEffectivenessCalculator\par
+{\pntext\f3\'B7\tab}if (window.DamageCalculator) \{\par
+{\pntext\f3\'B7\tab}    this.damageCalculator = new window.DamageCalculator(this); // Pass BattleManager reference\par
+{\pntext\f3\'B7\tab}    console.log('BattleManager: DamageCalculator initialized');\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}     // Inject dependency if available\par
+{\pntext\f3\'B7\tab}     if (this.typeEffectivenessCalculator) \{\par
+{\pntext\f3\'B7\tab}         this.damageCalculator.typeEffectivenessCalculator = this.typeEffectivenessCalculator;\par
+{\pntext\f3\'B7\tab}     \}\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}    // Verify method exists and is callable\par
+{\pntext\f3\'B7\tab}    console.log('>>> DamageCalculator instance check:',\par
+{\pntext\f3\'B7\tab}        typeof this.damageCalculator.calculateDamage);\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Test damage calculations across different scenarios: Basic auto-attack, Physical ability (STR scaling), Spell ability (INT scaling), Critical hits, Type advantages/disadvantages.\par
+{\pntext\f3\'B7\tab}Compare damage values with toggle on/off to ensure exact matches.\par
+{\pntext\f3\'B7\tab}Verify scaling text formatting is preserved: \cf2\f1 "(+X from Strength/Intellect)"\cf1\f0 .\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Verification Checklist:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 [\f2\u10003?\f0 ] Script path in \cf2\f1 index.html\cf1\f0  verified.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Method signature and context preserved.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Reference to \cf2\f1 TypeEffectivenessCalculator\cf1\f0  handles both toggle states correctly.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Damage values match exactly between original and extracted code.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Stat scaling text formatting matches exactly.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.22_Cleanup: DamageCalculator Legacy Code Removal (Complete)\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Remove original damage calculation code from \cf2\f1 BattleManager\cf1\f0 .\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Remove original logic from \cf2\f1 BattleManager.calculateDamage\cf1\f0 .\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Replace with a thin facade method in \cf2\f1 BattleManager.js\cf1\f0  that directly delegates:\line JavaScript\line calculateDamage(attacker, target, ability, effect = null) \{\par
+{\pntext\f3\'B7\tab}    // Delegate to the specialized calculator component\par
+{\pntext\f3\'B7\tab}    if (!this.damageCalculator) \{\par
+{\pntext\f3\'B7\tab}        console.error("DamageCalculator not initialized!");\par
+{\pntext\f3\'B7\tab}        // Return a default/error value, e.g., 0 damage and no text\par
+{\pntext\f3\'B7\tab}        return \{ damage: 0, scalingText: '', scalingStat: null \};\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}     // Ensure dependencies are injected if missed during initialization\par
+{\pntext\f3\'B7\tab}     if (!this.damageCalculator.typeEffectivenessCalculator && this.typeEffectivenessCalculator) \{\par
+{\pntext\f3\'B7\tab}         this.damageCalculator.typeEffectivenessCalculator = this.typeEffectivenessCalculator;\par
+{\pntext\f3\'B7\tab}     \}\par
+{\pntext\f3\'B7\tab}    return this.damageCalculator.calculateDamage(attacker, target, ability, effect);\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+{\pntext\f3\'B7\tab}Update all reference comments to point to the new component.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Repeat all tests from Version 0.5.22 to ensure functionality remains unchanged after cleanup.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.23: Damage Application Extraction (Complete)\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Extract damage \i application\i0  logic (HP modification, event dispatch, kill detection) into \cf2\f1 DamageCalculator\cf1\f0  component. \b Note:\b0  This logic now resides within \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0  due to Stage 3 refactoring.\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Add \cf2\f1 applyDamage(target, amount, source, ability, damageType)\cf1\f0  method to \cf2\f1 DamageCalculator.js\cf1\f0 , basing its logic on the implementation \i currently residing in \cf2\f1 BattleFlowController.applyActionEffect\cf1\i0\f0  (which originated in \cf2\f1 BattleManager\cf1\f0 ).\par
+{\pntext\f3\'B7\tab}Preserve method signature: \cf2\f1 applyDamage(target, amount, source, ability, damageType)\cf1\f0 .\par
+{\pntext\f3\'B7\tab}Implement logic to:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1800{\pntxtb\'B7}}\widctlpar\fi-360\li2520\sl276\slmult1\tx1800\tx2520 Calculate actual HP change (min HP 0).\par
+{\pntext\f3\'B7\tab}Determine \cf2\f1 killed\cf1\f0  status (\cf2\f1 oldHealth > 0 && newHealth <= 0\cf1\f0 ).\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Dispatch the \cf2\f1 CHARACTER_DAMAGED\cf1\f0  event via \cf2\f1 window.battleBridge\cf1\f0  if \cf2\f1 actualDamage > 0\cf1\f0 .\line JavaScript\line // Inside DamageCalculator.applyDamage\par
+{\pntext\f3\'B7\tab}if (window.battleBridge && actualDamage > 0) \{\par
+{\pntext\f3\'B7\tab}    try \{\par
+{\pntext\f3\'B7\tab}        window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_DAMAGED, \{\par
+{\pntext\f3\'B7\tab}            character: target, target: target, // Include both for compatibility\par
+{\pntext\f3\'B7\tab}            newHealth: target.currentHp, maxHealth: target.stats.hp,\par
+{\pntext\f3\'B7\tab}            amount: actualDamage, source: source, ability: ability\par
+{\pntext\f3\'B7\tab}        \});\par
+{\pntext\f3\'B7\tab}    \} catch (error) \{\par
+{\pntext\f3\'B7\tab}        console.error('[DamageCalculator] Error dispatching CHARACTER_DAMAGED event:', error);\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1800{\pntxtb\'B7}}\widctlpar\fi-360\li2520\sl276\slmult1\tx1800\tx2520\par
+{\pntext\f3\'B7\tab}Return \cf2\f1\{ actualDamage, killed \}\cf1\f0 .\par
+{\pntext\f3\'B7\tab}Do \b not\b0  set \cf2\f1 isDefeated\cf1\f0  flag here.\par
+{\pntext\f3\'B7\tab}Do \b not\b0  dispatch \cf2\f1 CHARACTER_DEFEATED\cf1\f0  event here (verified not to exist in original code).\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800 Update the damaging action section within \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0 :\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1800{\pntxtb\'B7}}\widctlpar\fi-360\li2520\sl276\slmult1\tx1800\tx2520 Add the \cf2\f1 if (this.battleManager.useNewImplementation && this.battleManager.damageCalculator)\cf1\f0  toggle.\par
+{\pntext\f3\'B7\tab}\b If ON:\b0  Call \cf2\f1 const result = this.battleManager.damageCalculator.applyDamage(...)\cf1\f0 . Store \cf2\f1 actualDamage = result.actualDamage\cf1\f0  and \cf2\f1 killed = result.killed\cf1\f0 .\par
+{\pntext\f3\'B7\tab}\b If OFF:\b0  Keep the existing inline damage application logic within \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0  (HP modification, \cf2\f1 killed\cf1\f0  check, \cf2\f1 CHARACTER_DAMAGED\cf1\f0  dispatch).\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800 Ensure the logic \i following\i0  the toggle block in \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0  (logging damage, handling passives, and the \cf2\f1 if (killed)\cf1\f0  block for defeat processing) correctly uses the \cf2\f1 actualDamage\cf1\f0  and \cf2\f1 killed\cf1\f0  variables.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Test damage application with specific attention to events: Verify health bar updates correctly (via \cf2\f1 CHARACTER_DAMAGED\cf1\f0 ), confirm floating damage numbers appear identically with toggle on/off.\par
+{\pntext\f3\'B7\tab}Test character defeat scenario: Verify \cf2\f1 isDefeated\cf1\f0  state is set properly \i by \cf2\f1 BattleFlowController\cf1\i0\f0  when \cf2\f1 killed\cf1\f0  is true. Verify passive triggers (\cf2\f1 onKill\cf1\f0 , \cf2\f1 onDefeat\cf1\f0 ) occur identically.\par
+{\pntext\f3\'B7\tab}Use browser devtools to inspect \cf2\f1 CHARACTER_DAMAGED\cf1\f0  event payloads with toggle on/off. Confirm \cf2\f1 CHARACTER_DEFEATED\cf1\f0  is \i not\i0  dispatched.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Verification Checklist:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 [\f2\u10003?\f0 ] \cf2\f1 DamageCalculator.applyDamage\cf1\f0  returns correct \cf2\f1\{ actualDamage, killed \}\cf1\f0  object.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] \cf2\f1 CHARACTER_DAMAGED\cf1\f0  event dispatch timing and payload match exactly. \cf2\f1 CHARACTER_DEFEATED\cf1\f0  is not dispatched.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Defeat logic (setting \cf2\f1 isDefeated\cf1\f0 , triggering passives) is handled correctly in \cf2\f1 BattleFlowController\cf1\f0  based on \cf2\f1 killed\cf1\f0  flag.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] UI updates (health bars, damage numbers) behave identically.\par
+{\pntext\f3\'B7\tab}[\f2\u10003?\f0 ] Passive trigger events (\cf2\f1 onKill\cf1\f0 , \cf2\f1 onDefeat\cf1\f0 , \cf2\f1 onDamageTaken\cf1\f0 , \cf2\f1 onDamageDealt\cf1\f0 ) occur as expected.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.23_Cleanup: Damage Application Legacy Code Removal (Complete)\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Remove original damage application code from \cf2\f1 BattleFlowController\cf1\f0  after successful extraction.\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Modify \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0 : Remove the \cf2\f1 if/else\cf1\f0  toggle block for damage application. Replace it with a defensive check for \cf2\f1 damageCalculator\cf1\f0  and a direct call to \cf2\f1 this.battleManager.damageCalculator.applyDamage(...)\cf1\f0 . Ensure subsequent logic (logging, passives, defeat handling based on \cf2\f1 killed\cf1\f0  flag) remains within \cf2\f1 BattleFlowController\cf1\f0 .\par
+{\pntext\f3\'B7\tab}Modify \cf2\f1 BattleFlowController.checkBattleEnd\cf1\f0 : Standardize checks to use \cf2\f1 char.isDefeated\cf1\f0  instead of \cf2\f1 char.isDead\cf1\f0 .\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Repeat all tests from Version 0.5.23 (toggle ON state) to ensure functionality remains unchanged after cleanup.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.24: HealingProcessor Extraction (Complete)\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Extract healing logic (HP modification, event dispatch, resurrection check) into \cf2\f1 HealingProcessor\cf1\f0  component. \b Note:\b0  This logic currently resides within \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0  due to Stage 3 refactoring.\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Create \cf2\f1 HealingProcessor.js\cf1\f0  and implement \cf2\f1 applyHealing(target, amount, source, ability, healType?)\cf1\f0 . Base its logic on the healing section \i currently residing in \cf2\f1 BattleFlowController.applyActionEffect\cf1\i0\f0 .\par
+{\pntext\f3\'B7\tab}Implement logic to:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1800{\pntxtb\'B7}}\widctlpar\fi-360\li2520\sl276\slmult1\tx1800\tx2520 Calculate actual HP change (max HP \cf2\f1 target.stats.hp\cf1\f0 ).\par
+{\pntext\f3\'B7\tab}Determine \cf2\f1 revived\cf1\f0  status (\cf2\f1 target.isDefeated\cf1\f0  was true, now \cf2\f1 target.currentHp > 0\cf1\f0 ).\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Dispatch the \cf2\f1 CHARACTER_HEALED\cf1\f0  event via \cf2\f1 window.battleBridge\cf1\f0  if \cf2\f1 actualHealing > 0\cf1\f0 .\line JavaScript\line // Inside HealingProcessor.applyHealing\par
+{\pntext\f3\'B7\tab}if (window.battleBridge && actualHealing > 0) \{\par
+{\pntext\f3\'B7\tab}    try \{\par
+{\pntext\f3\'B7\tab}        window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_HEALED, \{\par
+{\pntext\f3\'B7\tab}             character: target, target: target, // Include both for compatibility\par
+{\pntext\f3\'B7\tab}             newHealth: target.currentHp, maxHealth: target.stats.hp,\par
+{\pntext\f3\'B7\tab}             amount: actualHealing, source: source, ability: ability\par
+{\pntext\f3\'B7\tab}         \});\par
+{\pntext\f3\'B7\tab}    \} catch (error) \{\par
+{\pntext\f3\'B7\tab}         console.error('[HealingProcessor] Error dispatching CHARACTER_HEALED event:', error);\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1800{\pntxtb\'B7}}\widctlpar\fi-360\li2520\sl276\slmult1\tx1800\tx2520\par
+{\pntext\f3\'B7\tab}Return \cf2\f1\{ actualHealing, revived \}\cf1\f0 .\par
+{\pntext\f3\'B7\tab}\b (Optional but Recommended):\b0  Consider adding \cf2\f1 checkAndResetDeathStatus(character)\cf1\f0  logic here or keeping it separate based on where it feels more appropriate after reviewing the \cf2\f1 BattleFlowController\cf1\f0  code. If moved here, ensure it interacts correctly with the \cf2\f1 revived\cf1\f0  flag.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800 Update the healing action section (\cf2\f1 else if (action.ability && (action.ability.isHealing || action.ability.damageType === 'healing'))\cf1\f0 ) within \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0 :\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1800{\pntxtb\'B7}}\widctlpar\fi-360\li2520\sl276\slmult1\tx1800\tx2520 Add the \cf2\f1 if (this.battleManager.useNewImplementation && this.battleManager.healingProcessor)\cf1\f0  toggle.\par
+{\pntext\f3\'B7\tab}\b If ON:\b0  Call \cf2\f1 const result = this.battleManager.healingProcessor.applyHealing(...)\cf1\f0 . Store \cf2\f1 actualHealing = result.actualHealing\cf1\f0  and \cf2\f1 revived = result.revived\cf1\f0 . Use the \cf2\f1 revived\cf1\f0  flag to handle resurrection consequences (e.g., trigger \cf2\f1 onRevive\cf1\f0  passives) within \cf2\f1 BattleFlowController\cf1\f0 . Handle \cf2\f1 checkAndResetDeathStatus\cf1\f0  call based on where that logic resides.\par
+{\pntext\f3\'B7\tab}\b If OFF:\b0  Keep the existing inline healing logic within \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0 .\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1 Add initialization logic for \cf2\f1 HealingProcessor\cf1\f0  in \cf2\f1 BattleManager.initializeComponentManagers()\cf1\f0  (ensure correct dependency order if needed):\line JavaScript\line if (window.HealingProcessor) \{\par
+{\pntext\f3\'B7\tab}    this.healingProcessor = new window.HealingProcessor(this);\par
+{\pntext\f3\'B7\tab}    console.log('BattleManager: HealingProcessor initialized');\par
+{\pntext\f3\'B7\tab}    // Verify methods exist\par
+{\pntext\f3\'B7\tab}    console.log('>>> HealingProcessor instance check:', \{\par
+{\pntext\f3\'B7\tab}         applyHealing: typeof this.healingProcessor.applyHealing,\par
+{\pntext\f3\'B7\tab}         // checkAndResetDeathStatus: typeof this.healingProcessor.checkAndResetDeathStatus // If moved\par
+{\pntext\f3\'B7\tab}     \});\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+{\pntext\f3\'B7\tab}Add \cf2\f1 HealingProcessor.js\cf1\f0  script tag to \cf2\f1 index.html\cf1\f0 .\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Test healing across multiple scenarios: Basic healing ability, Healing a full health character (should cap), Healing a defeated character (tests resurrection if \cf2\f1 checkAndResetDeathStatus\cf1\f0  logic is included/called correctly), Spirit stat scaling.\par
+{\pntext\f3\'B7\tab}Verify \cf2\f1 CHARACTER_HEALED\cf1\f0  events in browser devtools have correct payload.\par
+{\pntext\f3\'B7\tab}Test resurrection specifically: Defeat a character, then heal them, check \cf2\f1 isDefeated\cf1\f0  status and passive triggers (\cf2\f1 onRevive\cf1\f0 ).\par
+{\pntext\f3\'B7\tab}Compare behavior with toggle on/off.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Verification Checklist:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 [ ] Script path in \cf2\f1 index.html\cf1\f0  verified.\par
+{\pntext\f3\'B7\tab}[ ] Method signatures and context preserved.\par
+{\pntext\f3\'B7\tab}[ ] Event dispatch timing and payload match exactly (\cf2\f1 CHARACTER_HEALED\cf1\f0 ).\par
+{\pntext\f3\'B7\tab}[ ] UI updates (health bars, healing numbers) behave identically.\par
+{\pntext\f3\'B7\tab}[ ] Resurrection logic functions properly (setting \cf2\f1 isDefeated\cf1\f0  to false, triggering passives).\par
+{\pntext\f3\'B7\tab}[ ] Passive trigger events (\cf2\f1 onHealed\cf1\f0 , \cf2\f1 onHealingDone\cf1\f0 , \cf2\f1 onRevive\cf1\f0 ) occur as expected.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.24_Cleanup: HealingProcessor Legacy Code Removal- Complete\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Remove original healing and resurrection check logic from \cf2\f1 BattleFlowController\cf1\f0 . Potentially remove facade methods from \cf2\f1 BattleManager\cf1\f0 .\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Modify \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0 : Remove the \cf2\f1 if/else\cf1\f0  toggle block for healing application. Replace it with a defensive check for \cf2\f1 healingProcessor\cf1\f0  and a direct call to \cf2\f1 this.battleManager.healingProcessor.applyHealing(...)\cf1\f0 . Ensure subsequent logic (logging, passives, resurrection handling based on \cf2\f1 revived\cf1\f0  flag) remains within \cf2\f1 BattleFlowController\cf1\f0 . Handle \cf2\f1 checkAndResetDeathStatus\cf1\f0  call appropriately based on where its logic now resides.\par
+{\pntext\f3\'B7\tab}\b (Verify Need):\b0  Check if facade methods like \cf2\f1 applyHealing\cf1\f0  or \cf2\f1 checkAndResetDeathStatus\cf1\f0  exist in \cf2\f1 BattleManager.js\cf1\f0 . If they do and are now only called by \cf2\f1 BattleFlowController\cf1\f0  (which will delegate to \cf2\f1 HealingProcessor\cf1\f0 ), consider removing them from \cf2\f1 BattleManager\cf1\f0  for ultimate cleanup, or keep them as thin facades if other external systems might call them.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Repeat all tests from Version 0.5.24 (toggle ON state) to ensure functionality remains unchanged after cleanup.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.25: Component Integration\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Ensure all extracted Stage 4 components (\cf2\f1 DamageCalculator\cf1\f0 , \cf2\f1 HealingProcessor\cf1\f0 ) work together seamlessly within \cf2\f1 BattleFlowController\cf1\f0 .\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1\b0 Review \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0  after v0.5.24_Cleanup is complete. Ensure the logic correctly distinguishes between damaging and healing actions and calls the appropriate processor (\cf2\f1 damageCalculator\cf1\f0  or \cf2\f1 healingProcessor\cf1\f0 ).\line JavaScript\line // Example structure within BattleFlowController.applyActionEffect\par
+{\pntext\f3\'B7\tab}async applyActionEffect(action) \{\par
+{\pntext\f3\'B7\tab}    // ... pre-processing, target handling ...\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}    // Ensure components are available (defensive check)\par
+{\pntext\f3\'B7\tab}     if (!this.battleManager.damageCalculator || !this.battleManager.healingProcessor) \{\par
+{\pntext\f3\'B7\tab}         console.error("Required calculators/processors not available!");\par
+{\pntext\f3\'B7\tab}         return;\par
+{\pntext\f3\'B7\tab}     \}\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}     if (action.ability && (action.ability.isHealing || action.ability.damageType === 'healing')) \{\par
+{\pntext\f3\'B7\tab}         // --- Healing Logic ---\par
+{\pntext\f3\'B7\tab}         const result = this.battleManager.healingProcessor.applyHealing(...);\par
+{\pntext\f3\'B7\tab}         const actualHealing = result.actualHealing;\par
+{\pntext\f3\'B7\tab}         const revived = result.revived;\par
+{\pntext\f3\'B7\tab}         // ... Log healing, handle passives (onHealed, onHealingDone), handle resurrection if revived ...\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}     \} else if (action.ability && action.ability.damageType === 'utility') \{\par
+{\pntext\f3\'B7\tab}         // --- Utility Logic --- (Assuming not refactored yet)\par
+{\pntext\f3\'B7\tab}         // ...\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}     \} else \{\par
+{\pntext\f3\'B7\tab}         // --- Damage Logic ---\par
+{\pntext\f3\'B7\tab}         const result = this.battleManager.damageCalculator.applyDamage(...);\par
+{\pntext\f3\'B7\tab}         const actualDamage = result.actualDamage;\par
+{\pntext\f3\'B7\tab}         const killed = result.killed;\par
+{\pntext\f3\'B7\tab}         // ... Log damage, handle passives (onDamageTaken, onDamageDealt), handle defeat if killed ...\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}    // ... post-processing ...\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+{\pntext\f3\'B7\tab}Test interactions between damage and healing (e.g., healing a character just damaged to 0 HP, potentially triggering resurrection via \cf2\f1 HealingProcessor\cf1\f0 ).\par
+{\pntext\f3\'B7\tab}Add/refine error handling within \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0  for cases where processors might fail.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Test complete battle sequences focusing on transitions between damage and healing.\par
+{\pntext\f3\'B7\tab}Verify damage/healing totals over several turns match expectations.\par
+{\pntext\f3\'B7\tab}Test edge cases: Type-effective critical hits followed by heals, healing a character damaged to exactly 0 HP.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Verification Checklist:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 [ ] \cf2\f1 BattleFlowController\cf1\f0  correctly routes actions to \cf2\f1 DamageCalculator\cf1\f0  or \cf2\f1 HealingProcessor\cf1\f0 .\par
+{\pntext\f3\'B7\tab}[ ] Interactions between damage and healing effects (especially around 0 HP) are handled correctly.\par
+{\pntext\f3\'B7\tab}[ ] Battle flow remains identical to the original implementation's outcome.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.25_Cleanup: Integration Legacy Code Cleanup\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Finalize cleanup related to Stage 4 components within \cf2\f1 BattleFlowController\cf1\f0 .\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Review \cf2\f1 BattleFlowController.applyActionEffect\cf1\f0  for any remaining commented-out or redundant code related to the original inline damage/healing logic.\par
+{\pntext\f3\'B7\tab}Ensure all comments accurately reflect the delegation to \cf2\f1 DamageCalculator\cf1\f0  and \cf2\f1 HealingProcessor\cf1\f0 .\par
+{\pntext\f3\'B7\tab}\b (Optional):\b0  Review \cf2\f1 BattleManager.js\cf1\f0  and remove any helper methods that were solely used by the legacy damage/healing logic now removed from \cf2\f1 BattleFlowController\cf1\f0 .\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Perform final smoke test of battle system to ensure no regressions were introduced during cleanup.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.26: Component Initialization and Documentation\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Ensure proper initialization order and finalize toggle mechanism logic for all Stage 4 components.\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1\b0 Review \cf2\f1 BattleManager.initializeComponentManagers()\cf1\f0  to confirm correct initialization order for \cf2\f1 TypeEffectivenessCalculator\cf1\f0 , \cf2\f1 DamageCalculator\cf1\f0 , and \cf2\f1 HealingProcessor\cf1\f0 .\line JavaScript\line // Inside BattleManager.initializeComponentManagers\par
+{\pntext\f3\'B7\tab}async initializeComponentManagers() \{\par
+{\pntext\f3\'B7\tab}    console.log('BattleManager: Initializing component managers...');\par
+{\pntext\f3\'B7\tab}    let allComponentsInitialized = true;\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}    // ... (Initialize other systems like Status Effects, BattleFlowController first if needed) ...\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}    // Initialize Damage System Components\par
+{\pntext\f3\'B7\tab}    if (window.TypeEffectivenessCalculator) \{\par
+{\pntext\f3\'B7\tab}        this.typeEffectivenessCalculator = new window.TypeEffectivenessCalculator(this);\par
+{\pntext\f3\'B7\tab}        console.log('BattleManager: TypeEffectivenessCalculator initialized');\par
+{\pntext\f3\'B7\tab}    \} else \{\par
+{\pntext\f3\'B7\tab}        console.warn("TypeEffectivenessCalculator class not found!");\par
+{\pntext\f3\'B7\tab}        allComponentsInitialized = false;\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}    if (window.DamageCalculator) \{\par
+{\pntext\f3\'B7\tab}        this.damageCalculator = new window.DamageCalculator(this);\par
+{\pntext\f3\'B7\tab}        console.log('BattleManager: DamageCalculator initialized');\par
+{\pntext\f3\'B7\tab}        // Inject dependency\par
+{\pntext\f3\'B7\tab}        if (this.typeEffectivenessCalculator) \{\par
+{\pntext\f3\'B7\tab}             this.damageCalculator.typeEffectivenessCalculator = this.typeEffectivenessCalculator;\par
+{\pntext\f3\'B7\tab}         \} else \{\par
+{\pntext\f3\'B7\tab}             console.warn("Cannot inject TypeEffectivenessCalculator into DamageCalculator: Not initialized.");\par
+{\pntext\f3\'B7\tab}         \}\par
+{\pntext\f3\'B7\tab}    \} else \{\par
+{\pntext\f3\'B7\tab}        console.warn("DamageCalculator class not found!");\par
+{\pntext\f3\'B7\tab}        allComponentsInitialized = false;\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}    if (window.HealingProcessor) \{\par
+{\pntext\f3\'B7\tab}        this.healingProcessor = new window.HealingProcessor(this);\par
+{\pntext\f3\'B7\tab}        console.log('BattleManager: HealingProcessor initialized');\par
+{\pntext\f3\'B7\tab}    \} else \{\par
+{\pntext\f3\'B7\tab}        console.warn("HealingProcessor class not found!");\par
+{\pntext\f3\'B7\tab}        allComponentsInitialized = false;\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}     // Set the master toggle based on successful initialization of *all* required components for the new flow\par
+{\pntext\f3\'B7\tab}     // (Adjust this list as more components are added/refactored)\par
+{\pntext\f3\'B7\tab}     this.useNewImplementation = !!(\par
+{\pntext\f3\'B7\tab}         // this.statusEffectManager && // Add when refactored\par
+{\pntext\f3\'B7\tab}         this.battleFlowController &&\par
+{\pntext\f3\'B7\tab}         this.typeEffectivenessCalculator &&\par
+{\pntext\f3\'B7\tab}         this.damageCalculator &&\par
+{\pntext\f3\'B7\tab}         this.healingProcessor\par
+{\pntext\f3\'B7\tab}         // && this.abilityProcessor // Add when refactored\par
+{\pntext\f3\'B7\tab}         // && this.passiveAbilityManager // Add when refactored\par
+{\pntext\f3\'B7\tab}         // && this.battleLogManager // Add when refactored\par
+{\pntext\f3\'B7\tab}         // && this.battleInitializer // Add when refactored\par
+{\pntext\f3\'B7\tab}     );\par
+{\pntext\f3\'B7\tab}\par
+{\pntext\f3\'B7\tab}    console.log(`BattleManager: Using new implementation paths: $\{this.useNewImplementation\}`);\par
+{\pntext\f3\'B7\tab}    if (!this.useNewImplementation) \{\par
+{\pntext\f3\'B7\tab}         console.warn("One or more required components failed to initialize. Falling back to legacy BattleManager logic.");\par
+{\pntext\f3\'B7\tab}    \}\par
+{\pntext\f3\'B7\tab}\}\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\par
+{\pntext\f3\'B7\tab}Add clear diagnostic logging for each component's initialization success or failure.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Test initialization by commenting out script tags in \cf2\f1 index.html\cf1\f0  for specific components (\cf2\f1 DamageCalculator\cf1\f0 , \cf2\f1 HealingProcessor\cf1\f0 ) to verify that \cf2\f1 useNewImplementation\cf1\f0  correctly becomes \cf2\f1 false\cf1\f0  and the game falls back to legacy logic without crashing.\par
+{\pntext\f3\'B7\tab}Restore script tags and verify \cf2\f1 useNewImplementation\cf1\f0  becomes \cf2\f1 true\cf1\f0 .\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Verification Checklist:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 [ ] Components initialize in correct dependency order.\par
+{\pntext\f3\'B7\tab}[ ] Missing components correctly result in \cf2\f1 useNewImplementation\cf1\f0  being \cf2\f1 false\cf1\f0 .\par
+{\pntext\f3\'B7\tab}[ ] Full toggle state (\cf2\f1 true\cf1\f0  when all present, \cf2\f1 false\cf1\f0  when any are missing) works as expected.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sb240\sa240\sl276\slmult1\b Version 0.5.26_Cleanup: Final Cleanup and Documentation\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080 Goal:\b0  Complete Stage 4 refactoring with comprehensive documentation and final code cleanup.\par
+{\pntext\f3\'B7\tab}\b Implementation Steps:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Create comprehensive technical documentation for the entire Damage & Healing System (Stage 4 components: \cf2\f1 TypeEffectivenessCalculator\cf1\f0 , \cf2\f1 DamageCalculator\cf1\f0 , \cf2\f1 HealingProcessor\cf1\f0  and their interactions via \cf2\f1 BattleFlowController\cf1\f0 /\cf2\f1 BattleManager\cf1\f0 ). This could be a new markdown file or added to the detailed changelog. Example filename: \cf2\f1 Changelogs/Technical Changelogs/CHANGELOG_Stage4_DamageHealingSystem_Complete.md\cf1\f0 .\par
+{\pntext\f3\'B7\tab}Update the high-level changelog (\cf2\f1 Changelogs/changelog.md\cf1\f0 ) with a note indicating Stage 4 completion.\par
+{\pntext\f3\'B7\tab}Perform a final code review of all components modified or created in Stage 4 (\cf2\f1 TypeEffectivenessCalculator.js\cf1\f0 , \cf2\f1 DamageCalculator.js\cf1\f0 , \cf2\f1 HealingProcessor.js\cf1\f0 , relevant parts of \cf2\f1 BattleManager.js\cf1\f0 , \cf2\f1 BattleFlowController.js\cf1\f0 ).\par
+{\pntext\f3\'B7\tab}Remove any temporary \cf2\f1 console.log\cf1\f0  messages or diagnostics added specifically for Stage 4 debugging.\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\fi-360\li1080\sl276\slmult1\tx360\tx1080\b Testing Specifics:\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent1080{\pntxtb\'B7}}\widctlpar\fi-360\li1800\sl276\slmult1\tx1080\tx1800\b0 Perform a final end-to-end verification run of the battle system, ensuring all damage, healing, type effectiveness, events, and defeat/resurrection logic functions correctly with the fully refactored Stage 4 components active (i.e., \cf2\f1 useNewImplementation\cf1\f0  should be \cf2\f1 true\cf1\f0 ).\par
+
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\widctlpar\sl276\slmult1\par
+}
+ 

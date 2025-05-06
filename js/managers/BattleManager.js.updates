@@ -1,0 +1,89 @@
+/**
+ * logMessage function update for BattleManager
+ * This enhanced function forwards all battle logs to BattleBridge when in "phaser" mode
+ */
+/**
+ * Log a message to the battle log
+ * @param {string} message - The message to log
+ * @param {string} type - The type of message (default, info, success, action, error)
+ */
+logMessage(message, type = 'default') {
+    // Log to console for debugging
+    console.log(`[Battle] ${message}`);
+    
+    // Dispatch event through BattleBridge if available and in phaser UI mode
+    if (window.battleBridge && this.uiMode === "phaser") {
+        window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG, {
+            message: message,
+            type: type
+        });
+    }
+    
+    // Continue with DOM UI log if in DOM mode
+    if (this.uiMode === "dom" && this.battleUI) {
+        this.battleUI.log(message, type);
+    }
+}
+/**
+ * Enhanced type effectiveness logging
+ * Use this to replace the original type effectiveness logging in calculateTypeMultiplier
+ */
+calculateTypeMultiplier(attackerType, defenderType) {
+    // Type advantage chart
+    const advantages = {
+        fire: 'nature',    // Fire is strong against Nature
+        water: 'fire',     // Water is strong against Fire
+        nature: 'water',   // Nature is strong against Water
+        light: 'dark',     // Light is strong against Dark
+        dark: 'light',     // Dark is strong against Light
+        air: 'earth'       // Air is strong against Earth (not used yet)
+    };
+    
+    if (advantages[attackerType] === defenderType) {
+        // Attacker has advantage
+        this.logMessage(`${attackerType.charAt(0).toUpperCase() + attackerType.slice(1)} is super effective against ${defenderType}!`, 'success');
+        
+        // Additional dispatch for type effectiveness to ensure it shows in battle log
+        if (window.battleBridge && this.uiMode === "phaser") {
+            window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG, {
+                message: `${attackerType.charAt(0).toUpperCase() + attackerType.slice(1)} is super effective against ${defenderType}!`,
+                type: 'type' // Use a special type for type effectiveness messages
+            });
+        }
+        
+        return 1.5;
+    } else if (advantages[defenderType] === attackerType) {
+        // Defender has advantage
+        this.logMessage(`${attackerType.charAt(0).toUpperCase() + attackerType.slice(1)} is not very effective against ${defenderType}.`, 'info');
+        
+        // Additional dispatch for type effectiveness
+        if (window.battleBridge && this.uiMode === "phaser") {
+            window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG, {
+                message: `${attackerType.charAt(0).toUpperCase() + attackerType.slice(1)} is not very effective against ${defenderType}.`,
+                type: 'type' // Use a special type for type effectiveness messages
+            });
+        }
+        
+        return 0.75;
+    }
+    
+    return 1.0; // No advantage
+}
+/**
+ * Enhanced critical hit logging
+ * Use this to replace or add to the critical hit section in calculateDamage
+ */
+// Inside calculateDamage method
+// Critical hit chance (10%)
+if (Math.random() < 0.1) {
+    damage = Math.round(damage * 1.5);
+    this.logMessage(`Critical hit!`, 'success');
+    
+    // Additional dispatch for critical hits
+    if (window.battleBridge && this.uiMode === "phaser") {
+        window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG, {
+            message: `Critical hit!`,
+            type: 'critical' // Use a special type for critical hit messages
+        });
+    }
+}

@@ -1,0 +1,22 @@
+    /**
+     * Log a message to the battle log
+     * @param {string} message - The message to log
+     * @param {string} type - The type of message (default, info, success, action, error)
+     */
+    logMessage(message, type = 'default') {
+        // Log to console for debugging
+        console.log(`[Battle] ${message}`);
+        
+        // Dispatch event through BattleBridge if available and in phaser UI mode
+        if (window.battleBridge && this.uiMode === "phaser") {
+            window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG, {
+                message: message,
+                type: type
+            });
+        }
+        
+        // Continue with DOM UI log if in DOM mode
+        if (this.uiMode === "dom" && this.battleUI) {
+            this.battleUI.log(message, type);
+        }
+    }

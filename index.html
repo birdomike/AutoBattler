@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>First to Fall</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+<body>
+    <div id="team-builder-container" class="screen active">
+        <div class="header">
+            <h1>First to Fall</h1>
+            <p>Select your champions and prepare for battle!</p>
+        </div>
+        <div class="main-content">
+            <div id="available-heroes" class="section">
+                <h2>Available Heroes</h2>
+                <div id="heroes-grid"></div>
+            </div>
+            <div id="selected-team" class="section">
+                <h2>Your Team</h2>
+                <div id="team-slots"></div>
+                <div id="team-synergies">
+                    <h3>Team Synergies</h3>
+                    <ul id="synergies-list"></ul>
+                </div>
+            </div>
+            <div id="hero-details" class="section">
+                <h2>Hero Details</h2>
+                <div id="detail-content"></div>
+                <div id="battle-options">
+                    <h2>Battle Options</h2>
+                    <div id="battle-modes"></div>
+                    <button id="start-battle" disabled>START BATTLE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-container" class="screen">
+        </div>
+
+    <div id="battle-log">
+        </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script> <!-- Battle Logic Components -->
+    <script src="js/battle_logic/status/StatusEffectDefinitionLoader.js" defer></script>
+    <script src="js/battle_logic/status/StatusEffectManager.js" defer></script>
+    <!-- BattleFlowController v0.5.9 - Must load before BattleManager -->
+    <script src="js/battle_logic/core/BattleFlowController.js" defer></script>
+    <!-- TypeEffectivenessCalculator - Must load before BattleManager -->
+    <script src="js/battle_logic/damage/TypeEffectivenessCalculator.js" defer></script>
+    <!-- DamageCalculator - Must load after TypeEffectivenessCalculator and before BattleManager -->
+    <script src="js/battle_logic/damage/DamageCalculator.js" defer></script>
+    <!-- HealingProcessor - Must load after DamageCalculator and before BattleManager -->
+    <script src="js/battle_logic/damage/HealingProcessor.js" defer></script>
+    <!-- AbilityProcessor - Must load after status and damage components -->
+    <script src="js/battle_logic/abilities/AbilityProcessor.js" defer></script>
+    <!-- Passive System Components -->
+    <script src="js/battle_logic/passives/PassiveTriggerTracker.js" defer></script>
+    <script src="js/battle_logic/passives/PassiveAbilityManager.js" defer></script>
+    <!-- TargetingSystem - Must load after BehaviorRegistry -->
+    <script src="js/battle_logic/abilities/TargetingSystem.js" defer></script>
+    <!-- ActionGenerator - Must load after TargetingSystem -->
+    <script src="js/battle_logic/abilities/ActionGenerator.js" defer></script>
+    <!-- BattleFlowTester for testing the new implementation -->
+    <script src="js/utilities/BattleFlowTester.js" defer></script>
+    
+    <!-- Core Game Entities -->
+    <script src="js/entities/Character.js" defer></script>
+    <script src="js/entities/Ability.js" defer></script>
+
+    <!-- Managers -->
+    <script src="js/managers/TeamManager.js" defer></script>
+    <script src="js/managers/BattleManager.js" defer></script> <script src="js/battle_logic/fallback/BattleBehaviors.js" defer></script>
+    <script src="js/battle_logic/fallback/StatusEffectFixes.js" defer></script> <script src="js/phaser/PhaserConfig.js" defer></script>
+    <script src="js/phaser/assets.js" defer></script>
+    <script src="js/phaser/uiManager.js" defer></script>
+    <!-- Load BattleBridge class first, then initialization -->
+    <script src="js/phaser/bridge/BattleBridge.js"></script>
+    <script src="js/phaser/bridge/BattleBridgeInit.js"></script>
+    <!-- Status Icon Mapper for AI-generated icons -->
+    <script src="js/phaser/StatusIconMapper.js"></script>
+    <script src="js/phaser/bridge/BattleLogTester.js" defer></script>
+    <!-- Old bridge is renamed to avoid conflicts -->
+    <script src="js/phaser/bridge.js" defer></script> <script src="js/phaser/components/Button.js" defer></script>
+    <script src="js/phaser/components/Panel.js" defer></script>
+    <script src="js/phaser/components/battle/ActionIndicator.js" defer></script>
+    <script src="js/phaser/components/battle/StatusEffectContainer.js" defer></script>
+    <script src="js/phaser/components/battle/StatusEffectTooltip.js" defer></script>
+    <script src="js/phaser/components/battle/CharacterSprite.js" defer></script>
+    <script src="js/phaser/components/battle/TeamContainer.js" defer></script>
+    <script src="js/phaser/components/battle/BattleControlPanel.js" defer></script>
+    <script src="js/phaser/components/battle/BattleLogPanel.js" defer></script>
+    <script src="js/phaser/components/battle/DirectBattleLog.js" defer></script> 
+    
+    <!-- ES Module scripts -->
+    <script type="module" src="js/phaser/components/battle/TurnIndicator.js"></script>
+    <script type="module" src="js/phaser/scenes/BattleScene.js"></script>
+    
+    <script src="js/phaser/scenes/BootScene.js" defer></script>
+    <script src="js/phaser/scenes/TeamBuilderScene.js" defer></script> <script src="js/phaser/debug/CoordinateDisplay.js" defer></script>
+    <script src="js/phaser/debug/ObjectIdentifier.js" defer></script>
+    <script src="js/utilities/ImageDebugger.js" defer></script>
+    <script src="js/utilities/DirectImageLoader.js" defer></script>
+    <script src="js/utilities/TeamBuilderImageLoader.js" defer></script>
+
+    <script src="js/ui/TooltipManager.js" defer></script>
+    <script src="js/ui/SoundManager.js" defer></script>
+    <script src="js/ui/TeamBuilderUI.js" defer></script>
+    <script src="js/ui/BattleUI.js" defer></script> <script src="js/ui/BattleUIDebug.js" defer></script>
+    <script src="js/ui/TeamBuilderUIUpdates.js" defer></script> <script src="js/game.js" defer></script>
+
+    </body>
+</html>

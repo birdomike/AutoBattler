@@ -1,0 +1,241 @@
+/**
+ * Battle Manager
+ * Controls the flow of battle and combat logic
+ * Updated to work with the Tailwind CSS-based BattleUI
+ * Version 0.5.13 - Final cleanup of BattleFlowController refactoring
+ */
+
+class BattleManager {
+    /**
+     * Create a new Battle Manager
+     * @param {Phaser.Scene} scene - The Phaser scene for the battle
+     * @param {string} battleLogId - ID of the HTML element for battle log
+     */
+    constructor(scene, battleLogId) {
+        this.scene = scene;
+        this.battleLogId = battleLogId;
+        this.playerTeam = [];
+        this.enemyTeam = [];
+        this.currentTurn = 0;
+        this.isAutoBattle = true;
+        this.battleActive = false;
+        this.isPaused = false;
+        this.turnDelay = 6000; // Delay between turns (ms) - doubled from 3000ms for slower pace
+        this.actionDelay = 3200; // Delay between actions (ms) - doubled from 1600ms for slower pace
+        this.speedMultiplier = 1; // Battle speed (1x, 2x, 4x)
+        this.battleUI = null;
+        this.turnTimer = null;
+        this.activeCharacterIndex = 0;
+        this.actionQueue = [];
+        this.turnActions = [];
+        this.turnInProgress = false;
+        this.statusEffects = {}; // Store status effects by character ID
+        this.battleBehaviors = null; // Will hold the behavior system when loaded
+        this.statusEffectDefinitions = null; // Will hold status effect definitions from JSON
+        this.uiMode = "dom"; // UI mode: "dom" or "phaser"
+        
+        // Create a simple teamManager for compatibility with behavior system
+        this.teamManager = {
+            getCharacterTeam: (character) => character.team
+        };
+
+        // REFACTORING: References to component managers
+        this.useNewImplementation = false; // Toggle to switch between original and new code
+        this.battleFlowController = null;
+        this.battleInitializer = null;
+        this.statusEffectManager = null;
+        this.statusEffectDefinitionLoader = null;
+        this.damageCalculator = null;
+        this.healingProcessor = null;
+        this.typeEffectivenessCalculator = null;
+        this.abilityProcessor = null;
+        this.actionGenerator = null;
+        this.targetingSystem = null;
+        this.passiveAbilityManager = null;
+        this.passiveTriggerTracker = null;
+        this.battleEventDispatcher = null;
+        this.battleLogManager = null;
+    }
+    
+    /**
+     * Display a summary of all characters' health at the end of a turn
+     */
+    displayTurnSummary() {
+        // REFACTORING: Use new implementation if toggle is enabled
+        if (this.useNewImplementation && this.battleLogManager) {
+            return this.battleLogManager.displayTurnSummary();
+        }
+
+        // Original implementation
+        this.logMessage('------ END OF TURN SUMMARY ------', 'info');
+        
+        // Show player team summary
+        this.logMessage('Player Team:', 'info');
+        this.playerTeam.forEach(character => {
+            const status = character.isDead ? '💀 DEFEATED' : `HP: ${character.currentHp}/${character.stats.hp}`;
+            const statusColor = character.isDead ? 'error' : 
+                               (character.currentHp < character.stats.hp * 0.3) ? 'error' :
+                               (character.currentHp < character.stats.hp * 0.7) ? 'action' : 'success';
+            this.logMessage(`  ${character.name}: ${status}`, statusColor);
+        });
+        
+        // Show enemy team summary
+        this.logMessage('Enemy Team:', 'info');
+        this.enemyTeam.forEach(character => {
+            const status = character.isDead ? '💀 DEFEATED' : `HP: ${character.currentHp}/${character.stats.hp}`;
+            const statusColor = character.isDead ? 'error' : 
+                               (character.currentHp < character.stats.hp * 0.3) ? 'error' :
+                               (character.currentHp < character.stats.hp * 0.7) ? 'action' : 'success';
+            this.logMessage(`  ${character.name}: ${status}`, statusColor);
+        });
+        
+        this.logMessage('--------------------------------', 'info');
+    }
+    
+    /**
+     * Add a toggle method for testing
+     */
+    toggleImplementation() {
+        this.useNewImplementation = !this.useNewImplementation;
+        console.log(`Implementation toggled. Using new implementation: ${this.useNewImplementation}`);
+        return this.useNewImplementation;
+    }
+    
+    /**
+     * Initialize all component managers in proper dependency order
+     */
+    async initializeComponentManagers() {
+        console.log('BattleManager: Initializing component managers...');
+        
+        // 1. First initialize core dependencies (status effect system)
+        if (window.StatusEffectDefinitionLoader) {
+            this.statusEffectLoader = new window.StatusEffectDefinitionLoader();
+            console.log('BattleManager: StatusEffectDefinitionLoader initialized');
+            
+            // Only initialize StatusEffectManager if loader is available
+            if (window.StatusEffectManager) {
+                this.statusEffectManager = new window.StatusEffectManager(this, this.statusEffectLoader);
+                console.log('BattleManager: StatusEffectManager initialized');
+            }
+        }
+        
+        // 2. Initialize BattleFlowController (required component)
+        if (window.BattleFlowController) {
+            this.battleFlowController = new window.BattleFlowController(this);
+            console.log('BattleManager: BattleFlowController component initialized');
+        } else {
+            console.error('BattleManager: BattleFlowController not found on global window object');
+            throw new Error('BattleFlowController is required but not available');
+        }
+    }
+    
+    /**
+     * Load status effect definitions from JSON file
+     */
+    async loadStatusEffectDefinitions() {
+        // REFACTORING: Use new implementation if toggle is enabled
+        if (this.useNewImplementation && this.statusEffectLoader) {
+            return this.statusEffectLoader.getDefinition ? true : false; // Just check if method exists
+        }
+
+        // Original implementation
+        try {
+            // First try to load from data directory
+            console.log('Attempting to load status effect definitions from data directory...');
+            try {
+                const response = await fetch('/data/status_effects.json');
+                if (!response.ok) {
+                    throw new Error(`Failed to load data/status_effects.json: ${response.status}`);
+                }
+                const data = await response.json();
+                this.statusEffectDefinitions = {};
+                
+                // Process each status effect
+                if (data && data.status_effects && Array.isArray(data.status_effects)) {
+                    data.status_effects.forEach(effect => {
+                        if (effect && effect.id) {
+                            this.statusEffectDefinitions[effect.id] = effect;
+                        }
+                    });
+                }
+                
+                console.log(`Loaded ${Object.keys(this.statusEffectDefinitions).length} status effect definitions from data directory`);
+            } catch (e) {
+                console.warn('Failed to load from data directory:', e.message);
+                // Try fallback to root directory
+                try {
+                    const response = await fetch('/status_effects.json');
+                    if (!response.ok) {
+                        throw new Error(`Failed to load status_effects.json: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    this.statusEffectDefinitions = {};
+                    
+                    // Process each status effect
+                    if (data && data.status_effects && Array.isArray(data.status_effects)) {
+                        data.status_effects.forEach(effect => {
+                            if (effect && effect.id) {
+                                this.statusEffectDefinitions[effect.id] = effect;
+                            }
+                        });
+                    }
+                    
+                    console.log(`Loaded ${Object.keys(this.statusEffectDefinitions).length} status effect definitions from root directory`);
+                } catch (fallbackError) {
+                    console.warn('Failed to load from root directory:', fallbackError.message);
+                    throw e;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading status effect definitions:', error);
+            // Create basic fallback definitions
+            this.setupFallbackStatusEffects();
+            throw error;
+        }
+    }
+    
+    /**
+     * Setup fallback status effect definitions if loading fails
+     */
+    setupFallbackStatusEffects() {
+        // REFACTORING: Use new implementation if toggle is enabled
+        if (this.useNewImplementation && this.statusEffectLoader) {
+            return this.statusEffectLoader.setupFallbackDefinitions ? this.statusEffectLoader.setupFallbackDefinitions() : false;
+        }
+
+        // Original implementation
+        console.log('Setting up fallback status effect definitions');
+        this.statusEffectDefinitions = {
+            'status_burn': {
+                id: 'status_burn',
+                name: 'Burn',
+                description: 'Taking fire damage over time',
+                type: 'DoT',
+                defaultDuration: 2,
+                maxStacks: 1,
+                behavior: {
+                    trigger: 'onTurnStart',
+                    action: 'Damage',
+                    valueType: 'PercentMaxHP',
+                    value: 0.05
+                }
+            },
+            'status_regen': {
+                id: 'status_regen',
+                name: 'Regeneration',
+                description: 'Healing over time',
+                type: 'HoT',
+                defaultDuration: 3,
+                maxStacks: 1,
+                behavior: {
+                    trigger: 'onTurnStart',
+                    action: 'Heal',
+                    valueType: 'PercentMaxHP',
+                    value: 0.05
+                }
+            }
+        };
+    }
+
+    /**
+     * Initialize the battle manager

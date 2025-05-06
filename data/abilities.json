@@ -1,0 +1,43 @@
+{
+  "abilities": [
+    {
+      "id": 1,
+      "name": "Flame Strike",
+      "description": "A powerful fire attack that has a chance to burn the target",
+      "damage": 25,
+      "cooldown": 3,
+      "isHealing": false,
+      "effects": {
+        "burn": {
+          "chance": 0.3,
+          "damage": 5,
+          "duration": 2
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Restore Wounds",
+      "description": "Heals the caster for a significant amount",
+      "damage": 30,
+      "cooldown": 4,
+      "isHealing": true,
+      "effects": {}
+    },
+    {
+      "id": 3,
+      "name": "Tidal Wave",
+      "description": "A powerful water attack that can hit multiple targets",
+      "damage": 30,
+      "cooldown": 3,
+      "isHealing": false,
+      "effects": {
+        "splash": {
+          "chance": 0.5,
+          "targets": 1,
+          "damageMultiplier": 0.5
+        }
+      }
+    }
+  ]
+}

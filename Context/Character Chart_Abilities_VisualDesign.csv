@@ -1,0 +1,50 @@
+Character,Type,Role,Passive (Unlocked at Lvl 5 in Campaign Mode),Ability 1 (Unlocked by default),Ability 2 (Unlocked at level 10),Ability 3 (Unlocked at level 15),Visual Design,Blurb
+"Riven (metal / Berserker)
+Rename- Caste",Metal,Berserker,"Bloodthirst
+Heals for 10% of max HP when defeating an enemy.*(10% MaxHP Heal)","Shatter Blade 
+A powerful strike that breaks armor.(35 + 60% STR Damage)","Battle Fury
+Enter a state of fury, increasing attack speed and damage.(Applies ATK Up, SPD Up, Crit Up)","Relentless Assault
+A brutal attack that deals more damage to wounded foes.(45 + 70% STR Damage, +20% damage if target <50% HP)","Caste is a towering war machine built for brutal frontline combat. His body is forged from scorched steel plates and industrial plating, with exposed pistons and sparking conduits at his joints. Red-hot vents glow from his back and chest, pulsing harder as he enters a rage state. His weapon is no longer a cleaver—it’s an integrated arm-blade, like a jagged servo-forged sword that fuses directly into his forearm.","An autonomous berserker unit from a forgotten war, Caste was designed to eliminate threats through overwhelming force. Though his creators are long gone, his combat routines persist—feeding on destruction, adapting to pain, and growing more lethal with every kill. He is fury given circuitry."
+Drakarion (fire / Warrior),Fire,Warrior,"Fiery Resolve
+Attack increases significantly when HP drops below 40%.(+30% ATK when <40% HP)","Flame Strike 
+A powerful fire attack that has a chance to burn the target.(25 + 50% INT Damage)","Restore Wounds
+Heals the caster for a significant amount.(30 + 50% SPI Heal)","Inferno Roar
+Unleashes a blast of fire, damaging all enemies.(20 + 40% INT Damage)","A towering red-scaled dragonkin clad in heavy blackened armor trimmed with gold. His burning yellow eyes glare beneath horned brows, and he wields a flaming greatsword that radiates intense heat.","A proud warrior from the volcanic clans, Drakarion lives for battle and honor. His rage burns as hot as his blade, igniting the battlefield with each swing. Even when wounded, his strength only grows, turning him into a relentless engine of destruction."
+Aqualia (water-Ice / Mage),Water/Ice,Mage,"Flowing Mana
+Casting spells has a chance to reduce cooldowns of other abilities.(25% chance)","Tidal Wave 
+A powerful water attack that can hit multiple targets.(30 + 50% INT Damage)","Ice Shield
+Creates a shield that reduces incoming damage.(20 + 50% SPI Heal & Shield: 30 + 50% INT)","Frost Chain
+A chain of ice that damages and slows multiple adjacent enemies.(22 + 40% INT Damage)","Aqualia wears a flowing frost-blue robe adorned with glowing snowflake patterns. Her staff is topped with a radiant ice crystal, and her pale blue hair spills from beneath a pointed hood, shimmering with arcane chill.","A gifted cryomancer from the northern isles, Aqualia bends water and ice to her will with precision and grace. Her spells ripple with elemental power, freezing foes in place while shielding her allies beneath protective frost."
+Sylvanna (nature / Ranger),Nature,Ranger,"Natural Healing
+Regenerates health at the start of each turn.(Applies Regen status)","Vine Whip 
+Strikes with vines that can ensnare the target.(20 + 50% STR Damage)","Nature's Blessing
+Channels the power of nature to heal wounds.(25 + 50% SPI Heal)","Volley of Thorns
+Showers all enemies with sharp thorns.(25 + 55% STR Damage)","Sylvanna is clad in layered forest-green leaves, her long hair interwoven with twigs and blossoms. She wields a vine-wrapped bow that glows with natural energy, and her emerald eyes shine with fierce determination.","Protector of the deep woods, Sylvanna is a swift and silent hunter who draws strength from the earth itself. Her arrows strike true, her vines entangle the unworthy, and nature answers her call with healing winds and thorny wrath."
+Vaelgor (dark / Knight),Dark,Knight,"Damage Reflection
+Returns 20% of damage taken back to attacker.(20% Damage Reflect)","Shadow Strike 
+Attacks from the shadows for heavy damage.(28 + 50% STR Damage)","Void Barrier
+Creates a barrier of dark energy that absorbs damage.(20 + 50% SPI Heal & Shield: 40 + 50% DEF)","Umbral Command
+Taunts the highest attack enemy and buffs own defense.(Applies Taunt [1 turn] & self DEF Up)","Vaelgor looms in jagged obsidian armor, his face hidden behind a horned helm glowing with eerie violet eyes. Purple flames curl around his sword and fist, casting ominous light across his shadow-drenched form.","Once a noble guardian, now a vessel of the void, Vaelgor bends darkness to his will. He draws enemy attacks with cold confidence, reflecting pain back upon them and cloaking allies in his cursed protection. His presence alone inspires dread."
+Lumina (light / Cleric),Light,Cleric,"Divine Blessing
+Boosts allies' attack at the start of battle.(Applies ATK Up status)","Holy Smite 
+Channels divine light into a powerful attack.(22 + 50% INT Damage)","Divine Protection
+Surrounds an ally with divine light, healing wounds.(26 + 50% SPI Heal)","Divine Light
+Bathes the battlefield in divine light, damaging enemies and healing allies.(15 + 30% INT Damage & 15 + 30% SPI Heal)","Lumina radiates warmth in a flowing white and gold robe adorned with sunburst patterns. A glowing halo floats above her golden hair, and her ornate staff gleams with divine light.","Anointed by the heavens, Lumina brings hope and healing to the battlefield. Her holy magic shields the wounded and punishes the wicked, guiding her allies with unwavering faith and brilliant light."
+Zephyr (air / Assassin),Air,Assassin,"Wind Walker
+Passively gains a chance to dodge incoming attacks.(15% Dodge Chance)","Wind Slash 
+Slashes with the speed of wind for high damage.(32 + 50% STR Damage)","Evasive Maneuver
+Uses the wind to dodge the next attack completely.(Applies Evade, SPD Up status)","Finishing Gale
+A powerful gust attack that executes low-health enemies.(40 + 80% STR Damage, 2x if target <30% HP)","Zephyr wears layered sky-blue robes that ripple like wind currents, his silver hair wild and untamed beneath a masked face. Twin blades gleam at his sides, and swirling gusts follow his every step.","A swift and silent predator, Zephyr dances across the battlefield with blinding speed. His strikes are like the wind—felt before seen—and his evasive maneuvers leave enemies grasping at air. When foes falter, he finishes them in a flash."
+Kaelith (Fire / Assassin),Fire,Assassin,"Predator's Cinders
+Kaelith's critical strikes against burning enemies deal bonus damage and refresh the burn duration.
+(+25% Crit Dmg vs Burning, Crits refresh Burn)","Searing Shiv
+A quick stab with a superheated dagger that applies an intensifying burn (stacking DoT) to the target.
+(20 + 60% STR Damage, Applies Intensifying Burn)","Heat Mirage
+Kaelith briefly dissolves into shimmering heat, becoming evasive and preparing her next strike.
+(Applies Evasion [1 Turn], Empowered Strike [+30% Dmg, +1 Burn Stack])","Flash Point
+Kaelith targets a foe's vital points with explosive heat. Deals significantly more damage to low-health or heavily burning enemies.
+(50 + 85% STR Damage, 2x Dmg if target <30% HP or 3+ Intensifying Burn stacks)","She wears a bronze scarf, her skin marked with glowing ember tattoos, and her daggers emit trails of smoke as she moves.","A deadly shadow in the desert heat, Kaelith channels searing fire through her curved daggers, vanishing in heat mirages before her enemies can scream. Her attacks leave burns that intensify over time, and she thrives on finishing weakened foes."
+Mirael (Water / Emissary),Water,Emissary,TBD,TBD,TBD,TBD,"She wears flowing robes of water and pearl, with bioluminescent accents and seafoam hair that floats as if underwater.","With every note she sings, Mirael bends the tide of battle. Her haunting voice bolsters allies while lulling enemies into a dreamlike stupor. Some say listening too long pulls your soul into the depths."
+Thornok (Nature / Bulwark),Nature,Bulwark,TBD,TBD,TBD,TBD,"His towering form is made of bark and moss, with antler-like branches and glowing runes carved into his chest.","A sentient tree spirit armored in bark and sorrow, Thornok absorbs the pain of his allies and roots himself to defy even the fiercest blows. He lashes out with vines only when his forest heart is truly stirred."
+Veltrix (Electric / Sorcerer),Electric,Sorcerer,TBD,TBD,TBD,TBD,"He wears scorched robes, his eyes flicker with voltage, and one arm is a crystalized arc conduit.","Once a court mage struck by divine lightning, Veltrix’s body is a volatile battery of crackling energy. His unstable spells surge through him, harming both friend and foe if he loses control—yet none deny his raw power."
+Nerezza (Light / Trickster),Light,Trickster,TBD,TBD,TBD,TBD,"She wears a gleaming white cloak, a fractured halo hovers above her, and her mask shifts with false emotions.","Don’t let the radiant glow fool you—Nerezza plays with illusions and false hope. Her radiant form distracts while she manipulates time and fate, often reversing damage or faking her own death to escape."

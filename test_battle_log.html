@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Battle Log Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="js/phaser/components/battle/DirectBattleLog.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <script>
+        // Simple test to verify DirectBattleLog works correctly
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            scene: {
+                create: create
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        function create() {
+            // Create a mock battleBridge with event system
+            this.battleBridge = {
+                eventTypes: {
+                    BATTLE_LOG: 'battle_log',
+                    TURN_STARTED: 'turn_started',
+                    CHARACTER_ACTION: 'character_action',
+                    CHARACTER_DAMAGED: 'character_damaged',
+                    CHARACTER_HEALED: 'character_healed',
+                    ABILITY_USED: 'ability_used',
+                    STATUS_EFFECT_APPLIED: 'status_effect_applied',
+                    STATUS_EFFECT_REMOVED: 'status_effect_removed',
+                    CHARACTER_DEFEATED: 'character_defeated',
+                    BATTLE_ENDED: 'battle_ended',
+                    BATTLE_UI_INTERACTION: 'battle_ui_interaction',
+                    PASSIVE_TRIGGERED: 'passive_triggered'
+                },
+                
+                // Simple event system
+                listeners: {},
+                
+                addEventListener: function(type, callback) {
+                    if (!this.listeners[type]) {
+                        this.listeners[type] = [];
+                    }
+                    this.listeners[type].push(callback);
+                },
+                
+                dispatchEvent: function(type, data) {
+                    if (this.listeners[type]) {
+                        this.listeners[type].forEach(callback => callback(data));
+                    }
+                },
+                
+                // Simple mock battleManager
+                battleManager: {
+                    logMessage: function(message, type) {
+                        console.log(`[${type}] ${message}`);
+                    }
+                }
+            };
+            
+            // Create battle log
+            const battleLog = new DirectBattleLog(this, 50, 50, 700, {
+                backgroundColor: 0x000033,
+                backgroundAlpha: 0.7,
+                maxMessages: 15
+            });
+            
+            // Test with a few messages
+            battleLog.addMessage("Test message 1", "info");
+            battleLog.addMessage("Test message 2", "action");
+            battleLog.addMessage("Test message 3", "error");
+            
+            // Test battle events
+            this.battleBridge.dispatchEvent(this.battleBridge.eventTypes.BATTLE_LOG, {
+                message: "Event test message",
+                type: "default"
+            });
+            
+            // Test renderMessages directly with animation
+            setTimeout(() => {
+                console.log("Testing renderMessages with animation");
+                battleLog.renderMessages(true);
+                console.log("Test completed successfully");
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

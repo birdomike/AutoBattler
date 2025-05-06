@@ -1,0 +1,1365 @@
+﻿
+
+===== FILE: characters.json =====
+{
+  "characters": [
+    {
+      "id": 7,
+      "name": "Caste",
+      "type": "metal",
+      "role": "Berserker",
+      "rarity": "Epic",
+      "actionDecisionLogic": "decideAction_PrioritizeOffense",
+      "stats": {
+        "hp": 110,
+        "attack": 38,
+        "defense": 15,
+        "speed": 12,
+        "strength": 105,
+        "intellect": 15,
+        "spirit": 30
+      },
+      "art": {
+        "left": "-5px",
+        "top": "-35px",
+        "width": "85px",
+        "height": "125px"
+      },
+      "teamBuilderArt": {
+        "left": "-5px",
+        "top": "-30px",
+        "width": "90px",
+        "height": "130px"
+      },
+      "detailArt": {
+        "left": "5px",
+        "top": "-45px",
+        "width": "150px",
+        "height": "150px"
+      },
+      "abilities": [
+        {
+          "id": "caste_shatter_blade",
+          "name": "Shatter Blade",
+          "damage": 35,
+          "cooldown": 3,
+          "isHealing": false,
+          "damageType": "physical",
+          "description": "A powerful strike that breaks armor",
+          "abilityType": "Active",
+          "unlockLevel": 1,
+          "targetType": "SingleEnemy",
+          "selectionWeight": 1.6,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 35,
+              "scalingStat": "Strength",
+              "scaleFactor": 0.6,
+              "damageType": "physical"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_def_down",
+              "chance": 0.5,
+              "duration": 2
+            }
+          ]
+        },
+        {
+          "id": "caste_battle_fury",
+          "name": "Battle Fury",
+          "damage": 0,
+          "cooldown": 5,
+          "isHealing": false,
+          "damageType": "utility",
+          "description": "Enter a state of fury, increasing attack speed and damage",
+          "abilityType": "Active",
+          "unlockLevel": 5,
+          "targetType": "Self",
+          "selectionWeight": 1.2,
+          "effects": [
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_atk_up",
+              "duration": 3
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_spd_up",
+              "duration": 3
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_crit_up",
+              "duration": 3
+            }
+          ]
+        },
+        {
+          "id": "caste_bloodthirst",
+          "name": "Bloodthirst",
+          "description": "Heals for 10% of max HP when defeating an enemy",
+          "abilityType": "Passive",
+          "passiveTrigger": "onKill",
+          "passiveBehavior": "passive_OnKillEffect",
+          "passiveData": {
+            "effectType": "heal",
+            "value": 0.1
+          }
+        },
+        {
+          "id": "caste_battle_mastery",
+          "name": "Battle Mastery",
+          "description": "Increases critical chance after dealing significant damage",
+          "abilityType": "Passive",
+          "passiveTrigger": "onDamageDealt",
+          "passiveBehavior": "passive_CriticalHitBoost",
+          "passiveData": {
+            "triggers": ["onDamageDealt"],
+            "duration": 2,
+            "bonusAmount": 0.2
+          }
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Drakarion",
+      "type": "fire",
+      "role": "Warrior",
+      "rarity": "Rare",
+      "actionDecisionLogic": "decideAction_PrioritizeOffense",
+      "actionDecisionLogic": "decideAction_PrioritizeOffense",
+      "stats": {
+        "hp": 122,
+        "attack": 29,
+        "defense": 21,
+        "speed": 9,
+        "strength": 95,
+        "intellect": 25,
+        "spirit": 24
+      },
+      "art": {
+        "left": "-1px",
+        "top": "-30px",
+        "width": "85px",
+        "height": "125px"
+      },
+      "teamBuilderArt": {
+        "left": "-1px",
+        "top": "-36px",
+        "width": "90px",
+        "height": "130px"
+      },
+      "detailArt": {
+        "left": "0px",
+        "top": "-50px",
+        "width": "150px",
+        "height": "150px"
+      },
+      "abilities": [
+        {
+          "id": "drakarion_flame_strike",
+          "name": "Flame Strike",
+          "damage": 25,
+          "cooldown": 3,
+          "isHealing": false,
+          "damageType": "spell",
+          "description": "A powerful fire attack that has a chance to burn the target",
+          "abilityType": "Active",
+          "unlockLevel": 1,
+          "targetType": "SingleEnemy",
+          "selectionWeight": 1.4,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 25,
+              "scalingStat": "Intellect",
+              "scaleFactor": 0.5,
+              "damageType": "fire"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_burn",
+              "chance": 0.3,
+              "duration": 2
+            }
+          ]
+        },
+        {
+          "id": "drakarion_restore_wounds",
+          "name": "Restore Wounds",
+          "damage": 30,
+          "cooldown": 4,
+          "isHealing": true,
+          "damageType": "healing",
+          "description": "Heals the caster for a significant amount",
+          "abilityType": "Active",
+          "unlockLevel": 5,
+          "targetType": "Self",
+          "selectionWeight": 1.2,
+          "effects": [
+            {
+              "type": "Healing",
+              "value": 30,
+              "scalingStat": "Spirit",
+              "scaleFactor": 0.5,
+              "targetType": "Self"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Aqualia",
+      "type": "water",
+      "role": "Mage",
+      "rarity": "Rare",
+      "actionDecisionLogic": "decideAction_WeightedRandomAbility",
+      "stats": {
+        "hp": 82,
+        "attack": 19,
+        "defense": 8,
+        "speed": 13,
+        "strength": 13,
+        "intellect": 146,
+        "spirit": 44
+      },
+      "abilities": [
+        {
+          "id": "aqualia_tidal_wave",
+          "name": "Tidal Wave",
+          "damage": 30,
+          "cooldown": 3,
+          "isHealing": false,
+          "damageType": "spell",
+          "description": "A powerful water attack that can hit multiple targets",
+          "abilityType": "Active",
+          "unlockLevel": 1,
+          "targetType": "AllEnemies",
+          "selectionWeight": 1.0,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 30,
+              "scalingStat": "Intellect",
+              "scaleFactor": 0.5,
+              "damageType": "water"
+            }
+          ]
+        },
+        {
+          "id": "aqualia_ice_shield",
+          "name": "Ice Shield",
+          "damage": 20,
+          "cooldown": 4,
+          "isHealing": true,
+          "damageType": "healing",
+          "description": "Creates a shield that reduces incoming damage",
+          "abilityType": "Active",
+          "unlockLevel": 5,
+          "targetType": "Self",
+          "selectionWeight": 1.0,
+          "effects": [
+            {
+              "type": "Healing",
+              "value": 20,
+              "scalingStat": "Spirit",
+              "scaleFactor": 0.5,
+              "targetType": "Self"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_shield",
+              "duration": 2,
+              "valueType": "Flat",
+              "value": 30,
+              "scalingStat": "Intellect",
+              "scaleFactor": 0.5
+            }
+          ]
+        },
+        {
+          "id": "aqualia_frost_chain",
+          "name": "Frost Chain",
+          "damage": 22,
+          "cooldown": 4,
+          "isHealing": false,
+          "damageType": "spell",
+          "description": "A chain of ice that damages and slows multiple adjacent enemies",
+          "abilityType": "Active",
+          "unlockLevel": 10,
+          "targetType": "AdjacentEnemies",
+          "targetingLogic": "targetAdjacentEnemies",
+          "selectionWeight": 1.3,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 22,
+              "scalingStat": "Intellect",
+              "scaleFactor": 0.4,
+              "damageType": "water"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_spd_down",
+              "duration": 2,
+              "chance": 0.8
+            }
+          ]
+        }
+      ],
+      "art": {
+        "left": "-1px",
+        "top": "-17px"
+      },
+      "teamBuilderArt": {
+        "left": "-1px",
+        "top": "-8px",
+        "width": "75px",
+        "height": "95px"
+      }
+    },
+    {
+      "id": 3,
+      "name": "Sylvanna",
+      "type": "nature",
+      "role": "Ranger",
+      "rarity": "Uncommon",
+      "actionDecisionLogic": "decideAction_WeightedRandomAbility",
+      "stats": {
+        "hp": 92,
+        "attack": 33,
+        "defense": 16,
+        "speed": 14,
+        "strength": 99,
+        "intellect": 25,
+        "spirit": 40
+      },
+      "art": {
+        "left": "0px",
+        "top": "-30px",
+        "width": "85px",
+        "height": "125px"
+      },
+      "teamBuilderArt": {
+        "left": "-3px",
+        "top": "-30px",
+        "width": "85px",
+        "height": "120px"
+      },
+      "detailArt": {
+        "left": "0px",
+        "top": "-45px",
+        "width": "150px",
+        "height": "150px"
+      },
+      "abilities": [
+        {
+          "id": "sylvanna_vine_whip",
+          "name": "Vine Whip",
+          "damage": 20,
+          "cooldown": 2,
+          "isHealing": false,
+          "damageType": "physical",
+          "description": "Strikes with vines that can ensnare the target",
+          "abilityType": "Active",
+          "unlockLevel": 1,
+          "targetType": "SingleEnemy",
+          "selectionWeight": 1.0,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 20,
+              "scalingStat": "Strength",
+              "scaleFactor": 0.5,
+              "damageType": "nature"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_spd_down",
+              "chance": 0.4,
+              "duration": 2
+            }
+          ]
+        },
+        {
+          "id": "sylvanna_natures_blessing",
+          "name": "Nature's Blessing",
+          "damage": 25,
+          "cooldown": 4,
+          "isHealing": true,
+          "damageType": "healing",
+          "description": "Channels the power of nature to heal wounds",
+          "abilityType": "Active",
+          "unlockLevel": 5,
+          "targetType": "SingleAlly",
+          "selectionWeight": 1.0,
+          "effects": [
+            {
+              "type": "Healing",
+              "value": 25,
+              "scalingStat": "Spirit",
+              "scaleFactor": 0.5,
+              "targetType": "SingleAlly"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_regen",
+              "duration": 3
+            }
+          ]
+        },
+        {
+          "id": "sylvanna_natural_healing",
+          "name": "Natural Healing",
+          "description": "Regenerates health at the start of each turn",
+          "abilityType": "Passive",
+          "passiveTrigger": "onTurnStart",
+          "passiveBehavior": "passive_ApplyRegenOnTurnStart"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Vaelgor",
+      "type": "dark",
+      "role": "Knight",
+      "rarity": "Epic",
+      "actionDecisionLogic": "decideAction_Defensive",
+      "stats": {
+        "hp": 139,
+        "attack": 26,
+        "defense": 34,
+        "speed": 6,
+        "strength": 74,
+        "intellect": 23,
+        "spirit": 23
+      },
+      "art": {
+        "left": "-10px",
+        "top": "-40px",
+        "width": "90px",
+        "height": "130px"
+      },
+      "teamBuilderArt": {
+        "left": "-15px",
+        "top": "-35px",
+        "width": "95px",
+        "height": "125px"
+      },
+      "detailArt": {
+        "left": "0px",
+        "top": "-50px",
+        "width": "160px",
+        "height": "160px"
+      },
+      "abilities": [
+        {
+          "id": "vaelgor_shadow_strike",
+          "name": "Shadow Strike",
+          "damage": 28,
+          "cooldown": 3,
+          "isHealing": false,
+          "damageType": "physical",
+          "description": "Attacks from the shadows for heavy damage",
+          "abilityType": "Active",
+          "unlockLevel": 1,
+          "targetType": "SingleEnemy",
+          "selectionWeight": 1.0,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 28,
+              "scalingStat": "Strength",
+              "scaleFactor": 0.5,
+              "damageType": "dark"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_def_down",
+              "chance": 0.35,
+              "duration": 2
+            }
+          ]
+        },
+        {
+          "id": "vaelgor_void_barrier",
+          "name": "Void Barrier",
+          "damage": 20,
+          "cooldown": 4,
+          "isHealing": true,
+          "damageType": "healing",
+          "description": "Creates a barrier of dark energy that absorbs damage",
+          "abilityType": "Active",
+          "unlockLevel": 5,
+          "targetType": "Self",
+          "selectionWeight": 1.8,
+          "effects": [
+            {
+              "type": "Healing",
+              "value": 20,
+              "scalingStat": "Spirit",
+              "scaleFactor": 0.5,
+              "targetType": "Self"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_def_up",
+              "duration": 3
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_shield",
+              "duration": 2,
+              "valueType": "Flat",
+              "value": 40,
+              "scalingStat": "Defense",
+              "scaleFactor": 0.5
+            }
+          ]
+        },
+        {
+          "id": "vaelgor_damage_reflect",
+          "name": "Damage Reflection",
+          "description": "Returns 20% of damage taken back to attacker",
+          "abilityType": "Passive",
+          "passiveTrigger": "onDamageTaken",
+          "passiveBehavior": "passive_DamageReflectOnHit"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Lumina",
+      "type": "light",
+      "role": "Cleric",
+      "rarity": "Rare",
+      "actionDecisionLogic": "decideAction_PrioritizeHeal",
+      "stats": {
+        "hp": 100,
+        "attack": 19,
+        "defense": 19,
+        "speed": 8,
+        "strength": 13,
+        "intellect": 48,
+        "spirit": 118
+      },
+      "art": {
+        "left": "-5px",
+        "top": "-30px",
+        "width": "80px",
+        "height": "120px"
+      },
+      "teamBuilderArt": {
+        "left": "-8px",
+        "top": "-25px",
+        "width": "85px",
+        "height": "115px"
+      },
+      "detailArt": {
+        "left": "3px",
+        "top": "-40px",
+        "width": "145px",
+        "height": "145px"
+      },
+      "abilities": [
+        {
+          "id": "lumina_holy_smite",
+          "name": "Holy Smite",
+          "damage": 22,
+          "cooldown": 3,
+          "isHealing": false,
+          "damageType": "spell",
+          "description": "Channels divine light into a powerful attack",
+          "abilityType": "Active",
+          "unlockLevel": 1,
+          "targetType": "SingleEnemy",
+          "selectionWeight": 0.7,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 22,
+              "scalingStat": "Intellect",
+              "scaleFactor": 0.5,
+              "damageType": "light"
+            }
+          ]
+        },
+        {
+          "id": "lumina_divine_protection",
+          "name": "Divine Protection",
+          "damage": 26,
+          "cooldown": 4,
+          "isHealing": true,
+          "damageType": "healing",
+          "description": "Surrounds an ally with divine light, healing wounds",
+          "abilityType": "Active",
+          "unlockLevel": 5,
+          "targetType": "LowestHpAlly",
+          "targetingLogic": "targetLowestHpAlly",
+          "selectionWeight": 2.5,
+          "effects": [
+            {
+              "type": "Healing",
+              "value": 26,
+              "scalingStat": "Spirit",
+              "scaleFactor": 0.5,
+              "targetType": "LowestHpAlly"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_def_up",
+              "duration": 3
+            }
+          ]
+        },
+        {
+          "id": "lumina_divine_light",
+          "name": "Divine Light",
+          "damage": 15,
+          "cooldown": 5,
+          "isHealing": false,
+          "damageType": "utility",
+          "description": "Bathes the battlefield in divine light, damaging enemies and healing allies",
+          "abilityType": "Active",
+          "unlockLevel": 15,
+          "targetType": "AllCharacters",
+          "targetingLogic": "targetAllCharacters",
+          "selectionWeight": 0.8,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 15,
+              "scalingStat": "Intellect",
+              "scaleFactor": 0.3,
+              "damageType": "light",
+              "targetAllies": false,
+              "targetEnemies": true
+            },
+            {
+              "type": "Healing",
+              "value": 15,
+              "scalingStat": "Spirit",
+              "scaleFactor": 0.3,
+              "targetAllies": true,
+              "targetEnemies": false
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_immune",
+              "duration": 1,
+              "targetAllies": true,
+              "targetEnemies": false
+            }
+          ]
+        },
+        {
+          "id": "lumina_divine_blessing",
+          "name": "Divine Blessing",
+          "description": "Boosts allies' attack at the start of battle",
+          "abilityType": "Passive",
+          "passiveTrigger": "onBattleStart",
+          "passiveBehavior": "passive_TeamBuffOnBattleStart",
+          "passiveData": {
+            "statusId": "status_atk_up",
+            "duration": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Zephyr",
+      "type": "air",
+      "role": "Assassin",
+      "rarity": "Epic",
+      "actionDecisionLogic": "decideAction_PrioritizeOffense",
+      "stats": {
+        "hp": 80,
+        "attack": 37,
+        "defense": 10,
+        "speed": 18,
+        "strength": 102,
+        "intellect": 27,
+        "spirit": 44
+      },
+      "art": {
+        "left": "-8px",
+        "top": "-32px",
+        "width": "85px",
+        "height": "125px"
+      },
+      "teamBuilderArt": {
+        "left": "-10px",
+        "top": "-28px",
+        "width": "90px",
+        "height": "120px"
+      },
+      "detailArt": {
+        "left": "0px",
+        "top": "-45px",
+        "width": "155px",
+        "height": "155px"
+      },
+      "abilities": [
+        {
+          "id": "zephyr_wind_slash",
+          "name": "Wind Slash",
+          "damage": 32,
+          "cooldown": 3,
+          "isHealing": false,
+          "damageType": "physical",
+          "description": "Slashes with the speed of wind for high damage",
+          "abilityType": "Active",
+          "unlockLevel": 1,
+          "targetType": "SingleEnemy",
+          "targetingLogic": "targetLowestHpEnemy",
+          "selectionWeight": 1.8,
+          "effects": [
+            {
+              "type": "Damage",
+              "value": 32,
+              "scalingStat": "Strength",
+              "scaleFactor": 0.5,
+              "damageType": "air"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_bleed",
+              "chance": 0.4,
+              "duration": 2
+            }
+          ]
+        },
+        {
+          "id": "zephyr_evasive_maneuver",
+          "name": "Evasive Maneuver",
+          "damage": 0,
+          "cooldown": 3,
+          "isHealing": false,
+          "damageType": "utility",
+          "description": "Uses the wind to dodge the next attack completely",
+          "abilityType": "Active",
+          "unlockLevel": 5,
+          "targetType": "Self",
+          "selectionWeight": 0.9,
+          "effects": [
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_evade",
+              "duration": 1,
+              "targetType": "Self"
+            },
+            {
+              "type": "ApplyStatus",
+              "statusEffectId": "status_spd_up",
+              "duration": 2,
+              "targetType": "Self"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+
+===== FILE: status_effects.json =====
+{
+  "status_effects": [
+    {
+      "id": "status_burn",
+      "name": "Burn",
+      "description": "Taking fire damage over time",
+      "icon": "assets/images/icons/status/burn.png",
+      "type": "DoT",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "trigger": "onTurnStart",
+        "action": "Damage",
+        "valueType": "PercentMaxHP",
+        "value": 0.05,
+        "damageType": "fire"
+      }
+    },
+    {
+      "id": "status_poison",
+      "name": "Poison",
+      "description": "Taking poison damage over time",
+      "icon": "assets/images/icons/status/poison.png",
+      "type": "DoT",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "trigger": "onTurnStart",
+        "action": "Damage",
+        "valueType": "Flat",
+        "value": 10,
+        "scalingStat": "Intellect",
+        "scaleFactor": 0.1,
+        "damageType": "poison"
+      }
+    },
+    {
+      "id": "status_regen",
+      "name": "Regeneration",
+      "description": "Healing over time",
+      "icon": "assets/images/icons/status/regen.png",
+      "type": "HoT",
+      "defaultDuration": 3,
+      "maxStacks": 1,
+      "behavior": {
+        "trigger": "onTurnStart",
+        "action": "Heal",
+        "valueType": "PercentMaxHP",
+        "value": 0.05,
+        "scalingStat": "Spirit",
+        "scaleFactor": 0.01
+      }
+    },
+    {
+      "id": "status_stun",
+      "name": "Stunned",
+      "description": "Unable to take actions",
+      "icon": "assets/images/icons/status/stun.png",
+      "type": "Control",
+      "defaultDuration": 1,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "PreventAction",
+        "value": true
+      }
+    },
+    {
+      "id": "status_freeze",
+      "name": "Frozen",
+      "description": "Unable to take actions and takes extra damage from fire",
+      "icon": "assets/images/icons/status/freeze.png",
+      "type": "Control",
+      "defaultDuration": 1,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "PreventAction",
+        "value": true,
+        "vulnerabilityType": "fire",
+        "vulnerabilityMod": 1.5
+      }
+    },
+    {
+      "id": "status_shield",
+      "name": "Shield",
+      "description": "Absorbs incoming damage",
+      "icon": "assets/images/icons/status/shield.png",
+      "type": "Shield",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "AbsorbDamage",
+        "valueType": "Flat",
+        "value": 0
+      }
+    },
+    {
+      "id": "status_atk_up",
+      "name": "Attack Up",
+      "description": "Attack increased by 25%",
+      "icon": "assets/images/icons/status/atk_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Attack",
+        "value": 0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_atk_down",
+      "name": "Attack Down",
+      "description": "Attack decreased by 25%",
+      "icon": "assets/images/icons/status/atk_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Attack",
+        "value": -0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_def_up",
+      "name": "Defense Up",
+      "description": "Defense increased by 30%",
+      "icon": "assets/images/icons/status/def_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Defense",
+        "value": 0.3,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_def_down",
+      "name": "Defense Down",
+      "description": "Defense decreased by 30%",
+      "icon": "assets/images/icons/status/def_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Defense",
+        "value": -0.3,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_spd_up",
+      "name": "Speed Up",
+      "description": "Speed increased by 20%",
+      "icon": "assets/images/icons/status/spd_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Speed",
+        "value": 0.2,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_spd_down",
+      "name": "Speed Down",
+      "description": "Speed decreased by 20%",
+      "icon": "assets/images/icons/status/spd_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Speed",
+        "value": -0.2,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_str_up",
+      "name": "Strength Up",
+      "description": "Strength increased by 25%",
+      "icon": "assets/images/icons/status/str_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Strength",
+        "value": 0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_str_down",
+      "name": "Strength Down",
+      "description": "Strength decreased by 25%",
+      "icon": "assets/images/icons/status/str_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Strength",
+        "value": -0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_int_up",
+      "name": "Intellect Up",
+      "description": "Intellect increased by 25%",
+      "icon": "assets/images/icons/status/int_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Intellect",
+        "value": 0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_int_down",
+      "name": "Intellect Down",
+      "description": "Intellect decreased by 25%",
+      "icon": "assets/images/icons/status/int_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Intellect",
+        "value": -0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_spi_up",
+      "name": "Spirit Up",
+      "description": "Spirit increased by 25%",
+      "icon": "assets/images/icons/status/spi_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Spirit",
+        "value": 0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_spi_down",
+      "name": "Spirit Down",
+      "description": "Spirit decreased by 25%",
+      "icon": "assets/images/icons/status/spi_down.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 2,
+      "behavior": {
+        "modifier": "StatModification",
+        "stat": "Spirit",
+        "value": -0.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_taunt",
+      "name": "Taunt",
+      "description": "Forces enemies to target this character",
+      "icon": "assets/images/icons/status/taunt.png",
+      "type": "Control",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "ForceTarget",
+        "value": true
+      }
+    },
+    {
+      "id": "status_evade",
+      "name": "Evasion",
+      "description": "50% chance to avoid attacks",
+      "icon": "assets/images/icons/status/evade.png",
+      "type": "Buff",
+      "defaultDuration": 1,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "AvoidChance",
+        "value": 0.5
+      }
+    },
+    {
+      "id": "status_bleed",
+      "name": "Bleeding",
+      "description": "Taking physical damage over time that increases with movement",
+      "icon": "assets/images/icons/status/bleed.png",
+      "type": "DoT",
+      "defaultDuration": 3,
+      "maxStacks": 3,
+      "behavior": {
+        "trigger": "onTurnStart",
+        "action": "Damage",
+        "valueType": "Flat",
+        "value": 8,
+        "scalingStat": "Strength",
+        "scaleFactor": 0.1,
+        "damageType": "physical"
+      }
+    },
+    {
+      "id": "status_reflect",
+      "name": "Damage Reflect",
+      "description": "Returns 30% of damage taken back to attacker",
+      "icon": "assets/images/icons/status/reflect.png",
+      "type": "Buff",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "trigger": "onDamageTaken",
+        "action": "ReflectDamage",
+        "valueType": "PercentDamage",
+        "value": 0.3
+      }
+    },
+    {
+      "id": "status_vulnerable",
+      "name": "Vulnerable",
+      "description": "Takes 25% increased damage from all sources",
+      "icon": "assets/images/icons/status/vulnerable.png",
+      "type": "Debuff",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "DamageModifier",
+        "value": 1.25,
+        "isMultiplier": true
+      }
+    },
+    {
+      "id": "status_immune",
+      "name": "Immunity",
+      "description": "Immune to status effects",
+      "icon": "assets/images/icons/status/immune.png",
+      "type": "Buff",
+      "defaultDuration": 2,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "StatusImmunity",
+        "value": true
+      }
+    },
+    {
+      "id": "status_crit_up",
+      "name": "Critical Boost",
+      "description": "Critical hit chance increased by 15%",
+      "icon": "assets/images/icons/status/crit_up.png",
+      "type": "Buff",
+      "defaultDuration": 3,
+      "maxStacks": 1,
+      "behavior": {
+        "modifier": "CriticalModifier",
+        "value": 0.15,
+        "isAdditive": true
+      }
+    }
+  ]
+}
+
+===== FILE: passive_character.json =====
+{
+  "id": 10,
+  "name": "Seraphina",
+  "type": "light",
+  "role": "Paladin",
+  "rarity": "Epic",
+  "stats": {
+    "hp": 110,
+    "attack": 20,
+    "defense": 18,
+    "speed": 9,
+    "strength": 65,
+    "intellect": 40,
+    "spirit": 90
+  },
+  "abilities": [
+    {
+      "name": "Radiant Strike",
+      "damage": 28,
+      "cooldown": 2,
+      "isHealing": false,
+      "damageType": "physical",
+      "description": "Channels divine energy into a powerful strike",
+      "effects": [
+        {
+          "type": "Damage",
+          "value": 28,
+          "damageType": "physical",
+          "scalingStat": "Strength", 
+          "scaleFactor": 0.5
+        }
+      ]
+    },
+    {
+      "name": "Divine Blessing",
+      "damage": 25,
+      "cooldown": 3,
+      "isHealing": true,
+      "damageType": "healing",
+      "description": "Calls upon divine power to heal an ally",
+      "effects": [
+        {
+          "type": "Healing",
+          "value": 25,
+          "healType": "divine",
+          "scalingStat": "Spirit",
+          "scaleFactor": 0.6
+        }
+      ]
+    },
+    {
+      "name": "Light's Protection",
+      "abilityType": "Passive",
+      "passiveTrigger": "onBattleStart",
+      "passiveBehavior": "passive_TeamBuffOnBattleStart",
+      "description": "Grants all allies a protective shield at the start of battle",
+      "passiveData": {
+        "statusId": "status_def_up",
+        "duration": 3
+      }
+    },
+    {
+      "name": "Divine Retribution",
+      "abilityType": "Passive",
+      "passiveTrigger": "onDamageTaken",
+      "passiveBehavior": "passive_DamageReflectOnHit",
+      "description": "Reflects a portion of damage taken back to the attacker",
+      "passiveData": {
+        "reflectPercent": 0.2
+      }
+    }
+  ]
+}
+
+
+===== FILE: PASSIVE_SYSTEM_IMPLEMENTATION.md =====
+# Passive System Implementation (Pass 7)
+
+## Overview
+
+This document summarizes the implementation of the passive ability system for the AutoBattler game. The passive system allows characters to have abilities that automatically trigger at specific points in the battle flow without requiring manual activation.
+
+## Implemented Features
+
+### 1. Passive Ability Framework
+
+- **Passive Ability Structure**: Added support for passive abilities in character data with the following properties:
+  - `abilityType: "Passive"` - Designates an ability as passive
+  - `passiveTrigger` - When the passive should activate (e.g., 'onTurnStart', 'onDamageTaken')
+  - `passiveBehavior` - Reference to the behavior function that implements the passive
+  - `passiveData` - Optional data specific to this passive ability
+
+- **Passive Ability Identification**: Enhanced character preparation to identify passive abilities at battle start:
+  ```javascript
+  battleChar.passiveAbilities = [];
+  battleChar.abilities.forEach(ability => {
+      if (ability.abilityType === 'Passive') {
+          battleChar.passiveAbilities.push(ability);
+      }
+  });
+  ```
+
+### 2. Passive Ability Trigger Points
+
+Added passive ability trigger points at key moments in battle flow:
+
+- **Turn-Based Triggers**:
+  - `onTurnStart` - Beginning of each turn
+  - `onTurnEnd` - End of each turn
+
+- **Battle-Flow Triggers**:
+  - `onBattleStart` - When battle begins
+  - `onBattleEnd` - When battle concludes
+
+- **Damage/Healing Triggers**:
+  - `onDamageTaken` - When a character takes damage
+  - `onDamageDealt` - When a character deals damage
+  - `onHealed` - When a character receives healing
+  - `onHealingDone` - When a character heals another
+
+- **State Change Triggers**:
+  - `onDefeat` - When a character is defeated
+  - `onKill` - When a character defeats another
+  - `onRevive` - When a character is revived from defeat
+
+### 3. Passive Ability Processing
+
+- **processPassiveAbilities Method**: Core method that processes passive abilities for a specific trigger:
+  ```javascript
+  processPassiveAbilities(trigger, character, additionalData = {})
+  ```
+  
+- **Execution Logic**:
+  - Checks if character has passive abilities matching the current trigger
+  - Creates context object with all necessary information
+  - Uses behavior system to execute passive ability function
+  - Logs passive ability activation and effects
+
+### 4. Damage/Healing Utility Methods
+
+- **applyDamage**: Utility method to apply direct damage to a character:
+  ```javascript
+  applyDamage(target, amount, source, ability, damageType)
+  ```
+  
+- **applyHealing**: Utility method to apply direct healing to a character:
+  ```javascript
+  applyHealing(target, amount, source, ability, healType)
+  ```
+
+- Both methods include passive ability processing and provide detailed return values.
+
+### 5. Integration with Status Effect System
+
+- Updated status effect processing to use the new damage/healing utilities
+- Added passive triggers for status effect application and expiration
+
+### 6. Example Implementations
+
+- **Reflect Damage**: Passive ability that reflects a portion of damage back to an attacker
+- **Team Buff**: Passive ability that grants buffs to all allies at the start of battle
+- **Regeneration**: Passive ability that applies regeneration effect on turn start
+- **Status Effect Application**: Applies status effects in response to being attacked
+
+## Example Character
+
+A sample character with passive abilities has been created in `examples/passive_character.json`:
+
+```json
+{
+  "name": "Seraphina",
+  "type": "light",
+  "role": "Paladin",
+  "abilities": [
+    /* Active abilities omitted */
+    {
+      "name": "Light's Protection",
+      "abilityType": "Passive",
+      "passiveTrigger": "onBattleStart",
+      "passiveBehavior": "passive_TeamBuffOnBattleStart",
+      "description": "Grants all allies a protective shield at the start of battle"
+    },
+    {
+      "name": "Divine Retribution",
+      "abilityType": "Passive",
+      "passiveTrigger": "onDamageTaken",
+      "passiveBehavior": "passive_DamageReflectOnHit",
+      "description": "Reflects a portion of damage taken back to the attacker"
+    }
+  ]
+}
+```
+
+## Validation & Testing
+
+The passive system can be tested by:
+
+1. Creating characters with passive abilities
+2. Observing battle logs for passive ability activations
+3. Verifying that passive effects are properly applied
+4. Testing edge cases (e.g., passive triggered on a defeated character)
+
+## Future Enhancements
+
+1. **Multi-Trigger Passives**: Support passives that can trigger on multiple events
+2. **Conditional Triggers**: Add conditions to passive triggers (e.g., only when HP below 30%)
+3. **Passive Cooldowns**: Allow passives to have cooldowns between activations
+4. **Interactive Passives**: Passives that can be manually activated under certain conditions
+5. **Passive UI Indicators**: Visual indicators for passive abilities during battle
+
+## Implementation Notes
+
+- The passive system is designed to be backward compatible with existing characters that don't have passive abilities.
+- All passive processing includes proper error handling to prevent one failed passive from breaking the battle flow.
+- The implementation follows the behavior delegation pattern established in earlier passes.
+

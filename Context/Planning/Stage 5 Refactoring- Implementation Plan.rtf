@@ -1,0 +1,212 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat{\fonttbl{\f0\fswiss\fcharset0 Helvetica-Bold;}{\f1\fswiss\fcharset0 Helvetica;}{\f2\fswiss\fcharset0 Helvetica-Oblique;}}
+{\*\generator Riched20 10.0.26100}\viewkind4\uc1 
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\b\f0\fs36\lang9 Stage 5: Ability Processing Implementation Plan\fs24\par
+\fs28\par
+Overview\par
+\b0\f1\par
+We need to extract three key components related to ability processing from BattleManager:\par
+\par
+1. \b\f0 AbilityProcessor\b0\f1 : Processes ability effects and execution\par
+2. \b\f0 TargetingSystem\b0\f1 : Handles target selection for abilities\par
+3. \b\f0 ActionGenerator\b0\f1 : Generates character actions for combat\par
+\par
+I note that these component files already exist with shell implementations, so we'll need to implement the actual functionality.\par
+\b\f0\par
+Implementation Approach\par
+\b0\f1\par
+Following the Extract-Verify-Remove workflow from lessons learned:\par
+\par
+1. \b\f0 Extract\b0\f1 : Implement the full functionality in each component file\par
+2. \b\f0 Verify\b0\f1 : Test each component thoroughly before removing legacy code\par
+3. \b\f0 Remove\b0\f1 : Clean up BattleManager by removing the original implementation\par
+\b\f0\par
+Versioning Plan\par
+\b0\f1\par
+All implementations will be done under version 0.5.26 with the following structure:\par
+- Each component implementation: 0.5.26.x\par
+- Each component cleanup: 0.5.26.x_Cleanup\par
+\b\f0\par
+\fs32 Key Implementation Considerations\fs28\par
+\b0\f1\par
+Based on lessons learned from previous refactoring stages, the following aspects require special attention:\par
+\b\f0\par
+1. BehaviorRegistry Integration\b0\f1\par
+The TargetingSystem must properly integrate with the existing BehaviorRegistry and TargetingBehaviors.js:\par
+\par
+- TargetingSystem should \i\f2 use\i0\f1  the registered behaviors, not duplicate their logic\par
+- Maintain the flexibility of the behavior pattern\par
+- Query BehaviorRegistry to retrieve appropriate targeting behaviors\par
+- Properly construct targeting context objects before passing to behaviors\par
+- Handle fallbacks appropriately when behaviors aren't found\par
+\par
+This maintains the separation of concerns while leveraging the existing behavior system.\par
+\b\f0\par
+2. Event Dispatching Completeness\b0\f1\par
+Previous refactoring stages revealed that missing events was a critical issue for UI updates. We must ensure all components correctly dispatch all necessary events via BattleBridge:\par
+\par
+- \b\f0 CHARACTER_DAMAGED\b0\f1 : Critical for health bar updates\par
+- \b\f0 CHARACTER_HEALED\b0\f1 : Needed for healing animations\par
+- \b\f0 ABILITY_USED\b0\f1 : Required for ability animations and cooldown displays\par
+- \b\f0 STATUS_EFFECT_APPLIED/REMOVED\b0\f1 : Essential for status effect icons\par
+- \b\f0 CHARACTER_ACTION\b0\f1 : Needed for action indicators\par
+\par
+Each verification phase must include specific checks for event dispatch completeness.\par
+\b\f0\par
+\fs32 Detailed Implementation Plan\fs28\par
+\par
+Phase 1: AbilityProcessor Implementation (v0.5.26.1)- Now Complete\par
+\b0\f1\par
+\b\f0 Task\b0\f1 : Fully implement the `AbilityProcessor` class to handle ability execution\par
+\par
+\b\f0 Steps\b0\f1 :\par
+1. Extract `processEffect()` and `applyActionEffect()` methods from BattleManager\par
+2. Implement proper delegation and error handling\par
+3. Ensure all appropriate events are dispatched\par
+4. Update BattleManager to use the new AbilityProcessor\par
+\par
+\b\f0 Version\b0\f1 : 0.5.26.1\par
+\par
+\b\f0 Phase 2: AbilityProcessor Verification & Cleanup (v0.5.26.1_Cleanup)- Now Complete\par
+\b0\f1\par
+\b\f0 Task\b0\f1 : Verify the AbilityProcessor implementation and remove legacy code\par
+\par
+\b\f0 Steps\b0\f1 :\par
+1. Test various ability effect types (damage, healing, status effects)\par
+2. Verify all events are correctly dispatched\par
+3. Ensure all functionality works correctly\par
+4. Remove original implementation from BattleManager\par
+5. Update documentation\par
+\par
+\b\f0 Version\b0\f1 : 0.5.26.1_Cleanup\par
+\par
+\b\f0 Phase 3: TargetingSystem Implementation (v0.5.26.2)- Complete\par
+\b0\f1\par
+\b\f0 Task\b0\f1 : Fully implement the `TargetingSystem` class, integrating with existing TargetingBehaviors\par
+\par
+\b\f0 Steps\b0\f1 :\par
+1. Implement `selectTarget()` method\par
+2. Create proper integration with BehaviorRegistry and TargetingBehaviors\par
+3. Implement handling for different targeting types (single, multi, all)\par
+4. Update BattleManager to use the new TargetingSystem\par
+\par
+\b\f0 Version\b0\f1 : 0.5.26.2\par
+\par
+\b\f0 Phase 4: TargetingSystem Verification & Cleanup (v0.5.26.2_Cleanup)- Complete\par
+\b0\f1\par
+\b\f0 Task\b0\f1 : Verify the TargetingSystem implementation and remove legacy code\par
+\par
+\b\f0 Steps\b0\f1 :\par
+1. Test targeting functionality for different ability types\par
+2. Verify targeting behavior matches original implementation\par
+3. Validate proper integration with BehaviorRegistry\par
+4. Remove original targeting code from BattleManager\par
+5. Update documentation\par
+\par
+\b\f0 Version\b0\f1 : 0.5.26.2_Cleanup\par
+\par
+\b\f0 Phase 5: ActionGenerator Implementation (v0.5.26.3)- Complete\par
+\b0\f1\par
+\b\f0 Task\b0\f1 : Fully implement the `ActionGenerator` class\par
+\par
+\b\f0 Steps\b0\f1 :\par
+1. Extract `generateCharacterAction()` from BattleManager\par
+2. Implement proper integration with AbilityProcessor and TargetingSystem\par
+3. Ensure proper coordination with BattleBehaviors\par
+4. Update BattleManager to use the new ActionGenerator\par
+\par
+\b\f0 Version\b0\f1 : 0.5.26.3\par
+\par
+\b\f0 Phase 6: ActionGenerator Verification & Cleanup (v0.5.26.3_Cleanup)- Complete\par
+\b0\f1\par
+\b\f0 Task\b0\f1 : Verify the ActionGenerator implementation and remove legacy code\par
+\par
+\b\f0 Steps\b0\f1 :\par
+1. Test action generation for different character types\par
+2. Verify action effects match original implementation\par
+3. Validate event dispatching for actions\par
+4. Remove original action generation code from BattleManager\par
+5. Update documentation\par
+\par
+\b\f0 Version\b0\f1 : 0.5.26.3_Cleanup\par
+\par
+\b\f0 Phase 7: Integration Testing & Final Cleanup (v0.5.26.4)\par
+\b0\f1\par
+\b\f0 Task\b0\f1 : Verify all components work together and clean up any remaining issues\par
+\par
+\b\f0 Steps\b0\f1 :\par
+1. Test full battle flow with all components\par
+2. Verify interaction between components\par
+3. Validate comprehensive event dispatching\par
+4. Clean up any remaining code\par
+5. Update main changelog\par
+\par
+\b\f0 Version\b0\f1 : 0.5.26.4\par
+\par
+\b\f0\fs32 Detailed Implementation Notes\fs28\par
+\par
+1. AbilityProcessor Implementation\par
+\b0\f1\par
+Key methods to implement:\par
+- `applyActionEffect(action)` - Handle ability effect application\par
+- `processEffect(effect, actor, target, ability)` - Process specific effect types (damage, healing, status)\par
+- `applyRandomStatusEffect(target)` - Apply random status effects\par
+\par
+Integration points:\par
+- Coordinate with StatusEffectManager for status effects\par
+- Coordinate with DamageCalculator for damage calculation\par
+- Handle proper event dispatching for all effects\par
+- Manage ability cooldowns\par
+\b\f0\par
+2. TargetingSystem Implementation\par
+\b0\f1\par
+Key methods to implement:\par
+- `selectTarget(actor, ability, potentialTargets)` - Select appropriate targets\par
+\par
+Integration points:\par
+- Coordinate with BehaviorRegistry for targeting logic\par
+- Integrate with existing TargetingBehaviors.js\par
+- Handle single and multi-target abilities\par
+- Implement proper team validation for targets\par
+\b\f0\par
+3. ActionGenerator Implementation\par
+\b0\f1\par
+Key methods to implement:\par
+- `generateCharacterAction(character, team)` - Generate appropriate action for a character\par
+\par
+Integration points:\par
+- Coordinate with TargetingSystem for target selection\par
+- Coordinate with AbilityProcessor for effect handling\par
+- Integrate with BattleBehaviors for decision making\par
+- Handle status effect impact on actions (e.g., stun)\par
+\b\f0\par
+Enhanced Verification Approach\par
+\b0\f1\par
+For each component, we'll add specific verification steps:\par
+\par
+1. \b\f0 Event Dispatch Verification\b0\f1 : Compare events dispatched before and after refactoring\par
+2. \b\f0 Behavior Integration Testing\b0\f1 : Verify the TargetingSystem properly integrates with BehaviorRegistry\par
+3. \b\f0 Edge Case Testing\b0\f1 : Test ability effects with special targeting requirements\par
+4. \b\f0 Error Handling Validation\b0\f1 : Ensure components handle missing or invalid inputs gracefully\par
+\b\f0\par
+Success Criteria\par
+\b0\f1\par
+1. All ability processing functionality works the same as before\par
+2. BattleManager no longer contains any of the extracted code\par
+3. All events are properly dispatched for UI updates\par
+4. Proper integration with existing behavior systems\par
+5. All tests pass with the new implementation\par
+6. Documentation is updated to reflect the new architecture\par
+\b\f0\par
+Risk Mitigation\par
+\b0\f1\par
+1. Implement one component at a time\par
+2. Test thoroughly after each implementation\par
+3. Complete the Extract-Verify-Remove cycle for each component before moving to the next\par
+4. Maintain proper error handling and logging\par
+5. Focus on event dispatching completeness\par
+6. Ensure proper behavior registry integration\par
+\par
+
+\pard\sa200\sl276\slmult1 This plan follows the lessons learned from previous refactoring stages and ensures a smooth transition to the new component-based architecture.\par
+}
+ 

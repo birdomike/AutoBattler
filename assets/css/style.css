@@ -1,0 +1,1031 @@
+.detail-abilities {
+    margin-bottom: 20px;
+}
+
+/* Character Art Display */
+/* Hide any containers, backgrounds and placeholders by default until art is loaded */
+.hero-avatar-container {
+    background-color: transparent !important;
+}
+
+/* When art is loaded, show the container */
+.hero-avatar-container.has-art {
+    display: block !important;
+    background-color: transparent !important;
+}
+
+/* Force hide the circle when art is present */
+.hero-avatar-container.has-art .hero-avatar {
+    display: none !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Hide all letters that are used as placeholders */
+.hero-avatar-container.has-art .hero-avatar::before,
+.hero-avatar-container.has-art .hero-avatar::after,
+.hero-avatar-container.has-art .character-placeholder {
+    display: none !important;
+}
+
+/* Detail view specific fixes */
+.detail-icon-container.has-art .detail-icon {
+    display: none !important;
+    background-color: transparent !important;
+}
+
+/* Make sure the backgrounds are removed in all contexts */
+.has-art .hero-card,
+.has-art.hero-card,
+.has-art .slot-content,
+.has-art.slot-content,
+.has-art .detail-hero,
+.has-art.detail-hero {
+    background-color: transparent !important;
+}
+/* Custom Battle Mode Styles */
+.team-heading {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    text-align: center;
+    transition: color 0.3s ease;
+}
+
+.enemy-team-control-btn {
+    display: block;
+    width: 100%;
+    margin-top: 15px;
+    padding: 10px 15px;
+    background-color: #3742fa;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.enemy-team-control-btn:hover {
+    background-color: #2536e0;
+}
+
+/* Enemy team slot styling */
+.is-selecting-enemy .slot-content {
+    border-color: #ff4757;
+    box-shadow: 0 0 5px rgba(255, 71, 87, 0.4);
+}
+
+/* Special styling for Custom Battle mode when selecting enemy team */
+.battle-mode.enemy-selection-active {
+    border-color: #ff4757;
+    box-shadow: 0 0 8px rgba(255, 71, 87, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.battle-mode.enemy-selection-active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #ff4757;
+    animation: pulse-glow 1.5s infinite alternate;
+}
+
+@keyframes pulse-glow {
+    from { opacity: 0.5; }
+    to { opacity: 1; }
+}
+
+/* Animation for team heading change */
+@keyframes pulse-heading {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.team-heading-change {
+    animation: pulse-heading 0.5s ease;
+}
+.has-tooltip {
+    cursor: help;
+    position: relative;
+}
+
+.has-tooltip::after {
+    content: '🛈';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 14px;
+    opacity: 0.7;
+}
+
+.stat-box.has-tooltip::after {
+    top: 5px;
+    right: 5px;
+    color: var(--highlight);
+}
+
+.ability-box.has-tooltip {
+    padding-right: 25px;
+}
+/* Sound Controls */
+.sound-controls {
+    display: flex;
+    align-items: center;
+    transition: all 0.3s;
+    border: 1px solid var(--border);
+}
+
+.sound-controls:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+.sound-controls button {
+    transition: transform 0.2s;
+}
+
+.sound-controls button:hover {
+    transform: scale(1.2);
+}
+
+.sound-controls input[type="range"] {
+    -webkit-appearance: none;
+    height: 5px;
+    background: #888;
+    border-radius: 5px;
+    outline: none;
+}
+
+.sound-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--highlight);
+    cursor: pointer;
+}
+
+.sound-controls input[type="range"]::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--highlight);
+    cursor: pointer;
+    border: none;
+}
+
+/* Hero Filters */
+#hero-filters {
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    margin-bottom: 12px;
+}
+
+.filter-label {
+    font-size: 16px;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+}
+
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-button {
+    padding: 6px 12px;
+    border-radius: 20px;
+    background-color: var(--darker-bg);
+    color: var(--text);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.filter-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.filter-button.active {
+    border-color: white;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.clear-filters-btn {
+    margin-top: 10px;
+    padding: 6px 12px;
+    background-color: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.clear-filters-btn:hover {
+    background-color: #ff0000;
+    transform: translateY(-2px);
+}
+
+.no-heroes-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 30px;
+    font-style: italic;
+}
+/* Tooltip */
+.tooltip {
+    position: absolute;
+    z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    max-width: 300px;
+    font-size: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    transition: opacity 0.2s;
+    border: 1px solid var(--border);
+}
+
+.tooltip-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #3498db;
+}
+
+.tooltip-stat {
+    display: flex;
+    justify-content: space-between;
+    margin: 2px 0;
+}
+
+.tooltip-content {
+    margin-top: 5px;
+}
+/* Main stylesheet for AutoBattler game */
+
+:root {
+    --dark-bg: #141e2e;
+    --darker-bg: #0f1523;
+    --section-bg: #232a40;
+    --highlight: #3742fa;
+    --text: #ffffff;
+    --text-muted: #a4b0be;
+    --border: #596275;
+    --success: #2ed573;
+    --danger: #ff4757;
+    --fire: #ff4757;
+    --water: #1e90ff;
+    --nature: #2ed573;
+    --dark: #9900cc;
+    --light: #ffd700;
+    --air: #70a1ff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    width: 100vw;
+    background-color: var(--dark-bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    overflow-x: hidden;
+}
+
+/* Screen management */
+.screen {
+    display: none;
+    width: 100%;
+    height: 100vh;
+    overflow: auto;
+}
+
+.screen.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Team Builder UI */
+#team-builder-container {
+    padding: 20px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    margin-bottom: 12px;
+}
+
+.header p {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 18px;
+    color: var(--text-muted); /* keep your nice muted color */
+}
+
+.main-content {
+    display: flex;
+    gap: 20px;
+    width: 98%;
+    max-width: 2000px;
+    margin: 0 auto;
+    flex: 1;
+    min-height: calc(100vh - 150px);
+}
+
+.section {
+    background-color: var(--section-bg);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.section h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+}
+
+.section h3 {
+    font-size: 20px;
+    margin: 20px 0 10px 0;
+}
+
+/* Available Heroes Section */
+#available-heroes {
+    width: 33%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+#heroes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    width: 100%;
+}
+
+.hero-card {
+    padding: 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border: 2px solid transparent;
+}
+
+.hero-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.hero-card.selected {
+    box-shadow: 0 0 0 3px var(--highlight), 0 5px 15px rgba(0, 0, 0, 0.3);
+    transform: translateY(-5px) scale(1.03);
+}
+
+.hero-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 12px;
+}
+
+.hero-card-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    overflow: visible;
+}
+
+.hero-card-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hero-card-text .hero-name {
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hero-card-text .hero-type {
+    font-size: 12px;
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Selected Team Section */
+#selected-team {
+    width: 33%;
+    display: flex;
+    flex-direction: column;
+}
+
+#team-slots {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.team-slot {
+    margin-bottom: 10px;
+}
+
+.slot-label {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.slot-content {
+    height: 100px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+}
+
+.slot-empty {
+    border: 2px dashed var(--border);
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.slot-empty:hover {
+    border-color: var(--highlight);
+    background-color: rgba(55, 66, 250, 0.1);
+    transform: translateY(-2px);
+}
+
+.slot-filled {
+    justify-content: space-between;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.slot-filled:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.hero-details {
+    display: flex;
+    align-items: center;
+}
+
+.remove-hero {
+    background-color: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#team-synergies {
+    margin-top: auto;
+}
+
+#synergies-list {
+    list-style: none;
+}
+
+#synergies-list li {
+    color: var(--success);
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+/* Hero Details Section */
+#hero-details {
+    width: 34%;
+    display: flex;
+    flex-direction: column;
+}
+
+#detail-content {
+    flex-grow: 1;
+    overflow-y: hidden;
+    overflow-x: hidden;
+}
+
+.detail-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.detail-hero {
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.detail-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.detail-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin-right: 16px;
+}
+
+.detail-name-type h3 {
+    font-size: 24px;
+    margin: 0 0 4px 0;
+}
+
+.detail-tags {
+    display: flex;
+    gap: 8px;
+}
+
+.detail-tag {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.detail-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.stat-box {
+    background-color: var(--darker-bg);
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.detail-abilities h4, .detail-advantages h4 {
+    margin-bottom: 8px;
+}
+
+.ability-box {
+    background-color: var(--darker-bg);
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+}
+
+.ability-name {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.ability-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.advantage-list {
+    font-size: 14px;
+}
+
+/* Battle Options */
+#battle-options {
+    margin-top: 20px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 15px;
+}
+
+#battle-modes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.battle-mode {
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--darker-bg);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+    margin-bottom: 10px;
+}
+
+.battle-mode:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.battle-mode.selected {
+    background-color: var(--highlight);
+    box-shadow: 0 5px 15px rgba(55, 66, 250, 0.4);
+    transform: translateY(-3px);
+    border-color: white;
+}
+
+.battle-mode-name {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 6px;
+}
+
+.battle-mode-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+#start-battle {
+    width: 100%;
+    padding: 16px;
+    background-color: var(--success);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(46, 213, 115, 0.3);
+}
+
+#start-battle:not(:disabled):hover {
+    background-color: #26bb62;
+    transform: translateY(-5px);
+    box-shadow: 0 7px 15px rgba(46, 213, 115, 0.5);
+}
+
+#start-battle:not(:disabled):active {
+    transform: translateY(-2px);
+}
+
+#start-battle:not(:disabled)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+#start-battle:not(:disabled):focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    20% {
+        transform: scale(25, 25);
+        opacity: 0.3;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(40, 40);
+    }
+}
+
+#start-battle:disabled {
+    background-color: var(--section-bg);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Game Container */
+#game-container {
+    width: 100%;
+    height: 100vh;
+    background-color: var(--dark-bg);
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Tailwind Battle UI CSS additions */
+
+/* Base font styles for the Inter font */
+.font-inter {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Character circle animation */
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0px); }
+}
+
+.character-circle {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* Add rules to completely hide squares and circles when art is present */
+.has-character-art .hero-avatar {
+    display: none !important; /* Force hide the circle */
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+.has-character-art.hero-card,
+.has-character-art.detail-hero,
+.has-character-art.slot-content {
+    background-color: transparent !important; /* Remove background entirely */
+    border-color: transparent !important;
+    box-shadow: none !important;
+    background: none !important;
+}
+
+/* Only add hover effects to the text content */
+.has-character-art.hero-card:hover {
+    transform: translateY(-5px);
+}
+
+.has-character-art.hero-card.selected {
+    box-shadow: 0 0 0 3px var(--highlight), 0 5px 15px rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(-5px) scale(1.03);
+}
+
+.character-art {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    position: absolute;
+    top: -30px; /* Shift up to adjust positioning */
+    left: -20px; /* Center the image horizontally */
+    pointer-events: none;
+    z-index: 10; /* Ensure image appears above HP bar */
+}
+
+/* Adjust HP bar position for characters with art */
+.character-art-container + .hp-bar-container {
+    margin-top: 15px; /* Add extra space between character art and HP bar */
+}
+
+/* Animation for when a character takes damage */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+}
+
+/* Battle Arena backgrounds */
+.arena-default {
+    background-color: #1a1a2e;
+    background-image: linear-gradient(rgba(0,0,0,0.3) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0,0,0,0.3) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.arena-forest {
+    background-color: #193c17;
+    background-image: url('/assets/images/arenas/forest.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+.arena-volcano {
+    background-color: #3c1717;
+    background-image: url('/assets/images/arenas/volcano.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+.arena-glacier {
+    background-color: #172a3c;
+    background-image: url('/assets/images/arenas/glacier.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+/* Make sure battle UI properly fills the screen */
+#battle-ui {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    background-color: #141e2e;
+    color: white;
+    overflow: hidden;
+}
+
+/* Make sure the battle log is always visible at the bottom */
+#battle-log-content {
+    max-height: 120px; /* Set a max height */
+    overflow-y: auto; /* Enable scrolling */
+    scrollbar-width: thin; /* For Firefox */
+    scrollbar-color: #3742fa #232a40; /* For Firefox */
+}
+
+#battle-log-content::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+#battle-log-content::-webkit-scrollbar-track {
+    background: #232a40; /* Track color */
+    border-radius: 4px;
+}
+
+#battle-log-content::-webkit-scrollbar-thumb {
+    background-color: #3742fa; /* Thumb color */
+    border-radius: 4px;
+}
+
+/* Ensure controls are properly spaced and styled */
+.control-button {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: #4a5568;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.control-button:hover {
+    background-color: #718096;
+    transform: translateY(-2px);
+}
+
+.control-button.active {
+    background-color: #3742fa;
+}
+
+/* Style for HP bars at critical health */
+.hp-bar-current.critical {
+    background-color: #ff4757 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .character-circle {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+    
+    .hp-bar-container {
+        width: 60px;
+    }
+}
+
+/* Team Builder Character Art Styles */
+.hero-avatar-container {
+    position: relative;
+    width: 60px;
+    min-height: 60px;
+    margin-bottom: 10px;
+    overflow: visible; /* Ensure content isn't clipped */
+}
+
+/* Special rules for character art to ensure images are always visible */
+.hero-avatar-container[data-character-name] .hero-art-wrapper,
+.hero-avatar-container[data-character-name] .character-art,
+.detail-icon-container .hero-art-wrapper,
+.detail-icon-container .character-art {
+    visibility: visible !important;
+    display: block !important;
+    z-index: 100 !important; /* Ensure it's above other elements */
+    opacity: 1 !important;
+}
+
+/* Hero details section - larger icon */
+.detail-icon-container {
+    width: 64px;
+    height: 64px;
+    margin-right: 16px;
+    margin-bottom: 0;
+}
+
+.detail-icon-container .team-builder-art {
+    width: 140px;
+    height: 140px;
+    left: -38px;
+    top: -38px;
+}
+
+.hero-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.hero-art-wrapper {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none; /* Make sure clicks go through to the card */
+    overflow: visible; /* Ensure content isn't clipped */
+}
+
+.team-builder-art {
+    position: absolute;
+    /* Base size - will be overridden by character-specific settings */
+    width: 120px; /* Increased from 75px */
+    height: 120px; /* Increased from 95px */
+    /* Default centering */
+    left: -30px; /* Adjusted to accommodate larger width */
+    top: -30px; /* Adjusted to accommodate larger height */
+    object-fit: contain;
+    pointer-events: none;
+    overflow: visible;  
+    z-index: 10; /* Ensure art appears above other elements */
+}
+
+/* Responsive adjustments for team builder art */
+@media (max-width: 1200px) {
+    .hero-avatar-container {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .team-builder-art {
+        width: 65px;
+        height: 75px;
+        left: -8px;
+        top: -10px;
+    }
+}

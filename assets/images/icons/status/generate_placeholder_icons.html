@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px;
+            background-color: transparent;
+        }
+        .icon-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .icon-container {
+            text-align: center;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status-effects {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Status Icon Generator</h1>
+    <p>This tool helps you generate placeholder status effect icons. Click "Generate All" to create simple icons for all status effects.</p>
+    
+    <div class="controls">
+        <button id="generate-all">Generate All Icons</button>
+        <button id="download-all">Download All as ZIP</button>
+    </div>
+    
+    <h2>Generated Icons</h2>
+    <div id="icon-list" class="icon-list"></div>
+    
+    <div id="status-effects" style="display: none;">
+        [
+            { "id": "burn", "color": "#FF5733", "text": "🔥" },
+            { "id": "poison", "color": "#2ECC71", "text": "☠️" },
+            { "id": "regen", "color": "#3498DB", "text": "❤️" },
+            { "id": "stun", "color": "#F1C40F", "text": "⚡" },
+            { "id": "freeze", "color": "#3498DB", "text": "❄️" },
+            { "id": "shield", "color": "#7F8C8D", "text": "🛡️" },
+            { "id": "atk_up", "color": "#E74C3C", "text": "⬆️" },
+            { "id": "atk_down", "color": "#E74C3C", "text": "⬇️" },
+            { "id": "def_up", "color": "#3498DB", "text": "⬆️" },
+            { "id": "def_down", "color": "#3498DB", "text": "⬇️" },
+            { "id": "spd_up", "color": "#F1C40F", "text": "⬆️" },
+            { "id": "spd_down", "color": "#F1C40F", "text": "⬇️" },
+            { "id": "str_up", "color": "#E67E22", "text": "⬆️" },
+            { "id": "str_down", "color": "#E67E22", "text": "⬇️" },
+            { "id": "int_up", "color": "#9B59B6", "text": "⬆️" },
+            { "id": "int_down", "color": "#9B59B6", "text": "⬇️" },
+            { "id": "spi_up", "color": "#2ECC71", "text": "⬆️" },
+            { "id": "spi_down", "color": "#2ECC71", "text": "⬇️" },
+            { "id": "taunt", "color": "#E74C3C", "text": "❗" },
+            { "id": "evade", "color": "#7F8C8D", "text": "👻" },
+            { "id": "bleed", "color": "#E74C3C", "text": "💧" },
+            { "id": "reflect", "color": "#3498DB", "text": "↩️" },
+            { "id": "vulnerable", "color": "#E74C3C", "text": "⛔" },
+            { "id": "immune", "color": "#2ECC71", "text": "✅" },
+            { "id": "crit_up", "color": "#F1C40F", "text": "🎯" }
+        ]
+    </div>
+    
+    <script>
+        const iconSize = 32;
+        
+        // Function to generate an icon
+        function generateIcon(id, color, text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = iconSize;
+            canvas.height = iconSize;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw background circle
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(iconSize/2, iconSize/2, iconSize/2 - 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw border
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Draw text
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, iconSize/2, iconSize/2);
+            
+            return canvas;
+        }
+        
+        // Function to add an icon to the list
+        function addIconToList(id, canvas) {
+            const container = document.createElement('div');
+            container.className = 'icon-container';
+            
+            container.appendChild(canvas);
+            
+            const label = document.createElement('div');
+            label.textContent = id;
+            container.appendChild(label);
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = 'Download';
+            downloadBtn.addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = `${id}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            container.appendChild(downloadBtn);
+            
+            document.getElementById('icon-list').appendChild(container);
+        }
+        
+        // Function to generate all icons
+        function generateAllIcons() {
+            const iconList = document.getElementById('icon-list');
+            iconList.innerHTML = '';
+            
+            const statusEffectsData = JSON.parse(document.getElementById('status-effects').textContent);
+            
+            statusEffectsData.forEach(effect => {
+                const canvas = generateIcon(effect.id, effect.color, effect.text);
+                addIconToList(effect.id, canvas);
+            });
+        }
+        
+        // Function to download all icons as a ZIP file
+        async function downloadAllAsZip() {
+            // Check if JSZip is loaded
+            if (typeof JSZip === 'undefined') {
+                alert('JSZip library is required for this feature. Please include it in your HTML.');
+                return;
+            }
+            
+            const statusEffectsData = JSON.parse(document.getElementById('status-effects').textContent);
+            const zip = new JSZip();
+            
+            // Add each icon to the ZIP
+            for (const effect of statusEffectsData) {
+                const canvas = generateIcon(effect.id, effect.color, effect.text);
+                const dataUrl = canvas.toDataURL('image/png');
+                const base64Data = dataUrl.split(',')[1];
+                zip.file(`${effect.id}.png`, base64Data, {base64: true});
+            }
+            
+            // Generate the ZIP file
+            const content = await zip.generateAsync({type: 'blob'});
+            
+            // Download the ZIP file
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = 'status-icons.zip';
+            link.click();
+        }
+        
+        // Event listeners
+        document.getElementById('generate-all').addEventListener('click', generateAllIcons);
+        document.getElementById('download-all').addEventListener('click', () => {
+            if (typeof JSZip === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js';
+                script.onload = downloadAllAsZip;
+                document.head.appendChild(script);
+            } else {
+                downloadAllAsZip();
+            }
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', generateAllIcons);
+    </script>
+</body>
+</html>
