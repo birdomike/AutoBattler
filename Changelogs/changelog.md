@@ -1,6 +1,18 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.2_FixStatusEffectCalls - Fix for Status Effect Parameter Order (2025-05-06)
+### Fixed
+- **Status Effect Source Attribution**: Fixed parameter order in all status effect calls
+  - Corrected parameter order in multiple passive ability functions
+  - Added proper source character references to all status effect applications
+  - Enhanced validation in StatusEffectManager to detect parameter misalignment
+  - Fixed regeneration and other passive effects to correctly identify source characters
+  - Improved battle log attribution for healing and status effects
+  - Added detailed inline documentation for proper parameter usage
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.2_FixStatusEffectCalls.md*
+
 ## Version 0.5.27.2_Hotfix10 - Fix for Circular References in Status Effects (2025-05-06)
 ### Fixed
 - **Status Effect Source Reference**: Fixed circular reference when storing status effect sources

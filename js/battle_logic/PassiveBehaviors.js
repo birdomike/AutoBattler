@@ -59,7 +59,8 @@ function passive_ApplyRegenOnTurnStart(context) {
     }
     
     // Apply regeneration status effect
-    battleManager.addStatusEffect(actor, 'status_regen', 2);
+    // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+    battleManager.addStatusEffect(actor, 'status_regen', actor, 2);
     
     return {
         executed: true,
@@ -155,7 +156,8 @@ function passive_ApplyStatusOnHit(context) {
     
     // Random chance to apply status
     if (Math.random() < chance) {
-        battleManager.addStatusEffect(source, statusId, duration);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        battleManager.addStatusEffect(source, statusId, actor, duration);
         
         return {
             executed: true,
@@ -202,7 +204,8 @@ function passive_TeamBuffOnBattleStart(context) {
             return;
         }
         
-        battleManager.addStatusEffect(ally, statusId, duration);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        battleManager.addStatusEffect(ally, statusId, actor, duration);
         applied++;
     });
     
@@ -247,7 +250,8 @@ function passive_KillBuff(context) {
     if (trigger !== 'onKill') return { executed: false };
     
     // Apply attack up buff after a kill
-    battleManager.addStatusEffect(actor, 'status_atk_up', 2);
+    // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+    battleManager.addStatusEffect(actor, 'status_atk_up', actor, 2);
     
     return {
         executed: true,
@@ -282,7 +286,8 @@ function passive_LastStand(context) {
         battleManager.applyHealing(actor, healAmount, actor, null, 'passive');
         
         // Apply defense buff
-        battleManager.addStatusEffect(actor, 'status_def_up', 2);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        battleManager.addStatusEffect(actor, 'status_def_up', actor, 2);
         
         return {
             executed: true,
@@ -319,7 +324,8 @@ function passive_ProtectiveInstinct(context) {
         
         // Apply shield to up to 2 allies
         for (let i = 0; i < Math.min(2, allies.length); i++) {
-            battleManager.addStatusEffect(allies[i], 'status_shield', 1);
+            // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+            battleManager.addStatusEffect(allies[i], 'status_shield', actor, 1);
             protectedCount++;
         }
         
@@ -405,7 +411,8 @@ function passive_Intimidate(context) {
         const duration = ability.passiveData?.duration || 1;
         
         // Apply status effect
-        battleManager.addStatusEffect(target, statusId, duration);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        battleManager.addStatusEffect(target, statusId, actor, duration);
         
         return {
             executed: true,
@@ -452,7 +459,8 @@ function passive_OnKillEffect(context) {
             
         case 'buff':
             // Apply a status buff to self
-            battleManager.addStatusEffect(actor, statusId, duration);
+            // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+            battleManager.addStatusEffect(actor, statusId, actor, duration);
             
             return {
                 executed: true,
@@ -519,7 +527,8 @@ function passive_CriticalHitBoost(context) {
     }
     
     // Apply critical hit buff
-    battleManager.addStatusEffect(actor, 'status_crit_up', duration, { value: bonusAmount });
+    // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+    battleManager.addStatusEffect(actor, 'status_crit_up', actor, duration, { value: bonusAmount });
     
     return {
         executed: true,
@@ -555,7 +564,8 @@ function passive_StatusOnHit(context) {
     // Roll for chance
     if (Math.random() < chance) {
         // Apply the status effect
-        battleManager.addStatusEffect(target, statusId, duration);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        battleManager.addStatusEffect(target, statusId, actor, duration);
         
         // Get a readable name for the status
         let statusName = statusId;

@@ -70,10 +70,27 @@ class StatusEffectManager {
         this.updateStatusIcons(character);
     }
 
+    /**
+     * Add a status effect to a character
+     * @param {Object} character - The character to apply the effect to
+     * @param {string} effectId - The ID of the effect to apply
+     * @param {Object|null} source - The character causing the effect (or null if no specific source)
+     * @param {number} duration - How many turns the effect lasts
+     * @param {number} stacks - Number of stacks to apply (for stackable effects)
+     * @returns {boolean} - Whether the effect was successfully applied
+     */
     addStatusEffect(character, effectId, source, duration, stacks = 1) {
+        // Parameter validation and position checking
         if (!character || !effectId) {
-            console.warn('[StatusEffectManager] Invalid parameters to addStatusEffect');
+            console.warn('[StatusEffectManager] Invalid parameters to addStatusEffect: missing character or effectId');
             return false;
+        }
+        
+        // PARAMETER VALIDATION: Check for potential parameter misalignment
+        if (typeof source === 'number' && (duration === undefined || typeof duration === 'object')) {
+            console.warn(`[StatusEffectManager] POTENTIAL PARAMETER MISALIGNMENT in addStatusEffect call for '${effectId}'`);
+            console.warn(`[StatusEffectManager] The 'source' parameter appears to be a number (${source}), which might be duration mistakenly passed as source.`);
+            console.warn(`[StatusEffectManager] Correct parameter order: addStatusEffect(character, effectId, source, duration, stacks)`);
         }
         
         // Ensure character has statusEffects array
