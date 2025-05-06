@@ -122,11 +122,18 @@ class StatusEffectManager {
                 );
             }
         } else {
+            // TEMPORARY DEBUG: Log the source object being passed to addStatusEffect to confirm its type and content
+            if (source !== undefined && source !== null) {
+                console.log(`[DEBUG SEM.addStatusEffect] For effectId: ${effectId}, the 'source' parameter received is:`, source, `(Name: ${source.name || 'No Name Prop'})`);
+            } else {
+                console.log(`[DEBUG SEM.addStatusEffect] For effectId: ${effectId}, the 'source' parameter received is: ${source}`);
+            }
+
             // New effect - create and add
             const newEffect = {
                 id: effectId,
                 duration: duration,
-                source: source ? source.name : 'unknown',
+                source: source, // CORRECTED: Store the actual source object reference (or null/undefined if that's what was passed)
                 stacks: definition.stackable ? stacks : 1
             };
             
@@ -304,12 +311,14 @@ class StatusEffectManager {
                 'damage'
             );
             
-            // Use dealDamage method from BattleManager to apply damage properly
-            this.battleManager.dealDamage(null, character, damage, {
-                isTrueDamage: true, // Bypass defense
-                source: 'status',
-                statusName: definition.name
-            });
+            // HOTFIX (0.5.27.2_Hotfix8): Use applyDamage instead of dealDamage
+            this.battleManager.applyDamage(
+                character,         // target
+                damage,            // amount
+                effect.source,     // source
+                null,              // ability (null for status effects)
+                effect.id || 'status_effect'  // damageType (use effect.id if available)
+            );
         }
     }
 
@@ -330,10 +339,13 @@ class StatusEffectManager {
             
             // Use appropriate method from BattleManager
             if (typeof this.battleManager.applyHealing === 'function') {
-                this.battleManager.applyHealing(null, character, healing, {
-                    source: 'status',
-                    statusName: definition.name
-                });
+                // HOTFIX (0.5.27.2_Hotfix8): Fix parameter order - character being healed must be first
+                this.battleManager.applyHealing(
+                    character,       // target (character being healed)
+                    healing,         // amount
+                    effect.source || character, // source (use effect.source or default to self)
+                    'Regeneration'   // ability name
+                );
             } else {
                 // Fallback for older versions
                 character.stats.hp = Math.min(

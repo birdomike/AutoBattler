@@ -1,6 +1,18 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.2_Hotfix9 - Status Effect Processing Fixes (2025-05-06)
+### Fixed
+- **Status Effect Manager Method Issues**: Fixed critical errors in status effect processing
+  - Updated `_processDamageEffect` to use `applyDamage` instead of deprecated `dealDamage`
+  - Fixed parameter order in `_processHealingEffect` for regeneration effects
+  - Improved StatusEffectDefinitionLoader to generate and cache fallback definitions
+  - Fixed error: "TypeError: this.battleManager.dealDamage is not a function"
+  - Fixed error: "Cannot read properties of null (reading 'currentHp')" during regen healing
+  - Eliminated "Effect definition not found" warnings by caching generated definitions
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.2_Hotfix9_StatusEffectProcessing.md*
+
 ## Version 0.5.27.2_Hotfix8 - Multi-Target Ability and Status Effect Fixes (2025-05-06)
 ### Fixed
 - **Multi-Target Ability Validation**: Fixed validation failures with abilities targeting multiple enemies

@@ -426,17 +426,17 @@ class StatusEffectDefinitionLoader {
             return null;
         }
         
-        const definition = this.effectDefinitions.get(effectId);
-        
-        // HOTFIX (0.5.27.2_Hotfix1): Handle problematic status effects specifically
-        if (!definition) {
-            console.warn(`[StatusEffectDefinitionLoader] Effect definition not found for: ${effectId}`);
+        // HOTFIX (0.5.27.2_Hotfix8): Immediately generate and cache missing definitions
+        if (!this.effectDefinitions.has(effectId)) {
+            // Generate a fallback definition and cache it for future use
+            const fallbackDefinition = this.generateFallbackDefinition(effectId);
+            this.effectDefinitions.set(effectId, fallbackDefinition);
             
-            // Generate a smarter fallback based on the effect ID name
-            return this.generateFallbackDefinition(effectId);
+            // Log generation but not as a warning
+            console.log(`[StatusEffectDefinitionLoader] Generated and cached fallback definition for: ${effectId}`);
         }
         
-        return definition;
+        return this.effectDefinitions.get(effectId);
     }
 }
 
