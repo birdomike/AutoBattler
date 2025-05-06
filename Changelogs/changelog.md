@@ -12,14 +12,14 @@
 
 *Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.2_Hotfix_PassiveAbilityManagerValidation.md*
 
-## Version 0.5.27.2 - PassiveAbilityManager Implementation (2025-05-05)
+## Version 0.5.27.2 - PassiveAbilityManager Implementation (2025-05-06)
 ### Technical
 - **Implemented PassiveAbilityManager Component**: Second part of Stage 6 refactoring (Passive Ability System)
   - Created dedicated component for passive ability execution
   - Extracted execution logic from BattleManager into focused component
   - Implemented comprehensive parameter validation and error handling
   - Designed clear integration with PassiveTriggerTracker for state management
-  - Added toggle mechanism for testing and backwards compatibility
+  - Added toggle mechanism for testing with initial toggle set to ON
 
 *Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.2_PassiveAbilityManager.md*
 

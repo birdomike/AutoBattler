@@ -42,7 +42,7 @@ class BattleManager {
         };
 
         // REFACTORING: Component manager references
-        this.useNewImplementation = false; // Toggle to switch between original and new code
+        this.useNewImplementation = true; // Toggle set to ON for PassiveAbilityManager implementation
 
         // REFACTORING: References to component managers
         this.battleFlowController = null;

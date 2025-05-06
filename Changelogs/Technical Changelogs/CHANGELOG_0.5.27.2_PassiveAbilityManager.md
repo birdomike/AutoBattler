@@ -1,110 +1,159 @@
-# Technical Changelog: v0.5.27.2 - PassiveAbilityManager Implementation
+# Changelog 0.5.27.2 - PassiveAbilityManager Implementation
 
 ## Overview
 
-This update implements the `PassiveAbilityManager` component as part of Stage 6 of the BattleManager refactoring plan. This component extracts passive ability execution logic from BattleManager into a dedicated class, improving modularity and reducing the BattleManager's complexity.
+This update implements the PassiveAbilityManager component as part of the ongoing BattleManager refactoring (Stage 6: Passive Ability System). This component is responsible for executing passive abilities and determining which passives should trigger for specific events.
 
-## Files Changed
+## Component Design
 
-1. **Created**:
-   - `js/battle_logic/passives/PassiveAbilityManager.js` - New class for passive ability management
+### Core Responsibilities
+- Process passive abilities for specific trigger events
+- Execute passive behaviors through the behavior system
+- Manage passive ability execution logic and messaging
+- Coordinate with PassiveTriggerTracker for trigger state tracking
 
-2. **Modified**:
-   - `js/managers/BattleManager.js` - Added toggle mechanism and component initialization
-   - `index.html` - Added script tag for PassiveAbilityManager
+### Key Methods
+- `processPassiveAbilities(trigger, character, additionalData)`: Main entry point for processing all passive abilities
+- `executePassiveBehavior(character, ability, trigger, additionalData)`: Execute a specific passive behavior
+- `canTriggerPassive(character, ability, trigger)`: Check if a passive can trigger
+- `logPassiveActivation(character, result)`: Log passive activation messages
+- `getPassivesByTriggerType(character, trigger)`: Get passives matching a specific trigger type
+- `validateCharacter(character)`: Validate a character has the required properties for passive processing
+
+### Integration with BattleManager
+- Added toggle mechanism in BattleManager's `processPassiveAbilities`
+- PassiveAbilityManager initializes with references to BattleManager and PassiveTriggerTracker
+- Added defensive checks for component dependencies
+- Preserved existing behavior while allowing for switch between implementations
 
 ## Implementation Details
 
-### 1. PassiveAbilityManager Component
+### Defensive Implementation
+The PassiveAbilityManager includes comprehensive defensive programming:
 
-The `PassiveAbilityManager` encapsulates all passive ability logic in a single, dedicated class with the following responsibilities:
+- Parameter validation for all inputs
+- Character validation to ensure required properties exist
+- Battle behaviors system availability check
+- PassiveTriggerTracker availability check
+- Error handling for passive execution failures
 
-- **Trigger Management**: Determining when passive abilities should trigger
-- **Execution**: Processing passive abilities when their trigger conditions are met
-- **Integration**: Working with PassiveTriggerTracker to prevent duplicate triggers
-- **Validation**: Checking ability validity and behavior availability
-- **Event Generation**: Dispatching appropriate events and messages
+### Character Validation
+Added enhanced character validation to catch common issues:
 
-Key methods:
-- `processPassiveAbilities(trigger, character, additionalData)`: Main entry point for processing passives
-- `canTriggerPassive(character, ability, trigger)`: Checks if a passive can be triggered
-- `executePassiveBehavior(character, ability, trigger, additionalData)`: Executes the passive behavior
-- `logPassiveActivation(character, result)`: Logs passive ability messages
-- `getPassivesByTriggerType(character, trigger)`: Utility for filtering passives by trigger type
-
-The implementation includes comprehensive parameter validation, error handling, and defensive coding to ensure robust behavior even when dependencies are missing.
-
-### 2. BattleManager Integration
-
-The `BattleManager` was updated to:
-
-1. **Initialize** the PassiveAbilityManager in its `initializeComponentManagers()` method, passing:
-   - Reference to itself (for access to teams, status effects, etc.)
-   - Reference to the PassiveTriggerTracker (for trigger tracking)
-
-2. **Add toggle mechanism** to the `processPassiveAbilities()` method:
-   ```javascript
-   processPassiveAbilities(trigger, character, additionalData = {}) {
-       // REFACTORING: Use new implementation if toggle is enabled
-       if (this.useNewImplementation && this.passiveAbilityManager) {
-           return this.passiveAbilityManager.processPassiveAbilities(trigger, character, additionalData);
-       }
-       
-       // Original implementation
-       // ...original code...
-   }
-   ```
-
-This approach maintains backward compatibility while allowing for A/B testing between implementations.
-
-### 3. Script Loading
-
-Updated `index.html` to load the new script with proper dependencies:
-```html
-<!-- Passive System Components -->
-<script src="js/battle_logic/passives/PassiveTriggerTracker.js" defer></script>
-<script src="js/battle_logic/passives/PassiveAbilityManager.js" defer></script>
+```javascript
+validateCharacter(character) {
+    // Basic null check
+    if (!character) {
+        console.error("[PassiveAbilityManager] Invalid character parameter (null or undefined)");
+        return false;
+    }
+    
+    // Check for required properties
+    if (!character.name) {
+        console.error("[PassiveAbilityManager] Invalid character: missing name property");
+        return false;
+    }
+    
+    // Must have stats object for passive calculations
+    if (!character.stats) {
+        console.error(`[PassiveAbilityManager] Character '${character.name}' missing stats object`);
+        return false;
+    }
+    
+    // Check for health properties
+    if (typeof character.currentHp !== 'number') {
+        console.error(`[PassiveAbilityManager] Character '${character.name}' missing currentHp property`);
+        return false;
+    }
+    
+    // More checks...
+    
+    return true;
+}
 ```
 
-## Architecture Benefits
+### Max Stacks Implementation
+Added support for passive ability stacking limits:
 
-1. **Separation of Concerns**: Passive ability logic is now isolated from general battle management
-2. **Reduced Complexity**: BattleManager is simpler and more focused on coordinating battle flow
-3. **Enhanced Testability**: Passive system can be tested independently
-4. **Improved Error Handling**: Dedicated error handling for passive-specific failures
-5. **Better Dependencies**: Clear dependency relationships through constructor injection
+```javascript
+// Check max stacks if configured and tracker available
+if (this.passiveTriggerTracker) {
+    const maxStacks = this.passiveTriggerTracker.getMaxStacksForPassive(ability);
+    if (maxStacks && this.passiveTriggerTracker.hasReachedMaxStacks(character, ability.id || ability.name, trigger, maxStacks)) {
+        console.debug(`[PassiveAbilityManager] ${ability.name} has reached max stacks (${maxStacks})`);
+        return false;
+    }
+}
+```
 
-## Technical Debt Reduction
+### Passive Context Creation
+Created a complete context object for passive execution:
 
-This implementation reduces technical debt by:
+```javascript
+const passiveContext = {
+    actor: character,
+    ability: ability,
+    battleManager: this.battleManager,
+    teamManager: this.battleManager.teamManager || { getCharacterTeam: (char) => char.team },
+    trigger: trigger,
+    additionalData: additionalData
+};
+```
 
-1. Extracting deeply nested conditional logic from BattleManager
-2. Centralizing passive ability concerns in a dedicated component
-3. Providing defensive validation against invalid inputs
-4. Making dependencies explicit through constructor parameters
-5. Improving error reporting with component-specific logging
+## Integration Process
 
-## Testing Approach
+1. **Initial Implementation**:
+   - Created PassiveAbilityManager.js with full functionality
+   - Connected it to BattleManager with toggle
+   - Added validation logic and defensive programming
+   - Preserved all event dispatching from original implementation
 
-The implementation can be tested by:
+2. **Testing Approach**:
+   - Tested with toggle ON (new implementation)
+   - Verified all passive abilities trigger correctly for all trigger types
+   - Checked that trigger tracking works correctly (no duplicate triggers)
 
-1. Starting a battle with characters having passive abilities
-2. Using the toggle mechanism to compare original vs. new implementations
-3. Verifying all passive triggers work correctly:
-   - onBattleStart passives
-   - onTurnStart passives
-   - onDamageTaken/onDamageDealt passives
-   - onHealed/onHealingDone passives
-4. Checking that battle log messages are consistent between implementations
-5. Ensuring trigger tracking works correctly (no duplicate triggers)
+## Technical Notes
 
-## Follow-up: v0.5.27.2_Cleanup
+### Export Pattern
+Used the global window registration pattern for compatibility:
 
-After verification is complete, a follow-up update will:
+```javascript
+// Make PassiveAbilityManager available globally for traditional scripts
+if (typeof window !== 'undefined') {
+  window.PassiveAbilityManager = PassiveAbilityManager;
+  console.log("PassiveAbilityManager class definition loaded and exported to window.PassiveAbilityManager");
+}
 
-1. Remove original implementation code from BattleManager
-2. Create thin facade methods that delegate to PassiveAbilityManager
-3. Add appropriate fallback behavior with warning messages
-4. Document code reduction metrics
+// Legacy global assignment for maximum compatibility
+window.PassiveAbilityManager = PassiveAbilityManager;
+```
 
-This component extraction is part of the overall refactoring strategy to transform BattleManager from a monolithic class into a coordinator of specialized component managers.
+### Backwards Compatibility
+The implementation preserves backward compatibility through the toggle mechanism:
+
+```javascript
+processPassiveAbilities(trigger, character, additionalData = {}) {
+    // REFACTORING: Use new implementation if toggle is enabled
+    if (this.useNewImplementation && this.passiveAbilityManager) {
+        return this.passiveAbilityManager.processPassiveAbilities(trigger, character, additionalData);
+    }
+    
+    // Original implementation follows...
+}
+```
+
+## Benefits of This Refactoring
+
+1. **Improved Organization**: Passive ability logic now exists in a dedicated component
+2. **Enhanced Error Handling**: Comprehensive validation prevents silent failures
+3. **Better Testability**: Component can be tested independently of BattleManager
+4. **Maintainability**: Easier to add new passive features or fix issues in a focused component
+5. **Performance**: More efficient trigger checking with early exits
+6. **Code Clarity**: Clear component boundaries make the codebase more understandable
+
+## Next Steps
+
+1. **Cleanup Phase (v0.5.27.2_Cleanup)**: Remove original implementation code after verification
+2. **Performance Profiling**: Evaluate the performance of the new implementation
+3. **Feature Enhancements**: Consider additional passive ability features now easier to implement
