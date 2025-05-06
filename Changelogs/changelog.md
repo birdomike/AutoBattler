@@ -1,6 +1,17 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.2c - BattleFlowController Battle End Methods (2025-05-06)
+### Fixed
+- **Battle End Error**: Fixed issue in battle end flow
+  - Implemented missing `checkBattleEnd()` method in BattleFlowController
+  - Added `endBattle()` method to handle battle conclusion
+  - Fixed error: "TypeError: this.battleFlowController.checkBattleEnd is not a function"
+  - Implemented proper team victory/defeat detection
+  - Added battle result handling with appropriate messages
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.2c_BattleEndMethods.md*
+
 ## Version 0.5.27.2b - BattleFlowController Method Implementation (2025-05-06)
 ### Fixed
 - **Combat Start Error**: Resolved issue preventing battle from starting
