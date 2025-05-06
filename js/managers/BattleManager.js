@@ -482,16 +482,43 @@ class BattleManager {
             console.warn("[BattleManager] PassiveTriggerTracker not available for battle reset");
         }
         
-        // Perform deep copy and enhanced initialization of teams
+        // TEMPORARY DEBUG (v0.5.27.2): Log raw character before JSON.stringify to see if properties are lost
+        if (rawPlayerTeam && rawPlayerTeam.length > 0) {
+            console.log('[DEBUG 0.5.27.2] Raw Player Character 0 (Before Stringify):', JSON.stringify(rawPlayerTeam[0]));
+        }
+        if (rawEnemyTeam && rawEnemyTeam.length > 0) {
+            console.log('[DEBUG 0.5.27.2] Raw Enemy Character 0 (Before Stringify):', JSON.stringify(rawEnemyTeam[0]));
+        }
+        
+        // TEMPORARY DEBUG (v0.5.27.2): Process teams with JSON.parse/stringify and log intermediate state
+        const processedPlayerTeam = JSON.parse(JSON.stringify(rawPlayerTeam || []));
+        const processedEnemyTeam = JSON.parse(JSON.stringify(rawEnemyTeam || []));
+        
+        if (processedPlayerTeam.length > 0) {
+            console.log('[DEBUG 0.5.27.2] Processed Player Character 0 (After Stringify):', JSON.stringify(processedPlayerTeam[0]));
+        }
+        if (processedEnemyTeam.length > 0) {
+            console.log('[DEBUG 0.5.27.2] Processed Enemy Character 0 (After Stringify):', JSON.stringify(processedEnemyTeam[0]));
+        }
+        
+        // Perform enhanced initialization of teams
         this.playerTeam = this.ensureCompleteCharacterInitialization(
-            JSON.parse(JSON.stringify(rawPlayerTeam || [])), 
+            processedPlayerTeam, 
             'player'
         );
         
         this.enemyTeam = this.ensureCompleteCharacterInitialization(
-            JSON.parse(JSON.stringify(rawEnemyTeam || [])), 
+            processedEnemyTeam, 
             'enemy'
         );
+        
+        // TEMPORARY DEBUG (v0.5.27.2): Log final character state after initialization
+        if (this.playerTeam.length > 0) {
+            console.log('[DEBUG 0.5.27.2] Final Player Character 0 (After ensureCompleteCharacterInitialization):', JSON.stringify(this.playerTeam[0]));
+        }
+        if (this.enemyTeam.length > 0) {
+            console.log('[DEBUG 0.5.27.2] Final Enemy Character 0 (After ensureCompleteCharacterInitialization):', JSON.stringify(this.enemyTeam[0]));
+        }
         
         console.log(`[BattleManager] Starting battle with ${this.playerTeam.length} player characters and ${this.enemyTeam.length} enemy characters`);
         
@@ -731,6 +758,10 @@ class BattleManager {
         // First player team actions
         this.playerTeam.forEach(character => {
             if (character.currentHp > 0) {
+                // TEMPORARY DEBUG (v0.5.27.2): Log character state before passing to ActionGenerator
+                // Purpose: Verify character data integrity just before action generation
+                console.log(`[DEBUG 0.5.27.2] Character for ActionGenerator (Player: ${character.name || 'NO_NAME'}):`, JSON.stringify(character));
+                
                 const action = this.generateCharacterAction(character, 'player');
                 if (action) this.turnActions.push(action);
             }
@@ -739,6 +770,10 @@ class BattleManager {
         // Then enemy team actions
         this.enemyTeam.forEach(character => {
             if (character.currentHp > 0) {
+                // TEMPORARY DEBUG (v0.5.27.2): Log character state before passing to ActionGenerator
+                // Purpose: Verify character data integrity just before action generation
+                console.log(`[DEBUG 0.5.27.2] Character for ActionGenerator (Enemy: ${character.name || 'NO_NAME'}):`, JSON.stringify(character));
+                
                 const action = this.generateCharacterAction(character, 'enemy');
                 if (action) this.turnActions.push(action);
             }

@@ -35,7 +35,7 @@ For Stage 6, we need to implement two key components:
 - Tracking initialization: `character.passiveTriggeredThisTurn` and `this.passiveTriggersThisBattle`
 - Logic for tracking duplicate triggers
 
-### Version 0.5.27.1_Cleanup - PassiveTriggerTracker Cleanup- Complete
+### Version 0.5.27.1_Cleanup - PassiveTriggerTracker Cleanup- complete
 
 **Purpose**: Remove original tracking code and finalize the delegation
 
@@ -51,7 +51,7 @@ For Stage 6, we need to implement two key components:
 - Removes complex Map-based tracking from BattleManager
 - Eliminates character-level tracking properties, centralizing state management
 
-### Version 0.5.27.2 - PassiveAbilityManager Implementation- Complete
+### Version 0.5.27.2 - PassiveAbilityManager Implementation- complete
 
 **Purpose**: Extract passive ability execution logic into a dedicated component
 

@@ -78,6 +78,12 @@ class ActionGenerator {
             return null;
         }
         
+        // TEMPORARY DEBUG (v0.5.27.2): Log target state before validation
+        // Purpose: Check target properties just before validation to find corruption
+        if (target) {
+            console.log(`[DEBUG 0.5.27.2] Target for Validation in ActionGenerator (Targeting: ${target.name || 'NO_NAME'}):`, JSON.stringify(target));
+        }
+        
         // HOTFIX3: Validate the target before calculating damage
         if (!this.validateCharacter(target)) {
             console.error(`[ActionGenerator] Target ${target.name || 'unknown'} failed validation, aborting action`);
