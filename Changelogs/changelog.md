@@ -1,6 +1,21 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.2_Hotfix8 - Multi-Target Ability and Status Effect Fixes (2025-05-06)
+### Fixed
+- **Multi-Target Ability Validation**: Fixed validation failures with abilities targeting multiple enemies
+  - Implemented proper array target validation in ActionGenerator
+  - Added individual target validation to prevent null/invalid targets
+  - Created composite action structure with pre-calculated damage values
+  - Fixed error: "ActionGenerator - Character validation failed: missing name property"
+- **Status Effect Definitions**: Resolved issues with missing status effect definitions
+  - Implemented smart fallback generation for missing effects
+  - Added explicit definitions for status_regen and status_spd_down
+  - Enhanced status effect detection based on ID patterns
+  - Fixed regeneration and speed reduction effects not applying correctly
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.2_Hotfix8_MultiTargetAndStatusEffects.md*
+
 ## Version 0.5.27.2_Cleanup - PassiveAbilityManager Implementation Cleanup (2025-05-06)
 ### Technical
 - **Completed PassiveAbilityManager Refactoring**: Removed original implementation from BattleManager
