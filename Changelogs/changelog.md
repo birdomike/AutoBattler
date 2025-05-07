@@ -1,6 +1,24 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.30.0 - StatusEffectDefinitionLoader Enhancement (2025-05-07)
+### Technical
+- **Enhanced StatusEffectDefinitionLoader Component**: Implemented Phase 2 of further refactoring plan
+  - Moved JSON parsing and status effect fallback logic from BattleManager to StatusEffectDefinitionLoader
+  - Added public `loadDefinitionsFromJson()` method with improved error handling
+  - Enhanced `setupFallbackDefinitions()` for more comprehensive fallbacks
+  - Converted BattleManager methods to pure delegation facades
+  - Implemented robust error handling and validation throughout
+
+### Improved
+- **Status Effect Loading**: Enhanced JSON parsing with better failure recovery
+  - Added multi-path loading strategy with clear fallback chain
+  - Improved error reporting during definition loading
+  - Enhanced normalization of different JSON formats
+  - Protected against missing or malformed status effect definitions
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.30.0_StatusEffectDefinitionLoader.md*
+
 ## Version 0.5.29.0 - BattleInitializer Implementation (2025-05-07)
 ### Technical
 - **Completed BattleInitializer Component**: Implemented Phase 1 of further refactoring plan

@@ -4,7 +4,7 @@ class StatusEffectDefinitionLoader {
         // Use setupFallbackDefinitions initially
         this.setupFallbackDefinitions();
         // Then try to load from JSON
-        this._loadDefinitionsAsync();
+        this.loadDefinitionsFromJson();
         console.log('[StatusEffectDefinitionLoader] Initialized with fallback definitions, loading JSON data...');
     }
 
@@ -77,58 +77,105 @@ class StatusEffectDefinitionLoader {
         return normalized;
     }
 
-    _loadDefinitionsAsync() {
-        // Load definitions in the background
-        fetch('data/status_effects.json')
-            .then(response => {
+    /**
+     * Load status effect definitions from JSON file
+     * @param {string} [primaryPath='data/status_effects.json'] - Primary path to load from
+     * @param {string} [fallbackPath='/status_effects.json'] - Fallback path if primary fails
+     * @returns {Promise<boolean>} - Promise resolving to success status
+     */
+    async loadDefinitionsFromJson(primaryPath = 'data/status_effects.json', fallbackPath = '/status_effects.json') {
+        console.log('[StatusEffectDefinitionLoader] Loading status effect definitions from JSON...');
+        
+        try {
+            // First try to load from primary path (data directory)
+            try {
+                console.log(`[StatusEffectDefinitionLoader] Attempting to load from ${primaryPath}...`);
+                const response = await fetch(primaryPath);
                 if (!response.ok) {
-                    throw new Error(`Failed to load status effects: ${response.status} ${response.statusText}`);
+                    throw new Error(`Failed to load ${primaryPath}: ${response.status} ${response.statusText}`);
                 }
-                return response.json();
-            })
-            .then(effectsData => {
-                if (!effectsData) {
-                    console.error("[StatusEffectDefinitionLoader] No data received from status_effects.json");
-                    return;
-                }
+                const data = await response.json();
+                return this._processDefinitionData(data, 'primary path');
+            } catch (primaryError) {
+                console.warn(`[StatusEffectDefinitionLoader] Failed to load from ${primaryPath}:`, primaryError.message);
                 
-                // Handle different possible JSON formats
-                let effectsArray = [];
-                if (Array.isArray(effectsData)) {
-                    effectsArray = effectsData;
-                } else if (typeof effectsData === 'object' && effectsData !== null) {
-                    // Check if it's wrapped in a "status_effects" property (common format)
-                    if (effectsData.status_effects && Array.isArray(effectsData.status_effects)) {
-                        effectsArray = effectsData.status_effects;
-                        console.log(`[StatusEffectDefinitionLoader] Extracted array from status_effects property with ${effectsArray.length} effects`);
-                    } else {
-                        // If it's an object with effect IDs as keys, convert to array
-                        effectsArray = Object.values(effectsData);
-                        console.log(`[StatusEffectDefinitionLoader] Converted object to array with ${effectsArray.length} effects`);
+                // Try fallback path (root directory)
+                try {
+                    console.log(`[StatusEffectDefinitionLoader] Attempting to load from ${fallbackPath}...`);
+                    const response = await fetch(fallbackPath);
+                    if (!response.ok) {
+                        throw new Error(`Failed to load ${fallbackPath}: ${response.status} ${response.statusText}`);
                     }
-                } else {
-                    console.error("[StatusEffectDefinitionLoader] Expected status effect data but got:", typeof effectsData);
-                    return;
+                    const data = await response.json();
+                    return this._processDefinitionData(data, 'fallback path');
+                } catch (fallbackError) {
+                    console.warn(`[StatusEffectDefinitionLoader] Failed to load from ${fallbackPath}:`, fallbackError.message);
+                    throw primaryError; // Throw original error
                 }
-                
-                // Process the effects array
-                let validCount = 0;
-                effectsArray.forEach(definition => {
-                    if (this.validateDefinition(definition)) {
-                        // Normalize the definition to match our expected format
-                        const normalizedDef = this.normalizeDefinition(definition);
-                        this.effectDefinitions.set(normalizedDef.id, normalizedDef);
-                        validCount++;
-                    } else {
-                        // Warning is handled by validateDefinition's detailed error messages
-                    }
-                });
-                console.log(`[StatusEffectDefinitionLoader] Loaded ${validCount} valid status effect definitions from JSON`);
-            })
-            .catch(error => {
-                console.error('[StatusEffectDefinitionLoader] Error loading status effects:', error);
-                // Fallbacks already set up in constructor
-            });
+            }
+        } catch (error) {
+            console.error('[StatusEffectDefinitionLoader] Error loading status effect definitions:', error);
+            console.log('[StatusEffectDefinitionLoader] Using fallback definitions only.');
+            return false;
+        }
+    }
+    
+    /**
+     * Private helper to process loaded definition data
+     * @private
+     * @param {Object} effectsData - The loaded JSON data
+     * @param {string} source - Description of the data source for logging
+     * @returns {boolean} - Success status
+     */
+    _processDefinitionData(effectsData, source) {
+        if (!effectsData) {
+            console.error(`[StatusEffectDefinitionLoader] No data received from ${source}`);
+            return false;
+        }
+        
+        // Handle different possible JSON formats
+        let effectsArray = [];
+        if (Array.isArray(effectsData)) {
+            effectsArray = effectsData;
+        } else if (typeof effectsData === 'object' && effectsData !== null) {
+            // Check if it's wrapped in a "status_effects" property (common format)
+            if (effectsData.status_effects && Array.isArray(effectsData.status_effects)) {
+                effectsArray = effectsData.status_effects;
+                console.log(`[StatusEffectDefinitionLoader] Extracted array from status_effects property with ${effectsArray.length} effects`);
+            } else {
+                // If it's an object with effect IDs as keys, convert to array
+                effectsArray = Object.values(effectsData);
+                console.log(`[StatusEffectDefinitionLoader] Converted object to array with ${effectsArray.length} effects`);
+            }
+        } else {
+            console.error(`[StatusEffectDefinitionLoader] Expected status effect data but got: ${typeof effectsData}`);
+            return false;
+        }
+        
+        // Process the effects array
+        let validCount = 0;
+        effectsArray.forEach(definition => {
+            if (this.validateDefinition(definition)) {
+                // Normalize the definition to match our expected format
+                const normalizedDef = this.normalizeDefinition(definition);
+                this.effectDefinitions.set(normalizedDef.id, normalizedDef);
+                validCount++;
+            } else {
+                // Warning is handled by validateDefinition's detailed error messages
+            }
+        });
+        
+        console.log(`[StatusEffectDefinitionLoader] Loaded ${validCount} valid status effect definitions from ${source}`);
+        return validCount > 0;
+    }
+    
+    /**
+     * Legacy method to maintain backward compatibility
+     * @private
+     */
+    _loadDefinitionsAsync() {
+        console.warn('[StatusEffectDefinitionLoader] _loadDefinitionsAsync is deprecated, use loadDefinitionsFromJson instead');
+        return this.loadDefinitionsFromJson();
     }
 
     validateDefinition(definition) {
@@ -210,8 +257,17 @@ class StatusEffectDefinitionLoader {
         return true;
     }
 
+    /**
+     * Setup fallback status effect definitions if loading fails
+     * Provides a comprehensive set of default status effects that
+     * cover all common game scenarios.
+     * @returns {boolean} - Success status
+     */
     setupFallbackDefinitions() {
         console.log('[StatusEffectDefinitionLoader] Setting up fallback definitions');
+        
+        // Clear existing definitions to ensure we don't have duplicates
+        this.effectDefinitions.clear();
         
         // HOTFIX (0.5.27.2_Hotfix1): Add additional common status effect IDs with "status_" prefix
         // This addresses issues with status_regen and status_spd_down specifically
@@ -397,6 +453,8 @@ class StatusEffectDefinitionLoader {
         });
         
         console.log(`[StatusEffectDefinitionLoader] Added ${fallbackEffects.length + 2} fallback definitions (including specific additions for status_regen and status_spd_down)`);
+        
+        return true; // Indicate successful setup
     }
 
     generateFallbackDefinition(effectId) {

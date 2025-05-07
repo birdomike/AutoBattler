@@ -193,80 +193,75 @@ class BattleManager {
     
     /**
      * Load status effect definitions from JSON file
+     * This method delegates to StatusEffectDefinitionLoader if available,
+     * with a fallback to use minimal local definitions if needed.
+     * @returns {Promise<boolean>} Success status
      */
     async loadStatusEffectDefinitions() {
-        // Delegate to status effect loader if available
-        if (this.statusEffectLoader) {
-            return this.statusEffectLoader.getDefinition ? true : false; // Just check if method exists
-        }
-
-        // Original implementation
-        try {
-            // First try to load from data directory
-            console.log('Attempting to load status effect definitions from data directory...');
+        // Properly name the component for clarity
+        const loader = this.statusEffectLoader;
+        
+        // Check if loader is available and has the required method
+        if (loader && typeof loader.loadDefinitionsFromJson === 'function') {
+            console.log('[BattleManager] Delegating status effect definition loading to StatusEffectDefinitionLoader');
             try {
-                const response = await fetch('/data/status_effects.json');
-                if (!response.ok) {
-                    throw new Error(`Failed to load data/status_effects.json: ${response.status}`);
+                // Call the loader's implementation
+                const success = await loader.loadDefinitionsFromJson();
+                if (success) {
+                    console.log('[BattleManager] StatusEffectDefinitionLoader successfully loaded definitions');
+                    return true;
+                } else {
+                    console.warn('[BattleManager] StatusEffectDefinitionLoader failed to load definitions, using fallbacks');
+                    // Loader will have already set up fallbacks internally
+                    return false;
                 }
-                const data = await response.json();
-                this.statusEffectDefinitions = {};
-                
-                // Process each status effect
-                if (data && data.status_effects && Array.isArray(data.status_effects)) {
-                    data.status_effects.forEach(effect => {
-                        if (effect && effect.id) {
-                            this.statusEffectDefinitions[effect.id] = effect;
-                        }
-                    });
-                }
-                
-                console.log(`Loaded ${Object.keys(this.statusEffectDefinitions).length} status effect definitions from data directory`);
-            } catch (e) {
-                console.warn('Failed to load from data directory:', e.message);
-                // Try fallback to root directory
-                try {
-                    const response = await fetch('/status_effects.json');
-                    if (!response.ok) {
-                        throw new Error(`Failed to load status_effects.json: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    this.statusEffectDefinitions = {};
-                    
-                    // Process each status effect
-                    if (data && data.status_effects && Array.isArray(data.status_effects)) {
-                        data.status_effects.forEach(effect => {
-                            if (effect && effect.id) {
-                                this.statusEffectDefinitions[effect.id] = effect;
-                            }
-                        });
-                    }
-                    
-                    console.log(`Loaded ${Object.keys(this.statusEffectDefinitions).length} status effect definitions from root directory`);
-                } catch (fallbackError) {
-                    console.warn('Failed to load from root directory:', fallbackError.message);
-                    throw e;
-                }
+            } catch (error) {
+                console.error('[BattleManager] Error in StatusEffectDefinitionLoader:', error);
+                // Ensure fallbacks are set up
+                return this.setupFallbackStatusEffects();
             }
-        } catch (error) {
-            console.error('Error loading status effect definitions:', error);
-            // Create basic fallback definitions
-            this.setupFallbackStatusEffects();
-            throw error;
         }
+        
+        // Fallback path - log warning about missing component
+        console.warn('[BattleManager] StatusEffectDefinitionLoader not available or missing loadDefinitionsFromJson method');
+        console.warn('[BattleManager] This should not happen with proper component initialization');
+        
+        // Setup minimal fallbacks for critical functionality
+        return this.setupFallbackStatusEffects();
     }
     
     /**
      * Setup fallback status effect definitions if loading fails
+     * This method delegates to StatusEffectDefinitionLoader if available,
+     * with a minimal local fallback implementation for emergencies.
+     * @returns {boolean} Success status
      */
     setupFallbackStatusEffects() {
-        // Delegate to status effect loader if available
-        if (this.statusEffectLoader) {
-            return this.statusEffectLoader.setupFallbackDefinitions ? this.statusEffectLoader.setupFallbackDefinitions() : false;
+        // Properly name the component for clarity
+        const loader = this.statusEffectLoader;
+        
+        // Check if loader is available and has the required method
+        if (loader && typeof loader.setupFallbackDefinitions === 'function') {
+            console.log('[BattleManager] Delegating fallback definitions setup to StatusEffectDefinitionLoader');
+            try {
+                // Call the loader's implementation which has more comprehensive fallbacks
+                const success = loader.setupFallbackDefinitions();
+                if (success) {
+                    console.log('[BattleManager] StatusEffectDefinitionLoader successfully set up fallback definitions');
+                    return true;
+                } else {
+                    console.warn('[BattleManager] StatusEffectDefinitionLoader failed to set up fallbacks');
+                }
+            } catch (error) {
+                console.error('[BattleManager] Error in StatusEffectDefinitionLoader fallback setup:', error);
+            }
+        } else {
+            console.warn('[BattleManager] StatusEffectDefinitionLoader not available or missing setupFallbackDefinitions method');
+            console.warn('[BattleManager] This should not happen with proper component initialization');
         }
-
-        // Original implementation
-        console.log('Setting up fallback status effect definitions');
+        
+        // Last resort emergency fallback - set up minimal critical definitions directly
+        console.log('[BattleManager] Setting up emergency minimal fallback status effect definitions');
         this.statusEffectDefinitions = {
             'status_burn': {
                 id: 'status_burn',
@@ -297,6 +292,7 @@ class BattleManager {
                 }
             }
         };
+        return true; // Return true to indicate we at least have minimal fallbacks
     }
 
     /**
