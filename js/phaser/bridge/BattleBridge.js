@@ -454,28 +454,8 @@ class BattleBridge {
             
             console.log('BattleBridge: BattleManager successfully patched');
 
-            // Also patch autoAttack to dispatch CHARACTER_ACTION
-            if (this.battleManager.autoAttack) {
-                const originalAutoAttack = this.battleManager.autoAttack;
-                this.battleManager.autoAttack = function(attacker, target) {
-                    console.log('BattleBridge: autoAttack patched method called with:', attacker?.name, target?.name);
-                    
-                    // Dispatch CHARACTER_ACTION event before applying the auto attack
-                    self.dispatchEvent(self.eventTypes.CHARACTER_ACTION, {
-                        character: attacker,
-                        action: {
-                            type: 'autoAttack',
-                            name: 'Auto Attack',
-                            target: target
-                        }
-                    });
-                    
-                    return originalAutoAttack.apply(this, arguments);
-                };
-                console.log('BattleBridge: Successfully patched autoAttack method');
-            } else {
-                console.warn('BattleBridge: Could not patch autoAttack, method not found - this is expected during refactoring');
-            }
+            // Note: The autoAttack patching has been removed as CHARACTER_ACTION events
+            // for both abilities and auto-attacks are now directly dispatched by BattleFlowController
             
             // See note above - All battle flow methods now handled by BattleFlowController
         } catch (error) {

@@ -1,6 +1,16 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.8 - BattleBridge Auto-Attack Cleanup (2025-05-06)
+### Technical
+- **Battle Bridge Cleanup**: Removed outdated auto-attack patching code
+  - Eliminated "Could not patch autoAttack" warning during initialization
+  - Removed redundant code that attempted to patch a no-longer-existing method
+  - Confirmed CHARACTER_ACTION events now properly handled by BattleFlowController
+  - Completed battle action system refactoring for auto-attacks
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.8_BattleBridgeAutoAttackCleanup.md*
+
 ## Version 0.5.27.7 - Canvas Rendering Optimization (2025-05-06)
 ### Technical
 - **Canvas Performance Optimization**: Added `willReadFrequently: true` to canvas context creation
