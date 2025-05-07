@@ -696,19 +696,32 @@ class BattleManager {
      * Add a status effect to a character
      * @param {Object} character - Character to affect
      * @param {string} statusId - ID of the status effect
-     * @param {number} duration - Number of turns the effect lasts (optional, uses default if not specified)
-     * @param {number|Object} value - Value for the effect (if applicable)
+     * @param {Object|null} source - Character causing the effect (or null if no specific source)
+     * @param {number} duration - Number of turns the effect lasts 
+     * @param {number} stacks - Number of stacks to apply (default: 1)
      * @returns {boolean} - True if effect was successfully applied
      */
-    addStatusEffect(character, statusId, duration, value) {
+    addStatusEffect(character, statusId, source, duration, stacks = 1) {
         // Defensive check
         if (!this.statusEffectManager) {
             console.error("StatusEffectManager not initialized! Cannot add status effect.");
             return false;
         }
         
-        // Direct delegation
-        return this.statusEffectManager.addStatusEffect(character, statusId, null, duration, 1);
+        // Ensure duration is a number
+        if (typeof duration !== 'number') {
+            console.warn(`[BattleManager] Invalid duration parameter (${typeof duration}) in addStatusEffect for '${statusId}' - using default 3`);
+            duration = 3; // Default duration
+        }
+        
+        // Ensure stacks is a number
+        if (typeof stacks !== 'number') {
+            console.warn(`[BattleManager] Invalid stacks parameter (${typeof stacks}) in addStatusEffect for '${statusId}' - using default 1`);
+            stacks = 1; // Default stacks
+        }
+        
+        // Direct delegation with validated parameters
+        return this.statusEffectManager.addStatusEffect(character, statusId, source, duration, stacks);
     }
     
     /**

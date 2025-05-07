@@ -189,8 +189,9 @@ class AbilityProcessor {
             
             // Add regeneration status if it's a healing ability
             if (Math.random() < 0.5) { // 50% chance
-                this.battleManager.addStatusEffect(action.target, 'regen', 2);
-            }
+            // Updated to use consistent 5-parameter format with explicit source and stacks
+                this.battleManager.addStatusEffect(action.target, 'regen', action.actor, 2, 1);
+                }
         } else if (action.ability && action.ability.damageType === 'utility') {
             // Utility ability - special effects instead of damage
             const targetTeam = action.target.team;
@@ -547,7 +548,7 @@ class AbilityProcessor {
                     const statusName = statusDef ? statusDef.name : statusId;
                     
                     // Apply status effect using the StatusEffectManager
-                    const applied = this.battleManager.statusEffectManager.addStatusEffect(target, statusId, actor, duration);
+                    const applied = this.battleManager.statusEffectManager.addStatusEffect(target, statusId, actor, duration, 1); // Added explicit stacks parameter
                     
                     if (applied) {
                         // Log the application
@@ -580,9 +581,11 @@ class AbilityProcessor {
                 
                 // For now, map common stat buffs to existing status effects
                 if (effect.targetStat === 'Attack') {
-                    this.battleManager.addStatusEffect(target, isPositiveMod ? 'status_atk_up' : 'status_atk_down', effect.duration || 3);
+                    // Updated to use consistent 5-parameter format with explicit source and stacks
+                    this.battleManager.addStatusEffect(target, isPositiveMod ? 'status_atk_up' : 'status_atk_down', actor, effect.duration || 3, 1);
                 } else if (effect.targetStat === 'Defense') {
-                    this.battleManager.addStatusEffect(target, isPositiveMod ? 'status_def_up' : 'status_def_down', effect.duration || 3);
+                    // Updated to use consistent 5-parameter format with explicit source and stacks
+                    this.battleManager.addStatusEffect(target, isPositiveMod ? 'status_def_up' : 'status_def_down', actor, effect.duration || 3, 1);
                 }
                 break;
                 
@@ -651,7 +654,8 @@ class AbilityProcessor {
             target, 
             randomEffect.id, 
             null, // No source for random effects
-            randomEffect.duration
+            randomEffect.duration,
+            1 // Explicit stacks parameter
         );
         
         if (applied) {

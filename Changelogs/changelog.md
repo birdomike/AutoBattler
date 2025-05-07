@@ -1,6 +1,38 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.5 - Status Effect Parameter Signature Refactoring (2025-05-07)
+### Fixed
+- **Status Effect Parameter Standardization**: Completed comprehensive parameter refactoring
+  - Updated BattleManager.addStatusEffect to use consistent 5-parameter signature
+  - Added robust parameter validation for both duration and stacks parameters
+  - Updated all status effect calls across the codebase to use consistent format
+  - Fixed issues with incorrect parameter types in passive_CriticalHitBoost and other functions
+
+### Technical
+- **Parameter Interface Standardization**: Established clear standards for status effect application
+  - Implemented consistent calling pattern: (character, statusId, source, duration, stacks)
+  - Added comprehensive validation to ensure all parameters have correct types
+  - Applied explicit parameter usage in all calls to prevent parameter order issues
+  - Developed a foundation for future enhancements to the status effect system
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.5_StatusEffectParameterRefactor.md*
+
+## Version 0.5.27.4 - Status Effect Parameter and Event Handling Fix (2025-05-06)
+### Fixed
+- **Status Effect Parameter Standardization**: Completed fixes for status effect circular reference issues
+  - Ensured consistent parameter ordering across all status effect calls
+  - Leveraged robust parameter validation and auto-correction in both StatusEffectManager and BattleBridge
+  - Updated passive functions with proper parameter alignment
+  - Fixed "Invalid duration parameter (object)" errors for status_regen, status_atk_up, and status_crit_up
+
+### Technical
+- **Event Name Standardization**: Updated event dispatching to use consistent event names
+  - Changed STATUS_EFFECTS_CHANGED to STATUS_EFFECT_UPDATED for consistency with BridgeEventFix
+  - Updated error messages and fallback event handling
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.4_StatusEffectParameterFix.md*
+
 ## Version 0.5.27.3 - Fix for Status Effect Duration Circular References (2025-05-06)
 ### Fixed
 - **Status Effect Duration References**: Fixed circular reference issue in status effect duration property

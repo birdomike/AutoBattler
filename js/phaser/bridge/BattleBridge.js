@@ -273,9 +273,32 @@ class BattleBridge {
             
             // Patch addStatusEffect
             if (originalAddStatusEffect) {
-                this.battleManager.addStatusEffect = function(character, statusId, duration, value) {
+                this.battleManager.addStatusEffect = function(character, statusId, source, duration, value) {
                     console.log('BattleBridge: addStatusEffect patched method called', character?.name, statusId);
-                    const result = originalAddStatusEffect.apply(this, arguments);
+                    
+                    // HOTFIX (v0.5.27.3_CircularReferenceHotfix): Parameter validation/correction
+                    // Handle two common formats:
+                    // 1. Old style: addStatusEffect(character, statusId, duration, value)
+                    // 2. New style: addStatusEffect(character, statusId, source, duration, value)
+                    
+                    // Check if we're getting the old parameter format (no source and duration as 3rd param)
+                    if (typeof source === 'number' && (duration === undefined || typeof duration === 'object')) {
+                        console.warn(`BattleBridge: Detected old addStatusEffect parameter format for ${statusId}!`);
+                        console.warn(`BattleBridge: Correcting parameters - using ${source} as duration and character as source`);                        
+                        // Shift parameters and use character as source
+                        value = duration;
+                        duration = source;
+                        source = character; // Use self as source
+                    }
+                    
+                    // Ensure duration is a number to prevent circular references
+                    if (typeof duration !== 'number') {
+                        console.error(`BattleBridge: Invalid duration (${typeof duration}) for status ${statusId} - using default 2`);
+                        duration = 2; // Default duration
+                    }
+                    
+                    // Call original with corrected parameters
+                    const result = originalAddStatusEffect.call(this, character, statusId, source, duration, value);
                     
                     // Only dispatch event if in phaser UI mode
                     if (this.uiMode === "phaser") {

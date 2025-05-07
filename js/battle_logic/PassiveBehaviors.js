@@ -59,8 +59,10 @@ function passive_ApplyRegenOnTurnStart(context) {
     }
     
     // Apply regeneration status effect
-    // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-    battleManager.addStatusEffect(actor, 'status_regen', actor, 2);
+    // v0.5.27.4_StatusEffectParameterFix: Adding sourceId check and ensuring actor is passed as source
+    // This function was showing as error source for 'Invalid duration parameter (object)'
+    // Updated to use consistent 5-parameter format with explicit stacks
+    battleManager.addStatusEffect(actor, 'status_regen', actor, 2, 1);
     
     return {
         executed: true,
@@ -204,8 +206,16 @@ function passive_TeamBuffOnBattleStart(context) {
             return;
         }
         
+        // Ensure duration is a number
+        let effectDuration = duration;
+        if (typeof effectDuration !== 'number') {
+            console.warn(`[passive_TeamBuffOnBattleStart] Invalid duration (${typeof duration}) - using default 3`);
+            effectDuration = 3;
+        }
+        
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-        battleManager.addStatusEffect(ally, statusId, actor, duration);
+        // Updated to use consistent 5-parameter format with explicit stacks
+        battleManager.addStatusEffect(ally, statusId, actor, effectDuration, 1);
         applied++;
     });
     
@@ -230,7 +240,9 @@ function passive_CriticalMomentum(context) {
     }
     
     // Apply critical chance buff
-    battleManager.addStatusEffect(actor, 'status_crit_up', 2);
+    // FIXED (v0.5.27.3_CircularReferenceHotfix): Added actor as source parameter
+    // Updated to use consistent 5-parameter format with explicit stacks
+    battleManager.addStatusEffect(actor, 'status_crit_up', actor, 2, 1);
     
     return {
         executed: true,
@@ -251,7 +263,8 @@ function passive_KillBuff(context) {
     
     // Apply attack up buff after a kill
     // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-    battleManager.addStatusEffect(actor, 'status_atk_up', actor, 2);
+    // Updated to use consistent 5-parameter format with explicit stacks
+    battleManager.addStatusEffect(actor, 'status_atk_up', actor, 2, 1);
     
     return {
         executed: true,
@@ -287,7 +300,8 @@ function passive_LastStand(context) {
         
         // Apply defense buff
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-        battleManager.addStatusEffect(actor, 'status_def_up', actor, 2);
+        // Updated to use consistent 5-parameter format with explicit stacks
+        battleManager.addStatusEffect(actor, 'status_def_up', actor, 2, 1);
         
         return {
             executed: true,
@@ -325,7 +339,8 @@ function passive_ProtectiveInstinct(context) {
         // Apply shield to up to 2 allies
         for (let i = 0; i < Math.min(2, allies.length); i++) {
             // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-            battleManager.addStatusEffect(allies[i], 'status_shield', actor, 1);
+            // Updated to use consistent 5-parameter format with explicit stacks
+            battleManager.addStatusEffect(allies[i], 'status_shield', actor, 1, 1);
             protectedCount++;
         }
         
@@ -412,7 +427,8 @@ function passive_Intimidate(context) {
         
         // Apply status effect
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-        battleManager.addStatusEffect(target, statusId, actor, duration);
+        // Updated to use consistent 5-parameter format with explicit stacks
+        battleManager.addStatusEffect(target, statusId, actor, duration, 1);
         
         return {
             executed: true,
@@ -460,7 +476,8 @@ function passive_OnKillEffect(context) {
         case 'buff':
             // Apply a status buff to self
             // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-            battleManager.addStatusEffect(actor, statusId, actor, duration);
+            // Updated to use consistent 5-parameter format with explicit stacks
+            battleManager.addStatusEffect(actor, statusId, actor, duration, 1);
             
             return {
                 executed: true,
@@ -528,7 +545,9 @@ function passive_CriticalHitBoost(context) {
     
     // Apply critical hit buff
     // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-    battleManager.addStatusEffect(actor, 'status_crit_up', actor, duration, { value: bonusAmount });
+    // Fixed: Use consistent 5-parameter format with numeric stacks
+    let stackCount = (typeof bonusAmount === 'number' && bonusAmount > 0) ? Math.ceil(bonusAmount) : 1;
+    battleManager.addStatusEffect(actor, 'status_crit_up', actor, duration, stackCount);
     
     return {
         executed: true,
@@ -565,7 +584,8 @@ function passive_StatusOnHit(context) {
     if (Math.random() < chance) {
         // Apply the status effect
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-        battleManager.addStatusEffect(target, statusId, actor, duration);
+        // Updated to use consistent 5-parameter format with explicit stacks
+        battleManager.addStatusEffect(target, statusId, actor, duration, 1);
         
         // Get a readable name for the status
         let statusName = statusId;

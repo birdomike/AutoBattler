@@ -266,8 +266,9 @@ class StatusEffectManager {
             const battleBridge = window.getBattleBridge ? window.getBattleBridge() : window.battleBridge;
             
             if (battleBridge && typeof battleBridge.dispatchEvent === 'function') {
-                // Use the eventTypes property to reference the event type
-                battleBridge.dispatchEvent(battleBridge.eventTypes.STATUS_EFFECTS_CHANGED, {
+                // v0.5.27.4_StatusEffectParameterFix: Use STATUS_EFFECT_UPDATED instead of STATUS_EFFECTS_CHANGED
+                // for consistency with BridgeEventFix
+                battleBridge.dispatchEvent(battleBridge.eventTypes.STATUS_EFFECT_UPDATED, {
                     character: character,
                     effects: this.getActiveEffects(character)
                 });
@@ -275,7 +276,7 @@ class StatusEffectManager {
                 // Fallback 1: Try through BattleManager if that's the pattern used elsewhere
                 if (this.battleManager && this.battleManager.dispatchUIEvent) {
                     // Try to use the constant from BattleBridge if available
-                    const eventType = window.battleBridge?.eventTypes?.STATUS_EFFECTS_CHANGED || 'status_effects_changed';
+                    const eventType = window.battleBridge?.eventTypes?.STATUS_EFFECT_UPDATED || 'status_effect_updated';
                     this.battleManager.dispatchUIEvent(eventType, {
                         character: character,
                         effects: this.getActiveEffects(character)
@@ -285,7 +286,7 @@ class StatusEffectManager {
                 }
             }
         } catch (err) {
-            console.error('[StatusEffectManager] Error dispatching STATUS_EFFECTS_CHANGED event:', err);
+            console.error('[StatusEffectManager] Error dispatching STATUS_EFFECT_UPDATED event:', err);
         }
     }
 
