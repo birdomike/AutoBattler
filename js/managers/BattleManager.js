@@ -205,7 +205,20 @@ class BattleManager {
             });
         }
         
-        // 9. Initialize battle log manager (Stage 7)
+        // 9. Initialize event dispatcher (Stage 7)
+        if (window.BattleEventDispatcher) {
+            this.battleEventDispatcher = new window.BattleEventDispatcher(this);
+            console.log('BattleManager: BattleEventDispatcher initialized');
+            
+            // Verify methods exist
+            console.log('>>> BattleEventDispatcher instance check:', {
+                dispatchEvent: typeof this.battleEventDispatcher.dispatchEvent === 'function',
+                dispatchCharacterDamagedEvent: typeof this.battleEventDispatcher.dispatchCharacterDamagedEvent === 'function',
+                dispatchCharacterHealedEvent: typeof this.battleEventDispatcher.dispatchCharacterHealedEvent === 'function'
+            });
+        }
+        
+        // 10. Initialize battle log manager (Stage 7) - must be after event dispatcher
         if (window.BattleLogManager) {
             this.battleLogManager = new window.BattleLogManager(this, this.battleEventDispatcher);
             console.log('BattleManager: BattleLogManager initialized');
@@ -1276,6 +1289,172 @@ class BattleManager {
             }
             return value;
         }, space);
+    }
+    
+    /**
+     * Dispatch a battle event
+     * @param {string} eventType - The type of event
+     * @param {Object} eventData - The event data
+     * @returns {boolean} True if dispatched successfully
+     */
+    dispatchBattleEvent(eventType, eventData) {
+        // Direct delegation - no toggle mechanism for streamlined implementation
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchEvent(eventType, eventData);
+        }
+        
+        // Minimal fallback implementation (no original implementation preserved)
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch ${eventType}`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(eventType, eventData);
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching ${eventType}:`, error);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Dispatch an event when a character takes damage
+     * @param {Object} target - The character taking damage
+     * @param {number} amount - Amount of damage
+     * @param {Object|null} source - Source of the damage (character or null)
+     * @param {Object|null} ability - Ability that caused damage (or null)
+     * @returns {boolean} - Success status
+     */
+    dispatchDamageEvent(target, amount, source = null, ability = null) {
+        // Direct delegation - no toggle mechanism
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchCharacterDamagedEvent(target, amount, source, ability);
+        }
+        
+        // Minimal fallback
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch damage event`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_DAMAGED, {
+                    character: target,
+                    target: target,
+                    amount: amount,
+                    source: source,
+                    ability: ability,
+                    newHealth: target.currentHp,
+                    maxHealth: target.stats.hp
+                });
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching damage event:`, error);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Dispatch an event when a character is healed
+     * @param {Object} target - The character being healed
+     * @param {number} amount - Amount of healing
+     * @param {Object|null} source - Source of the healing (character or null)
+     * @param {Object|null} ability - Ability that caused healing (or null)
+     * @returns {boolean} - Success status
+     */
+    dispatchHealingEvent(target, amount, source = null, ability = null) {
+        // Direct delegation - no toggle mechanism
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchCharacterHealedEvent(target, amount, source, ability);
+        }
+        
+        // Minimal fallback
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch healing event`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_HEALED, {
+                    character: target,
+                    target: target,
+                    amount: amount,
+                    source: source,
+                    ability: ability,
+                    newHealth: target.currentHp,
+                    maxHealth: target.stats.hp
+                });
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching healing event:`, error);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Dispatch an event when a character performs an action
+     * @param {Object} character - The character performing the action
+     * @param {Object} action - The action data
+     * @returns {boolean} - Success status
+     */
+    dispatchActionEvent(character, action) {
+        // Direct delegation - no toggle mechanism
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchCharacterActionEvent(character, action);
+        }
+        
+        // Minimal fallback
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch action event`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_ACTION, {
+                    character: character,
+                    action: action
+                });
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching action event:`, error);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Dispatch an event when a battle ends
+     * @param {string} winner - Winner of the battle ('player', 'enemy', or 'draw')
+     * @param {string} reason - Reason for battle end
+     * @returns {boolean} - Success status
+     */
+    dispatchBattleEndEvent(winner, reason = 'standard') {
+        // Direct delegation - no toggle mechanism
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchBattleEndedEvent(winner, reason);
+        }
+        
+        // Minimal fallback
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch battle end event`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_ENDED, {
+                    winner: winner,
+                    reason: reason
+                });
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching battle end event:`, error);
+            }
+        }
+        
+        return false;
     }
 }
 

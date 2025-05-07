@@ -1,6 +1,17 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.28.1 - BattleEventDispatcher Integration (Phase 2) (2025-05-07)
+### Technical
+- **Stage 7 Refactoring**: Integrated BattleEventDispatcher with BattleManager (Phase 2)
+  - Added component initialization in BattleManager
+  - Implemented facade methods for standardized event dispatching
+  - Created robust fallback paths for event handling
+  - Added specialized methods for damage, healing, and action events
+  - Connected BattleEventDispatcher to BattleLogManager
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.28.1_BattleEventDispatcher_Phase2.md*
+
 ## Version 0.5.28.1 - BattleEventDispatcher Implementation (Phase 1) (2025-05-07)
 ### Technical
 - **Stage 7 Refactoring**: Implemented BattleEventDispatcher component (Phase 1)
