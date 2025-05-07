@@ -1,6 +1,24 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.30.1 - Complete StatusEffectDefinitionLoader Separation (2025-05-07)
+### Technical
+- **Full Architectural Separation**: Completed separation of status effect definitions from BattleManager
+  - Added `primeDefinitions()` method to StatusEffectDefinitionLoader to fully encapsulate definition loading
+  - Removed `setupFallbackStatusEffects()` method from BattleManager (handled entirely by loader)
+  - Removed `statusEffectDefinitions` property from BattleManager
+  - Simplified BattleManager initialization code by delegating to a single loader method
+  - Created true orchestration pattern with BattleManager having zero status definition knowledge
+
+### Improved
+- **Cleaner Error Handling**: Enhanced the robustness of status effect loading system
+  - Added clear error messages for missing StatusEffectDefinitionLoader
+  - Implemented multi-level fallback chain with logging
+  - Created clear code paths for all possible failure scenarios
+  - Improved initialization flow with better error containment
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.30.1_StatusEffectDefinitionLoader_Separation.md*
+
 ## Version 0.5.30.0 - StatusEffectDefinitionLoader Enhancement (2025-05-07)
 ### Technical
 - **Enhanced StatusEffectDefinitionLoader Component**: Implemented Phase 2 of further refactoring plan

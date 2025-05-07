@@ -4,8 +4,43 @@ class StatusEffectDefinitionLoader {
         // Use setupFallbackDefinitions initially
         this.setupFallbackDefinitions();
         // Then try to load from JSON
-        this.loadDefinitionsFromJson();
-        console.log('[StatusEffectDefinitionLoader] Initialized with fallback definitions, loading JSON data...');
+        this.primeDefinitions();
+        console.log('[StatusEffectDefinitionLoader] Initialized with fallback definitions, attempting to load JSON data...');
+    }
+
+    /**
+     * Prime the definition loader with data from either JSON or fallback definitions.
+     * This method ensures that status effect definitions are available from *some* source.
+     * First attempts to load from JSON files, and if that fails uses fallback definitions.
+     * @returns {Promise<boolean>} - Promise resolving to success status
+     */
+    async primeDefinitions() {
+        console.log('[StatusEffectDefinitionLoader] Priming status effect definitions...');
+        
+        try {
+            // Try to load from JSON first
+            const jsonSuccess = await this.loadDefinitionsFromJson();
+            if (jsonSuccess) {
+                console.log('[StatusEffectDefinitionLoader] Successfully loaded definitions from JSON');
+                return true;
+            }
+            
+            // If JSON loading failed, ensure fallback definitions are set up
+            console.log('[StatusEffectDefinitionLoader] JSON loading failed, using fallback definitions');
+            const fallbackSuccess = this.setupFallbackDefinitions();
+            
+            return fallbackSuccess;
+        } catch (error) {
+            // If anything went wrong during JSON loading, use fallbacks
+            console.error('[StatusEffectDefinitionLoader] Error during definition loading:', error);
+            console.log('[StatusEffectDefinitionLoader] Using fallback definitions due to error');
+            
+            // Ensure fallbacks are set up
+            const fallbackSuccess = this.setupFallbackDefinitions();
+            
+            // Even if fallbacks failed (shouldn't happen), return true to allow game to continue
+            return fallbackSuccess;
+        }
     }
 
     /**

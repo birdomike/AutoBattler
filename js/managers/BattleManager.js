@@ -27,9 +27,7 @@ class BattleManager {
         this.actionQueue = [];
         this.turnActions = [];
         this.turnInProgress = false;
-        this.statusEffects = {}; // Store status effects by character ID
         this.battleBehaviors = null; // Will hold the behavior system when loaded
-        this.statusEffectDefinitions = null; // Will hold status effect definitions from JSON
         this.uiMode = "dom"; // UI mode: "dom" or "phaser"
         
         // Create a simple teamManager for compatibility with behavior system
@@ -193,107 +191,36 @@ class BattleManager {
     
     /**
      * Load status effect definitions from JSON file
-     * This method delegates to StatusEffectDefinitionLoader if available,
-     * with a fallback to use minimal local definitions if needed.
+     * This method now simply delegates to the StatusEffectDefinitionLoader's primeDefinitions method.
      * @returns {Promise<boolean>} Success status
      */
     async loadStatusEffectDefinitions() {
-        // Properly name the component for clarity
-        const loader = this.statusEffectLoader;
-        
-        // Check if loader is available and has the required method
-        if (loader && typeof loader.loadDefinitionsFromJson === 'function') {
-            console.log('[BattleManager] Delegating status effect definition loading to StatusEffectDefinitionLoader');
-            try {
-                // Call the loader's implementation
-                const success = await loader.loadDefinitionsFromJson();
-                if (success) {
-                    console.log('[BattleManager] StatusEffectDefinitionLoader successfully loaded definitions');
-                    return true;
-                } else {
-                    console.warn('[BattleManager] StatusEffectDefinitionLoader failed to load definitions, using fallbacks');
-                    // Loader will have already set up fallbacks internally
-                    return false;
-                }
-            } catch (error) {
-                console.error('[BattleManager] Error in StatusEffectDefinitionLoader:', error);
-                // Ensure fallbacks are set up
-                return this.setupFallbackStatusEffects();
-            }
+        // Check if the loader is available
+        if (!this.statusEffectLoader) {
+            console.error('[BattleManager] StatusEffectDefinitionLoader not available! This is a critical error.');
+            return false;
         }
         
-        // Fallback path - log warning about missing component
-        console.warn('[BattleManager] StatusEffectDefinitionLoader not available or missing loadDefinitionsFromJson method');
-        console.warn('[BattleManager] This should not happen with proper component initialization');
+        // Check if the loader has the expected method
+        if (typeof this.statusEffectLoader.primeDefinitions !== 'function') {
+            console.error('[BattleManager] StatusEffectDefinitionLoader is missing primeDefinitions method! This is a critical error.');
+            return false;
+        }
         
-        // Setup minimal fallbacks for critical functionality
-        return this.setupFallbackStatusEffects();
+        // Log delegation
+        console.log('[BattleManager] Delegating status effect loading to StatusEffectDefinitionLoader');
+        
+        try {
+            // Call the loader's primeDefinitions method which handles both JSON loading and fallbacks
+            await this.statusEffectLoader.primeDefinitions();
+            return true;
+        } catch (error) {
+            console.error('[BattleManager] Error during status effect definition loading:', error);
+            return false;
+        }
     }
     
-    /**
-     * Setup fallback status effect definitions if loading fails
-     * This method delegates to StatusEffectDefinitionLoader if available,
-     * with a minimal local fallback implementation for emergencies.
-     * @returns {boolean} Success status
-     */
-    setupFallbackStatusEffects() {
-        // Properly name the component for clarity
-        const loader = this.statusEffectLoader;
-        
-        // Check if loader is available and has the required method
-        if (loader && typeof loader.setupFallbackDefinitions === 'function') {
-            console.log('[BattleManager] Delegating fallback definitions setup to StatusEffectDefinitionLoader');
-            try {
-                // Call the loader's implementation which has more comprehensive fallbacks
-                const success = loader.setupFallbackDefinitions();
-                if (success) {
-                    console.log('[BattleManager] StatusEffectDefinitionLoader successfully set up fallback definitions');
-                    return true;
-                } else {
-                    console.warn('[BattleManager] StatusEffectDefinitionLoader failed to set up fallbacks');
-                }
-            } catch (error) {
-                console.error('[BattleManager] Error in StatusEffectDefinitionLoader fallback setup:', error);
-            }
-        } else {
-            console.warn('[BattleManager] StatusEffectDefinitionLoader not available or missing setupFallbackDefinitions method');
-            console.warn('[BattleManager] This should not happen with proper component initialization');
-        }
-        
-        // Last resort emergency fallback - set up minimal critical definitions directly
-        console.log('[BattleManager] Setting up emergency minimal fallback status effect definitions');
-        this.statusEffectDefinitions = {
-            'status_burn': {
-                id: 'status_burn',
-                name: 'Burn',
-                description: 'Taking fire damage over time',
-                type: 'DoT',
-                defaultDuration: 2,
-                maxStacks: 1,
-                behavior: {
-                    trigger: 'onTurnStart',
-                    action: 'Damage',
-                    valueType: 'PercentMaxHP',
-                    value: 0.05
-                }
-            },
-            'status_regen': {
-                id: 'status_regen',
-                name: 'Regeneration',
-                description: 'Healing over time',
-                type: 'HoT',
-                defaultDuration: 3,
-                maxStacks: 1,
-                behavior: {
-                    trigger: 'onTurnStart',
-                    action: 'Heal',
-                    valueType: 'PercentMaxHP',
-                    value: 0.05
-                }
-            }
-        };
-        return true; // Return true to indicate we at least have minimal fallbacks
-    }
+    // setupFallbackStatusEffects method has been removed - StatusEffectDefinitionLoader now handles all fallbacks internally
 
     /**
      * Initialize the battle manager
@@ -313,13 +240,9 @@ class BattleManager {
         }
         
         try {
-            // Load status effect definitions
-            try {
-                await this.loadStatusEffectDefinitions();
-                console.log('BattleManager: Status effect definitions loaded');
-            } catch (error) {
-                console.warn('BattleManager: Status effect definitions not available, using fallback behavior:', error);
-            }
+            // Load status effect definitions via the StatusEffectDefinitionLoader
+            await this.loadStatusEffectDefinitions();
+            console.log('BattleManager: Status effect definitions loaded');
             
             // Initialize behavior system if available
             try {
