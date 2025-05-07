@@ -737,7 +737,10 @@ class BattleManager {
             if (character.currentHp > 0) {
                 // TEMPORARY DEBUG (v0.5.27.2): Log character state before passing to ActionGenerator
                 // Purpose: Verify character data integrity just before action generation
-                console.log(`[DEBUG 0.5.27.2] Character for ActionGenerator (Player: ${character.name || 'NO_NAME'}):`, JSON.stringify(character));
+                console.log(`[DEBUG 0.5.27.2] Character for ActionGenerator (Player: ${character.name || 'NO_NAME'}):`,
+                    `HP: ${character.currentHp}/${character.stats?.hp},`,
+                    `Status Effects: ${character.statusEffects?.length || 0},`,
+                    `Abilities: ${character.abilities?.length || 0}`);
                 
                 const action = this.generateCharacterAction(character, 'player');
                 if (action) this.turnActions.push(action);
@@ -749,7 +752,10 @@ class BattleManager {
             if (character.currentHp > 0) {
                 // TEMPORARY DEBUG (v0.5.27.2): Log character state before passing to ActionGenerator
                 // Purpose: Verify character data integrity just before action generation
-                console.log(`[DEBUG 0.5.27.2] Character for ActionGenerator (Enemy: ${character.name || 'NO_NAME'}):`, JSON.stringify(character));
+                console.log(`[DEBUG 0.5.27.2] Character for ActionGenerator (Enemy: ${character.name || 'NO_NAME'}):`,
+                    `HP: ${character.currentHp}/${character.stats?.hp},`,
+                    `Status Effects: ${character.statusEffects?.length || 0},`,
+                    `Abilities: ${character.abilities?.length || 0}`);
                 
                 const action = this.generateCharacterAction(character, 'enemy');
                 if (action) this.turnActions.push(action);
@@ -1258,6 +1264,26 @@ class BattleManager {
             [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
         }
         return newArray;
+    }
+    
+    /**
+     * Safely stringify an object, handling circular references
+     * @param {Object} obj - The object to stringify
+     * @param {number} [space] - Number of spaces for indentation (optional)
+     * @returns {string} The stringified object with circular references replaced
+     */
+    safeBattleStringify(obj, space = null) {
+        const seen = new WeakSet();
+        return JSON.stringify(obj, (key, value) => {
+            // Handle circular references
+            if (typeof value === 'object' && value !== null) {
+                if (seen.has(value)) {
+                    return '[Circular Reference]';
+                }
+                seen.add(value);
+            }
+            return value;
+        }, space);
     }
 }
 

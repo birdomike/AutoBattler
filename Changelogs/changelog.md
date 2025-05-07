@@ -1,6 +1,18 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.3 - Fix for Status Effect Duration Circular References (2025-05-06)
+### Fixed
+- **Status Effect Duration References**: Fixed circular reference issue in status effect duration property
+  - Added robust type validation for duration parameter in StatusEffectManager
+  - Implemented auto-correction for misaligned parameters in addStatusEffect calls
+  - Replaced problematic JSON.stringify debug calls with safer property-specific logging
+  - Added safeBattleStringify utility method for handling circular references
+  - Fixed error: "TypeError: Converting circular structure to JSON at property 'duration'"
+  - Complements Hotfix10 which previously fixed similar issues with source property
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.3_CircularReferenceHotfix.md*
+
 ## Version 0.5.27.2_FixStatusEffectCalls - Fix for Status Effect Parameter Order (2025-05-06)
 ### Fixed
 - **Status Effect Source Attribution**: Fixed parameter order in all status effect calls

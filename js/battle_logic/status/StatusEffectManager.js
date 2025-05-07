@@ -91,6 +91,24 @@ class StatusEffectManager {
             console.warn(`[StatusEffectManager] POTENTIAL PARAMETER MISALIGNMENT in addStatusEffect call for '${effectId}'`);
             console.warn(`[StatusEffectManager] The 'source' parameter appears to be a number (${source}), which might be duration mistakenly passed as source.`);
             console.warn(`[StatusEffectManager] Correct parameter order: addStatusEffect(character, effectId, source, duration, stacks)`);
+            
+            // HOTFIX: Attempt to fix parameter order if it appears to be misaligned
+            // If source is a number and duration is undefined or an object, assume source was meant to be duration
+            if (duration === undefined) {
+                duration = source;
+                source = null;
+                console.warn(`[StatusEffectManager] Auto-corrected parameters: using ${duration} as duration and null as source`);
+            }
+        }
+        
+        // HOTFIX: Ensure duration is always a number to prevent circular references
+        if (typeof duration !== 'number') {
+            console.error(`[StatusEffectManager] Invalid duration parameter (${typeof duration}) in addStatusEffect for '${effectId}'`);
+            // Get definition to use its default duration
+            const definition = this.definitionLoader.getDefinition(effectId);
+            // Use definition's duration, or a fallback value of 3
+            duration = (definition && typeof definition.duration === 'number') ? definition.duration : 3;
+            console.log(`[StatusEffectManager] Using default duration: ${duration}`);
         }
         
         // Ensure character has statusEffects array
