@@ -1,6 +1,16 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.7 - Canvas Rendering Optimization (2025-05-06)
+### Technical
+- **Canvas Performance Optimization**: Added `willReadFrequently: true` to canvas context creation
+  - Improved performance for operations using getImageData
+  - Eliminated console warnings about multiple readback operations
+  - Optimized memory structures for frequent canvas pixel reads
+  - Maintained existing image smoothing settings
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.7_CanvasOptimization.md*
+
 ## Version 0.5.27.6 - BattleBridge Status Effect Handling Simplification (2025-05-08)
 ### Improved
 - **BattleBridge Status Effect Handling**: Simplified and improved status effect parameter handling in BattleBridge

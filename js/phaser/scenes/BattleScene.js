@@ -527,7 +527,7 @@ export default class BattleScene extends Phaser.Scene {
         try {
             if (this.sys.game.renderer.type === Phaser.CANVAS) {
                 // For Canvas renderer, we need to explicitly enable image smoothing
-                const canvasContext = this.sys.canvas.getContext('2d');
+                const canvasContext = this.sys.canvas.getContext('2d', { willReadFrequently: true });
                 canvasContext.imageSmoothingEnabled = true;
                 canvasContext.imageSmoothingQuality = 'high';
                 console.log('BattleScene: Canvas imageSmoothingEnabled set to true');
