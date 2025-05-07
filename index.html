@@ -54,6 +54,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script> <!-- Battle Logic Components -->
     <script src="js/battle_logic/status/StatusEffectDefinitionLoader.js" defer></script>
     <script src="js/battle_logic/status/StatusEffectManager.js" defer></script>
+    <!-- Core Battle Components - Must load before BattleManager -->
+    <script src="js/battle_logic/core/BattleInitializer.js" defer></script>
     <!-- BattleFlowController v0.5.9 - Must load before BattleManager -->
     <script src="js/managers/BattleFlowController.js" defer></script>
     <!-- TypeEffectivenessCalculator - Must load before BattleManager -->

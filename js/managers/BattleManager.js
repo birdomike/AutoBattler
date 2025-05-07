@@ -91,12 +91,19 @@ class BattleManager {
             }
         }
         
+        // 1a. Initialize BattleInitializer (required component)
+        if (window.BattleInitializer) {
+            this.battleInitializer = new window.BattleInitializer(this);
+            console.log('BattleManager: BattleInitializer initialized');
+        } else {
+            console.error('BattleManager: BattleInitializer not found on global window object. CRITICAL: Battle initialization will fail.');
+            throw new Error('BattleInitializer is required but not available');
+        }
+        
         // 2. Initialize BattleFlowController (required component)
         if (window.BattleFlowController) {
             this.battleFlowController = new window.BattleFlowController(this);
             console.log('BattleManager: BattleFlowController component initialized');
-
-
         } else {
             console.error('BattleManager: BattleFlowController not found on global window object');
             throw new Error('BattleFlowController is required but not available');
@@ -345,86 +352,14 @@ class BattleManager {
      * @returns {Array} Initialized team
      */
     ensureCompleteCharacterInitialization(team, teamType) {
-        if (!team || !Array.isArray(team)) {
-            console.error(`[BattleManager] Cannot initialize ${teamType} team: Invalid or missing team data`);
-            return [];
+        // Facade method that delegates to BattleInitializer
+        if (this.battleInitializer) {
+            return this.battleInitializer.ensureCompleteCharacterInitialization(team, teamType);
         }
         
-        console.log(`[BattleManager] Starting initialization for ${teamType} team with ${team.length} characters`);
-        
-        // Create complete team with proper initialization
-        return team.map((character, index) => {
-            // Skip invalid characters
-            if (!character) {
-                console.warn(`[BattleManager] Skipping invalid character at index ${index} in ${teamType} team`);
-                return null;
-            }
-            
-            try {
-                // Create a new character object with all required properties
-                const completeChar = {
-                    ...character,
-                    name: character.name || `Unknown ${teamType} ${index}`,
-                    team: teamType,
-                    uniqueId: character.uniqueId || `${teamType}_${character.name || 'unknown'}_${character.id || index}`,
-                    id: character.id || `char_${Math.random().toString(36).substr(2, 9)}`,
-                    currentHp: character.currentHp !== undefined ? character.currentHp : (character.stats?.hp || 100),
-                    isDead: character.isDead || false
-                };
-                
-                // Ensure stats object exists and has required properties
-                completeChar.stats = completeChar.stats || {};
-                completeChar.stats.hp = completeChar.stats.hp || 100;
-                completeChar.stats.attack = completeChar.stats.attack || 10;
-                completeChar.stats.defense = completeChar.stats.defense || 5;
-                completeChar.stats.speed = completeChar.stats.speed || 10;
-                completeChar.stats.strength = completeChar.stats.strength || 10;
-                completeChar.stats.intellect = completeChar.stats.intellect || 10;
-                completeChar.stats.spirit = completeChar.stats.spirit || 10;
-                
-                // Ensure abilities array exists
-                completeChar.abilities = Array.isArray(completeChar.abilities) ? completeChar.abilities : [];
-                
-                // Initialize ability cooldowns and identify passive abilities
-                completeChar.passiveAbilities = [];
-                
-                // Filter out any undefined abilities and ensure all abilities have basic properties
-                completeChar.abilities = completeChar.abilities.filter(ability => ability != null).map(ability => {
-                    // Ensure ability has basic required properties
-                    ability.name = ability.name || 'Unnamed Ability';
-                    ability.id = ability.id || `ability_${Math.random().toString(36).substr(2, 9)}`;
-                    ability.currentCooldown = ability.currentCooldown || 0;
-                    return ability;
-                });
-                
-                // Now identify passive abilities after filtering
-                completeChar.abilities.forEach(ability => {
-                    // Identify passive abilities and store them separately for quick reference
-                    if (ability.abilityType === 'Passive') {
-                        completeChar.passiveAbilities.push(ability);
-                    }
-                });
-                
-                // Do final validation check for critical properties
-                if (!completeChar.name) {
-                    console.error(`[BattleManager] Character initialization missing name property after processing, using default`);
-                    completeChar.name = `Unknown ${teamType} ${index}`;
-                }
-                
-                if (typeof completeChar.currentHp !== 'number') {
-                    console.error(`[BattleManager] Character ${completeChar.name} has invalid currentHp after processing, using default`);
-                    completeChar.currentHp = completeChar.stats.hp || 100;
-                }
-                
-                console.log(`[BattleManager] Completed initialization for ${completeChar.name} (${teamType})`);
-                return completeChar;
-            } catch (error) {
-                console.error(`[BattleManager] Error during character initialization at index ${index}:`, error);
-                console.error(`[BattleManager] Character data that caused error:`, JSON.stringify(character));
-                // Return null to filter out this character
-                return null;
-            }
-        }).filter(char => char !== null); // Filter out any null entries
+        // This should not happen since we throw an error during initialization if BattleInitializer is missing
+        console.error(`[BattleManager] CRITICAL ERROR: BattleInitializer not available for character initialization (${teamType})`);
+        return []; // Return empty array as a last resort
     }
 
     /**
@@ -433,27 +368,16 @@ class BattleManager {
      * @param {Array} rawEnemyTeam - Array of enemy characters
      */
     async startBattle(rawPlayerTeam, rawEnemyTeam) {
-        // Reset passive tracking for the new battle
-        if (this.passiveTriggerTracker) {
-            this.passiveTriggerTracker.resetBattleTracking();
+        // Use BattleInitializer to initialize teams
+        if (this.battleInitializer) {
+            const initializedTeams = this.battleInitializer.initializeTeamsAndCharacters(rawPlayerTeam, rawEnemyTeam);
+            this.playerTeam = initializedTeams.playerTeam;
+            this.enemyTeam = initializedTeams.enemyTeam;
         } else {
-            console.warn("[BattleManager] PassiveTriggerTracker not available for battle reset");
+            // This should not happen since we throw an error during initialization if BattleInitializer is missing
+            console.error("[BattleManager] CRITICAL ERROR: BattleInitializer not available for team initialization");
+            throw new Error("BattleInitializer is required for battle initialization");
         }
-        
-        // Process teams with JSON.parse/stringify to ensure independence
-        const processedPlayerTeam = JSON.parse(JSON.stringify(rawPlayerTeam || []));
-        const processedEnemyTeam = JSON.parse(JSON.stringify(rawEnemyTeam || []));
-        
-        // Perform enhanced initialization of teams
-        this.playerTeam = this.ensureCompleteCharacterInitialization(
-            processedPlayerTeam, 
-            'player'
-        );
-        
-        this.enemyTeam = this.ensureCompleteCharacterInitialization(
-            processedEnemyTeam, 
-            'enemy'
-        );
         
         console.log(`[BattleManager] Starting battle with ${this.playerTeam.length} player characters and ${this.enemyTeam.length} enemy characters`);
         
@@ -557,65 +481,19 @@ class BattleManager {
      * @returns {Array} - Prepared team for battle
      */
     prepareTeamForBattle(team) {
-        // Check if this is a player team based on current context
+        // Determine team type based on current context
         const isPlayerTeam = !this.playerTeam || this.playerTeam.length === 0 || 
                           (this.playerTeam.length > 0 && this.enemyTeam && this.enemyTeam.length > 0);
         const teamType = isPlayerTeam ? 'player' : 'enemy';
         
-        console.log(`Preparing ${teamType} team with ${team.length} characters`);
-        
-        // Validation check
-        if (!team || !Array.isArray(team)) {
-            console.error(`Invalid team provided for ${teamType}, using empty array`);
-            return [];
+        // Facade method that delegates to BattleInitializer with explicit teamType
+        if (this.battleInitializer) {
+            return this.battleInitializer.prepareTeamForBattle(team, teamType);
         }
         
-        // Map characters to battle-ready format and filter out nulls
-        const preparedTeam = team.map((character, index) => {
-            // Character validation
-            if (!character) {
-                console.error(`Null character at index ${index} in ${teamType} team`);
-                return null;
-            }
-            
-            // No need for deep copy since we already copied at the higher level
-            const battleChar = character;
-            
-            // Set battle-specific properties
-            battleChar.currentHp = battleChar.stats.hp;
-            battleChar.isDead = false;
-            
-            // Ensure character has a unique ID
-            if (!battleChar.id) {
-                battleChar.id = this.generateCharacterId();
-            }
-            
-            // Create a more robust uniqueId that includes team info and name
-            battleChar.uniqueId = `${teamType}_${battleChar.name}_${battleChar.id}`;
-            
-            // Store team info on the character
-            battleChar.team = teamType;
-            
-            // Initialize ability cooldowns and identify passive abilities
-            if (battleChar.abilities) {
-                battleChar.passiveAbilities = [];
-                
-                battleChar.abilities.forEach(ability => {
-                    // Initialize cooldown for active abilities
-                    ability.currentCooldown = 0;
-                    
-                    // Identify passive abilities and store them separately for quick reference
-                    if (ability.abilityType === 'Passive') {
-                        battleChar.passiveAbilities.push(ability);
-                    }
-                });
-            }
-            
-            return battleChar;
-        }).filter(char => char !== null); // Filter out any null entries
-        
-        console.log(`Finished preparing ${teamType} team: ${preparedTeam.length} valid characters`);
-        return preparedTeam;
+        // This should not happen since we throw an error during initialization if BattleInitializer is missing
+        console.error(`[BattleManager] CRITICAL ERROR: BattleInitializer not available for team preparation (${teamType})`);
+        return []; // Return empty array as a last resort
     }
     
     /**
@@ -623,6 +501,13 @@ class BattleManager {
      * @returns {string} A unique ID
      */
     generateCharacterId() {
+        // Facade method that delegates to BattleInitializer
+        if (this.battleInitializer) {
+            return this.battleInitializer.generateCharacterId();
+        }
+        
+        // Safe fallback implementation that can be used even if BattleInitializer is missing
+        console.warn("[BattleManager] BattleInitializer not available for ID generation, using fallback");
         return 'char_' + Math.random().toString(36).substr(2, 9);
     }
     
