@@ -273,40 +273,34 @@ class BattleBridge {
             
             // Patch addStatusEffect
             if (originalAddStatusEffect) {
-                this.battleManager.addStatusEffect = function(character, statusId, source, duration, value) {
+                this.battleManager.addStatusEffect = function(character, statusId, sourceOrDuration, durationOrStacks, stacks) {
                     console.log('BattleBridge: addStatusEffect patched method called', character?.name, statusId);
                     
-                    // HOTFIX (v0.5.27.3_CircularReferenceHotfix): Parameter validation/correction
-                    // Handle two common formats:
-                    // 1. Old style: addStatusEffect(character, statusId, duration, value)
-                    // 2. New style: addStatusEffect(character, statusId, source, duration, value)
+                    let source, duration, stackValue;
                     
-                    // Check if we're getting the old parameter format (no source and duration as 3rd param)
-                    if (typeof source === 'number' && (duration === undefined || typeof duration === 'object')) {
-                        console.warn(`BattleBridge: Detected old addStatusEffect parameter format for ${statusId}!`);
-                        console.warn(`BattleBridge: Correcting parameters - using ${source} as duration and character as source`);                        
-                        // Shift parameters and use character as source
-                        value = duration;
-                        duration = source;
-                        source = character; // Use self as source
+                    // Detect old-style parameter format: (character, statusId, duration, value)
+                    if (typeof sourceOrDuration === 'number' && arguments.length <= 4) {
+                        console.warn(`BattleBridge: Detected old-style addStatusEffect call for ${statusId}.`);
+                        console.warn(`BattleBridge: Converting to new format (null source, numeric duration).`);
+                        
+                        // Convert to new format with null source:
+                        source = null; // Use null as source instead of character
+                        duration = sourceOrDuration; // Use the number as duration
+                        stackValue = durationOrStacks || 1; // Use 4th param as stacks or default to 1
+                    } else {
+                        // For new style, pass parameters directly
+                        source = sourceOrDuration;
+                        duration = durationOrStacks;
+                        stackValue = stacks;
                     }
                     
-                    // Ensure duration is a number to prevent circular references
-                    if (typeof duration !== 'number') {
-                        console.error(`BattleBridge: Invalid duration (${typeof duration}) for status ${statusId} - using default 2`);
-                        duration = 2; // Default duration
-                    }
-                    
-                    // Call original with corrected parameters
-                    const result = originalAddStatusEffect.call(this, character, statusId, source, duration, value);
+                    // Call original with processed parameters - BattleManager handles validation
+                    const result = originalAddStatusEffect.call(this, character, statusId, source, duration, stackValue);
                     
                     // Only dispatch event if in phaser UI mode
                     if (this.uiMode === "phaser") {
                         // Get character ID for status effects
                         const characterId = character.uniqueId || character.id;
-                        
-                        // Get status effect details from the character's status effects
-                        const effectData = this.statusEffects[characterId]?.[statusId];
                         
                         // Get the status effect definition with multiple fallback options
                         let statusDefinition = this.statusEffectDefinitions?.[statusId];
@@ -343,12 +337,12 @@ class BattleBridge {
                             }
                         }
                         
-                        // Dispatch event with complete status effect data
+                        // Dispatch event with the parameters as passed to BattleManager
                         self.dispatchEvent(self.eventTypes.STATUS_EFFECT_APPLIED, {
                             character: character,
                             statusId: statusId,
-                            duration: effectData?.duration || duration,
-                            stacks: effectData?.stacks || 1,
+                            duration: duration, // Use the duration that was passed to BattleManager
+                            stacks: stackValue, // Use the stacks value that was passed to BattleManager
                             statusDefinition: statusDefinition
                         });
                     }

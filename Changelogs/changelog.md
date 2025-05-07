@@ -1,6 +1,24 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.6 - BattleBridge Status Effect Handling Simplification (2025-05-08)
+### Improved
+- **BattleBridge Status Effect Handling**: Simplified and improved status effect parameter handling in BattleBridge
+  - Replaced complex parameter detection with clearer, more direct transformation logic
+  - Improved old-style call detection using arguments.length for reliability
+  - Changed default source for old-style calls from character to null (more appropriate semantically)
+  - Updated STATUS_EFFECT_APPLIED event to use exactly the parameters passed to BattleManager
+  - Removed redundant type checking, relying on BattleManager's validation
+
+### Technical
+- **Bridge Component Focus**: Enhanced bridge's role in the component architecture
+  - Simplified code with clearer parameter naming and transformation logic
+  - Removed duplicate validation that was already performed by BattleManager
+  - Eliminated potential inconsistency between bridge default (2) and BattleManager default (3)
+  - Preserved all status definition fallback mechanisms for complete tooltips
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.6_SimplifyBattleBridgeStatusEffect.md*
+
 ## Version 0.5.27.5 - Status Effect Parameter Signature Refactoring (2025-05-07)
 ### Fixed
 - **Status Effect Parameter Standardization**: Completed comprehensive parameter refactoring
