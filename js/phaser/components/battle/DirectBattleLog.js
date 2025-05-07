@@ -423,22 +423,33 @@ class DirectBattleLog {
             
             // Listen for battle end
             bridge.addEventListener(bridge.eventTypes.BATTLE_ENDED, (data) => {
+                // TEMPORARY DEBUGGING: Log what the event listener received
+                console.log("[DEBUG DirectBattleLog] BATTLE_ENDED event received. data.winner:", data.winner, "Full event data:", data);
+                console.trace("[DEBUG DirectBattleLog] BATTLE_ENDED listener stack trace");
+                
                 let message = '';
                 let type = 'info';
                 
                 switch (data.winner) {
                     case 'player':
+                    case 'victory': // Added in case 'victory' is being passed
                         message = 'Victory! Your team has won the battle!';
                         type = 'success';
                         break;
                     case 'enemy':
+                    case 'defeat': // Added in case 'defeat' is being passed
                         message = 'Defeat! Your team has lost the battle.';
                         type = 'error';
                         break;
                     default:
+                        // TEMPORARY DEBUGGING: Log when we're about to use the draw message
+                        console.warn("[DEBUG DirectBattleLog] Using DEFAULT CASE (draw) for data.winner:", data.winner);
                         message = 'The battle ended in a draw.';
                         type = 'info';
                 }
+                
+                // TEMPORARY DEBUGGING: Log the final message that will be added
+                console.log("[DEBUG DirectBattleLog] Adding final battle end message:", message);
                 
                 this.addMessage(message, type);
             });

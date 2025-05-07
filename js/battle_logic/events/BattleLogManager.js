@@ -45,6 +45,13 @@ class BattleLogManager {
             type = 'default';
         }
         
+        // TEMPORARY DEBUGGING: Check for 'draw' message and log stack trace
+        if (typeof message === 'string' && message.includes("The battle ended in a draw.")) {
+            console.warn("DEBUG: 'The battle ended in a draw.' is about to be logged by BattleLogManager.logMessage!");
+            console.log("DEBUG: Full message being logged:", message);
+            console.trace("DEBUG: BattleLogManager.logMessage draw message stack trace"); // This will show the call stack
+        }
+        
         // Log to console for debugging
         console.log(`[BattleLog ${type}]: ${message}`);
         

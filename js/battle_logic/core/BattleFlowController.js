@@ -841,6 +841,10 @@ const enemyDefeated = this.battleManager.enemyTeam.filter(char => char.isDefeate
      * @param {string} result - The battle result ('victory', 'defeat', or 'draw')
      */
     async endBattle(result) {
+        // TEMPORARY DEBUGGING: Log entry to endBattle with result
+        console.log("[DEBUG BattleFlowController] endBattle called with result:", result);
+        console.trace("[DEBUG BattleFlowController] endBattle entry stack trace");
+        
         // Set battle state to inactive
         this.battleManager.battleActive = false;
         
@@ -863,6 +867,10 @@ const enemyDefeated = this.battleManager.enemyTeam.filter(char => char.isDefeate
         if (window.battleBridge) {
             try {
                 console.log(`[BattleFlowController] Dispatching BATTLE_ENDED event. Winner: ${result}`);
+                // TEMPORARY DEBUGGING: Log what we're about to dispatch and stack trace
+                console.log("[DEBUG BattleFlowController] Directly dispatching BATTLE_ENDED via battleBridge. Winner:", result);
+                console.trace("[DEBUG BattleFlowController] Direct dispatch stack trace");
+                
                 window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_ENDED, { winner: result });
             } catch (error) { 
                 console.error('[BattleFlowController] Error dispatching BATTLE_ENDED event:', error); 
@@ -871,6 +879,7 @@ const enemyDefeated = this.battleManager.enemyTeam.filter(char => char.isDefeate
         
         // Delegate DOM UI update
         if (this.battleManager.battleUI) {
+            console.log("[DEBUG BattleFlowController] Calling battleUI.showBattleResult with result:", result);
             this.battleManager.battleUI.showBattleResult(result);
         }
     }

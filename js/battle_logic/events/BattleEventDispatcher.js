@@ -347,11 +347,19 @@ class BattleEventDispatcher {
      * @returns {boolean} True if dispatched successfully
      */
     dispatchBattleEndedEvent(winner, reason = 'standard') {
-        // Validate parameters
-        if (!winner || !['player', 'enemy', 'draw'].includes(winner)) {
-            console.warn("[BattleEventDispatcher] Invalid winner value, defaulting to 'draw'");
-            winner = 'draw';
+        // TEMPORARY DEBUGGING: Log entry into this method and received parameters
+        console.log("[DEBUG BattleEventDispatcher] dispatchBattleEndedEvent ENTERED. Received winner:", winner, "Received reason:", reason);
+        
+        // Validate parameters - FIXED: Now accepts both 'victory'/'defeat' and 'player'/'enemy' values
+        const validWinners = ['victory', 'defeat', 'draw', 'player', 'enemy']; // Include all acceptable terms
+        if (!winner || !validWinners.includes(winner)) {
+            console.warn(`[BattleEventDispatcher] Received truly invalid winner value: '${winner}', defaulting to 'draw' as a fallback. This should be investigated.`);
+            winner = 'draw'; // Fallback for genuinely unknown values
         }
+        
+        // TEMPORARY DEBUGGING: Log about to dispatch values and stack trace
+        console.log("[DEBUG BattleEventDispatcher] dispatchBattleEndedEvent ABOUT TO DISPATCH. Dispatching winner:", winner, "Dispatching reason:", reason);
+        console.trace("[DEBUG BattleEventDispatcher] dispatchBattleEndedEvent dispatch point stack trace");
         
         // Create event data
         return this.dispatchEvent(this.eventTypes.BATTLE_ENDED || 'battle_ended', {
