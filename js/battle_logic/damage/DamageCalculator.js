@@ -253,7 +253,11 @@ applyDamage(target, amount, source, ability, damageType) {
     const killed = oldHealth > 0 && target.currentHp <= 0;
     
     // Dispatch damage event
-    if (window.battleBridge && actualDamage > 0) {
+    if (this.battleManager.dispatchDamageEvent) {
+        // Use the new facade method
+        this.battleManager.dispatchDamageEvent(target, actualDamage, source, ability);
+    } else if (window.battleBridge && actualDamage > 0) {
+        // Fallback to direct battleBridge call if facade not available
         try {
             window.battleBridge.dispatchEvent(
                 window.battleBridge.eventTypes.CHARACTER_DAMAGED, 

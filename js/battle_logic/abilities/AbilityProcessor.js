@@ -67,8 +67,12 @@ class AbilityProcessor {
             if (healthChange > 0) {
                 console.log(`[AbilityProcessor] Effects array reduced ${action.target.name}'s health by ${healthChange}`);
                 
-                // Dispatch CHARACTER_DAMAGED event
-                if (window.battleBridge && healthChange > 0) {
+                // Dispatch CHARACTER_DAMAGED event using BattleManager facade
+                if (this.battleManager.dispatchDamageEvent) {
+                    this.battleManager.dispatchDamageEvent(action.target, healthChange, action.actor, action.ability);
+                }
+                // Fallback to direct battleBridge call
+                else if (window.battleBridge) {
                     try {
                         window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_DAMAGED, {
                             character: action.target,
@@ -89,8 +93,12 @@ class AbilityProcessor {
                 const healAmount = Math.abs(healthChange);
                 console.log(`[AbilityProcessor] Effects array increased ${action.target.name}'s health by ${healAmount}`);
                 
-                // Dispatch CHARACTER_HEALED event
-                if (window.battleBridge && healAmount > 0) {
+                // Dispatch CHARACTER_HEALED event using BattleManager facade
+                if (this.battleManager.dispatchHealingEvent) {
+                    this.battleManager.dispatchHealingEvent(action.target, healAmount, action.actor, action.ability);
+                }
+                // Fallback to direct battleBridge call
+                else if (window.battleBridge) {
                     try {
                         window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_HEALED, {
                             character: action.target,
@@ -379,8 +387,12 @@ class AbilityProcessor {
                         this.battleManager.logMessage(`${targetInfo} takes ${damage} damage! (HP: ${target.currentHp}/${target.stats.hp})`, 'error');
                     }
                     
-                    // Dispatch CHARACTER_DAMAGED event for UI updates
-                    if (window.battleBridge && damage > 0) {
+                    // Dispatch CHARACTER_DAMAGED event using BattleManager facade
+                    if (this.battleManager.dispatchDamageEvent && damage > 0) {
+                        this.battleManager.dispatchDamageEvent(target, damage, actor, ability);
+                    }
+                    // Fallback to direct battleBridge call
+                    else if (window.battleBridge && damage > 0) {
                         try {
                             window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_DAMAGED, {
                                 character: target,

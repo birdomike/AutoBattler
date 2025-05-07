@@ -51,8 +51,12 @@ class HealingProcessor {
             // Note: We don't reset isDefeated here - that's handled by checkAndResetDeathStatus
         }
 
-        // Dispatch healing event through battleBridge if available
-        if (window.battleBridge && actualHealing > 0) {
+        // Dispatch healing event through BattleManager facade if available
+        if (this.battleManager.dispatchHealingEvent && actualHealing > 0) {
+            this.battleManager.dispatchHealingEvent(target, actualHealing, source, ability);
+        } 
+        // Fallback to direct battleBridge call if facade not available
+        else if (window.battleBridge && actualHealing > 0) {
             try {
                 window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_HEALED, {
                     character: target, 

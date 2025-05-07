@@ -204,20 +204,26 @@ class BattleFlowController {
             this.battleManager.battleUI.renderCharacters(playerTeam, enemyTeam);
         }
         
-        // For Phaser UI, dispatch event through BattleBridge
-        if (this.battleManager.uiMode === "phaser" && window.battleBridge) {
-            try {
-                // Dispatch BATTLE_STARTED event with team data
-                window.battleBridge.dispatchEvent(
-                    window.battleBridge.eventTypes.BATTLE_STARTED, 
-                    { 
-                        playerTeam, 
-                        enemyTeam 
-                    }
+        // For Phaser UI, dispatch event through BattleManager facade if available
+        if (this.battleManager.uiMode === "phaser") {
+            if (this.battleManager.dispatchBattleEvent) {
+                // Use the facade method
+                this.battleManager.dispatchBattleEvent(
+                    window.battleBridge?.eventTypes.BATTLE_STARTED || 'battle_started', 
+                    { playerTeam, enemyTeam }
                 );
                 console.log('[BattleFlowController] Dispatched BATTLE_STARTED event for Phaser UI');
-            } catch (error) {
-                console.error('[BattleFlowController] Error dispatching BATTLE_STARTED event:', error);
+            } else if (window.battleBridge) {
+                // Fallback to direct call
+                try {
+                    window.battleBridge.dispatchEvent(
+                        window.battleBridge.eventTypes.BATTLE_STARTED, 
+                        { playerTeam, enemyTeam }
+                    );
+                    console.log('[BattleFlowController] Dispatched BATTLE_STARTED event for Phaser UI');
+                } catch (error) {
+                    console.error('[BattleFlowController] Error dispatching BATTLE_STARTED event:', error);
+                }
             }
         }
     }
@@ -521,11 +527,16 @@ endBattle(result) {
         // Log battle end message
         this.battleManager.logMessage(message, messageType);
         
-        // Dispatch event for battle end through BattleBridge if available
-        if (window.battleBridge) {
+        // Dispatch event for battle end through BattleManager facade if available
+        if (this.battleManager.dispatchBattleEndEvent) {
+            this.battleManager.dispatchBattleEndEvent(result, 'standard');
+        } 
+        // Fallback to direct battleBridge call
+        else if (window.battleBridge) {
             try {
                 window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_ENDED, {
                     result: result,
+                    winner: result, // Add this for standardization
                     playerTeam: this.battleManager.playerTeam,
                     enemyTeam: this.battleManager.enemyTeam
                 });

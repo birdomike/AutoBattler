@@ -1,10 +1,6 @@
 /**
  * Battle Manager
  * Controls the flow of battle and combat logic
- * Updated to work with the Tailwind CSS-based BattleUI
- * Version 0.5.1.2b - Added CHARACTER_ACTION event dispatching for action indicators
- * Version 0.5.1.3 - Added refactoring toggle mechanism
- * Version 0.5.2.0 - Stage 1 cleanup: Removed legacy methods and duplicates
  */
 
 class BattleManager {
