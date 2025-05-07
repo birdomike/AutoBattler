@@ -248,15 +248,17 @@ class StatusEffectManager {
             const battleBridge = window.getBattleBridge ? window.getBattleBridge() : window.battleBridge;
             
             if (battleBridge && typeof battleBridge.dispatchEvent === 'function') {
-                // Use the correct method name 'dispatchEvent' instead of 'dispatch'
-                battleBridge.dispatchEvent('STATUS_EFFECTS_CHANGED', {
+                // Use the eventTypes property to reference the event type
+                battleBridge.dispatchEvent(battleBridge.eventTypes.STATUS_EFFECTS_CHANGED, {
                     character: character,
                     effects: this.getActiveEffects(character)
                 });
             } else {
                 // Fallback 1: Try through BattleManager if that's the pattern used elsewhere
                 if (this.battleManager && this.battleManager.dispatchUIEvent) {
-                    this.battleManager.dispatchUIEvent('STATUS_EFFECTS_CHANGED', {
+                    // Try to use the constant from BattleBridge if available
+                    const eventType = window.battleBridge?.eventTypes?.STATUS_EFFECTS_CHANGED || 'status_effects_changed';
+                    this.battleManager.dispatchUIEvent(eventType, {
                         character: character,
                         effects: this.getActiveEffects(character)
                     });

@@ -7,6 +7,62 @@
 
 class StatusEffectContainer {
     /**
+     * Handle bulk status effects changed event
+     * @param {Object} data - Event data containing character and effects array
+     */
+    handleStatusEffectsChanged(data) {
+        // Only process for our parent character
+        if (!this.parent || !this.parent.character) return;
+        if (!data || !data.character) return;
+        
+        // Compare character identifiers
+        const sameCharacter = 
+            // First check unique ID
+            (data.character.uniqueId && this.parent.character.uniqueId && 
+             data.character.uniqueId === this.parent.character.uniqueId) ||
+            // Then check regular ID
+            (data.character.id && this.parent.character.id && 
+             data.character.id === this.parent.character.id) ||
+            // Finally check name as fallback
+            (data.character.name === this.parent.character.name && 
+             data.character.team === this.parent.character.team);
+        
+        if (!sameCharacter) return;
+        
+        console.log(`StatusEffectContainer: Bulk status effects update for ${this.parent.character.name}`);
+        
+        // Get the array of effects
+        const effects = data.effects;
+        if (!Array.isArray(effects)) return;
+        
+        // Clear existing status effects and icons
+        this.statusEffects = [];
+        this.iconContainers.forEach(container => container.destroy());
+        this.iconContainers = [];
+        
+        // Add each effect
+        effects.forEach(effect => {
+            // Add to our tracking array
+            this.statusEffects.push({
+                statusId: effect.id,
+                definition: {
+                    name: effect.name,
+                    description: effect.description,
+                    type: effect.effectType
+                },
+                duration: effect.duration,
+                stacks: effect.stacks || 1
+            });
+            
+            // Create and add icon
+            this.addIconForEffect(this.statusEffects.length - 1);
+        });
+        
+        // Arrange icons
+        this.arrangeIcons();
+    }
+    
+    /**
      * Create a new StatusEffectContainer
      * @param {Phaser.Scene} scene - The Phaser scene this container belongs to
      * @param {CharacterSprite} parent - The parent CharacterSprite this container is attached to
@@ -87,6 +143,12 @@ class StatusEffectContainer {
         bridge.addEventListener(
             bridge.eventTypes.STATUS_EFFECT_UPDATED, 
             this.handleStatusEffectUpdated.bind(this)
+        );
+        
+        // Listen for bulk status effects changed event
+        bridge.addEventListener(
+            bridge.eventTypes.STATUS_EFFECTS_CHANGED,
+            this.handleStatusEffectsChanged.bind(this)
         );
         
         console.log('StatusEffectContainer: Event listeners set up for', this.parent.character.name);

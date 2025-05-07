@@ -27,6 +27,7 @@ class BattleBridge {
             STATUS_EFFECT_APPLIED: 'status_effect_applied',
             STATUS_EFFECT_REMOVED: 'status_effect_removed',
             STATUS_EFFECT_UPDATED: 'status_effect_updated',
+            STATUS_EFFECTS_CHANGED: 'status_effects_changed', // For bulk status effect updates
             ABILITY_USED: 'ability_used',
             PASSIVE_TRIGGERED: 'passive_triggered',
             BATTLE_UI_INTERACTION: 'battle_ui_interaction',
