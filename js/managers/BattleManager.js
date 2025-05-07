@@ -62,37 +62,17 @@ class BattleManager {
     
     /**
      * Display a summary of all characters' health at the end of a turn
+     * @returns {boolean} True if summary was displayed successfully
      */
     displayTurnSummary() {
-        // Delegate to BattleLogManager if available
+        // Direct delegation - no toggle mechanism for streamlined implementation
         if (this.battleLogManager) {
             return this.battleLogManager.displayTurnSummary();
         }
-
-        // Fallback implementation
-        this.logMessage('------ END OF TURN SUMMARY ------', 'info');
         
-        // Show player team summary
-        this.logMessage('Player Team:', 'info');
-        this.playerTeam.forEach(character => {
-            const status = character.isDead ? '💀 DEFEATED' : `HP: ${character.currentHp}/${character.stats.hp}`;
-            const statusColor = character.isDead ? 'error' : 
-                               (character.currentHp < character.stats.hp * 0.3) ? 'error' :
-                               (character.currentHp < character.stats.hp * 0.7) ? 'action' : 'success';
-            this.logMessage(`  ${character.name}: ${status}`, statusColor);
-        });
-        
-        // Show enemy team summary
-        this.logMessage('Enemy Team:', 'info');
-        this.enemyTeam.forEach(character => {
-            const status = character.isDead ? '💀 DEFEATED' : `HP: ${character.currentHp}/${character.stats.hp}`;
-            const statusColor = character.isDead ? 'error' : 
-                               (character.currentHp < character.stats.hp * 0.3) ? 'error' :
-                               (character.currentHp < character.stats.hp * 0.7) ? 'action' : 'success';
-            this.logMessage(`  ${character.name}: ${status}`, statusColor);
-        });
-        
-        this.logMessage('--------------------------------', 'info');
+        // Minimal fallback with warning
+        console.warn("[BattleManager] BattleLogManager not available, cannot display turn summary");
+        return false;
     }
     
     // toggleImplementation method removed in v0.5.27.2_Cleanup
@@ -222,6 +202,18 @@ class BattleManager {
             // Verify methods exist
             console.log('>>> ActionGenerator instance check:', {
                 generateCharacterAction: typeof this.actionGenerator.generateCharacterAction
+            });
+        }
+        
+        // 9. Initialize battle log manager (Stage 7)
+        if (window.BattleLogManager) {
+            this.battleLogManager = new window.BattleLogManager(this, this.battleEventDispatcher);
+            console.log('BattleManager: BattleLogManager initialized');
+            
+            // Verify methods exist
+            console.log('>>> BattleLogManager instance check:', {
+                logMessage: typeof this.battleLogManager.logMessage === 'function',
+                displayTurnSummary: typeof this.battleLogManager.displayTurnSummary === 'function'
             });
         }
     }
@@ -1056,41 +1048,42 @@ class BattleManager {
     
     /**
      * Log a message to the battle log
-     * Modified in v0.5.24.5 to prevent duplicate message dispatching
      * @param {string} message - The message to log
      * @param {string} type - The type of message (default, info, success, action, error)
+     * @returns {boolean} True if logged successfully
      */
     logMessage(message, type = 'default') {
-        // Delegate to BattleLogManager if available
+        // Direct delegation - no toggle mechanism for streamlined implementation
         if (this.battleLogManager) {
-            // Delegate to BattleLogManager without any additional dispatching here
             return this.battleLogManager.logMessage(message, type);
         }
-
-        // Original implementation - only dispatch once
-        // Log to console for debugging
+        
+        // Minimal fallback implementation (no original implementation preserved)
+        console.warn(`[BattleManager] BattleLogManager not available, using minimal logging`);
         console.log(`[BattleLog ${type}]: ${message}`);
         
-        // Dispatch event through BattleBridge if available
+        // Try direct UI or battleBridge communication as last resort
         if (window.battleBridge) {
             try {
-                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG, {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG || 'BATTLE_LOG', {
                     message: message,
                     type: type
                 });
             } catch (error) {
-                console.warn('Failed to dispatch battle log event:', error);
+                console.error('[BattleManager] Error dispatching log event:', error);
             }
         }
         
         // Add to DOM battle log if in DOM mode and battleUI is available
-        if (this.uiMode === "dom" && this.battleUI) {
+        if (this.uiMode === "dom" && this.battleUI && typeof this.battleUI.addLogMessage === 'function') {
             try {
                 this.battleUI.addLogMessage(message, type);
             } catch (error) {
                 console.error('Error adding message to battle UI:', error);
             }
         }
+        
+        return false;
     }
     
    /**
