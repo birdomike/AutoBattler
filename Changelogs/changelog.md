@@ -1,6 +1,17 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.28.3 - Battle Outcome Display Fix (2025-05-07)
+### Fixed
+- **Battle Outcome Bug**: Fixed incorrect battle outcome display in both battle log and UI
+  - Updated BattleEventDispatcher to properly handle 'victory' and 'defeat' values
+  - Modified BattleScene.showBattleOutcome to correctly display victory and defeat messages
+  - Added support for both legacy ('player'/'enemy') and new ('victory'/'defeat') outcome values
+  - Fixed "The battle ended in a draw" message showing incorrectly after battle
+  - Enhanced validation logic with better fallback behavior for unexpected values
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.28.3_BattleOutcomeDisplayFix.md*
+
 ## Version 0.5.28.1 - BattleEventDispatcher Implementation (Phase 3) (2025-05-07)
 ### Technical
 - **Stage 7 Refactoring**: Completed BattleEventDispatcher integration across codebase (Phase 3)

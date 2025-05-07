@@ -2066,15 +2066,21 @@ export default class BattleScene extends Phaser.Scene {
             let message = '';
             let color = 0xffffff;
             
-            if (winner === 'player') {
+            // FIXED: Now properly handles 'victory' and 'defeat' values
+            if (winner === 'player' || winner === 'victory') {
                 message = 'VICTORY!';
                 color = 0x00ff00; // Green
-            } else if (winner === 'enemy') {
+            } else if (winner === 'enemy' || winner === 'defeat') {
                 message = 'DEFEAT';
                 color = 0xff0000; // Red
-            } else {
+            } else if (winner === 'draw') {
                 message = 'DRAW';
                 color = 0xffff00; // Yellow
+            } else {
+                // Fallback for genuinely unexpected winner values
+                console.warn(`[BattleScene] showBattleOutcome received unexpected winner value: '${winner}'. Defaulting UI to DRAW.`);
+                message = 'DRAW';
+                color = 0x808080; // Gray
             }
             
             // Add outcome text
