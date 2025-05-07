@@ -1,6 +1,41 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.27.10 - Debug Logging Cleanup (2025-05-06)
+### Improved
+- **Console Output Clarity**: Removed temporary debug logging statements
+  - Eliminated verbose character validation debug logs from ActionGenerator
+  - Removed target selection debug logs with lengthy JSON dumps
+  - Cleaned up damage calculation debug statements
+  - Improved console readability by removing clutter
+
+### Technical
+- **Performance Optimization**: Eliminated unnecessary object stringification operations
+  - Removed JSON.stringify calls on large character objects
+  - Eliminated approximately 15 debug log statements across core files
+  - Removed temporary debugging code from v0.5.27.2 hotfixes that's no longer needed
+  - Maintained all functional warning and error logging for actual issues
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.10_RemoveDebugLogs.md*
+
+## Version 0.5.27.9 - Status Effect Definition Normalization (2025-05-06)
+### Fixed
+- **Status Effect Loading**: Fixed status effect definition loading and normalization
+  - Eliminated "[StatusEffectDefinitionLoader] Generated fallback definition for 'status_atk_up'" warning
+  - Enhanced StatusEffectDefinitionLoader to properly handle nested JSON structure
+  - Added definition normalization to handle different property formats consistently
+  - Fixed status effect icon paths and duration handling across all definition types
+  - Improved validation to accept both standard and behavior-based effect definitions
+
+### Technical
+- **Robust Data Handling**: Implemented format-agnostic status effect system
+  - Added intelligent effect type and property translation mechanism
+  - Created normalizeDefinition method to standardize different effect definitions
+  - Enhanced validation to handle alternative property names (defaultDuration, maxStacks, etc.)
+  - Maintained backward compatibility while improving consistency
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.27.9_StatusEffectDefinitionNormalization.md*
+
 ## Version 0.5.27.8 - BattleBridge Auto-Attack Cleanup (2025-05-06)
 ### Technical
 - **Battle Bridge Cleanup**: Removed outdated auto-attack patching code

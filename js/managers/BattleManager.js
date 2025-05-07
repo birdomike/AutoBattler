@@ -748,13 +748,6 @@ class BattleManager {
         // First player team actions
         this.playerTeam.forEach(character => {
             if (character.currentHp > 0) {
-                // TEMPORARY DEBUG (v0.5.27.2): Log character state before passing to ActionGenerator
-                // Purpose: Verify character data integrity just before action generation
-                console.log(`[DEBUG 0.5.27.2] Character for ActionGenerator (Player: ${character.name || 'NO_NAME'}):`,
-                    `HP: ${character.currentHp}/${character.stats?.hp},`,
-                    `Status Effects: ${character.statusEffects?.length || 0},`,
-                    `Abilities: ${character.abilities?.length || 0}`);
-                
                 const action = this.generateCharacterAction(character, 'player');
                 if (action) this.turnActions.push(action);
             }
@@ -763,13 +756,6 @@ class BattleManager {
         // Then enemy team actions
         this.enemyTeam.forEach(character => {
             if (character.currentHp > 0) {
-                // TEMPORARY DEBUG (v0.5.27.2): Log character state before passing to ActionGenerator
-                // Purpose: Verify character data integrity just before action generation
-                console.log(`[DEBUG 0.5.27.2] Character for ActionGenerator (Enemy: ${character.name || 'NO_NAME'}):`,
-                    `HP: ${character.currentHp}/${character.stats?.hp},`,
-                    `Status Effects: ${character.statusEffects?.length || 0},`,
-                    `Abilities: ${character.abilities?.length || 0}`);
-                
                 const action = this.generateCharacterAction(character, 'enemy');
                 if (action) this.turnActions.push(action);
             }

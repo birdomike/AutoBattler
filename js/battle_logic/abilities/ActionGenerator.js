@@ -90,10 +90,6 @@ class ActionGenerator {
             for (let i = 0; i < target.length; i++) {
                 const individualTarget = target[i];
                 
-                // TEMPORARY DEBUG (v0.5.27.2): Log individual target state
-                console.log(`[DEBUG 0.5.27.2] Multi-Target Validation #${i} (Targeting: ${individualTarget?.name || 'NO_NAME'}):`, 
-                    individualTarget ? JSON.stringify(individualTarget) : 'null');
-                
                 // Skip null targets or validate each target
                 if (!individualTarget) {
                     console.warn(`[ActionGenerator] Null target found in multi-target array at index ${i}`);
@@ -125,9 +121,6 @@ class ActionGenerator {
             }
         } else {
             // Single target validation (original behavior)
-            // TEMPORARY DEBUG (v0.5.27.2): Log target state before validation
-            console.log(`[DEBUG 0.5.27.2] Target for Validation in ActionGenerator (Targeting: ${target.name || 'NO_NAME'}):`, JSON.stringify(target));
-            
             // Validate the single target
             if (!this.validateCharacter(target)) {
                 console.error(`[ActionGenerator] Target ${target.name || 'unknown'} failed validation, aborting action`);
@@ -147,9 +140,6 @@ class ActionGenerator {
             // Calculate damage for each individual target
             for (let i = 0; i < target.length; i++) {
                 const individualTarget = target[i];
-                
-                // TEMPORARY DEBUG (v0.5.27.2_Hotfix2): Log individual damage calculation
-                console.log(`[DEBUG 0.5.27.2] Calculating damage for target #${i}: ${individualTarget.name}`);
                 
                 // Calculate damage for this specific target
                 const individualDamageResult = this.calculateDamageForAction(character, individualTarget, selectedAbility);
@@ -196,9 +186,6 @@ class ActionGenerator {
                 target: result.target,
                 damage: result.damageResult.damage
             }));
-            
-            // TEMPORARY DEBUG (v0.5.27.2_Hotfix2): Log the multi-target action
-            console.log(`[DEBUG 0.5.27.2] Created multi-target action with ${multiTargetDamageResults.length} targets`);
         }
         
         return action;
@@ -367,10 +354,6 @@ class ActionGenerator {
      * @returns {Object} Damage calculation result
      */
     calculateDamageForAction(attacker, target, ability) {
-        // TEMPORARY DEBUG (v0.5.27.2_Hotfix2): Log what's being received by this method
-        // Purpose: Identify issues with target references in multi-target abilities
-        console.log(`[DEBUG ActionGenerator - calculateDamageForAction] Received Actor: ${attacker?.name || 'undefined'}, Target: ${typeof target === 'object' && target !== null && target.name ? target.name : JSON.stringify(target)}, Ability: ${ability?.name || 'auto-attack'}`);
-        
         // HOTFIX8: Handle multi-target arrays that might be passed directly
         if (Array.isArray(target)) {
             console.error(`[ActionGenerator] calculateDamageForAction received a target array instead of a single target. This is likely a bug in the multi-target handling code. Using first valid target.`);

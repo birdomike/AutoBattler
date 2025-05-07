@@ -8,6 +8,75 @@ class StatusEffectDefinitionLoader {
         console.log('[StatusEffectDefinitionLoader] Initialized with fallback definitions, loading JSON data...');
     }
 
+    /**
+     * Normalize effect definition to a standard internal format
+     * @param {Object} definition - The status effect definition to normalize
+     * @returns {Object} - The normalized definition
+     */
+    normalizeDefinition(definition) {
+        // Create a copy of the definition to avoid modifying the original
+        const normalized = { ...definition };
+        
+        // Ensure required properties exist
+        normalized.id = definition.id;
+        normalized.name = definition.name;
+        normalized.description = definition.description;
+        
+        // Normalize duration (use defaultDuration if duration is not present)
+        if (typeof definition.duration !== 'number' && typeof definition.defaultDuration === 'number') {
+            normalized.duration = definition.defaultDuration;
+        }
+        
+        // Normalize stackable property (infer from maxStacks if not present)
+        if (typeof definition.stackable !== 'boolean' && typeof definition.maxStacks === 'number') {
+            normalized.stackable = definition.maxStacks > 1;
+            normalized.maxStacks = definition.maxStacks;
+        }
+        
+        // Normalize icon path
+        if (definition.icon && !definition.iconPath) {
+            normalized.iconPath = definition.icon;
+        } else if (!normalized.iconPath && !normalized.icon) {
+            // Fallback icon if none provided
+            normalized.iconPath = `assets/images/icons/status/status-icons/${normalized.id.replace('status_', '')}.png`;
+        }
+        
+        // Handle behavior-based effect types
+        if (definition.behavior && !definition.effectType) {
+            // Determine effectType from behavior
+            if (definition.behavior.trigger === 'onTurnStart') {
+                if (definition.behavior.action === 'Damage') {
+                    normalized.effectType = 'damage';
+                    normalized.value = definition.behavior.value || 5;
+                } else if (definition.behavior.action === 'Heal') {
+                    normalized.effectType = 'healing';
+                    normalized.value = definition.behavior.value || 5;
+                }
+            } else if (definition.behavior.modifier === 'StatModification') {
+                normalized.effectType = 'statModifier';
+                normalized.stat = definition.behavior.stat?.toLowerCase() || 'attack';
+                normalized.value = definition.behavior.value || 5;
+            } else if (definition.behavior.modifier === 'AbsorbDamage') {
+                normalized.effectType = 'shield';
+                normalized.value = definition.behavior.value || 10;
+            } else if (definition.behavior.modifier === 'PreventAction') {
+                normalized.effectType = 'control';
+            } else if (definition.type === 'Buff' || definition.type === 'Debuff') {
+                // Use the type property as a fallback
+                normalized.effectType = definition.type.toLowerCase();
+            } else {
+                normalized.effectType = 'utility';  // Default fallback
+            }
+        }
+        
+        // Add missing properties for the internal format if needed
+        if (!normalized.effectType) {
+            normalized.effectType = 'utility';
+        }
+        
+        return normalized;
+    }
+
     _loadDefinitionsAsync() {
         // Load definitions in the background
         fetch('data/status_effects.json')
@@ -23,14 +92,20 @@ class StatusEffectDefinitionLoader {
                     return;
                 }
                 
-                // Handle both array and object formats
+                // Handle different possible JSON formats
                 let effectsArray = [];
                 if (Array.isArray(effectsData)) {
                     effectsArray = effectsData;
                 } else if (typeof effectsData === 'object' && effectsData !== null) {
-                    // If it's an object with effect IDs as keys, convert to array
-                    effectsArray = Object.values(effectsData);
-                    console.log(`[StatusEffectDefinitionLoader] Converted object to array with ${effectsArray.length} effects`);
+                    // Check if it's wrapped in a "status_effects" property (common format)
+                    if (effectsData.status_effects && Array.isArray(effectsData.status_effects)) {
+                        effectsArray = effectsData.status_effects;
+                        console.log(`[StatusEffectDefinitionLoader] Extracted array from status_effects property with ${effectsArray.length} effects`);
+                    } else {
+                        // If it's an object with effect IDs as keys, convert to array
+                        effectsArray = Object.values(effectsData);
+                        console.log(`[StatusEffectDefinitionLoader] Converted object to array with ${effectsArray.length} effects`);
+                    }
                 } else {
                     console.error("[StatusEffectDefinitionLoader] Expected status effect data but got:", typeof effectsData);
                     return;
@@ -40,7 +115,9 @@ class StatusEffectDefinitionLoader {
                 let validCount = 0;
                 effectsArray.forEach(definition => {
                     if (this.validateDefinition(definition)) {
-                        this.effectDefinitions.set(definition.id, definition);
+                        // Normalize the definition to match our expected format
+                        const normalizedDef = this.normalizeDefinition(definition);
+                        this.effectDefinitions.set(normalizedDef.id, normalizedDef);
                         validCount++;
                     } else {
                         // Warning is handled by validateDefinition's detailed error messages
@@ -76,38 +153,56 @@ class StatusEffectDefinitionLoader {
             return false;
         }
         
-        // Check duration
-        if (typeof definition.duration !== 'number' || definition.duration <= 0) {
-            if (definition.duration !== -1) { // -1 is valid for permanent effects
-                console.debug(`[StatusEffectDefinitionLoader] Invalid duration for effect: ${definition.id}`);
+        // Check duration - allow defaultDuration as an alternative field name
+        const hasDuration = (
+            (typeof definition.duration === 'number' && (definition.duration > 0 || definition.duration === -1)) ||
+            (typeof definition.defaultDuration === 'number' && (definition.defaultDuration > 0 || definition.defaultDuration === -1))
+        );
+        
+        if (!hasDuration) {
+            console.debug(`[StatusEffectDefinitionLoader] Invalid or missing duration for effect: ${definition.id}`);
+            return false;
+        }
+        
+        // Check if stackable is boolean or if maxStacks is present (alternative to stackable)
+        const hasStackInfo = (
+            typeof definition.stackable === 'boolean' ||
+            typeof definition.maxStacks === 'number'
+        );
+        
+        if (!hasStackInfo) {
+            console.debug(`[StatusEffectDefinitionLoader] Missing stacking information for effect: ${definition.id}`);
+            return false;
+        }
+        
+        // Additional validations based on effect type or behavior
+        if (definition.effectType) {
+            // Original format validation
+            if (definition.effectType === 'damage' && typeof definition.value !== 'number') {
+                console.debug(`[StatusEffectDefinitionLoader] Missing or invalid value for damage effect: ${definition.id}`);
                 return false;
             }
-        }
-        
-        // Check if stackable is boolean
-        if (typeof definition.stackable !== 'boolean') {
-            console.debug(`[StatusEffectDefinitionLoader] stackable property must be boolean for effect: ${definition.id}`);
-            return false;
-        }
-        
-        // Additional validations based on effect type
-        if (definition.effectType === 'damage' && typeof definition.value !== 'number') {
-            console.debug(`[StatusEffectDefinitionLoader] Missing or invalid value for damage effect: ${definition.id}`);
-            return false;
-        }
-        
-        if (definition.effectType === 'healing' && typeof definition.value !== 'number') {
-            console.debug(`[StatusEffectDefinitionLoader] Missing or invalid value for healing effect: ${definition.id}`);
-            return false;
-        }
-        
-        if (definition.effectType === 'statModifier') {
-            if (!definition.stat || typeof definition.stat !== 'string') {
-                console.debug(`[StatusEffectDefinitionLoader] Missing or invalid stat for stat modifier effect: ${definition.id}`);
+            
+            if (definition.effectType === 'healing' && typeof definition.value !== 'number') {
+                console.debug(`[StatusEffectDefinitionLoader] Missing or invalid value for healing effect: ${definition.id}`);
                 return false;
             }
-            if (typeof definition.value !== 'number') {
-                console.debug(`[StatusEffectDefinitionLoader] Missing or invalid value for stat modifier effect: ${definition.id}`);
+            
+            if (definition.effectType === 'statModifier') {
+                if (!definition.stat || typeof definition.stat !== 'string') {
+                    console.debug(`[StatusEffectDefinitionLoader] Missing or invalid stat for stat modifier effect: ${definition.id}`);
+                    return false;
+                }
+                if (typeof definition.value !== 'number') {
+                    console.debug(`[StatusEffectDefinitionLoader] Missing or invalid value for stat modifier effect: ${definition.id}`);
+                    return false;
+                }
+            }
+        } else if (definition.behavior) {
+            // New format validation - behavior-based effects
+            // Minimal validation - we'll normalize during processing
+            if (typeof definition.behavior !== 'object') {
+                console.debug(`[StatusEffectDefinitionLoader] Invalid behavior property for effect: ${definition.id}`);
                 return false;
             }
         }
