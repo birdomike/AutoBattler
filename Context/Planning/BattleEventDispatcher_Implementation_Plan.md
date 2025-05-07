@@ -402,6 +402,13 @@ dispatchDamageEvent(target, amount, source = null, ability = null) {
    - Implement specialized event dispatch methods for common events
    - Include validation and error handling for each
 
+**Testing/Validation After Phase 1:**
+- The game should remain 100% operable with no errors
+- Component exists but isn't integrated with BattleManager yet
+- **Required Test**: Run a basic smoke test by starting the game and running a battle
+- **Validation Method**: Verify no errors appear in console related to the new file
+- **Success Criteria**: Game functions exactly as before, no console errors related to the new component
+
 ### Phase 2: BattleManager Integration
 
 1. **Add Component Initialization**:
@@ -415,6 +422,17 @@ dispatchDamageEvent(target, amount, source = null, ability = null) {
 3. **Add Script Tags**:
    - Update `index.html` to include the new component file
    - Ensure proper loading order (before BattleManager)
+
+**Testing/Validation After Phase 2:**
+- **This is the critical integration point** - the game MUST remain fully operable
+- Component now receives events through BattleManager facade methods
+- **Required Tests**:
+  1. Complete battle sequence with player and enemy teams
+  2. Monitor console for errors or warnings related to event dispatch
+  3. Verify all UI elements update correctly (health bars, battle log messages, etc.)
+  4. Test the facade methods directly from browser console if possible
+- **Validation Method**: Use browser developer tools to monitor network activity and console output
+- **Success Criteria**: All UI components receive and process events correctly, no console errors
 
 ### Phase 3: Implementation Verification
 
@@ -430,6 +448,15 @@ dispatchDamageEvent(target, amount, source = null, ability = null) {
    - Ensure event data structures match the inventory
    - Verify backward compatibility property naming
 
+**Testing/Validation After Phase 3:**
+- Component is fully operational and handling events correctly
+- **Required Tests**: 
+  1. Create a test checklist based on Event Inventory for each event type
+  2. Verify error handling by intentionally passing invalid data
+  3. Confirm both old (`character`) and new (`source`/`target`) property names work
+- **Validation Method**: Use browser console to directly call methods and inspect results
+- **Success Criteria**: All tests pass with expected results and proper error handling
+
 ### Phase 4: Comprehensive Testing
 
 1. **Battle Flow Testing**:
@@ -443,6 +470,15 @@ dispatchDamageEvent(target, amount, source = null, ability = null) {
 3. **Performance Assessment**:
    - Evaluate any performance impact from additional validation
    - Look for optimization opportunities
+
+**Final Validation:**
+- Component is fully integrated and handling all edge cases
+- **Required Tests**:
+  1. Complete multiple battles with different team compositions
+  2. Test with large numbers of status effects to check performance
+  3. Test all specialized convenience methods
+- **Validation Method**: Observe game behavior and check console for warnings/errors
+- **Success Criteria**: No visual glitches, no console errors, consistent performance
 
 ## Fallback Strategies
 
