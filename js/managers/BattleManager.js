@@ -482,24 +482,9 @@ class BattleManager {
             console.warn("[BattleManager] PassiveTriggerTracker not available for battle reset");
         }
         
-        // TEMPORARY DEBUG (v0.5.27.2): Log raw character before JSON.stringify to see if properties are lost
-        if (rawPlayerTeam && rawPlayerTeam.length > 0) {
-            console.log('[DEBUG 0.5.27.2] Raw Player Character 0 (Before Stringify):', JSON.stringify(rawPlayerTeam[0]));
-        }
-        if (rawEnemyTeam && rawEnemyTeam.length > 0) {
-            console.log('[DEBUG 0.5.27.2] Raw Enemy Character 0 (Before Stringify):', JSON.stringify(rawEnemyTeam[0]));
-        }
-        
-        // TEMPORARY DEBUG (v0.5.27.2): Process teams with JSON.parse/stringify and log intermediate state
+        // Process teams with JSON.parse/stringify to ensure independence
         const processedPlayerTeam = JSON.parse(JSON.stringify(rawPlayerTeam || []));
         const processedEnemyTeam = JSON.parse(JSON.stringify(rawEnemyTeam || []));
-        
-        if (processedPlayerTeam.length > 0) {
-            console.log('[DEBUG 0.5.27.2] Processed Player Character 0 (After Stringify):', JSON.stringify(processedPlayerTeam[0]));
-        }
-        if (processedEnemyTeam.length > 0) {
-            console.log('[DEBUG 0.5.27.2] Processed Enemy Character 0 (After Stringify):', JSON.stringify(processedEnemyTeam[0]));
-        }
         
         // Perform enhanced initialization of teams
         this.playerTeam = this.ensureCompleteCharacterInitialization(
@@ -511,14 +496,6 @@ class BattleManager {
             processedEnemyTeam, 
             'enemy'
         );
-        
-        // TEMPORARY DEBUG (v0.5.27.2): Log final character state after initialization
-        if (this.playerTeam.length > 0) {
-            console.log('[DEBUG 0.5.27.2] Final Player Character 0 (After ensureCompleteCharacterInitialization):', JSON.stringify(this.playerTeam[0]));
-        }
-        if (this.enemyTeam.length > 0) {
-            console.log('[DEBUG 0.5.27.2] Final Enemy Character 0 (After ensureCompleteCharacterInitialization):', JSON.stringify(this.enemyTeam[0]));
-        }
         
         console.log(`[BattleManager] Starting battle with ${this.playerTeam.length} player characters and ${this.enemyTeam.length} enemy characters`);
         
