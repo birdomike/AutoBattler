@@ -20,7 +20,7 @@
 | **Void**     | Light, Psychic                     | Arcane, Dark                     | —                                |
 | **Crystal**  | Air, Ice                           | Rock, Metal                      | —                                |
 | **Storm**    | Air, Water                         | Rock, Electric                   | —                                |
-| **Ethereal** | Psychic, Dark                      | Light (takes **3x** damage)       | Physical (auto-attacks)          |
+| **Ethereal** | Psychic, Dark                      | Light (takes **3x** damage)      | Physical (auto-attacks)          |
 | **Blood**    | Physical, Light                    | Poison, Plague                   | —                                |
 | **Plague**   | Nature, Water                      | Fire, Light                      | —                                |
 | **Gravity**  | Air, Rock                          | Electric, Storm                  | —                                |

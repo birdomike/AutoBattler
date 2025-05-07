@@ -1,6 +1,16 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.31.0 - BattleUtilities Component (2025-05-07)
+
+### Technical
+- Created dedicated `BattleUtilities` static utility class to handle common utility functions
+- Extracted four utility methods from BattleManager to reduce code and improve separation of concerns
+- Utility methods now have improved validation and error handling
+- Reorganized file structure with new `utilities` subfolder in battle_logic directory
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.5.31.0_BattleUtilities.md*
+
 ## Version 0.5.30.1 - Complete StatusEffectDefinitionLoader Separation (2025-05-07)
 ### Technical
 - **Full Architectural Separation**: Completed separation of status effect definitions from BattleManager

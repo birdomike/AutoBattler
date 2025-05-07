@@ -977,70 +977,8 @@ class BattleManager {
         return { healing: actualHealing, revived: resurrectionOccurred };
     }
     
-    /**
-     * Get all characters from both teams
-     * @returns {Array} Array of all characters in the battle
-     */
-    getAllCharacters() {
-        return [...this.playerTeam, ...this.enemyTeam];
-    }
-    
-    /**
-     * Get a character by its uniqueId from any team
-     * @param {string} uniqueId - The uniqueId of the character to find
-     * @returns {Object|null} - The character object or null if not found
-     */
-    getCharacterByUniqueId(uniqueId) {
-        if (!uniqueId) return null;
-        
-        // Check player team
-        let foundChar = this.playerTeam.find(char => char && char.uniqueId === uniqueId);
-        if (foundChar) return foundChar;
-        
-        // Check enemy team
-        foundChar = this.enemyTeam.find(char => char && char.uniqueId === uniqueId);
-        
-        // Add a log if a character is not found for a given ID, can be helpful for debugging
-        if (!foundChar) {
-            console.warn(`[BattleManager.getCharacterByUniqueId] Character with uniqueId '${uniqueId}' not found.`);
-        }
-        
-        return foundChar || null;
-    }
-    
-    /**
-     * Shuffle an array randomly
-     * @param {Array} array - The array to shuffle
-     * @returns {Array} The shuffled array
-     */
-    shuffleArray(array) {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-        }
-        return newArray;
-    }
-    
-    /**
-     * Safely stringify an object, handling circular references
-     * @param {Object} obj - The object to stringify
-     * @param {number} [space] - Number of spaces for indentation (optional)
-     * @returns {string} The stringified object with circular references replaced
-     */
-    safeBattleStringify(obj, space = null) {
-        const seen = new WeakSet();
-        return JSON.stringify(obj, (key, value) => {
-            // Handle circular references
-            if (typeof value === 'object' && value !== null) {
-                if (seen.has(value)) {
-                    return '[Circular Reference]';
-                }
-                seen.add(value);
-            }
-            return value;
-        }, space);
-    }
+    // Utility methods have been removed and moved to BattleUtilities static class
+    // See js/battle_logic/utilities/BattleUtilities.js
     
     /**
      * Dispatch a battle event
