@@ -1,6 +1,17 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.5.29.1 - BattleManager Code Cleanup (2025-05-07)
+### Technical
+- **Codebase Cleanup**: Removed diagnostic code from BattleManager post-refactoring
+  - Eliminated approximately 80-100 lines of diagnostic console logs and comments
+  - Removed component verification logs that were used during refactoring
+  - Cleaned up references to the removed toggle mechanism
+  - Improved readability by removing temporary debugging traces
+  - Simplified global registration code at the end of file
+
+*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.29.1_BattleManagerCleanup.md*
+
 ## Version 0.5.28.3 - Battle Outcome Display Fix (2025-05-07)
 ### Fixed
 - **Battle Outcome Bug**: Fixed incorrect battle outcome display in both battle log and UI

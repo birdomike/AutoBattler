@@ -71,7 +71,7 @@ class BattleManager {
         return false;
     }
     
-    // toggleImplementation method removed in v0.5.27.2_Cleanup
+
     
     /**
      * Initialize all component managers in proper dependency order
@@ -96,13 +96,7 @@ class BattleManager {
             this.battleFlowController = new window.BattleFlowController(this);
             console.log('BattleManager: BattleFlowController component initialized');
 
-            // ADD THESE DIAGNOSTIC LINES:
-            console.log('>>> Instance Check Immediately After Creation:');
-            console.log('>>> this.battleFlowController instance:', this.battleFlowController);
-            console.log('>>> typeof this.battleFlowController.startNextTurn:', typeof this.battleFlowController?.startNextTurn);
-            // Also check a few other methods expected on the prototype
-            console.log('>>> typeof this.battleFlowController.executeNextAction:', typeof this.battleFlowController?.executeNextAction);
-            console.log('>>> typeof this.battleFlowController.finishTurn:', typeof this.battleFlowController?.finishTurn);
+
         } else {
             console.error('BattleManager: BattleFlowController not found on global window object');
             throw new Error('BattleFlowController is required but not available');
@@ -113,9 +107,7 @@ class BattleManager {
             this.typeEffectivenessCalculator = new window.TypeEffectivenessCalculator(this);
             console.log('BattleManager: TypeEffectivenessCalculator initialized');
             
-            // Diagnostic check
-            console.log('>>> TypeEffectivenessCalculator instance check:',
-                typeof this.typeEffectivenessCalculator.calculateTypeMultiplier);
+
         }
         
         // 4. Initialize damage calculator
@@ -124,9 +116,7 @@ class BattleManager {
             this.damageCalculator = new window.DamageCalculator(this);
             console.log('BattleManager: DamageCalculator initialized');
             
-            // Verify method exists and is callable
-            console.log('>>> DamageCalculator instance check:', 
-                typeof this.damageCalculator.calculateDamage);
+
         }
         
         // 5. Initialize healing processor
@@ -134,11 +124,7 @@ class BattleManager {
             this.healingProcessor = new window.HealingProcessor(this);
             console.log('BattleManager: HealingProcessor initialized');
             
-            // Verify methods exist
-            console.log('>>> HealingProcessor instance check:', {
-                applyHealing: typeof this.healingProcessor.applyHealing,
-                checkAndResetDeathStatus: typeof this.healingProcessor.checkAndResetDeathStatus
-            });
+
         }
         
         // 6. Initialize ability processor
@@ -146,12 +132,7 @@ class BattleManager {
             this.abilityProcessor = new window.AbilityProcessor(this);
             console.log('BattleManager: AbilityProcessor initialized');
             
-            // Verify methods exist
-            console.log('>>> AbilityProcessor instance check:', {
-                processEffect: typeof this.abilityProcessor.processEffect,
-                applyActionEffect: typeof this.abilityProcessor.applyActionEffect,
-                applyRandomStatusEffect: typeof this.abilityProcessor.applyRandomStatusEffect
-            });
+
         }
         
         // 7. Initialize passive system components
@@ -159,12 +140,7 @@ class BattleManager {
             this.passiveTriggerTracker = new window.PassiveTriggerTracker();
             console.log('BattleManager: PassiveTriggerTracker initialized');
             
-            // Verify methods exist
-            console.log('>>> PassiveTriggerTracker instance check:', {
-                recordTrigger: typeof this.passiveTriggerTracker.recordTrigger,
-                hasFiredThisTurn: typeof this.passiveTriggerTracker.hasFiredThisTurn,
-                resetTurnTracking: typeof this.passiveTriggerTracker.resetTurnTracking
-            });
+
         }
         
         // Initialize PassiveAbilityManager (after PassiveTriggerTracker)
@@ -172,11 +148,7 @@ class BattleManager {
             this.passiveAbilityManager = new window.PassiveAbilityManager(this, this.passiveTriggerTracker);
             console.log('BattleManager: PassiveAbilityManager initialized');
             
-            // Verify methods exist
-            console.log('>>> PassiveAbilityManager instance check:', {
-                processPassiveAbilities: typeof this.passiveAbilityManager.processPassiveAbilities,
-                executePassiveBehavior: typeof this.passiveAbilityManager.executePassiveBehavior
-            });
+
         }
         
         // 7. Initialize targeting system
@@ -184,10 +156,7 @@ class BattleManager {
             this.targetingSystem = new window.TargetingSystem(this);
             console.log('BattleManager: TargetingSystem initialized');
             
-            // Verify methods exist
-            console.log('>>> TargetingSystem instance check:', {
-                selectTarget: typeof this.targetingSystem.selectTarget
-            });
+
         }
         
         // 8. Initialize action generator
@@ -195,10 +164,7 @@ class BattleManager {
             this.actionGenerator = new window.ActionGenerator(this);
             console.log('BattleManager: ActionGenerator initialized');
             
-            // Verify methods exist
-            console.log('>>> ActionGenerator instance check:', {
-                generateCharacterAction: typeof this.actionGenerator.generateCharacterAction
-            });
+
         }
         
         // 9. Initialize event dispatcher (Stage 7)
@@ -206,12 +172,7 @@ class BattleManager {
             this.battleEventDispatcher = new window.BattleEventDispatcher(this);
             console.log('BattleManager: BattleEventDispatcher initialized');
             
-            // Verify methods exist
-            console.log('>>> BattleEventDispatcher instance check:', {
-                dispatchEvent: typeof this.battleEventDispatcher.dispatchEvent === 'function',
-                dispatchCharacterDamagedEvent: typeof this.battleEventDispatcher.dispatchCharacterDamagedEvent === 'function',
-                dispatchCharacterHealedEvent: typeof this.battleEventDispatcher.dispatchCharacterHealedEvent === 'function'
-            });
+
         }
         
         // 10. Initialize battle log manager (Stage 7) - must be after event dispatcher
@@ -219,11 +180,7 @@ class BattleManager {
             this.battleLogManager = new window.BattleLogManager(this, this.battleEventDispatcher);
             console.log('BattleManager: BattleLogManager initialized');
             
-            // Verify methods exist
-            console.log('>>> BattleLogManager instance check:', {
-                logMessage: typeof this.battleLogManager.logMessage === 'function',
-                displayTurnSummary: typeof this.battleLogManager.displayTurnSummary === 'function'
-            });
+
         }
     }
     
@@ -515,9 +472,7 @@ class BattleManager {
             console.warn("[BattleManager] PassiveTriggerTracker not available for turn reset");
         }
         
-        console.log('>>> BM.startNextTurn called. Checking this.battleFlowController...');
-        console.log('>>> this.battleFlowController instance:', this.battleFlowController);
-        console.log('>>> typeof this.battleFlowController.startNextTurn:', typeof this.battleFlowController?.startNextTurn);
+
         return this.battleFlowController.startNextTurn();
     }
     
@@ -540,8 +495,7 @@ class BattleManager {
             return this.abilityProcessor.applyActionEffect(action);
         }
 
-        // Original implementation has been removed (v0.5.26.1_Cleanup)
-        // Implementation now in AbilityProcessor.applyActionEffect
+
         console.warn("BattleManager using legacy applyActionEffect - AbilityProcessor not available");
         return this.battleFlowController.applyActionEffect(action);
     }
@@ -839,8 +793,7 @@ class BattleManager {
             return this.actionGenerator.generateCharacterAction(character, team);
         }
         
-        // Original implementation has been removed (v0.5.26.3_Cleanup)
-        // Implementation now in ActionGenerator.generateCharacterAction
+
         console.warn("BattleManager using legacy generateCharacterAction - ActionGenerator not available");
         
         // Safe fallback: return null (no action) if ActionGenerator not available
@@ -857,8 +810,7 @@ class BattleManager {
             return this.abilityProcessor.applyRandomStatusEffect(target);
         }
         
-        // Original implementation has been removed (v0.5.26.1_Cleanup)
-        // Implementation now in AbilityProcessor.applyRandomStatusEffect
+
         console.warn("BattleManager using legacy applyRandomStatusEffect - AbilityProcessor not available");
         return false;
     }
@@ -876,8 +828,7 @@ class BattleManager {
             return this.abilityProcessor.processEffect(effect, actor, target, ability);
         }
         
-        // Original implementation has been removed (v0.5.26.1_Cleanup)
-        // Implementation now in AbilityProcessor.processEffect
+
         console.warn("BattleManager using legacy processEffect - AbilityProcessor not available");
         return false;
     }
@@ -1465,11 +1416,3 @@ if (typeof window !== 'undefined') {
 window.BattleManager = BattleManager;
 
 // End of BattleManager class
-console.log("BattleManager class defined:", typeof BattleManager);
-console.log("window.BattleManager assigned:", typeof window.BattleManager);
-
-// Force assignment if needed
-if (typeof BattleManager === 'function' && typeof window.BattleManager !== 'function') {
-    console.log("Fixing window.BattleManager assignment");
-    window.BattleManager = BattleManager;
-}
