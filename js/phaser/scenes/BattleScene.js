@@ -7,7 +7,7 @@
  * @version 0.6.2.3 (TeamDisplayManager implementation)
  */
 
-import TurnIndicator from '../components/battle/TurnIndicator.js';
+// TurnIndicator is loaded via traditional script in index.html
 // Note: BattleEventManager, BattleUIManager, and TeamDisplayManager are included via traditional script tags in index.html
 
 // Define the BattleScene class
@@ -168,28 +168,53 @@ export default class BattleScene extends Phaser.Scene {
     create() {
         console.log('BattleScene create starting...');
         
-        // Create turn indicator (using static import from top of file)
+        // Create turn indicator (using global window.TurnIndicator)
         try {
-            this.turnIndicator = new TurnIndicator(this);
-            this.turnIndicator.setDepth(1); // Set depth to render below sprites but above background
-            console.log('Turn indicator created successfully:', this.turnIndicator);
-            // Verify the turnIndicator has the showAt method
-            if (typeof this.turnIndicator.showAt !== 'function') {
-                console.error('WARNING: Created TurnIndicator but showAt method is missing!');
+            // Use the globally registered TurnIndicator class
+            if (window.TurnIndicator) {
+                this.turnIndicator = new window.TurnIndicator(this);
+                this.turnIndicator.setDepth(1); // Set depth to render below sprites but above background
+                console.log('Turn indicator created successfully:', this.turnIndicator);
+                // Verify the turnIndicator has the showAt method
+                if (typeof this.turnIndicator.showAt !== 'function') {
+                    console.error('WARNING: Created TurnIndicator but showAt method is missing!');
+                }
+            } else {
+                console.error('ERROR: TurnIndicator class not found in window global scope');
+                // Fallback: create a simple Graphics object if class not available
+                this.turnIndicator = this.add.graphics();
+                this.turnIndicator.setAlpha(0);
+                // Add a basic showAt method to the graphics object for compatibility
+                this.turnIndicator.showAt = (x, y, color, duration) => {
+                    console.log('Using fallback showAt method');
+                    this.turnIndicator.clear();
+                    this.turnIndicator.setPosition(x, y);
+                    this.turnIndicator.fillStyle(color, 0.7);
+                    this.turnIndicator.fillCircle(0, 0, 30);
+                    this.turnIndicator.setAlpha(0.7);
+                };
+                // Add hide method for compatibility
+                this.turnIndicator.hide = (duration) => {
+                    this.turnIndicator.clear();
+                    this.turnIndicator.setAlpha(0);
+                };
             }
         } catch (err) {
             console.error('Error creating TurnIndicator:', err);
-            // Fallback: create a simple Graphics object if instantiation fails
+            // Create fallback if error occurs
             this.turnIndicator = this.add.graphics();
             this.turnIndicator.setAlpha(0);
-            // Add a basic showAt method to the graphics object for compatibility
             this.turnIndicator.showAt = (x, y, color, duration) => {
-                console.log('Using fallback showAt method');
+                console.log('Using fallback showAt method after error');
                 this.turnIndicator.clear();
                 this.turnIndicator.setPosition(x, y);
                 this.turnIndicator.fillStyle(color, 0.7);
                 this.turnIndicator.fillCircle(0, 0, 30);
                 this.turnIndicator.setAlpha(0.7);
+            };
+            this.turnIndicator.hide = (duration) => {
+                this.turnIndicator.clear();
+                this.turnIndicator.setAlpha(0);
             };
         }
 
@@ -587,6 +612,16 @@ export default class BattleScene extends Phaser.Scene {
                 if (onComplete) onComplete();
                 return;
             }
+            
+            console.log(`[BattleScene] showAttackAnimation: ${attacker.name} (${attacker.team}) attacking ${target.name} (${target.team})`);
+
+            // Validate that attacker and target are from different teams
+            if (attacker.team === target.team) {
+                console.warn(`[BattleScene] showAttackAnimation: Attempted attack on same team! Attacker and target both on team ${attacker.team}`);
+                // Don't show animation for same-team attacks
+                if (onComplete) onComplete();
+                return;
+            }
 
             // Find sprites
             const attackerTeamContainer = attacker.team === 'player'
@@ -598,6 +633,7 @@ export default class BattleScene extends Phaser.Scene {
                 : this.enemyTeamContainer;
 
             if (!attackerTeamContainer || !targetTeamContainer) {
+                console.warn(`[BattleScene] showAttackAnimation: Missing team container(s)`);
                 if (onComplete) onComplete();
                 return;
             }
@@ -606,13 +642,14 @@ export default class BattleScene extends Phaser.Scene {
             const targetSprite = targetTeamContainer.getCharacterSpriteByName(target.name);
 
             if (!attackerSprite || !targetSprite) {
+                console.warn(`[BattleScene] showAttackAnimation: Could not find sprites for ${!attackerSprite ? 'attacker' : 'target'}`);
                 if (onComplete) onComplete();
                 return;
             }
 
             attackerSprite.showAttackAnimation(targetSprite, onComplete);
         } catch (error) {
-            console.error('Error showing attack animation:', error);
+            console.error('[BattleScene] Error showing attack animation:', error);
             if (onComplete) onComplete();
         }
     }
@@ -697,8 +734,12 @@ export default class BattleScene extends Phaser.Scene {
             // Ensure turn indicator exists
             if (!this.turnIndicator) {
                 try {
-                    this.turnIndicator = new TurnIndicator(this);
-                    this.turnIndicator.setDepth(1);
+                    if (window.TurnIndicator) {
+                        this.turnIndicator = new window.TurnIndicator(this);
+                        this.turnIndicator.setDepth(1);
+                    } else {
+                        console.error('TurnIndicator class not found during bridge init');
+                    }
                 } catch (err) {
                     console.error('Error creating TurnIndicator during bridge init:', err);
                 }

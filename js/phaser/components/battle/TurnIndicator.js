@@ -2,10 +2,10 @@
  * TurnIndicator.js
  * A floor marker component that highlights the active character's position during battle
  * 
- * @version 0.5.1.4
+ * @version 0.6.2.4
  */
 
-export default class TurnIndicator extends Phaser.GameObjects.Graphics {
+class TurnIndicator extends Phaser.GameObjects.Graphics {
     /**
      * Constructor for TurnIndicator
      * @param {Phaser.Scene} scene - The scene this indicator belongs to
@@ -119,4 +119,10 @@ export default class TurnIndicator extends Phaser.GameObjects.Graphics {
         }
         super.destroy(fromScene);
     }
+}
+
+// Make component available globally
+if (typeof window !== 'undefined') {
+    window.TurnIndicator = TurnIndicator;
+    console.log("TurnIndicator loaded and registered globally");
 }

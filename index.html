@@ -94,6 +94,8 @@
     <!-- Load BattleBridge class first, then initialization -->
     <script src="js/phaser/bridge/BattleBridge.js"></script>
     <script src="js/phaser/bridge/BattleBridgeInit.js"></script>
+    <!-- Emergency fix for BattleBridge event registration -->
+    <script src="js/phaser/bridge/fixBattleBridge.js"></script>
     <!-- BattleEventManager - Must load after BattleBridge but before BattleScene -->
     <script src="js/phaser/core/BattleEventManager.js"></script>
     <!-- BattleUIManager - Must load after BattleEventManager and before BattleScene -->
@@ -115,8 +117,9 @@
     <script src="js/phaser/components/battle/BattleLogPanel.js" defer></script>
     <script src="js/phaser/components/battle/DirectBattleLog.js" defer></script> 
     
-    <!-- ES Module scripts -->
-    <script type="module" src="js/phaser/components/battle/TurnIndicator.js"></script>
+    <!-- TurnIndicator - Must load before BattleScene -->
+    <script src="js/phaser/components/battle/TurnIndicator.js"></script>
+    <!-- BattleScene (Module) -->
     <script type="module" src="js/phaser/scenes/BattleScene.js"></script>
     
     <script src="js/phaser/scenes/BootScene.js" defer></script>

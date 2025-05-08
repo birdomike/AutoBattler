@@ -69,18 +69,39 @@ class TeamDisplayManager {
                 this.turnIndicator.destroy();
             }
             
-            // Create a new turn indicator
+            // Create a new turn indicator using the TurnIndicator class
             console.log("[TeamDisplayManager] Creating turn indicator");
             
-            // Create the graphics object for the turn indicator
-            this.turnIndicator = this.scene.add.graphics();
-            this.turnIndicator.setDepth(10); // Set above characters but below UI
-            
-            // Initial state - hidden until updateActiveCharacterVisuals is called
-            this.turnIndicator.clear();
-            
-            // Track for cleanup
-            this.components.turnIndicator = this.turnIndicator;
+            if (typeof window.TurnIndicator === 'function') {
+                this.turnIndicator = new window.TurnIndicator(this.scene);
+                this.turnIndicator.setDepth(10); // Set above characters but below UI
+                
+                // Track for cleanup
+                this.components.turnIndicator = this.turnIndicator;
+                console.log("[TeamDisplayManager] TurnIndicator instance created successfully");
+            } else {
+                console.error("[TeamDisplayManager] TurnIndicator class not found! Creating fallback.");
+                
+                // Create a fallback graphics object if TurnIndicator class is not available
+                this.turnIndicator = this.scene.add.graphics();
+                this.turnIndicator.setDepth(10);
+                
+                // Add minimal showAt method for compatibility
+                this.turnIndicator.showAt = (x, y, color, duration) => {
+                    console.warn("[TeamDisplayManager] Using fallback showAt method");
+                    this.turnIndicator.clear();
+                    this.turnIndicator.setPosition(x, y);
+                    this.turnIndicator.fillStyle(color, 0.7);
+                    this.turnIndicator.fillEllipse(0, 0, 32, 16);
+                    this.turnIndicator.setAlpha(0.7);
+                };
+                
+                // Add hide method for compatibility
+                this.turnIndicator.hide = (duration) => {
+                    this.turnIndicator.clear();
+                    this.turnIndicator.setAlpha(0);
+                };
+            }
             
             console.log("[TeamDisplayManager] Turn indicator created");
             return true;
@@ -163,7 +184,9 @@ class TeamDisplayManager {
         }
         
         try {
-            // Clear previous highlighting in all sprites
+            console.log(`[TeamDisplayManager] updateActiveCharacterVisuals for ${characterData.name} (${characterData.team})`);
+            
+            // Clear previous highlighting in all teams
             if (this.playerTeamContainer) {
                 this.playerTeamContainer.clearAllHighlights();
             }
@@ -181,12 +204,13 @@ class TeamDisplayManager {
                 return false;
             }
             
-            // Highlight the active character
+            // Show character highlight
             sprite.highlight();
             
-            // Draw turn indicator at sprite position
+            // Update the turn indicator at sprite position
             this.updateTurnIndicator(sprite);
             
+            console.log(`[TeamDisplayManager] Updated visuals for ${characterData.name}`);
             return true;
         } catch (error) {
             console.error("[TeamDisplayManager] Error updating active character visuals:", error);
@@ -201,43 +225,53 @@ class TeamDisplayManager {
      */
     updateTurnIndicator(sprite) {
         if (!this.turnIndicator || !sprite) {
+            console.warn("[TeamDisplayManager] updateTurnIndicator: Missing turnIndicator or sprite");
             return;
         }
         
         try {
-            // Get position from sprite
-            const position = sprite.getBottomCenterPosition();
+            console.log(`[TeamDisplayManager] Updating turn indicator for ${sprite.character?.name}`);
             
-            // Clear previous indicator
-            this.turnIndicator.clear();
+            // Get container position (with fallbacks for safety)
+            let xPos = 0, yPos = 0;
+            
+            if (sprite.container) {
+                xPos = sprite.container.x;
+                yPos = sprite.container.y;
+            }
+            
+            // Use getBottomCenterPosition if available
+            if (typeof sprite.getBottomCenterPosition === 'function') {
+                try {
+                    const pos = sprite.getBottomCenterPosition();
+                    if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+                        xPos = pos.x;
+                        yPos = pos.y;
+                    }
+                } catch (posError) {
+                    console.warn("[TeamDisplayManager] Error getting sprite position:", posError);
+                }
+            }
+            
+            // Add offset for better visual placement
+            yPos += 40;
             
             // Determine color based on team
             const isPlayerTeam = sprite.isPlayerTeam;
             const color = isPlayerTeam ? 0x3498db : 0xe74c3c; // Blue for player, red for enemy
             
-            // Draw triangle indicator pointing up at character
-            this.turnIndicator.fillStyle(color, 1);
-            this.turnIndicator.beginPath();
-            this.turnIndicator.moveTo(position.x, position.y + 10);
-            this.turnIndicator.lineTo(position.x - 15, position.y + 30);
-            this.turnIndicator.lineTo(position.x + 15, position.y + 30);
-            this.turnIndicator.closePath();
-            this.turnIndicator.fillPath();
+            // Get battle speed multiplier (if available)
+            const speedMultiplier = this.scene.battleManager?.speedMultiplier || 1;
             
-            // Add pulse effect using a Phaser tween
-            if (this.turnIndicatorTween) {
-                this.turnIndicatorTween.remove();
-            }
+            // Define base animation duration and adjust for battle speed
+            const baseFadeDuration = 250;
+            const fadeDuration = baseFadeDuration / speedMultiplier;
             
-            this.turnIndicatorTween = this.scene.tweens.add({
-                targets: this.turnIndicator,
-                alpha: { from: 0.7, to: 1 },
-                duration: 500,
-                yoyo: true,
-                repeat: -1
-            });
+            // Use the turnIndicator's showAt method
+            console.log(`[TeamDisplayManager] Showing turn indicator at position ${xPos},${yPos}`);
+            this.turnIndicator.showAt(xPos, yPos, color, fadeDuration);
             
-            this.components.turnIndicatorTween = this.turnIndicatorTween;
+            console.log(`[TeamDisplayManager] Turn indicator updated for ${sprite.character?.name} at position: ${xPos},${yPos}`);
         } catch (error) {
             console.error("[TeamDisplayManager] Error updating turn indicator:", error);
         }
