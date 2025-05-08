@@ -1,7 +1,7 @@
 /**
  * BattleEventManager.js
  * Manages event listening setup and event handling for the BattleScene
- * Version: 0.6.1.1
+ * Version: 0.6.2.3 (TeamDisplayManager integration)
  */
 
 class BattleEventManager {
@@ -24,6 +24,7 @@ class BattleEventManager {
         
         this.scene = scene;
         this.battleBridge = battleBridge;
+        this.teamManager = null; // Will be set via setTeamManager if available
         this.boundHandlers = new Map(); // For tracking bound handlers
         
         console.log("[BattleEventManager] Initializing...");
@@ -52,6 +53,20 @@ class BattleEventManager {
         this.setupActionIndicatorListeners();
 
         console.log("[BattleEventManager] Initialization complete");
+    }
+
+    /**
+     * Set the TeamDisplayManager reference
+     * @param {TeamDisplayManager} teamManager - The TeamDisplayManager instance
+     */
+    setTeamManager(teamManager) {
+        if (!teamManager) {
+            console.warn("[BattleEventManager] setTeamManager: Missing TeamDisplayManager reference");
+            return;
+        }
+        
+        console.log("[BattleEventManager] Setting TeamDisplayManager reference");
+        this.teamManager = teamManager;
     }
 
     /**
@@ -201,7 +216,7 @@ class BattleEventManager {
             };
 
             if (this.scene.showFloatingText) {
-                this.scene.showFloatingText(characterSprite, floatingTextConfig);
+                this.scene.showFloatingText(data.target, floatingTextConfig.text, floatingTextConfig.style);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling status effect applied:", error);
@@ -230,7 +245,7 @@ class BattleEventManager {
             };
 
             if (this.scene.showFloatingText) {
-                this.scene.showFloatingText(characterSprite, floatingTextConfig);
+                this.scene.showFloatingText(data.target, floatingTextConfig.text, floatingTextConfig.style);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling status effect removed:", error);
@@ -277,15 +292,12 @@ class BattleEventManager {
             };
 
             if (this.scene.showFloatingText) {
-                this.scene.showFloatingText(characterSprite, floatingTextConfig);
+                this.scene.showFloatingText(data.character, floatingTextConfig.text, floatingTextConfig.style);
             }
 
             // Show attack animation if source is available
             if (data.source && this.scene.showAttackAnimation) {
-                const sourceSprite = this.getCharacterSprite(data.source);
-                if (sourceSprite) {
-                    this.scene.showAttackAnimation(sourceSprite, characterSprite);
-                }
+                this.scene.showAttackAnimation(data.source, data.character);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling character damaged:", error);
@@ -316,7 +328,7 @@ class BattleEventManager {
             };
 
             if (this.scene.showFloatingText) {
-                this.scene.showFloatingText(characterSprite, floatingTextConfig);
+                this.scene.showFloatingText(data.character, floatingTextConfig.text, floatingTextConfig.style);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling character healed:", error);
@@ -331,20 +343,22 @@ class BattleEventManager {
         if (!data || !data.character || !this.scene) return;
 
         try {
-            // Update active character visuals
-            if (this.scene.updateActiveCharacterVisuals) {
+            // Update active character visuals using TeamDisplayManager if available
+            if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
+                this.teamManager.updateActiveCharacterVisuals(data.character);
+            } else if (this.scene.updateActiveCharacterVisuals) {
                 this.scene.updateActiveCharacterVisuals(data.character);
             }
 
-            // Update action text
-            if (this.scene.updateActionTextDisplay) {
-                this.scene.updateActionTextDisplay(`${data.character.name}'s turn`);
+            // Update action text in UI manager
+            if (this.scene.uiManager && typeof this.scene.uiManager.updateActionTextDisplay === 'function') {
+                this.scene.uiManager.updateActionTextDisplay(this.scene.battleState.currentTurn, data.character);
             }
 
             // Show action indicator on character
             const characterSprite = this.getCharacterSprite(data.character);
-            if (characterSprite && characterSprite.showActionIndicator) {
-                characterSprite.showActionIndicator("Auto Attack");
+            if (characterSprite && characterSprite.showActionText) {
+                characterSprite.showActionText("Auto Attack");
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling character action:", error);
@@ -361,8 +375,8 @@ class BattleEventManager {
         try {
             // Show action indicator on character
             const characterSprite = this.getCharacterSprite(data.character);
-            if (characterSprite && characterSprite.showActionIndicator) {
-                characterSprite.showActionIndicator(`Ability: ${data.ability.name}`);
+            if (characterSprite && characterSprite.showActionText) {
+                characterSprite.showActionText(`Ability: ${data.ability.name}`);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling ability used:", error);
@@ -397,8 +411,20 @@ class BattleEventManager {
      * @returns {CharacterSprite|null} The character sprite or null if not found
      */
     getCharacterSprite(characterData) {
-        if (!characterData || !this.scene) {
-            console.warn("[BattleEventManager] getCharacterSprite: Missing character data or scene reference");
+        if (!characterData) {
+            console.warn("[BattleEventManager] getCharacterSprite: Missing character data");
+            return null;
+        }
+
+        // Try TeamDisplayManager first if available
+        if (this.teamManager && typeof this.teamManager.getCharacterSprite === 'function') {
+            const sprite = this.teamManager.getCharacterSprite(characterData);
+            if (sprite) return sprite;
+        }
+
+        // Fallback to legacy approach using team containers directly
+        if (!this.scene) {
+            console.warn("[BattleEventManager] getCharacterSprite: Missing scene reference");
             return null;
         }
 
@@ -477,6 +503,7 @@ class BattleEventManager {
         // Clear references
         this.scene = null;
         this.battleBridge = null;
+        this.teamManager = null;
         
         console.log("[BattleEventManager] Destroyed");
     }

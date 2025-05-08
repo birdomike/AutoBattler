@@ -1,224 +1,226 @@
-# AutoBattler Game Changelog
-# Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
+# Changelog
 
-## Version 0.6.2.2 - BattleScene Refactoring Phase 2 Cleanup: BattleUIManager (2025-05-08)
+All notable changes to the First to Fall game will be documented in this file.
+
+## [Unreleased]
+
+### Fixed
+- Corrected team positioning in TeamDisplayManager implementation
+- Characters now appear at correct positions on the battle screen
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.2.4_TeamDisplayManager_Hotfix.md*
+
+## [0.6.2.3] - TeamDisplayManager Implementation - 2023-05-11
+
+### Added
+- Phase 3 implementation of BattleScene refactoring with new TeamDisplayManager component
+- TeamDisplayManager now handles team creation, turn indicators, and active character visuals
+- Enhanced cross-component communication between BattleEventManager and TeamDisplayManager
+
+### Changed
+- BattleScene now delegates team management to TeamDisplayManager
+- Updated BattleEventManager to integrate with TeamDisplayManager
+- Improved turn indicator with pulsing animation effect
 
 ### Technical
-- **Completed BattleUIManager Refactoring**: Finished Phase 2 of BattleScene refactoring
-  - Removed 12 UI-related methods from BattleScene (~650 lines of code)
-  - Simplified 2 additional methods with proper delegation
-  - Eliminated direct UI component creation and management from BattleScene
-  - Reduced BattleScene.js size by approximately 38% (from ~2,000 to ~1,250 lines)
+- Enhanced component architecture following established patterns
+- Improved error handling across team-related operations
+- Better resource management with comprehensive cleanup
+- Continued progress on BattleScene refactoring plan
 
-### Improved
-- **Code Organization**: Enhanced architecture with clearer UI responsibility boundaries
-  - BattleScene now properly delegates all UI responsibilities to BattleUIManager
-  - Simplified error handling with more specific context information
-  - Improved fallback messaging when components are unavailable
-  - Established consistent pattern for delegating to UI component
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.2.3_TeamDisplayManager.md*
+
+## [0.6.2.2] - BattleUIManager Cleanup - 2023-05-10
+
+### Technical
+- Completed Phase 2 of BattleScene refactoring by removing UI creation methods from BattleScene.js
+- Removed ~650 lines of code from BattleScene related to UI creation and management
+- Simplified delegation methods in BattleScene.js to improve maintainability
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.2.2_BattleUIManager_Cleanup.md*
 
+## [0.6.2.1] - BattleUIManager Implementation - 2023-05-09
 
-## Version 0.6.2.1 - BattleScene Refactoring Phase 2: BattleUIManager (2025-05-08)
+### Added
+- BattleUIManager component for UI creation and management
+- Comprehensive component tracking for proper resource cleanup
+- Clear delegation pattern for UI responsibilities
+
+### Changed
+- BattleScene now delegates UI responsibilities to BattleUIManager
+- Improved error handling for UI operations
+- Enhanced battle outcome screens
 
 ### Technical
-- **BattleUIManager**: Implemented new component to handle UI creation and management
-  - Created dedicated component for UI elements in the battle scene
-  - Extracted UI creation methods from BattleScene (createBackground, createSceneTitle, etc.)
-  - Added comprehensive error handling with fallbacks for each UI component
-  - Established consistent component tracking for proper cleanup
-
-### Improved
-- **Scene Architecture**: Continued enhancement of BattleScene's component structure
-  - Created initial integration that maintains backward compatibility
-  - Improved UI creation with standardized component tracking
-  - Enhanced error messaging with component context
-  - Implemented second phase of planned BattleScene refactoring
+- Continued BattleScene refactoring following the established pattern
+- Added comprehensive parameter validation
+- Implemented proper component lifecycle management
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.2.1_BattleUIManager.md*
 
-## Version 0.6.1.4 - BattleScene Refactoring Phase 1 Cleanup (2025-05-08)
+## [0.6.1.4] - BattleEventManager Cleanup - 2023-05-08
 
 ### Technical
-- **Completed BattleEventManager Refactoring**: Finished Phase 1 of BattleScene refactoring
-  - Removed all event handling methods from BattleScene (~550-600 lines of code)
-  - Eliminated direct event registration with BattleBridge from BattleScene
-  - Removed legacy fallback calls to event setup methods
-  - Reduced BattleScene.js size by approximately 27%
-
-### Improved
-- **Code Organization**: Enhanced architecture with clearer separation of concerns
-  - BattleScene now focused purely on scene management and visual elements
-  - All event handling centralized in BattleEventManager component
-  - Improved error handling with clear messaging
-  - Established pattern for future refactoring phases
+- Completed Phase 1 of BattleScene refactoring by removing event handling methods
+- Removed ~550-600 lines of event-related code from BattleScene.js
+- Simplified event registration with proper delegation pattern
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.1.4_BattleEventManager_Cleanup.md*
 
-## Version 0.6.1.3 - Battle Conclusion Fix (2025-05-08)
+## [0.6.1.3] - BattleEventManager Game Over Fix - 2023-05-07
 
 ### Fixed
-- **BattleEventManager**: Added missing Game Over screen functionality
-  - Implemented handler for BATTLE_ENDED event
-  - Fixed battle conclusion not displaying victory/defeat screen
-  - Added comprehensive error handling for battle outcome display
-  - Enhanced logging for battle conclusion events
-
-### Technical
-- Completed event lifecycle handling in BattleEventManager
-- Added proper method binding and event registration
-- Implemented defensive validation for battle conclusion data
-- Maintained consistent event handling patterns across components
+- Game over screen now appears correctly when battle concludes
+- Added missing battle ended event handler to BattleEventManager
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.1.3_BattleEventManager_GameOver_Fix.md*
 
-## Version 0.6.1.2 - BattleEventManager Fix (2025-05-08)
+## [0.6.1.2] - BattleEventManager Character Sprite Resolution Fix - 2023-05-06
 
 ### Fixed
-- **BattleEventManager**: Fixed runtime error in character sprite resolution
-  - Updated character lookup logic to properly interface with TeamContainer
-  - Renamed character lookup method to better reflect its functionality
-  - Enhanced error reporting with detailed context information
-  - Added fallback resolution when team information is unavailable
-
-### Technical
-- Fixed interface mismatch between BattleEventManager and TeamContainer
-- Improved robustness of character sprite resolution with proper validation
-- Enhanced debugging support with context-aware error messages
-- Implemented multi-level fallback for character sprite resolution
+- Fixed issue with character sprite resolution in BattleEventManager
+- Improved error handling for missing character sprites
+- Enhanced team container selection logic
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.1.2_BattleEventManager_Fix.md*
 
-## Version 0.6.1.1 - BattleScene Refactoring Phase 1: BattleEventManager (2025-05-07)
+## [0.6.1.1] - BattleEventManager Implementation - 2023-05-05
+
+### Added
+- BattleEventManager component for centralized event handling
+- Improved event registration and cleanup
+- Enhanced character sprite resolution
+
+### Changed
+- BattleScene now delegates event handling to BattleEventManager
+- Better error handling for events
+- Improved event response consistency
 
 ### Technical
-- **BattleEventManager**: Implemented new component to handle event management for BattleScene
-  - Extracted event setup and handling logic from BattleScene (~220 lines removed)
-  - Created dedicated component for event listening setup and handling
-  - Improved event handling with comprehensive validation and error isolation
-  - Added proper cleanup mechanism to prevent memory leaks
-
-### Improved
-- **Scene Architecture**: Enhanced BattleScene's component-based structure
-  - Reduced BattleScene complexity by extracting event management
-  - Added proper initialization and cleanup of event manager
-  - Improved error handling with graceful fallbacks
-  - Implemented first phase of planned BattleScene refactoring (6 more phases to follow)
+- Started BattleScene refactoring with Phase 1 implementation
+- Added comprehensive parameter validation
+- Implemented proper event listener cleanup
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.1.1_BattleEventManager.md*
 
-## Version 0.6.0.4 - Phase 3 Utility Integration Cleanup (2025-05-07)
-
-### Fixed
-- **PassiveBehaviors**: Updated three functions to use `BattleUtilities.getAllCharacters()` instead of the removed `battleManager.getAllCharacters()`:
-  - `passive_TeamBuffOnBattleStart`: Fixed team buffing not working due to missing utility method
-  - `passive_ProtectiveInstinct`: Fixed shield application to low-health allies
-  - `passive_Intimidate`: Fixed enemy targeting for intimidation effects
-- Each updated location includes appropriate fallback handling for backward compatibility
-
-### Technical
-- Completes Phase 3 refactoring by fixing all remaining utility method calls
-- Maintains architectural consistency across components
-- Includes defensive coding patterns with fallbacks for robustness
-- Provides consistent logging for diagnostic purposes
-
-## Version 0.6.0.3 - StatusEffectManager BattleUtilities Integration (2025-05-07)
-
-### Fixed
-- **StatusEffectManager**: Updated `_processDamageEffect` and `_processHealingEffect` methods to use `BattleUtilities.getCharacterByUniqueId()` instead of the removed `battleManager.getCharacterByUniqueId()`
-  - Fixes runtime error: `TypeError: this.battleManager.getCharacterByUniqueId is not a function`
-  - Continues alignment with Phase 3 refactoring where utility methods were moved to dedicated `BattleUtilities` class
-  - Adds fallback for backward compatibility with clear error messaging
-  - Improves parameter handling for `applyHealing` calls
-
-### Technical
-- Further reduces dependencies on `BattleManager` for utility functions
-- Improves source character resolution robustness with better error handling
-- Maintains the 'Source ID Linking' pattern established in v0.5.27.2 while modernizing implementation
-
-## Version 0.6.0.2 - BattleUtilities Integration Fix (2025-05-07)
-
-### Fixed
-- **ActionDecisionBehaviors**: Updated `decideAction_PrioritizeHeal` function to use `BattleUtilities.getAllCharacters()` instead of the removed `battleManager.getAllCharacters()`
-  - Fixes runtime error: `TypeError: battleManager.getAllCharacters is not a function`
-  - Aligns with Phase 3 refactoring where utility methods were moved to dedicated `BattleUtilities` class
-  - Added fallback for backward compatibility
-
-### Technical
-- Continues the architectural separation of utilities from BattleManager
-- Updates calling code to access utilities through proper static methods
-- Maintains backward compatibility with defensive fallback implementation
-
-## Version 0.6.0.1 - Combat Balance Adjustments (2025-05-07)
-
-### Changed
-- **Zephyr's Wind Slash**: Removed bleeding effect and reduced base damage from 32 to 30
-  - Better aligns with the ability's air theme (bleeding didn't fit thematically)
-  - Reduces its overwhelming damage potential against Nature type characters
-  
-- **Aqualia's Tidal Wave**: Reduced base damage from 30 to 25
-  - Makes the AoE ability more balanced compared to single-target abilities
-  - Still benefits from type advantages against Fire and Metal, but with less extreme damage
-  
-- **Caste's Battle Fury**: Increased cooldown from 5 to 6 turns
-  - Better balances the triple-buff ability's power by reducing its uptime
-  - Maintains the same effect power but with longer time between uses
-
-### Technical
-- Updated character ability data in characters.json
-- Balance changes based on combat testing and damage analysis
-- Preserves character identity while addressing outlier power levels
-
-## Version 0.6.0 - Type System Enhancement (2025-05-07)
+## [0.6.0.0] - Phaser Battle Implementation - 2023-05-01
 
 ### Added
-- **Full Type System Implementation**: Implemented complete 22-type effectiveness system
-  - Created data-driven approach with new `type_effectiveness.json` file
-  - Added support for advantages (1.5x damage), disadvantages (0.5x damage), and immunities (0x damage)
-  - Implemented special case for Light vs. Ethereal (3x damage)
-  - Enhanced battle log with descriptive type effectiveness messages
+- Phaser-based battle scene implementation
+- Integrated Phaser battle visualization with existing battle logic
+- Battle animation system for attacks and abilities
+- Character sprite system with optimized battle graphics
+- Turn-based flow with visual indicators
 
-### Improved
-- **TypeEffectivenessCalculator**: Enhanced with data-driven approach and full type chart
-  - Added asynchronous loading of type data from JSON
-  - Implemented fallback to minimal hardcoded values if JSON fails to load
-  - Created proper defensive checks for type parameters
-  - Added support for case-insensitive type comparisons
+### Changed
+- Transitioned from DOM-based battle UI to Phaser-based implementation
+- Improved visual feedback for battle actions
+- Enhanced status effect visualization
 
 ### Technical
-- **Data Architecture**: Created foundation for data-driven game systems
-  - Established JSON-based type effectiveness data structure
-  - Enhanced TypeEffectivenessCalculator with async loading capabilities
-  - Added helper methods for UI tooltip integration
-  - Implemented comprehensive error handling and fallbacks
+- Set up BattleBridge system for communication between game logic and Phaser
+- Implemented component-based architecture for Phaser objects
+- Developed TurnIndicator, TeamContainer, and CharacterSprite components
 
-*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.0_TypeSystemEnhancement.md*
+## [0.5.27.2] - PassiveAbilityManager Implementation - 2023-04-20
 
-## Version 0.5.31.0 - BattleUtilities Component (2025-05-07)
+### Added
+- Implemented PassiveAbilityManager component for passive ability execution
+- Enhanced passive ability behavior system
+- Added proper event dispatching for passive triggers
 
 ### Technical
-- Created dedicated `BattleUtilities` static utility class to handle common utility functions
-- Extracted four utility methods from BattleManager to reduce code and improve separation of concerns
-- Utility methods now have improved validation and error handling
-- Reorganized file structure with new `utilities` subfolder in battle_logic directory
+- Extracted passive ability logic from BattleManager to dedicated component
+- Improved passive ability error handling and validation
+- Added cleanup phase with ~70-80 lines of code removed from BattleManager
 
-*Note: For detailed information on implementation steps, see CHANGELOG_0.5.31.0_BattleUtilities.md*
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.5.27.2_PassiveAbilityManager.md*
 
-## Version 0.5.30.1 - Complete StatusEffectDefinitionLoader Separation (2025-05-07)
+## [0.5.27.1] - PassiveTriggerTracker Implementation - 2023-04-18
+
+### Added
+- PassiveTriggerTracker component for managing passive ability trigger state
+- Methods for tracking per-turn and per-battle passive triggers
+- Improved trigger stack counting system
+
 ### Technical
-- **Full Architectural Separation**: Completed separation of status effect definitions from BattleManager
-  - Added `primeDefinitions()` method to StatusEffectDefinitionLoader to fully encapsulate definition loading
-  - Removed `setupFallbackStatusEffects()` method from BattleManager (handled entirely by loader)
-  - Removed `statusEffectDefinitions` property from BattleManager
-  - Simplified BattleManager initialization code by delegating to a single loader method
-  - Created true orchestration pattern with BattleManager having zero status definition knowledge
+- Extracted passive trigger tracking from BattleManager to dedicated component
+- Enhanced error handling for passive trigger tracking
+- Added cleanup phase with ~25-30 lines of code removed from BattleManager
 
-### Improved
-- **Cleaner Error Handling**: Enhanced the robustness of status effect loading system
-  - Added clear error messages for missing StatusEffectDefinitionLoader
-  - Implemented multi-level fallback chain with logging
-  - Created clear code paths for all possible failure scenarios
-  - Improved initialization flow with better error containment
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.5.27.1_PassiveTriggerTracker.md*
 
-*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.30.1_StatusEffectDefinitionLoader_Separation.md*
+## [0.5.26.1] - AbilityProcessor Implementation - 2023-04-15
+
+### Added
+- AbilityProcessor component for processing ability effects
+- Enhanced ability effect application system
+- Improved validation for ability targets and effects
+
+### Technical
+- Extracted ability processing logic from BattleManager to dedicated component
+- Implemented comprehensive parameter validation
+- Added defensive implementation for component dependencies
+- Clear delegation pattern for all facade methods
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.5.26.1_AbilityProcessor.md*
+
+## [0.5.25.1] - ActionGenerator Implementation - 2023-04-12
+
+### Added
+- ActionGenerator component for creating character actions
+- Improved ability selection logic
+- Enhanced target selection system
+
+### Technical
+- Extracted action generation logic from BattleManager to dedicated component
+- Implemented comprehensive parameter validation
+- Added defensive implementation for component dependencies
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.5.25.1_ActionGenerator.md*
+
+## [0.5.24.1] - TargetingSystem Implementation - 2023-04-10
+
+### Added
+- TargetingSystem component for handling ability targeting
+- Enhanced single and multi-target selection
+- Improved validation for targeting parameters
+
+### Technical
+- Extracted targeting logic from BattleManager to dedicated component
+- Implemented comprehensive parameter validation
+- Added defensive implementation for component dependencies
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.5.24.1_TargetingSystem.md*
+
+## [0.5.0.0] - Core Battle System - 2023-03-15
+
+### Added
+- Turn-based battle system with initiative/speed
+- Character abilities with cooldowns
+- Type advantage/disadvantage system
+- Health, damage, and healing calculations
+- Status effects (burn, stun, regen, etc.)
+- Battle log with detailed information
+- Team selection UI for battles
+
+### Technical
+- Established BattleManager as central battle coordinator
+- Created Character and Ability entity classes
+- Implemented TeamManager for team creation and management
+- Set up battle event system for UI updates
+
+## [0.4.0.0] - Team Builder UI - 2023-02-20
+
+### Added
+- Team builder UI with character selection
+- Character detail panel with stats and abilities
+- Team synergies (type and role bonuses)
+- Battle mode selection (Quick, Custom, Campaign)
+- Dynamic character art loading
+
+### Technical
+- DOM-based UI using vanilla JavaScript
+- Created TeamManager for team data handling
+- Set up DirectImageLoader for battle UI
+- Created TeamBuilderImageLoader for team builder UI

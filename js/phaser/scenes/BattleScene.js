@@ -4,11 +4,11 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.2.2 (BattleUIManager cleanup)
+ * @version 0.6.2.3 (TeamDisplayManager implementation)
  */
 
 import TurnIndicator from '../components/battle/TurnIndicator.js';
-// Note: BattleEventManager and BattleUIManager are included via traditional script tags in index.html
+// Note: BattleEventManager, BattleUIManager, and TeamDisplayManager are included via traditional script tags in index.html
 
 // Define the BattleScene class
 export default class BattleScene extends Phaser.Scene {
@@ -221,10 +221,18 @@ export default class BattleScene extends Phaser.Scene {
             this.initializeBattleBridge();
             console.log('BattleScene create: Battle bridge initialized.');
 
-            console.log('BattleScene create: Creating character teams...');
-            // Create character teams for visualization
-            this.createCharacterTeams(); // This now has internal try-catch blocks
-            console.log('BattleScene create: Character teams creation attempted.');
+            console.log('BattleScene create: Initializing TeamDisplayManager...');
+            // Initialize TeamDisplayManager for team and character visualization
+            this.initializeTeamManager();
+            console.log('BattleScene create: TeamDisplayManager initialized.');
+
+            // If TeamDisplayManager is not available or failed, fall back to legacy method
+            if (!this.teamManager || !this.playerTeamContainer) {
+                console.log('BattleScene create: Falling back to legacy team creation...');
+                // Create character teams for visualization
+                this.createCharacterTeams(); // This now has internal try-catch blocks
+                console.log('BattleScene create: Legacy character teams creation attempted.');
+            }
 
             // Hide test pattern after teams are created (if UI manager exists)
             if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
@@ -276,6 +284,53 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
+     * Initialize the TeamDisplayManager
+     * @private
+     */
+    initializeTeamManager() {
+        try {
+            // Check if TeamDisplayManager is available
+            if (window.TeamDisplayManager) {
+                console.log('BattleScene: Creating TeamDisplayManager instance');
+                
+                // Create team data object with player and enemy teams
+                const teamData = {
+                    playerTeam: this.playerTeam || [],
+                    enemyTeam: this.enemyTeam || []
+                };
+                
+                // Create manager with scene and team data
+                this.teamManager = new window.TeamDisplayManager(this, teamData);
+                
+                // Initialize teams and indicator
+                if (this.teamManager.initialize()) {
+                    console.log('BattleScene: TeamDisplayManager initialized successfully');
+                    
+                    // Store references to team containers for backward compatibility
+                    this.playerTeamContainer = this.teamManager.playerTeamContainer;
+                    this.enemyTeamContainer = this.teamManager.enemyTeamContainer;
+                    
+                    // Update event manager to use team manager if needed
+                    if (this.eventManager && typeof this.eventManager.setTeamManager === 'function') {
+                        this.eventManager.setTeamManager(this.teamManager);
+                    }
+                    
+                    return true;
+                } else {
+                    console.warn('BattleScene: TeamDisplayManager initialization returned false');
+                    return false;
+                }
+            } else {
+                console.warn('BattleScene: TeamDisplayManager not found, using legacy team creation');
+                return false;
+            }
+        } catch (error) {
+            console.error('BattleScene: Error initializing team manager:', error);
+            return false;
+        }
+    }
+
+    /**
      * Create character teams for visualization
      * Sets up player and enemy teams with CharacterSprite components
      */
@@ -294,7 +349,7 @@ export default class BattleScene extends Phaser.Scene {
                 this,
                 this.playerTeam,
                 true, // isPlayerTeam
-                { x: 800, y: 600 }  // Changed from 400 to 600
+                { x: 800, y: 600 }  // Correct position to match original implementation
             );
             console.log('Player team container created successfully.');
         } catch (error) {
@@ -313,7 +368,7 @@ export default class BattleScene extends Phaser.Scene {
                 this,
                 this.enemyTeam,
                 false, // isPlayerTeam
-                { x: 1200, y: 600 }  // Changed from 400 to 600
+                { x: 1200, y: 600 }  // Correct position to match original implementation
                 );
                 console.log('Enemy team container created successfully from data.');
             } else {
@@ -325,7 +380,7 @@ export default class BattleScene extends Phaser.Scene {
                     this,
                     placeholderEnemyTeam,
                     false, // isPlayerTeam
-                    { x: 1200, y: 400 }
+                    { x: 1150, y: 350 }
                 );
                 console.log('Placeholder enemy team container created successfully.');
                 // Optionally update this.enemyTeam if needed elsewhere
@@ -438,9 +493,16 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Update all active character visual indicators
+     * Delegates to TeamDisplayManager if available
      * @param {Object} characterData - Character currently taking action
      */
     updateActiveCharacterVisuals(characterData) {
+        // REFACTORING: Use TeamDisplayManager if available
+        if (this.teamManager) {
+            return this.teamManager.updateActiveCharacterVisuals(characterData);
+        }
+        
+        // Original implementation follows
         try {
             if (!characterData) {
                 console.warn('updateActiveCharacterVisuals: Missing character data');
@@ -716,6 +778,13 @@ export default class BattleScene extends Phaser.Scene {
                 if (window.BattleEventManager) {
                     console.log('BattleScene: Creating BattleEventManager instance');
                     this.eventManager = new window.BattleEventManager(this, this.battleBridge);
+                    
+                    // Set TeamDisplayManager reference if available
+                    if (this.teamManager && typeof this.eventManager.setTeamManager === 'function') {
+                        this.eventManager.setTeamManager(this.teamManager);
+                        console.log('BattleScene: Set TeamDisplayManager reference in BattleEventManager');
+                    }
+                    
                     console.log('BattleScene: BattleEventManager initialized successfully');
                 } else {
                     console.warn('BattleScene: BattleEventManager not found, battle events will not be handled.');
@@ -863,11 +932,17 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Get team data from scene
-     * Returns copies of team data to prevent reference issues
+     * Delegates to TeamDisplayManager if available
      * @param {string} teamType - 'player' or 'enemy'
      * @returns {Array} - Deep copy of requested team data
      */
     getTeamData(teamType) {
+        // REFACTORING: Use TeamDisplayManager if available
+        if (this.teamManager) {
+            return this.teamManager.getTeamData(teamType);
+        }
+        
+        // Original implementation follows
         try {
             if (teamType === 'player' && this.playerTeam) {
                 console.log(`BattleScene: Providing player team data with ${this.playerTeam.length} heroes`);
@@ -964,8 +1039,15 @@ export default class BattleScene extends Phaser.Scene {
             // Clean up battle bridge (including event manager)
             this.cleanupBattleBridge();
 
-            // Clean up character teams
-            this.cleanupCharacterTeams();
+            // Clean up TeamDisplayManager
+            if (this.teamManager && typeof this.teamManager.destroy === 'function') {
+                console.log('BattleScene: Cleaning up TeamDisplayManager');
+                this.teamManager.destroy();
+                this.teamManager = null;
+            } else {
+                // If TeamDisplayManager doesn't exist, use legacy cleanup
+                this.cleanupCharacterTeams();
+            }
 
             // Clean up UI manager
             if (this.uiManager && typeof this.uiManager.destroy === 'function') {
