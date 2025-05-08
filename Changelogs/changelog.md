@@ -10,6 +10,18 @@ All notable changes to the First to Fall game will be documented in this file.
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.2.4_TeamDisplayManager_Hotfix.md*
 
+## [0.6.2.4] - Battle Log Fix - 2025-05-08
+
+### Fixed
+- Battle log messages not displaying after v0.6.1.4 refactoring
+- Missing handling for BATTLE_LOG events in BattleEventManager
+
+### Technical
+- Implemented proper component coordination between BattleUIManager and BattleEventManager
+- Added fallback mechanisms to ensure battle log messages display even with partial component failures
+
+*Note: For detailed information on specific implementation, see CHANGELOG_0.6.2.4_BattleLogFix.md*
+
 ## [0.6.2.3] - TeamDisplayManager Implementation - 2023-05-11
 
 ### Added

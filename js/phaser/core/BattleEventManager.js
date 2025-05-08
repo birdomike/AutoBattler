@@ -25,6 +25,7 @@ class BattleEventManager {
         this.scene = scene;
         this.battleBridge = battleBridge;
         this.teamManager = null; // Will be set via setTeamManager if available
+        this.battleLog = null; // Will be set via setBattleLog if available
         this.boundHandlers = new Map(); // For tracking bound handlers
         
         console.log("[BattleEventManager] Initializing...");
@@ -45,6 +46,7 @@ class BattleEventManager {
         this.onCharacterAction = this.onCharacterAction.bind(this);
         this.onAbilityUsed = this.onAbilityUsed.bind(this);
         this.handleBattleEnded = this.handleBattleEnded.bind(this);
+        this.handleBattleLog = this.handleBattleLog.bind(this);
 
         // Setup all event listeners
         this.setupCoreEventListeners();
@@ -68,6 +70,20 @@ class BattleEventManager {
         console.log("[BattleEventManager] Setting TeamDisplayManager reference");
         this.teamManager = teamManager;
     }
+    
+    /**
+     * Set the battle log reference
+     * @param {DirectBattleLog} battleLog - The DirectBattleLog instance
+     */
+    setBattleLog(battleLog) {
+        if (!battleLog) {
+            console.warn("[BattleEventManager] setBattleLog: Missing battle log reference");
+            return;
+        }
+        
+        console.log("[BattleEventManager] Setting DirectBattleLog reference");
+        this.battleLog = battleLog;
+    }
 
     /**
      * Set up core battle flow event listeners
@@ -88,6 +104,12 @@ class BattleEventManager {
         this.registerEventHandler(
             this.battleBridge.eventTypes.BATTLE_ENDED,
             this.handleBattleEnded
+        );
+        
+        // Battle log event listener
+        this.registerEventHandler(
+            this.battleBridge.eventTypes.BATTLE_LOG,
+            this.handleBattleLog
         );
     }
 
@@ -402,6 +424,42 @@ class BattleEventManager {
             }
         } else {
             console.error("[BattleEventManager] this.scene.showBattleOutcome is not a function. Cannot display battle outcome.");
+        }
+    }
+    
+    /**
+     * Handle battle log event
+     * @param {Object} data - Event data
+     */
+    handleBattleLog(data) {
+        if (!data || !data.message) {
+            console.warn("[BattleEventManager] handleBattleLog: Missing message data");
+            return;
+        }
+
+        try {
+            // Check if we have a direct reference to the battle log
+            if (this.battleLog && typeof this.battleLog.addMessage === 'function') {
+                this.battleLog.addMessage(data.message, data.type || 'default');
+                return;
+            }
+            
+            // Fallback: try to access the battle log through the scene if available
+            if (this.scene && this.scene.battleLog && typeof this.scene.battleLog.addMessage === 'function') {
+                this.scene.battleLog.addMessage(data.message, data.type || 'default');
+                return;
+            }
+            
+            // Second fallback: try to access through window
+            if (window.battleLog && typeof window.battleLog.addMessage === 'function') {
+                window.battleLog.addMessage(data.message, data.type || 'default');
+                return;
+            }
+            
+            // If we get here, we couldn't find any way to log the message
+            console.warn(`[BattleEventManager] Could not find battle log to display message: ${data.message}`);
+        } catch (error) {
+            console.error("[BattleEventManager] Error handling battle log event:", error);
         }
     }
 
