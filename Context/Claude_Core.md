@@ -4,13 +4,13 @@
 
 > When Claude needs to understand the game's core architecture, planned features, or current development status, this is the document to reference. This approach reduces token usage while providing focused context about the game's design and systems.
 ## Key Areas to Focus On
-- BattleManager Refactoring (current focus: component-based architecture with specialized managers)
+- Component-based architecture with specialized managers
 - Phaser Battle Scene Implementation (modular component architecture)
-- Enhanced Passive Ability System (recently improved with component-based implementation)
-- Battle Flow Control (extracted to dedicated BattleFlowController)
-- Damage and Healing System (extracted to specialized components)
-- Battle Events and Validation patterns
-- Project roadmap implementation status (see DEVELOPMENT_PLAN.md)
+- Enhanced Passive Ability System with dedicated components
+- Battle event dispatching system
+- Type effectiveness system (data-driven design)
+- Defensive programming patterns throughout the codebase
+- Project roadmap implementation status
 
 ## Game Concept
 This is an autobattler game where players select teams of characters that fight automatically against opponent teams. The core appeal is in team building, strategic selection of characters, and watching the battles unfold with some randomness. Characters will gain XP, level up, and unlock new abilities as they progress.
@@ -33,19 +33,19 @@ C:\Personal\AutoBattler\
 │
 ├── Changelogs/               # Version history documentation
 │   ├── changelog.md          # High-level changelog (main file)
-│   └── CHANGELOG_X.X.X.md    # Detailed technical changelogs for each version
+│   └── Technical Changelogs/ # Detailed technical changelogs for each version
 │
 ├── Context/                  # Documentation for understanding project architecture
 │   ├── Battle_Implementation_Plan.md     # Phaser implementation strategy
-│   ├── Claude.md                         # This file - notes for Claude
+│   ├── Claude_Core.md                     # This file - notes for Claude
 │   ├── Lessons Learned.md                # Technical retrospectives
+│   ├── Planning/                         # Architecture & refactoring plans
 │   └── Version 1.0 Vision.md             # Target feature set and roadmap
 │
 ├── data/                     # Game data
 │   ├── characters.json       # Character definitions with stats and abilities
-│   ├── abilities.json        # Ability definitions
-│   ├── status_effects/       # Status effect definitions directory
-│   └── status_effects.json   # Main status effect definitions
+│   ├── status_effects.json   # Status effect definitions
+│   └── type_effectiveness.json # Type relationship data (advantages/disadvantages/immunities)
 │
 ├── examples/                 # Example code and implementations
 │   ├── passive_character.json           # Sample passive ability character
@@ -55,7 +55,7 @@ C:\Personal\AutoBattler\
 │   ├── battle_logic/         # Core battle system logic
 │   │   ├── core/                   # Core battle system components
 │   │   │   ├── BattleFlowController.js   # Controls turn flow and actions
-│   │   │   └── BattleInitializer.js      # Handles battle setup
+│   │   │   └── BattleInitializer.js      # Handles battle setup and team initialization
 │   │   ├── status/                 # Status effect components
 │   │   │   ├── StatusEffectManager.js     # Status effect application/processing
 │   │   │   └── StatusEffectDefinitionLoader.js  # Loads effect definitions
@@ -70,9 +70,11 @@ C:\Personal\AutoBattler\
 │   │   ├── passives/               # Passive ability components
 │   │   │   ├── PassiveAbilityManager.js   # Processes passive abilities
 │   │   │   └── PassiveTriggerTracker.js   # Tracks passive triggers per turn/battle
-│   │   ├── events/                 # Battle event system (planned)
-│   │   │   ├── BattleEventDispatcher.js   # Event dispatching (not implemented)
-│   │   │   └── BattleLogManager.js        # Battle log messaging (not implemented)
+│   │   ├── events/                 # Battle event system
+│   │   │   ├── BattleEventDispatcher.js   # Centralizes event dispatching
+│   │   │   └── BattleLogManager.js        # Battle log message formatting and display
+│   │   ├── utilities/              # Utility components and functions
+│   │   │   └── BattleUtilities.js         # Static utility methods
 │   │   ├── BattleBehaviors.js      # Behavior system for battle actions
 │   │   ├── BehaviorRegistry.js     # Registry of all available behaviors
 │   │   ├── ActionDecisionBehaviors.js # Logic for choosing actions
@@ -85,9 +87,7 @@ C:\Personal\AutoBattler\
 │   │   └── Ability.js        # Abilities system
 │   │
 │   ├── managers/             # Game managers
-│   │   ├── BattleManager.js  # Manages battle state and flow
-│   │   ├── BattleManager.js.hotfix  # Hotfix file for battle manager
-│   │   ├── BattleManager.js.updates  # Updates for battle manager
+│   │   ├── BattleManager.js  # Orchestrates battle flow via component delegation
 │   │   └── TeamManager.js    # Manages team composition
 │   │
 │   ├── phaser/               # Phaser integration 
@@ -327,6 +327,20 @@ This dual approach ensures both quick reference for general changes and detailed
   ```
 
 ### Character Art System
+- Characters are assigned unique IDs (`uniqueId`) upon creation via BattleInitializer
+- **Source ID Linking Pattern**: Stores character IDs rather than direct object references
+  - Prevents circular references in status effects and other systems
+  - Enables proper attribution of damage/healing sources in the battle log
+  - Critical for tracking effect sources across turns
+- **ID Resolution**: BattleUtilities provides methods to resolve IDs back to character objects
+  - `getCharacterByUniqueId(uniqueId, playerTeam, enemyTeam)`: Finds character by ID across both teams
+  - Handles multiple source reference formats for backward compatibility
+  - Includes defensive programming with proper error handling
+- **Implementation**: 
+  - Status effects store the source character's `uniqueId` when applied
+  - When effects trigger (damage, healing), the source ID is resolved to the full character
+  - Battle log uses the resolved character for proper message formatting
+  - The pattern is used throughout damage, healing, and status effect systems
 - **Image Loaders:** Two main systems handle character art:
   1. `TeamBuilderImageLoader.js` - For Team Builder UI with advanced caching
   2. `DirectImageLoader.js` - For Battle UI with animation support
@@ -360,6 +374,22 @@ This dual approach ensures both quick reference for general changes and detailed
   - Uses data attributes to track state and prevent redundant processing
   - Provides early-exit conditions for elements that already have art
   - Uses requestAnimationFrame throttling for performance
+
+### Character ID Management System
+- Characters are assigned unique IDs (`uniqueId`) upon creation via BattleInitializer
+- **Source ID Linking Pattern**: Stores character IDs rather than direct object references
+  - Prevents circular references in status effects and other systems
+  - Enables proper attribution of damage/healing sources in the battle log
+  - Critical for tracking effect sources across turns
+- **ID Resolution**: BattleUtilities provides methods to resolve IDs back to character objects
+  - `getCharacterByUniqueId(uniqueId, playerTeam, enemyTeam)`: Finds character by ID across both teams
+  - Handles multiple source reference formats for backward compatibility
+  - Includes defensive programming with proper error handling
+- **Implementation**: 
+  - Status effects store the source character's `uniqueId` when applied
+  - When effects trigger (damage, healing), the source ID is resolved to the full character
+  - Battle log uses the resolved character for proper message formatting
+  - The pattern is used throughout damage, healing, and status effect systems
 
 ### Team Builder UI
 - Implemented as vanilla JavaScript in `js/ui/TeamBuilderUI.js`
@@ -412,10 +442,12 @@ This dual approach ensures both quick reference for general changes and detailed
     - Tricksters (Chaos/RNG): High SPI (1.5) with balanced other stats
 
 ### Type Effectiveness System
-- Comprehensive type advantage/disadvantage system with 22 different types
+- **Fully implemented** data-driven type system with complete 22-type effectiveness relationships
+- Data stored in `type_effectiveness.json` with advantages, disadvantages, immunities, and special cases
 - Each type has specific strengths (does +50% damage) and weaknesses (does -50% damage)
 - Some types have immunities (e.g., Metal is immune to Poison, Physical cannot damage Ethereal)
 - Special interactions exist (e.g., Ethereal takes 3x damage from Light)
+- Enhanced battle log with descriptive type effectiveness messages
 - Example relationships:
   - Fire is strong against Nature, Ice, and Metal but weak against Water and Rock
   - Water is strong against Fire, Rock, and Metal but weak against Nature and Electric
@@ -441,10 +473,10 @@ This dual approach ensures both quick reference for general changes and detailed
 - Inventory management interface
 
 ## Current Implementation Status
-- **Refactoring Progress**: Major BattleManager refactoring underway (Stage 6 of 8 complete)
-  - Completed components: StatusEffectManager, BattleFlowController, DamageCalculator, HealingProcessor, TypeEffectivenessCalculator, AbilityProcessor, TargetingSystem, ActionGenerator, PassiveTriggerTracker, PassiveAbilityManager
-  - Remaining components: BattleEventDispatcher, BattleLogManager
+- **Refactoring Progress**: Major BattleManager refactoring completed
+  - All components implemented: StatusEffectManager, BattleFlowController, DamageCalculator, HealingProcessor, TypeEffectivenessCalculator, AbilityProcessor, TargetingSystem, ActionGenerator, PassiveTriggerTracker, PassiveAbilityManager, BattleEventDispatcher, BattleLogManager, BattleInitializer, BattleUtilities
   - Architecture has shifted from monolithic BattleManager to specialized component managers
+  - BattleManager now serves as a thin orchestration layer that delegates to specialized components
 - Team Builder UI is fully functional with hero selection, team building, and custom battles (DOM-based)
 - Phaser Battle Scene development continuing with modular component architecture
 - Previous DOM-based Battle UI is being replaced with a Phaser-based implementation
@@ -453,8 +485,18 @@ This dual approach ensures both quick reference for general changes and detailed
 - Character art implemented for all characters with optimized battle versions
 - Core data structures and classes are defined and working
 - Initiative/speed system implemented for turn-based combat
-- Type advantages and status effects are functional
+- Type advantages and status effects are functional with data-driven implementation
 - Implementation plan documented in `C:\Personal\AutoBattler\Context\Battle_Implementation_Plan.md`
-- Detailed refactoring plan in `C:\Personal\AutoBattler\Context\BattleManager_Refactoring_Plan_Big Picture.md`
+- Detailed refactoring plan in `C:\Personal\AutoBattler\Context\Planning\BattleManager_Refactoring_Plan_Big Picture.md`
+
+### Defensive Programming Patterns
+- The codebase uses consistent defensive programming patterns throughout components:
+  - Component availability checks before calling methods
+  - Parameter validation at the beginning of methods
+  - Graceful fallbacks when dependencies are unavailable
+  - Clear error messages with component context ([ComponentName])
+  - Proper handling of circular references
+  - Safe defaults for missing or invalid parameters
+  - Early returns for invalid input states
 
 ---

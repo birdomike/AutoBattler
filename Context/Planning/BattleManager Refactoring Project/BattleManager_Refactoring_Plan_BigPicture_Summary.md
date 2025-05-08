@@ -50,12 +50,12 @@ js/
 - CHECKPOINT: Test passive triggers with toggle on/off
 - CLEANUP: Remove original passive code
 
-### Stage 7: Events and Logging ⏳ PLANNED
+### Stage 7: Events and Logging ⏳ Complete
 - Implement BattleEventDispatcher and BattleLogManager
 - CHECKPOINT: Test complete system with toggle on/off
 - CLEANUP: Remove original event and logging code
 
-### Stage 8: Debug System Implementation ⏳ PLANNED
+### Stage 8: Debug System Implementation ⏳ Scrapped
 - Create debug namespace with domain-specific loggers
 - Replace direct console logs with Debug.namespace approach
 - CHECKPOINT: Verify debug toggling and verbosity controls
