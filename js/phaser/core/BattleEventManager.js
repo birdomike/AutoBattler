@@ -362,9 +362,12 @@ class BattleEventManager {
      * @param {Object} data - Event data
      */
     onCharacterAction(data) {
+        console.log(`BEM.onCharacterAction (for Turn Highlighting): Called for CHARACTER_ACTION. Character: ${data?.character?.name}, Event Data:`, data);
+        
         if (!data || !data.character || !this.scene) return;
 
         try {
+            console.log(`BEM.onCharacterAction (for Turn Highlighting): this.teamManager is ${this.teamManager ? 'defined' : 'undefined'}. Attempting to call updateActiveCharacterVisuals.`);
             // Update active character visuals using TeamDisplayManager if available
             if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
                 this.teamManager.updateActiveCharacterVisuals(data.character);
@@ -378,7 +381,9 @@ class BattleEventManager {
             }
 
             // Show action indicator on character
+            console.log(`BEM.onCharacterAction (for Action Indicator): Character: ${data.character?.name}. Attempting to find CharacterSprite via TeamDisplayManager for showActionText('Auto Attack').`);
             const characterSprite = this.getCharacterSprite(data.character);
+            console.log(`BEM.onCharacterAction: CharacterSprite found: ${characterSprite ? 'yes' : 'null'}`); 
             if (characterSprite && characterSprite.showActionText) {
                 characterSprite.showActionText("Auto Attack");
             }
@@ -392,11 +397,14 @@ class BattleEventManager {
      * @param {Object} data - Event data
      */
     onAbilityUsed(data) {
+        console.log(`BEM.onAbilityUsed (for Action Indicator): Character: ${data?.character?.name}, Ability: ${data?.ability?.name}. Event Data:`, data, `Attempting to find CharacterSprite via TeamDisplayManager for showActionText.`);
+        
         if (!data || !data.character || !data.ability || !this.scene) return;
 
         try {
             // Show action indicator on character
             const characterSprite = this.getCharacterSprite(data.character);
+            console.log(`BEM.onAbilityUsed: CharacterSprite found: ${characterSprite ? 'yes' : 'null'}`);
             if (characterSprite && characterSprite.showActionText) {
                 characterSprite.showActionText(`Ability: ${data.ability.name}`);
             }

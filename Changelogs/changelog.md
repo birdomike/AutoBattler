@@ -4,11 +4,15 @@ All notable changes to the First to Fall game will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Comprehensive diagnostic logging for Turn Highlighting and Action Indicator systems
+- Enhanced debugging capabilities for visual feedback systems in battle
+
 ### Fixed
 - Corrected team positioning in TeamDisplayManager implementation
 - Characters now appear at correct positions on the battle screen
 
-*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.2.4_TeamDisplayManager_Hotfix.md*
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.0_Indicator_Diagnostics.md*
 
 ## [0.6.2.4] - Battle Log Fix - 2025-05-08
 

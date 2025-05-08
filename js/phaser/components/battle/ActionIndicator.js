@@ -75,6 +75,8 @@ class ActionIndicator {
      * @param {object} options - Optional configuration for the animation
      */
     showAction(actionText, options = {}) {
+        console.log(`ActionIndicator.showAction: Called with text: '${actionText}'. Text object state: content=${this.text ? this.text.text : 'undefined'}, alpha=${this.text ? this.text.alpha : 'undefined'}, visible=${this.text ? (this.text.visible ? 'true' : 'false') : 'undefined'}. Tween starting.`);
+        
         // Default options
         const config = {
             color: '#ffffff', // default white
@@ -87,7 +89,7 @@ class ActionIndicator {
         if (this.timeline) {
             this.timeline.stop();
             this.timeline.destroy();
-        }
+        };
         
         // Update text and color
         this.text.setText(actionText);

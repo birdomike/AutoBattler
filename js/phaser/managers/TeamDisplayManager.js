@@ -184,9 +184,10 @@ class TeamDisplayManager {
         }
         
         try {
-            console.log(`[TeamDisplayManager] updateActiveCharacterVisuals for ${characterData.name} (${characterData.team})`);
+            console.log(`TDM.updateActiveCharacterVisuals: Called for Turn Highlighting. Character: ${characterData.name}`);
             
             // Clear previous highlighting in all teams
+            console.log(`TDM.updateActiveCharacterVisuals: Attempting to clear indicators on TeamContainers.`);
             if (this.playerTeamContainer) {
                 this.playerTeamContainer.clearAllHighlights();
             }
@@ -203,6 +204,8 @@ class TeamDisplayManager {
                     characterData.name || characterData.id || "unknown");
                 return false;
             }
+            
+            console.log(`TDM.updateActiveCharacterVisuals: Attempting showTurnIndicator on ${characterData.team} TeamContainer for character ${characterData.name || characterData.id}.`);
             
             // Show character highlight
             sprite.highlight();

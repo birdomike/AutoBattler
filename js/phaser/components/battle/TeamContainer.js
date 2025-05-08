@@ -376,6 +376,7 @@ class TeamContainer {
      * @param {string|number} identifier - Character name or index
      */
     showTurnIndicator(identifier) {
+        console.log(`TC.showTurnIndicator: Called for Turn Highlighting with ID [${identifier}]. Attempting to find CharacterSprite.`);
         let sprite;
 
         if (typeof identifier === 'number') {
@@ -383,6 +384,8 @@ class TeamContainer {
         } else {
             sprite = this.getCharacterSpriteByName(identifier);
         }
+        
+        console.log(`TC.showTurnIndicator: Found CharacterSprite: ${sprite ? `sprite for ${sprite.character?.name}` : 'null'}. Attempting to call sprite.highlight().`);
 
         if (sprite) {
             // Unhighlight all others first
@@ -397,6 +400,26 @@ class TeamContainer {
     }
 
     /**
+     * Clear all highlight effects from all characters in the team
+     */
+    clearAllHighlights() {
+        // Add safety check
+        if (!Array.isArray(this.characterSprites)) {
+            console.warn(`[TeamContainer] clearAllHighlights: characterSprites is not an array, skipping clear operation.`);
+            return; 
+        }
+        
+        console.log(`TC.clearAllHighlights: Called for ${this.isPlayerTeam ? 'player' : 'enemy'} team, clearing highlights for ${this.characterSprites.length} sprites.`);
+        
+        // Unhighlight all characters in this team
+        this.characterSprites.forEach((sprite, index) => {
+            if (sprite && typeof sprite.unhighlight === 'function') {
+                sprite.unhighlight();
+            }
+        });
+    }
+    
+    /**
      * Clear turn indicators from all characters in the team
      */
     clearTurnIndicators() {
@@ -405,6 +428,8 @@ class TeamContainer {
             console.warn(`[TeamContainer] clearTurnIndicators: characterSprites is not an array, skipping clear operation.`);
             return; 
         }
+        
+        console.log(`TC.clearTurnIndicators: Clearing turn indicators for ${this.isPlayerTeam ? 'player' : 'enemy'} team with ${this.characterSprites.length} sprites.`);
         
         // Unhighlight all characters in this team
         this.characterSprites.forEach((sprite, index) => {

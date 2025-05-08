@@ -306,6 +306,8 @@ class CharacterSprite {
      * @param {string} actionText - The action being performed
      */
     showActionText(actionText) {
+        console.log(`CS.showActionText: Called for ${this.character?.name} with text: '${actionText}'. this.actionIndicator instance is ${this.actionIndicator ? 'defined' : 'undefined'}.`);
+        
         try {
             if (!this.actionIndicator) {
                 console.warn(`showActionText (${this.character?.name}): Action indicator not initialized.`);
@@ -776,6 +778,9 @@ highlight() {
         console.warn(`[CharacterSprite] highlight: Cannot highlight ${this.character?.name}, missing scene or container`);
         return; // Safety check
     }
+    
+    console.log(`CS.highlight: Called for character ${this.character?.name}. Initial state: highlightEffect visible=${this.highlightEffect ? (this.highlightEffect.visible ? 'true' : 'false') : 'undefined'}, alpha=${this.highlightEffect ? this.highlightEffect.alpha : 'undefined'}, shadowEffect visible=${this.shadowEffect ? (this.shadowEffect.visible ? 'true' : 'false') : 'undefined'}, alpha=${this.shadowEffect ? this.shadowEffect.alpha : 'undefined'}.`);
+    
     try { // Added try...catch
         // Get the character sprite's height to position at the bottom
         let bottomOffset = 20; // Offset from center of container to bottom of character
@@ -822,6 +827,8 @@ highlight() {
                     repeat: -1
                 });
             }
+            
+            console.log(`CS.highlight: Visuals (ellipse, shadow) created/updated. Tweens starting.`);
         } else {
             this.highlightEffect.setVisible(true);
             if (this.shadowEffect) this.shadowEffect.setVisible(true);
