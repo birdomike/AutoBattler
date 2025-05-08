@@ -105,7 +105,12 @@ function decideAction_PrioritizeHeal(context) {
     const actorTeam = teamManager.getCharacterTeam(actor);
     
     // Check team health status
-    const allCharacters = battleManager.getAllCharacters();
+    // UPDATED in v0.6.0.2: Use BattleUtilities.getAllCharacters instead of battleManager.getAllCharacters
+    // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
+    const allCharacters = window.BattleUtilities
+        ? window.BattleUtilities.getAllCharacters(battleManager.playerTeam, battleManager.enemyTeam)
+        : [...battleManager.playerTeam, ...battleManager.enemyTeam]; // Fallback for backward compatibility
+    
     const allies = allCharacters.filter(character => 
         teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
     );

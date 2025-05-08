@@ -67,7 +67,7 @@
           "id": "caste_battle_fury",
           "name": "Battle Fury",
           "damage": 0,
-          "cooldown": 5,
+          "cooldown": 6,
           "isHealing": false,
           "damageType": "utility",
           "description": "Enter a state of fury, increasing attack speed and damage",
@@ -228,7 +228,7 @@
         {
           "id": "aqualia_tidal_wave",
           "name": "Tidal Wave",
-          "damage": 30,
+          "damage": 25,
           "cooldown": 3,
           "isHealing": false,
           "damageType": "spell",
@@ -240,7 +240,7 @@
           "effects": [
             {
               "type": "Damage",
-              "value": 30,
+              "value": 25,
               "scalingStat": "Intellect",
               "scaleFactor": 0.5,
               "damageType": "water"
@@ -705,7 +705,7 @@
         {
           "id": "zephyr_wind_slash",
           "name": "Wind Slash",
-          "damage": 32,
+          "damage": 30,
           "cooldown": 3,
           "isHealing": false,
           "damageType": "physical",
@@ -718,16 +718,10 @@
           "effects": [
             {
               "type": "Damage",
-              "value": 32,
+              "value": 30,
               "scalingStat": "Strength",
               "scaleFactor": 0.5,
               "damageType": "air"
-            },
-            {
-              "type": "ApplyStatus",
-              "statusEffectId": "status_bleed",
-              "chance": 0.4,
-              "duration": 2
             }
           ]
         },

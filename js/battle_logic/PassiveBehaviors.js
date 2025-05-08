@@ -183,9 +183,25 @@ function passive_TeamBuffOnBattleStart(context) {
     
     // Get all allies
     const actorTeam = teamManager.getCharacterTeam(actor);
-    const allies = battleManager.getAllCharacters().filter(character => 
-        teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
-    );
+    
+    // UPDATED in v0.6.0.4: Use BattleUtilities.getAllCharacters instead of battleManager.getAllCharacters
+    // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
+    let allies = [];
+    if (window.BattleUtilities) {
+        const allCharacters = BattleUtilities.getAllCharacters(
+            battleManager.playerTeam,
+            battleManager.enemyTeam
+        );
+        allies = allCharacters.filter(character => 
+            teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
+        );
+    } else {
+        console.warn("[PassiveBehaviors] BattleUtilities not available for getAllCharacters lookup.");
+        // Fallback implementation
+        allies = [...battleManager.playerTeam, ...battleManager.enemyTeam].filter(character => 
+            teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
+        );
+    }
     
     // Check for ability-specific configuration
     let statusId = 'status_atk_up';
@@ -325,12 +341,31 @@ function passive_ProtectiveInstinct(context) {
     
     // Get all allies
     const actorTeam = teamManager.getCharacterTeam(actor);
-    const allies = battleManager.getAllCharacters().filter(character => 
-        teamManager.getCharacterTeam(character) === actorTeam && 
-        character !== actor && // Not self
-        !character.defeated && 
-        (character.currentHp / character.stats.hp) < 0.4 // Below 40% health
-    );
+    
+    // UPDATED in v0.6.0.4: Use BattleUtilities.getAllCharacters instead of battleManager.getAllCharacters
+    // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
+    let allies = [];
+    if (window.BattleUtilities) {
+        const allCharacters = BattleUtilities.getAllCharacters(
+            battleManager.playerTeam,
+            battleManager.enemyTeam
+        );
+        allies = allCharacters.filter(character => 
+            teamManager.getCharacterTeam(character) === actorTeam && 
+            character !== actor && // Not self
+            !character.defeated && 
+            (character.currentHp / character.stats.hp) < 0.4 // Below 40% health
+        );
+    } else {
+        console.warn("[PassiveBehaviors] BattleUtilities not available for getAllCharacters lookup.");
+        // Fallback implementation
+        allies = [...battleManager.playerTeam, ...battleManager.enemyTeam].filter(character => 
+            teamManager.getCharacterTeam(character) === actorTeam && 
+            character !== actor && // Not self
+            !character.defeated && 
+            (character.currentHp / character.stats.hp) < 0.4 // Below 40% health
+        );
+    }
     
     // If there are low-health allies, protect them
     if (allies.length > 0) {
@@ -411,10 +446,27 @@ function passive_Intimidate(context) {
     
     // Get enemies
     const actorTeam = teamManager.getCharacterTeam(actor);
-    const enemies = battleManager.getAllCharacters().filter(character => 
-        teamManager.getCharacterTeam(character) !== actorTeam && 
-        !character.defeated
-    );
+    
+    // UPDATED in v0.6.0.4: Use BattleUtilities.getAllCharacters instead of battleManager.getAllCharacters
+    // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
+    let enemies = [];
+    if (window.BattleUtilities) {
+        const allCharacters = BattleUtilities.getAllCharacters(
+            battleManager.playerTeam,
+            battleManager.enemyTeam
+        );
+        enemies = allCharacters.filter(character => 
+            teamManager.getCharacterTeam(character) !== actorTeam && 
+            !character.defeated
+        );
+    } else {
+        console.warn("[PassiveBehaviors] BattleUtilities not available for getAllCharacters lookup.");
+        // Fallback implementation
+        enemies = [...battleManager.playerTeam, ...battleManager.enemyTeam].filter(character => 
+            teamManager.getCharacterTeam(character) !== actorTeam && 
+            !character.defeated
+        );
+    }
     
     // If there are enemies, intimidate them
     if (enemies.length > 0) {

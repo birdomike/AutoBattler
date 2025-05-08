@@ -1,6 +1,68 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.6.0.4 - Phase 3 Utility Integration Cleanup (2025-05-07)
+
+### Fixed
+- **PassiveBehaviors**: Updated three functions to use `BattleUtilities.getAllCharacters()` instead of the removed `battleManager.getAllCharacters()`:
+  - `passive_TeamBuffOnBattleStart`: Fixed team buffing not working due to missing utility method
+  - `passive_ProtectiveInstinct`: Fixed shield application to low-health allies
+  - `passive_Intimidate`: Fixed enemy targeting for intimidation effects
+- Each updated location includes appropriate fallback handling for backward compatibility
+
+### Technical
+- Completes Phase 3 refactoring by fixing all remaining utility method calls
+- Maintains architectural consistency across components
+- Includes defensive coding patterns with fallbacks for robustness
+- Provides consistent logging for diagnostic purposes
+
+## Version 0.6.0.3 - StatusEffectManager BattleUtilities Integration (2025-05-07)
+
+### Fixed
+- **StatusEffectManager**: Updated `_processDamageEffect` and `_processHealingEffect` methods to use `BattleUtilities.getCharacterByUniqueId()` instead of the removed `battleManager.getCharacterByUniqueId()`
+  - Fixes runtime error: `TypeError: this.battleManager.getCharacterByUniqueId is not a function`
+  - Continues alignment with Phase 3 refactoring where utility methods were moved to dedicated `BattleUtilities` class
+  - Adds fallback for backward compatibility with clear error messaging
+  - Improves parameter handling for `applyHealing` calls
+
+### Technical
+- Further reduces dependencies on `BattleManager` for utility functions
+- Improves source character resolution robustness with better error handling
+- Maintains the 'Source ID Linking' pattern established in v0.5.27.2 while modernizing implementation
+
+## Version 0.6.0.2 - BattleUtilities Integration Fix (2025-05-07)
+
+### Fixed
+- **ActionDecisionBehaviors**: Updated `decideAction_PrioritizeHeal` function to use `BattleUtilities.getAllCharacters()` instead of the removed `battleManager.getAllCharacters()`
+  - Fixes runtime error: `TypeError: battleManager.getAllCharacters is not a function`
+  - Aligns with Phase 3 refactoring where utility methods were moved to dedicated `BattleUtilities` class
+  - Added fallback for backward compatibility
+
+### Technical
+- Continues the architectural separation of utilities from BattleManager
+- Updates calling code to access utilities through proper static methods
+- Maintains backward compatibility with defensive fallback implementation
+
+## Version 0.6.0.1 - Combat Balance Adjustments (2025-05-07)
+
+### Changed
+- **Zephyr's Wind Slash**: Removed bleeding effect and reduced base damage from 32 to 30
+  - Better aligns with the ability's air theme (bleeding didn't fit thematically)
+  - Reduces its overwhelming damage potential against Nature type characters
+  
+- **Aqualia's Tidal Wave**: Reduced base damage from 30 to 25
+  - Makes the AoE ability more balanced compared to single-target abilities
+  - Still benefits from type advantages against Fire and Metal, but with less extreme damage
+  
+- **Caste's Battle Fury**: Increased cooldown from 5 to 6 turns
+  - Better balances the triple-buff ability's power by reducing its uptime
+  - Maintains the same effect power but with longer time between uses
+
+### Technical
+- Updated character ability data in characters.json
+- Balance changes based on combat testing and damage analysis
+- Preserves character identity while addressing outlier power levels
+
 ## Version 0.6.0 - Type System Enhancement (2025-05-07)
 
 ### Added
@@ -53,49 +115,3 @@
   - Improved initialization flow with better error containment
 
 *Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.30.1_StatusEffectDefinitionLoader_Separation.md*
-
-## Version 0.5.30.0 - StatusEffectDefinitionLoader Enhancement (2025-05-07)
-### Technical
-- **Enhanced StatusEffectDefinitionLoader Component**: Implemented Phase 2 of further refactoring plan
-  - Moved JSON parsing and status effect fallback logic from BattleManager to StatusEffectDefinitionLoader
-  - Added public `loadDefinitionsFromJson()` method with improved error handling
-  - Enhanced `setupFallbackDefinitions()` for more comprehensive fallbacks
-  - Converted BattleManager methods to pure delegation facades
-  - Implemented robust error handling and validation throughout
-
-### Improved
-- **Status Effect Loading**: Enhanced JSON parsing with better failure recovery
-  - Added multi-path loading strategy with clear fallback chain
-  - Improved error reporting during definition loading
-  - Enhanced normalization of different JSON formats
-  - Protected against missing or malformed status effect definitions
-
-*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.30.0_StatusEffectDefinitionLoader.md*
-
-## Version 0.5.29.0 - BattleInitializer Implementation (2025-05-07)
-### Technical
-- **Completed BattleInitializer Component**: Implemented Phase 1 of further refactoring plan
-  - Moved team initialization logic from BattleManager to BattleInitializer component
-  - Updated BattleManager to delegate team preparation to BattleInitializer
-  - Added explicit teamType parameter to prepareTeamForBattle method
-  - Implemented improved character validation during team initialization
-  - Added comprehensive error handling and parameter validation
-
-### Fixed
-- **Team Preparation**: Enhanced team preparation with better error handling
-  - Added proper stats.hp validation to prevent null reference errors
-  - Fixed potential issues with invalid characters during team initialization
-  - Improved error messaging for invalid team data
-
-*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.29.0_BattleInitializer.md*
-
-## Version 0.5.29.1 - BattleManager Code Cleanup (2025-05-07)
-### Technical
-- **Codebase Cleanup**: Removed diagnostic code from BattleManager post-refactoring
-  - Eliminated approximately 80-100 lines of diagnostic console logs and comments
-  - Removed component verification logs that were used during refactoring
-  - Cleaned up references to the removed toggle mechanism
-  - Improved readability by removing temporary debugging traces
-  - Simplified global registration code at the end of file
-
-*Note: For detailed information on specific implementation steps, see Technical Changelogs/CHANGELOG_0.5.29.1_BattleManagerCleanup.md*

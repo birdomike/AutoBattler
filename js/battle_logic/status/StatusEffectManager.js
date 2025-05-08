@@ -343,14 +343,25 @@ class StatusEffectManager {
             );
             
             // Resolve the source character from sourceId
+            // UPDATED in v0.6.0.3: Use BattleUtilities.getCharacterByUniqueId instead of battleManager.getCharacterByUniqueId
+            // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
             let sourceCharacter = null;
-            if (effect.sourceId) { // New property
-                sourceCharacter = this.battleManager.getCharacterByUniqueId(effect.sourceId);
-            } else if (typeof effect.source === 'string' && effect.source !== 'unknown') { // Backward compatibility for old string name
-                // For damage effects, we don't default to character itself
-            } else if (effect.source && typeof effect.source === 'object' && effect.source.uniqueId) { // If somehow an object still sneaks in
-                sourceCharacter = this.battleManager.getCharacterByUniqueId(effect.source.uniqueId);
+            const sourceIdToFind = effect.sourceId || (effect.source && typeof effect.source === 'object' ? effect.source.uniqueId : null);
+            
+            if (sourceIdToFind) {
+                if (window.BattleUtilities) {
+                    sourceCharacter = BattleUtilities.getCharacterByUniqueId(
+                        sourceIdToFind,
+                        this.battleManager.playerTeam, // Pass playerTeam
+                        this.battleManager.enemyTeam  // Pass enemyTeam
+                    );
+                } else {
+                    console.warn("[StatusEffectManager] BattleUtilities not available for getCharacterByUniqueId lookup.");
+                    sourceCharacter = null;
+                }
             }
+            
+            // Legacy handling for string name sources (not implemented - old approach not reliable)
             
             // HOTFIX (0.5.27.2_Hotfix8): Use applyDamage instead of dealDamage
             this.battleManager.applyDamage(
@@ -381,14 +392,25 @@ class StatusEffectManager {
             // Use appropriate method from BattleManager
             if (typeof this.battleManager.applyHealing === 'function') {
                 // Resolve the source character from sourceId
+                // UPDATED in v0.6.0.3: Use BattleUtilities.getCharacterByUniqueId instead of battleManager.getCharacterByUniqueId
+                // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
                 let sourceCharacter = null;
-                if (effect.sourceId) { // New property
-                    sourceCharacter = this.battleManager.getCharacterByUniqueId(effect.sourceId);
-                } else if (typeof effect.source === 'string' && effect.source !== 'unknown') { // Backward compatibility for old string name
-                    // Attempt to find by name (less reliable than uniqueId)
-                } else if (effect.source && typeof effect.source === 'object' && effect.source.uniqueId) { // If somehow an object still sneaks in
-                     sourceCharacter = this.battleManager.getCharacterByUniqueId(effect.source.uniqueId);
+                const sourceIdToFind = effect.sourceId || (effect.source && typeof effect.source === 'object' ? effect.source.uniqueId : null);
+                
+                if (sourceIdToFind) {
+                    if (window.BattleUtilities) {
+                        sourceCharacter = BattleUtilities.getCharacterByUniqueId(
+                            sourceIdToFind,
+                            this.battleManager.playerTeam, // Pass playerTeam
+                            this.battleManager.enemyTeam  // Pass enemyTeam
+                        );
+                    } else {
+                        console.warn("[StatusEffectManager] BattleUtilities not available for getCharacterByUniqueId lookup.");
+                        sourceCharacter = null;
+                    }
                 }
+                
+                // Legacy handling for string name sources (not implemented - old approach not reliable)
 
                 const finalSourceForApplyHealing = sourceCharacter || character; // Fallback to the target character for self-effects
                 
@@ -397,7 +419,8 @@ class StatusEffectManager {
                     character,       // target (character being healed)
                     healing,         // amount
                     finalSourceForApplyHealing, // source (resolved from sourceId or fallback to self)
-                    definition.name || 'Regeneration'   // ability name
+                    null,              // ability (null for status effects)
+                    definition.name || 'Regeneration'   // healType (use definition.name if available)
                 );
             } else {
                 // Fallback for older versions
