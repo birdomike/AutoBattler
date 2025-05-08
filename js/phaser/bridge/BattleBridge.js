@@ -94,8 +94,9 @@ class BattleBridge {
      * @param {Function} callback - The callback function
      */
     addEventListener(eventType, callback) {
+        // Auto-register unknown event types to prevent errors
         if (!this.eventListeners[eventType]) {
-            console.warn(`BattleBridge: Unknown event type "${eventType}"`);
+            console.log(`BattleBridge: Auto-registering unknown event type "${eventType}"`);
             this.eventListeners[eventType] = [];
         }
         
