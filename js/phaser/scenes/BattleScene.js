@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.2.1 (with BattleUIManager integration)
+ * @version 0.6.2.2 (BattleUIManager cleanup)
  */
 
 import TurnIndicator from '../components/battle/TurnIndicator.js';
@@ -47,7 +47,6 @@ export default class BattleScene extends Phaser.Scene {
         this.components = {};
         this.playerTeamContainer = null; // Initialize to null
         this.enemyTeamContainer = null; // Initialize to null
-        this.testPattern = null; // Initialize to null
 
         // Make available globally for debugging
         window.BattleScene = this;
@@ -227,9 +226,11 @@ export default class BattleScene extends Phaser.Scene {
             this.createCharacterTeams(); // This now has internal try-catch blocks
             console.log('BattleScene create: Character teams creation attempted.');
 
-            // Hide test pattern after teams are created
+            // Hide test pattern after teams are created (if UI manager exists)
             if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
                 this.uiManager.hideTestPattern();
+            } else if (!this.uiManager) {
+                console.warn('BattleScene: Cannot hide test pattern - UIManager not available');
             }
 
             // Mark as initialized
@@ -469,12 +470,11 @@ export default class BattleScene extends Phaser.Scene {
                 // Show the turn indicator for this character
                 teamContainer.showTurnIndicator(characterData.name);
                 
-                // Update the UI text for current character's action
-                // Use the UI manager if available, otherwise use the scene's method
+                // Update the UI text for current character's action using the UI manager
                 if (this.uiManager) {
                     this.uiManager.updateActionTextDisplay(this.battleState.currentTurn, characterData);
                 } else {
-                    this.updateActionTextDisplay(this.battleState.currentTurn, characterData);
+                    console.warn('Cannot update action text display - UIManager not available');
                 }
                 
                 // Determine marker color based on team (blue for player, red for enemy)
@@ -887,106 +887,18 @@ export default class BattleScene extends Phaser.Scene {
     
     /**
      * Display battle outcome screen
-     * Delegates to BattleUIManager if available
+     * Delegates to BattleUIManager
      * @param {string} winner - 'player', 'enemy', or 'draw'
      */
     showBattleOutcome(winner) {
         try {
             console.log(`BattleScene: Showing battle outcome - Winner: ${winner}`);
             
-            // Use BattleUIManager if available
             if (this.uiManager) {
                 this.uiManager.showBattleOutcome(winner);
-                return;
-            }
-            
-            // Legacy implementation if BattleUIManager is not available
-            console.warn('BattleScene: BattleUIManager not available, using legacy outcome screen');
-            
-            // Create container for outcome elements
-            const container = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2);
-            container.setDepth(1000); // Ensure it appears above everything else
-            
-            // Add semi-transparent background
-            const background = this.add.rectangle(
-                0, 0, 
-                this.cameras.main.width, 
-                this.cameras.main.height, 
-                0x000000, 0.7
-            );
-            container.add(background);
-            
-            // Create outcome message
-            let message = '';
-            let color = 0xffffff;
-            
-            // Handle different possible winner values
-            if (winner === 'player' || winner === 'victory') {
-                message = 'VICTORY!';
-                color = 0x00ff00; // Green
-            } else if (winner === 'enemy' || winner === 'defeat') {
-                message = 'DEFEAT';
-                color = 0xff0000; // Red
-            } else if (winner === 'draw') {
-                message = 'DRAW';
-                color = 0xffff00; // Yellow
             } else {
-                // Fallback for genuinely unexpected winner values
-                console.warn(`[BattleScene] showBattleOutcome received unexpected winner value: '${winner}'. Defaulting UI to DRAW.`);
-                message = 'DRAW';
-                color = 0x808080; // Gray
+                console.error('BattleScene: BattleUIManager not available, cannot show battle outcome');
             }
-            
-            // Add outcome text
-            const outcomeText = this.add.text(
-                0, -50,
-                message,
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '64px',
-                    color: `#${color.toString(16).padStart(6, '0')}`,
-                    stroke: '#000000',
-                    strokeThickness: 6,
-                    align: 'center',
-                    shadow: { color: '#000000', fill: true, offsetX: 2, offsetY: 2, blur: 8 }
-                }
-            ).setOrigin(0.5);
-            container.add(outcomeText);
-            
-            // Add return button
-            const returnButton = this.add.text(
-                0, 50,
-                'Return to Team Builder',
-                {
-                    fontFamily: 'Arial',
-                    fontSize: '24px',
-                    color: '#ffffff',
-                    backgroundColor: '#555555',
-                    padding: { x: 20, y: 10 }
-                }
-            ).setOrigin(0.5).setInteractive({ useHandCursor: true });
-            
-            returnButton.on('pointerover', () => returnButton.setBackgroundColor('#777777'));
-            returnButton.on('pointerout', () => returnButton.setBackgroundColor('#555555'));
-            returnButton.on('pointerdown', () => {
-                console.log('Return to Team Builder requested by user after battle');
-                this.returnToTeamBuilder();
-            });
-            
-            container.add(returnButton);
-            
-            // Add animation
-            this.tweens.add({
-                targets: container,
-                scale: { from: 0.5, to: 1 },
-                alpha: { from: 0, to: 1 },
-                duration: 500,
-                ease: 'Back.easeOut'
-            });
-            
-            // Store reference to cleanup later
-            this.outcomeContainer = container;
-            
         } catch (error) {
             console.error('Error showing battle outcome:', error);
         }
@@ -994,47 +906,16 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Display error messages in the UI
-     * Delegates to BattleUIManager if available
+     * Delegates to BattleUIManager
      * @param {string} message - The error message to show
      */
     showErrorMessage(message) {
         console.error('UI Error Message:', message); // Log to console
 
-        // Use BattleUIManager if available
         if (this.uiManager) {
             this.uiManager.showErrorMessage(message);
-            return;
-        }
-
-        // Legacy implementation if BattleUIManager is not available
-        try {
-            // Create or update an error text object on the screen
-            if (this.errorText) {
-                this.errorText.setText(`ERROR: ${message}`);
-            } else {
-                this.errorText = this.add.text(
-                    this.cameras.main.centerX,
-                    30, // Position near top-center
-                    `ERROR: ${message}`,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: '16px',
-                        color: '#ff0000', // Red color for errors
-                        backgroundColor: 'rgba(0,0,0,0.7)',
-                        padding: { x: 10, y: 5 },
-                        wordWrap: { width: this.cameras.main.width - 40 }
-                    }
-                ).setOrigin(0.5, 0).setDepth(1001); // Ensure it's visible
-            }
-            // Optionally fade out the error after some time
-            this.time.delayedCall(5000, () => {
-                if (this.errorText) {
-                    this.errorText.destroy();
-                    this.errorText = null;
-                }
-            }, [], this);
-        } catch (error) {
-            console.error('Error showing error message:', error);
+        } else {
+            console.error('BattleScene: BattleUIManager not available, cannot show error message');
         }
     }
 
