@@ -2,6 +2,23 @@
 
 All notable changes to the First to Fall game will be documented in this file.
 
+## [0.6.3.4] - ActionGenerator ActionType Fix - 2025-05-08
+
+### Fixed
+- Critical issue preventing turn highlighting and action indicators from appearing during battle
+- Missing actionType property in generated action objects
+- Event dispatch failure in BattleBridge's patched methods
+
+### Added
+- Proper actionType assignment for all combat actions
+- Consistent abilityName property for better event handling
+
+### Technical
+- Ensured complete action objects with all properties required for event dispatching
+- Fixed event chain between ActionGenerator, BattleBridge, and BattleEventManager
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.4_ActionGenerator_ActionType_Fix.md*
+
 ## [0.6.3.3] - Action Dispatch Diagnostics - 2025-05-08
 
 ### Added

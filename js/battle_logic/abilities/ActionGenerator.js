@@ -179,6 +179,15 @@ class ActionGenerator {
             damageType: damageResult.damageType
         };
         
+        // Set actionType and abilityName properties for proper event dispatching
+        if (useAbility && selectedAbility) {
+            action.actionType = 'ability';
+            action.abilityName = selectedAbility.name;
+        } else {
+            action.actionType = 'autoAttack';
+            action.abilityName = 'Auto Attack';
+        }
+        
         // Add multi-target data if applicable
         if (multiTargetDamageResults.length > 0) {
             action.isMultiTarget = true;
