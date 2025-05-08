@@ -1,116 +1,128 @@
-# Changelog - Version 0.6.3.0 - Indicator Diagnostics
+# Technical Changelog 0.6.3.0 - Battle Visual Indicator Diagnostics
 
 ## Overview
 
-This update adds comprehensive diagnostic logging to the Turn Highlighting and Action Indicator systems to help identify and resolve issues with visual feedback during battle. The diagnostic logs trace the complete event flow from event triggers through component handoffs to visual updates.
+This technical update adds comprehensive diagnostic instrumentation across multiple components to help diagnose issues with battle visual indicators, specifically:
+
+1. Turn Highlighting (floor marker/glow for active character)
+2. Action Indicators (text above character's head when performing actions)
+
+The diagnostics have been implemented as a temporary measure to help identify why these visual elements aren't appearing during battle.
+
+## Implementation Details
+
+### BattleBridge.js Changes
+
+- Enhanced `dispatchEvent` method with detailed diagnostic logging:
+  - Added complete event listener count information for all registered event types
+  - Added detailed logging for action-related events (`CHARACTER_ACTION` and `ABILITY_USED`)
+  - Added extensive logging of event handler information including function type, binding context, and function source
+
+```javascript
+// When dispatching events, show event listener summary
+if (eventType === 'character_action' || eventType === 'ability_used') {
+    console.log('BattleBridge: Event listeners summary:', Object.entries(this.eventListeners).map(([type, listeners]) => {
+        return `${type}: ${listeners.length} listeners`;
+    }));
+}
+
+// Provide detailed information about event handlers
+console.log(`BattleBridge: Calling listener ${index} for ${eventType}`, {
+    listenerFunction: typeof callback,
+    listenerThisContext: callback.hasOwnProperty('this') ? 'has this context' : 'no this context',
+    listenerToString: callback.toString().substring(0, 100) + '...'
+});
+```
+
+- Enhanced `applyActionEffect` method with diagnostic reporting:
+  - Added detailed validation of event type existence
+  - Added event data structure verification
+  - Added listener count checking
+
+### BattleEventManager.js Changes
+
+- Added initialization diagnostics to constructor:
+  - BattleBridge availability verification
+  - Event types availability checking
+  - addEventListener method validation
+
+```javascript
+console.log("[BattleEventManager] Initializing with battleBridge:", {
+    hasBattleBridge: !!this.battleBridge,
+    eventTypesAvailable: this.battleBridge && this.battleBridge.eventTypes ? Object.keys(this.battleBridge.eventTypes) : 'none',
+    hasAddEventListener: this.battleBridge && typeof this.battleBridge.addEventListener === 'function'
+});
+```
+
+- Enhanced event registration with validation:
+  - Added detailed logging of registered event types
+  - Added handler binding verification
+  - Added event handler registration confirmation
+  - Added battleBridge listener count verification
+
+### BattleScene.js Changes
+
+- Added diagnostic logging to `initializeEventManager`:
+  - BattleBridge availability checking
+  - BattleEventManager class availability verification
+  - Event type structure validation
+  - Event handler method verification
+
+```javascript
+console.log('BattleScene.initializeEventManager: BattleEventManager created:', {
+    instanceCreated: !!this.eventManager,
+    hasOnCharacterAction: typeof this.eventManager?.onCharacterAction === 'function',
+    hasOnAbilityUsed: typeof this.eventManager?.onAbilityUsed === 'function'
+});
+```
+
+- Added direct test method for manual indicator testing:
+  - `testTurnHighlightingDirectly()` - Bypasses event system to test indicators directly
+  - Function made globally available via window object
+
+### ActionIndicator.js Changes
+
+- Added diagnostic logging in constructor and methods:
+  - Character validation in constructor
+  - Enhanced showAction method with parent information
+  - Container validation and state reporting
+
+```javascript
+console.log(`ActionIndicator constructor called for character: ${parent?.character?.name || 'unknown'}`);
+
+console.log(`ActionIndicator.showAction: Called with text: '${actionText}' for character: ${this.parent?.character?.name || 'unknown'}. Text object state: content=${this.text ? this.text.text : 'undefined'}, alpha=${this.text ? this.text.alpha : 'undefined'}, visible=${this.text ? (this.text.visible ? 'true' : 'false') : 'undefined'}. Parent container exists: ${this.parent?.container ? 'yes' : 'no'}. Tween starting.`);
+```
+
+## Debugging Strategy
+
+These diagnostic changes enable a multi-layered approach to troubleshooting:
+
+1. **Event Dispatching**: Verify events are properly dispatched from BattleBridge with correct data
+2. **Event Registration**: Confirm event handlers are properly registered with BattleBridge
+3. **Handler Binding**: Ensure event handlers have proper 'this' context binding
+4. **Component Availability**: Validate all required components exist and are properly initialized
+5. **Visual Component Function**: Test visual components directly, bypassing the event system
+
+## Manual Testing Approach
+
+A global `testTurnHighlightingDirectly()` function has been added to allow direct testing of visual indicators through the browser console. This provides a way to verify if the components themselves are working correctly without relying on the event system.
+
+This function:
+1. Gets a test character from the player team
+2. Directly calls TeamDisplayManager.updateActiveCharacterVisuals()
+3. Directly finds the character sprite and calls sprite.showActionText()
+
+## Next Steps
+
+After identifying the root cause of the visual indicator issues:
+
+1. Remove diagnostic logging to keep code clean
+2. Fix the identified issue
+3. Update the changelog to document the fix with appropriate version number
 
 ## Files Modified
 
-1. `js/phaser/core/BattleEventManager.js`
-2. `js/phaser/managers/TeamDisplayManager.js`
-3. `js/phaser/components/battle/TeamContainer.js`
-4. `js/phaser/components/battle/CharacterSprite.js`
-5. `js/phaser/components/battle/ActionIndicator.js`
-
-## Detailed Changes
-
-### BattleEventManager.js
-
-Added diagnostic logging to track event flow for Turn Highlighting and Action Indicators:
-
-- In `onCharacterAction(data)`:
-  - Added log at entry point showing the CHARACTER_ACTION event data
-  - Added log showing teamManager availability before updateActiveCharacterVisuals call
-  - Added log to trace CharacterSprite resolution for "Auto Attack" text display
-  - Added log showing if CharacterSprite was found or null
-
-- In `onAbilityUsed(data)`:
-  - Added log at entry point showing ABILITY_USED event data including character and ability info
-  - Added log showing if CharacterSprite was found or null
-
-### TeamDisplayManager.js
-
-Added diagnostics to track Turn Highlighting processing:
-
-- In `updateActiveCharacterVisuals(characterData)`:
-  - Enhanced logging to clearly identify method call for Turn Highlighting
-  - Added log showing attempts to clear indicators on TeamContainers
-  - Added log showing which team container receives the showTurnIndicator call
-
-### TeamContainer.js
-
-Enhanced with diagnostic logs for Team Container operations:
-
-- In `showTurnIndicator(identifier)`:
-  - Added log at entry point showing identification string or number
-  - Added log showing if CharacterSprite was found or null before calling highlight
-
-- In `clearTurnIndicators()`:
-  - Added log showing which team (player/enemy) is clearing indicators
-
-- Added new `clearAllHighlights()` method with appropriate logging:
-  - Was referenced in TeamDisplayManager but missing in implementation
-  - Added log showing which team (player/enemy) is clearing highlight effects
-
-### CharacterSprite.js
-
-Added diagnostic logs for character state visualization:
-
-- In `showActionText(actionText)`:
-  - Added log showing character name, action text, and actionIndicator availability
-
-- In `highlight()`:
-  - Added detailed log of initial visual state (highlight visibility, alpha values, etc.)
-  - Added log after visual creation/updates, just before tweens start
-
-### ActionIndicator.js
-
-Added diagnostics for action text display:
-
-- In `showAction(actionText, options)`:
-  - Added log showing text, current text object state, and alpha values
-
-## Diagnostic Flow
-
-The diagnostic logs follow two primary flows:
-
-### Turn Highlighting Flow:
-1. `CHARACTER_ACTION` event emitted
-2. `BattleEventManager.onCharacterAction()` receives event 
-3. `TeamDisplayManager.updateActiveCharacterVisuals()` is called
-4. `TeamContainer.showTurnIndicator()` is called for appropriate team
-5. `CharacterSprite.highlight()` is called for targeted character
-
-### Action Indicator Flow:
-1. `CHARACTER_ACTION` or `ABILITY_USED` event emitted
-2. `BattleEventManager.onCharacterAction()` or `onAbilityUsed()` receive event
-3. `CharacterSprite.showActionText()` is called with action text
-4. `ActionIndicator.showAction()` is called to display and animate text
-
-## Expected Diagnostic Output
-
-The diagnostics will show:
-
-1. If event handlers are being called
-2. If required component references are defined/undefined
-3. If character sprites are being found correctly
-4. If highlight/text effects are being created with correct parameters
-5. The state of visual elements before they're manipulated
-
-## Purpose and Usage
-
-These diagnostics will help identify issues in the Turn Highlighting and Action Indicator systems by showing:
-
-- Missing component references
-- Failed character sprite resolution
-- Visual state issues (invisible or improperly positioned elements)
-- Tween/animation initiation failures
-- Incorrect or missing event data
-
-### How to Analyze Logs:
-1. Look for "undefined" or "null" in component references
-2. Check if CharacterSprite is consistently not being found
-3. Verify the state of visual elements
-4. Confirm complete event flow from trigger to final visual update
-
-Once the issue is identified, these diagnostic logs can be removed or commented out in a future update.
+- `js/phaser/bridge/BattleBridge.js`
+- `js/phaser/core/BattleEventManager.js`
+- `js/phaser/scenes/BattleScene.js`
+- `js/phaser/components/battle/ActionIndicator.js`

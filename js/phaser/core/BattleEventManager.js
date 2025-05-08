@@ -11,6 +11,9 @@ class BattleEventManager {
      * @param {object} battleBridge - Reference to the BattleBridge for event communication
      */
     constructor(scene, battleBridge) {
+        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
+        console.log('[BEM Constructor] === CONSTRUCTOR FIRST LINE ===');
+        
         // Validate dependencies
         if (!scene) {
             console.error("[BattleEventManager] Missing required scene reference");
@@ -28,7 +31,15 @@ class BattleEventManager {
         this.battleLog = null; // Will be set via setBattleLog if available
         this.boundHandlers = new Map(); // For tracking bound handlers
         
-        console.log("[BattleEventManager] Initializing...");
+        console.log("[BattleEventManager] Initializing with battleBridge:", {
+            hasBattleBridge: !!this.battleBridge,
+            eventTypesAvailable: this.battleBridge && this.battleBridge.eventTypes ? Object.keys(this.battleBridge.eventTypes) : 'none',
+            hasAddEventListener: this.battleBridge && typeof this.battleBridge.addEventListener === 'function'
+        });
+        
+        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
+        console.log('[BEM Constructor] battleBridge TYPEOF addEventListener:', typeof this.battleBridge?.addEventListener, 'CHARACTER_ACTION type value:', this.battleBridge?.eventTypes?.CHARACTER_ACTION);
+        
         this.initialize();
     }
 
@@ -36,6 +47,9 @@ class BattleEventManager {
      * Initialize the event manager and set up event listeners
      */
     initialize() {
+        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
+        console.log('[BEM initialize] === INITIALIZE FIRST LINE ===');
+        
         // Bind all event handlers to preserve 'this' context
         this.handleTurnStarted = this.handleTurnStarted.bind(this);
         this.handleStatusEffectApplied = this.handleStatusEffectApplied.bind(this);
@@ -169,6 +183,12 @@ class BattleEventManager {
             return;
         }
 
+        // DIAGNOSTIC: Log the specific event types we're about to register for
+        console.log('[BattleEventManager] Setting up action indicator listeners with event types:', {
+            CHARACTER_ACTION: this.battleBridge.eventTypes.CHARACTER_ACTION,
+            ABILITY_USED: this.battleBridge.eventTypes.ABILITY_USED
+        });
+
         // Action indicator listeners
         this.registerEventHandler(
             this.battleBridge.eventTypes.CHARACTER_ACTION,
@@ -179,6 +199,12 @@ class BattleEventManager {
             this.battleBridge.eventTypes.ABILITY_USED,
             this.onAbilityUsed
         );
+        
+        // DIAGNOSTIC: Verify registration worked by checking boundHandlers map
+        console.log('[BattleEventManager] Action indicators registered:', {
+            characterActionBound: this.boundHandlers.has(this.battleBridge.eventTypes.CHARACTER_ACTION),
+            abilityUsedBound: this.boundHandlers.has(this.battleBridge.eventTypes.ABILITY_USED)
+        });
     }
 
     /**
@@ -187,16 +213,41 @@ class BattleEventManager {
      * @param {function} handler - The bound handler function
      */
     registerEventHandler(eventType, handler) {
+        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
+        console.log('[BEM registerEventHandler] Attempting for event:', eventType, 'Handler name:', handler.name || 'anonymous_BEM_handler');
+        
         if (!this.battleBridge || !eventType || !handler) {
             console.warn("[BattleEventManager] Cannot register event handler - missing required parameters");
             return;
         }
+
+        // DIAGNOSTIC: Check handler binding
+        console.log(`[BattleEventManager] Registering handler for ${eventType}:`, {
+            handlerType: typeof handler,
+            handlerToString: handler.toString().substring(0, 100) + '...',
+            boundThis: handler.hasOwnProperty('this') ? 'has this context' : 'no this context',
+        });
 
         // Store the handler for later cleanup
         this.boundHandlers.set(eventType, handler);
         
         // Register with battleBridge
         this.battleBridge.addEventListener(eventType, handler);
+        
+        // DIAGNOSTIC: Verify registration
+        console.log(`[BattleEventManager] Handler registered for ${eventType}. Now checking battleBridge event listeners:`);
+        
+        // Try to access the listeners array to verify registration (defensive approach)
+        try {
+            if (this.battleBridge.eventListeners && this.battleBridge.eventListeners[eventType]) {
+                const listenerCount = this.battleBridge.eventListeners[eventType].length;
+                console.log(`[BattleEventManager] BattleBridge reports ${listenerCount} listeners for ${eventType}`);
+            } else {
+                console.warn(`[BattleEventManager] Could not verify listener count in battleBridge for ${eventType}`);
+            }
+        } catch (error) {
+            console.error(`[BattleEventManager] Error verifying listener registration:`, error);
+        }
     }
 
     /**

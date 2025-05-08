@@ -10,6 +10,9 @@ class ActionIndicator {
      * @param {CharacterSprite} parent - The character sprite this indicator is attached to
      */
     constructor(scene, parent) {
+        // DIAGNOSTIC: Check parent character
+        console.log(`ActionIndicator constructor called for character: ${parent?.character?.name || 'unknown'}`);
+
         this.scene = scene;
         this.parent = parent;
         this.text = null;
@@ -75,7 +78,7 @@ class ActionIndicator {
      * @param {object} options - Optional configuration for the animation
      */
     showAction(actionText, options = {}) {
-        console.log(`ActionIndicator.showAction: Called with text: '${actionText}'. Text object state: content=${this.text ? this.text.text : 'undefined'}, alpha=${this.text ? this.text.alpha : 'undefined'}, visible=${this.text ? (this.text.visible ? 'true' : 'false') : 'undefined'}. Tween starting.`);
+        console.log(`ActionIndicator.showAction: Called with text: '${actionText}' for character: ${this.parent?.character?.name || 'unknown'}. Text object state: content=${this.text ? this.text.text : 'undefined'}, alpha=${this.text ? this.text.alpha : 'undefined'}, visible=${this.text ? (this.text.visible ? 'true' : 'false') : 'undefined'}. Parent container exists: ${this.parent?.container ? 'yes' : 'no'}. Tween starting.`);
         
         // Default options
         const config = {

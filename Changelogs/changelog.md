@@ -2,15 +2,60 @@
 
 All notable changes to the First to Fall game will be documented in this file.
 
-## [Unreleased]
+## [0.6.3.3] - Action Dispatch Diagnostics - 2025-05-08
+
+### Added
+- Enhanced diagnostic logs to investigate the root cause of missing visual indicators
+- Function inspection to verify BattleBridge patching effectiveness
+- Improved tracing for BattleFlowController execution path
+
+### Technical
+- Added detailed logs to identify which version of applyActionEffect is being called
+- Verified function definitions at runtime to check patching success
+- Enhanced event dispatch tracing
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.3_Action_Dispatch_Diagnostics.md*
+
+## [0.6.3.2] - Turn Indicator and Action Text Diagnostics - 2025-05-08
+
+### Added
+- Additional diagnostic logs to troubleshoot turn highlighting and action indicators
+- Enhanced logging in BattleScene's initializeEventManager method
+- Improved tracing for BattleEventManager constructor and initialization
+
+### Technical
+- Added precise entry/exit logs in critical components for debugging purposes
+- Enhanced instantiation logging for BattleEventManager
+- Positioned diagnostic logs at the very beginning of key methods
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.2_Turn_Indicator_Diagnostics.md*
+
+## [0.6.3.1] - Fixed Circular JSON Error in Diagnostics - 2025-05-08
+
+### Fixed
+- Critical bug in diagnostic logging system causing TypeError with circular JSON
+- Initialization issue preventing BattleEventManager from being created
+- Root cause of visual indicators not appearing in battle scene
+
+### Technical
+- Modified diagnostic logging in BattleBridge to safely handle circular references
+- Enhanced BattleEventManager initialization tracking
+- Added safeguards for diagnostic data logging
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.1_CircularJSON_Fix.md*
+
+## [0.6.3.0] - Battle Visual Indicator Diagnostics - 2025-05-08
 
 ### Added
 - Comprehensive diagnostic logging for Turn Highlighting and Action Indicator systems
 - Enhanced debugging capabilities for visual feedback systems in battle
+- Direct test method (testTurnHighlightingDirectly) for manual indicator verification
 
-### Fixed
-- Corrected team positioning in TeamDisplayManager implementation
-- Characters now appear at correct positions on the battle screen
+### Technical
+- Added detailed event dispatcher diagnostics in BattleBridge
+- Enhanced event registration validation in BattleEventManager
+- Improved component initialization reporting
+- Added extensive console logging for troubleshooting visual indicators
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.0_Indicator_Diagnostics.md*
 

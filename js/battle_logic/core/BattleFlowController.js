@@ -427,6 +427,8 @@ class BattleFlowController {
         }
         
         // Apply action effect directly
+        console.log('[BFC executeNextAction] About to call this.applyActionEffect. Action Actor:', action?.actor?.name, 'Action Type:', action?.actionType);
+        console.log('[BFC executeNextAction] Is this.battleManager.applyActionEffect the BattleBridge patched version? (Look for "BattleBridge: applyActionEffect patched method called" in its definition if we log the function itself). Function Def:', this.battleManager.applyActionEffect.toString().substring(0, 200) + "..."); // Log first 200 chars of function
         await this.applyActionEffect(action);
         
         // DIAGNOSTIC: Trace executeNextAction flow - Remove later

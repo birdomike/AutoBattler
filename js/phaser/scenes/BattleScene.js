@@ -272,6 +272,40 @@ export default class BattleScene extends Phaser.Scene {
             // Make test functions available globally for debugging
             window.testHealthUpdate = this.testHealthUpdate.bind(this);
             window.testActionIndicator = this.testActionIndicator.bind(this);
+            
+            // DIAGNOSTIC: Add a direct test method for the visual indicators
+            window.testTurnHighlightingDirectly = () => {
+                console.log('MANUAL TEST: Testing turn highlighting directly (bypassing events)');
+                
+                // Get the first character from player team as a test subject
+                const testCharacter = this.playerTeam && this.playerTeam.length > 0 ? this.playerTeam[0] : null;
+                if (!testCharacter) {
+                    console.warn('MANUAL TEST: No test character available');
+                    return;
+                }
+                
+                console.log(`MANUAL TEST: Using test character ${testCharacter.name}`);
+                
+                // Direct test: Try to highlight through TeamDisplayManager first
+                if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
+                    console.log('MANUAL TEST: Using TeamDisplayManager.updateActiveCharacterVisuals directly');
+                    this.teamManager.updateActiveCharacterVisuals(testCharacter);
+                }
+                
+                // Direct test: Find the character sprite directly and show an action text
+                if (this.teamManager && typeof this.teamManager.getCharacterSprite === 'function') {
+                    const sprite = this.teamManager.getCharacterSprite(testCharacter);
+                    if (sprite && typeof sprite.showActionText === 'function') {
+                        console.log('MANUAL TEST: Using CharacterSprite.showActionText directly');
+                        sprite.showActionText('TEST ACTION (Direct)');
+                    } else {
+                        console.warn('MANUAL TEST: Could not find sprite or sprite.showActionText method');
+                    }
+                }
+            };
+            
+            // Log the test function availability
+            console.log('DIAGNOSTIC: Test functions available in console: testHealthUpdate, testActionIndicator, testTurnHighlightingDirectly');
 
             console.log('BattleScene created successfully');
         } catch (error) {
@@ -813,12 +847,34 @@ export default class BattleScene extends Phaser.Scene {
      * @private
      */
     initializeEventManager() {
+        console.log('BattleScene.initializeEventManager: Starting with diagnostics:', {
+            battleBridgeAvailable: !!this.battleBridge,
+            battleEventManagerClassAvailable: typeof window.BattleEventManager === 'function',
+            teamManagerAvailable: !!this.teamManager
+        });
+        
         try {
             if (this.battleBridge) {
+                // DIAGNOSTIC: Check battleBridge's event type structure
+                console.log('BattleScene.initializeEventManager: BattleBridge event types check:', {
+                    hasEventTypes: !!this.battleBridge.eventTypes,
+                    eventTypesList: this.battleBridge.eventTypes ? Object.keys(this.battleBridge.eventTypes) : 'none',
+                    CHARACTER_ACTION: this.battleBridge.eventTypes?.CHARACTER_ACTION || 'undefined',
+                    ABILITY_USED: this.battleBridge.eventTypes?.ABILITY_USED || 'undefined'
+                });
+                
                 // Check if BattleEventManager is available
                 if (window.BattleEventManager) {
-                    console.log('BattleScene: Creating BattleEventManager instance');
+                    console.log('[BattleScene.initializeEventManager] >>> About to create BattleEventManager instance.');
                     this.eventManager = new window.BattleEventManager(this, this.battleBridge);
+                    console.log('[BattleScene.initializeEventManager] <<< BattleEventManager instance supposedly created. this.eventManager is:', this.eventManager);
+                    
+                    // DIAGNOSTIC: Verify the event manager was created properly
+                    console.log('BattleScene.initializeEventManager: BattleEventManager created:', {
+                        instanceCreated: !!this.eventManager,
+                        hasOnCharacterAction: typeof this.eventManager?.onCharacterAction === 'function',
+                        hasOnAbilityUsed: typeof this.eventManager?.onAbilityUsed === 'function'
+                    });
                     
                     // Set TeamDisplayManager reference if available
                     if (this.teamManager && typeof this.eventManager.setTeamManager === 'function') {
