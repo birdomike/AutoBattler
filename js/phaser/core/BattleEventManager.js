@@ -43,6 +43,7 @@ class BattleEventManager {
         this.onCharacterHealed = this.onCharacterHealed.bind(this);
         this.onCharacterAction = this.onCharacterAction.bind(this);
         this.onAbilityUsed = this.onAbilityUsed.bind(this);
+        this.handleBattleEnded = this.handleBattleEnded.bind(this);
 
         // Setup all event listeners
         this.setupCoreEventListeners();
@@ -66,6 +67,12 @@ class BattleEventManager {
         this.registerEventHandler(
             this.battleBridge.eventTypes.TURN_STARTED, 
             this.handleTurnStarted
+        );
+
+        // Battle ended event listener
+        this.registerEventHandler(
+            this.battleBridge.eventTypes.BATTLE_ENDED,
+            this.handleBattleEnded
         );
     }
 
@@ -359,6 +366,28 @@ class BattleEventManager {
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling ability used:", error);
+        }
+    }
+
+    /**
+     * Handle battle ended event
+     * @param {Object} data - Event data, including data.winner
+     */
+    handleBattleEnded(data) {
+        if (!data || !this.scene) {
+            console.warn("[BattleEventManager] handleBattleEnded: Missing data or scene reference.");
+            return;
+        }
+
+        if (typeof this.scene.showBattleOutcome === 'function') {
+            try {
+                console.log(`[BattleEventManager] Battle ended. Result: ${data.winner}. Calling scene.showBattleOutcome.`);
+                this.scene.showBattleOutcome(data.winner);
+            } catch (error) {
+                console.error("[BattleEventManager] Error calling this.scene.showBattleOutcome:", error);
+            }
+        } else {
+            console.error("[BattleEventManager] this.scene.showBattleOutcome is not a function. Cannot display battle outcome.");
         }
     }
 

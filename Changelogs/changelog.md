@@ -1,6 +1,23 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.6.1.3 - Battle Conclusion Fix (2025-05-08)
+
+### Fixed
+- **BattleEventManager**: Added missing Game Over screen functionality
+  - Implemented handler for BATTLE_ENDED event
+  - Fixed battle conclusion not displaying victory/defeat screen
+  - Added comprehensive error handling for battle outcome display
+  - Enhanced logging for battle conclusion events
+
+### Technical
+- Completed event lifecycle handling in BattleEventManager
+- Added proper method binding and event registration
+- Implemented defensive validation for battle conclusion data
+- Maintained consistent event handling patterns across components
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.1.3_BattleEventManager_GameOver_Fix.md*
+
 ## Version 0.6.1.2 - BattleEventManager Fix (2025-05-08)
 
 ### Fixed
