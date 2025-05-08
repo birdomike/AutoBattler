@@ -1,6 +1,23 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.6.1.2 - BattleEventManager Fix (2025-05-08)
+
+### Fixed
+- **BattleEventManager**: Fixed runtime error in character sprite resolution
+  - Updated character lookup logic to properly interface with TeamContainer
+  - Renamed character lookup method to better reflect its functionality
+  - Enhanced error reporting with detailed context information
+  - Added fallback resolution when team information is unavailable
+
+### Technical
+- Fixed interface mismatch between BattleEventManager and TeamContainer
+- Improved robustness of character sprite resolution with proper validation
+- Enhanced debugging support with context-aware error messages
+- Implemented multi-level fallback for character sprite resolution
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.1.2_BattleEventManager_Fix.md*
+
 ## Version 0.6.1.1 - BattleScene Refactoring Phase 1: BattleEventManager (2025-05-07)
 
 ### Technical

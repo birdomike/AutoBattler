@@ -181,7 +181,7 @@ class BattleEventManager {
 
         try {
             // Find the target character sprite
-            const characterSprite = this.getCharacterSpriteById(data.target.uniqueId);
+            const characterSprite = this.getCharacterSprite(data.target);
             if (!characterSprite) return;
 
             // Update status effect display
@@ -210,7 +210,7 @@ class BattleEventManager {
 
         try {
             // Find the target character sprite
-            const characterSprite = this.getCharacterSpriteById(data.target.uniqueId);
+            const characterSprite = this.getCharacterSprite(data.target);
             if (!characterSprite) return;
 
             // Update status effect display
@@ -250,7 +250,7 @@ class BattleEventManager {
 
         try {
             // Find the character sprite
-            const characterSprite = this.getCharacterSpriteById(data.character.uniqueId);
+            const characterSprite = this.getCharacterSprite(data.character);
             if (!characterSprite) return;
 
             // Update health display
@@ -275,7 +275,7 @@ class BattleEventManager {
 
             // Show attack animation if source is available
             if (data.source && this.scene.showAttackAnimation) {
-                const sourceSprite = this.getCharacterSpriteById(data.source.uniqueId);
+                const sourceSprite = this.getCharacterSprite(data.source);
                 if (sourceSprite) {
                     this.scene.showAttackAnimation(sourceSprite, characterSprite);
                 }
@@ -294,7 +294,7 @@ class BattleEventManager {
 
         try {
             // Find the character sprite
-            const characterSprite = this.getCharacterSpriteById(data.character.uniqueId);
+            const characterSprite = this.getCharacterSprite(data.character);
             if (!characterSprite) return;
 
             // Update health display
@@ -335,7 +335,7 @@ class BattleEventManager {
             }
 
             // Show action indicator on character
-            const characterSprite = this.getCharacterSpriteById(data.character.uniqueId);
+            const characterSprite = this.getCharacterSprite(data.character);
             if (characterSprite && characterSprite.showActionIndicator) {
                 characterSprite.showActionIndicator("Auto Attack");
             }
@@ -353,7 +353,7 @@ class BattleEventManager {
 
         try {
             // Show action indicator on character
-            const characterSprite = this.getCharacterSpriteById(data.character.uniqueId);
+            const characterSprite = this.getCharacterSprite(data.character);
             if (characterSprite && characterSprite.showActionIndicator) {
                 characterSprite.showActionIndicator(`Ability: ${data.ability.name}`);
             }
@@ -363,28 +363,55 @@ class BattleEventManager {
     }
 
     /**
-     * Helper method to find character sprite by character ID
-     * @param {string} characterId - The character's unique ID
+     * Helper method to find character sprite based on character data
+     * @param {Object} characterData - The character data object
      * @returns {CharacterSprite|null} The character sprite or null if not found
      */
-    getCharacterSpriteById(characterId) {
-        if (!characterId || !this.scene) return null;
-
-        // Access player team container
-        const playerTeamContainer = this.scene.playerTeamContainer;
-        if (playerTeamContainer) {
-            const playerCharacter = playerTeamContainer.getCharacterSpriteById(characterId);
-            if (playerCharacter) return playerCharacter;
+    getCharacterSprite(characterData) {
+        if (!characterData || !this.scene) {
+            console.warn("[BattleEventManager] getCharacterSprite: Missing character data or scene reference");
+            return null;
         }
 
-        // Access enemy team container
-        const enemyTeamContainer = this.scene.enemyTeamContainer;
-        if (enemyTeamContainer) {
-            const enemyCharacter = enemyTeamContainer.getCharacterSpriteById(characterId);
-            if (enemyCharacter) return enemyCharacter;
+        // Determine which team container to use based on character's team property
+        let teamContainer = null;
+        if (characterData.team === 'player') {
+            teamContainer = this.scene.playerTeamContainer;
+        } else if (characterData.team === 'enemy') {
+            teamContainer = this.scene.enemyTeamContainer;
         }
 
-        return null;
+        // If we couldn't determine team, try both containers
+        if (!teamContainer) {
+            // Try player team first
+            if (this.scene.playerTeamContainer) {
+                const sprite = this.scene.playerTeamContainer.findCharacterSprite(characterData);
+                if (sprite) return sprite;
+            }
+
+            // Then try enemy team
+            if (this.scene.enemyTeamContainer) {
+                const sprite = this.scene.enemyTeamContainer.findCharacterSprite(characterData);
+                if (sprite) return sprite;
+            }
+
+            console.warn(`[BattleEventManager] getCharacterSprite: Could not determine team for character ${characterData.name || characterData.uniqueId || 'unknown'}, and search in both teams failed`);
+            return null;
+        }
+
+        // If we have a specific team container, use it
+        if (!teamContainer.findCharacterSprite) {
+            console.error(`[BattleEventManager] getCharacterSprite: findCharacterSprite method is missing on ${characterData.team} team container`);
+            return null;
+        }
+
+        // Use the findCharacterSprite method
+        const sprite = teamContainer.findCharacterSprite(characterData);
+        if (!sprite) {
+            console.warn(`[BattleEventManager] getCharacterSprite: Character sprite not found for ${characterData.name || characterData.uniqueId || 'unknown'} in ${characterData.team} team`);
+        }
+
+        return sprite;
     }
 
     /**
