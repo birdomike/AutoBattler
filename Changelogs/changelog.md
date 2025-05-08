@@ -1,6 +1,42 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.6.2.1 - BattleScene Refactoring Phase 2: BattleUIManager (2025-05-08)
+
+### Technical
+- **BattleUIManager**: Implemented new component to handle UI creation and management
+  - Created dedicated component for UI elements in the battle scene
+  - Extracted UI creation methods from BattleScene (createBackground, createSceneTitle, etc.)
+  - Added comprehensive error handling with fallbacks for each UI component
+  - Established consistent component tracking for proper cleanup
+
+### Improved
+- **Scene Architecture**: Continued enhancement of BattleScene's component structure
+  - Created initial integration that maintains backward compatibility
+  - Improved UI creation with standardized component tracking
+  - Enhanced error messaging with component context
+  - Implemented second phase of planned BattleScene refactoring
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.2.1_BattleUIManager.md*
+
+## Version 0.6.1.4 - BattleScene Refactoring Phase 1 Cleanup (2025-05-08)
+
+### Technical
+- **Completed BattleEventManager Refactoring**: Finished Phase 1 of BattleScene refactoring
+  - Removed all event handling methods from BattleScene (~550-600 lines of code)
+  - Eliminated direct event registration with BattleBridge from BattleScene
+  - Removed legacy fallback calls to event setup methods
+  - Reduced BattleScene.js size by approximately 27%
+
+### Improved
+- **Code Organization**: Enhanced architecture with clearer separation of concerns
+  - BattleScene now focused purely on scene management and visual elements
+  - All event handling centralized in BattleEventManager component
+  - Improved error handling with clear messaging
+  - Established pattern for future refactoring phases
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.1.4_BattleEventManager_Cleanup.md*
+
 ## Version 0.6.1.3 - Battle Conclusion Fix (2025-05-08)
 
 ### Fixed
