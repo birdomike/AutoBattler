@@ -8,6 +8,7 @@
  */
 
 import TurnIndicator from '../components/battle/TurnIndicator.js';
+// Note: BattleEventManager is included via traditional script tag in index.html
 
 // Define the BattleScene class
 export default class BattleScene extends Phaser.Scene {
@@ -1503,7 +1504,7 @@ export default class BattleScene extends Phaser.Scene {
       * Initialize the bridge connection to BattleManager
       */
       initializeBattleBridge() {
-         // ** Implementation Added for v0.5.0.4b Fix **
+         // ** Refactored for v0.6.1.1 - BattleEventManager implementation **
           try {
               // Ensure turn indicator exists
               if (!this.turnIndicator) {
@@ -1523,12 +1524,8 @@ export default class BattleScene extends Phaser.Scene {
                       // Get the bridge instance after initialization
                       this.battleBridge = window.getBattleBridge ? window.getBattleBridge() : window.battleBridge;
                       
-                      // Set up event listeners after successful initialization
-                      this.setupHealthUpdateListeners();
-                      this.setupActionIndicatorListeners();
-                      
-                      // Setup other core event listeners
-                      this.setupCoreEventListeners();
+                      // Initialize the BattleEventManager
+                      this.initializeEventManager();
                   } else {
                       console.warn('BattleScene: initializeBattleBridge reported failure');
                   }
@@ -1543,12 +1540,8 @@ export default class BattleScene extends Phaser.Scene {
                       console.log('BattleScene: Initializing battleBridge manually');
                       this.battleBridge.initialize(window.battleManager, this);
                       
-                      // Set up event listeners after manual initialization
-                      this.setupHealthUpdateListeners();
-                      this.setupActionIndicatorListeners();
-                      
-                      // Setup other core event listeners
-                      this.setupCoreEventListeners();
+                      // Initialize the BattleEventManager
+                      this.initializeEventManager();
                   }
               }
               // Fallback #2: Direct access as last resort
@@ -1557,17 +1550,8 @@ export default class BattleScene extends Phaser.Scene {
                   this.battleBridge = window.battleBridge; // Use existing global INSTANCE
                   this.battleBridge.initialize(window.battleManager, this); // Pass references
                   
-                  // Set up health update listeners
-                  this.setupHealthUpdateListeners();
-                  
-                  // Set up action indicator listeners
-                  this.setupActionIndicatorListeners();
-                  
-                  // Set up core event listeners
-                  this.setupCoreEventListeners();
-                  
-                  // Add listener specifically for TURN_STARTED events
-                  this.battleBridge.addEventListener(this.battleBridge.eventTypes.TURN_STARTED, this.handleTurnStarted.bind(this));
+                  // Initialize the BattleEventManager
+                  this.initializeEventManager();
 
                   console.log('BattleBridge initialized and listeners set up.');
               } else {
@@ -1579,10 +1563,10 @@ export default class BattleScene extends Phaser.Scene {
                           this.battleBridge = new window.BattleBridge();
                           window.battleBridge = this.battleBridge; // Also make globally available
                           this.battleBridge.initialize(window.battleManager, this);
-                          // Set up all event listeners
-                          this.setupHealthUpdateListeners();
-                          this.setupActionIndicatorListeners();
-                          this.setupCoreEventListeners();
+                          
+                          // Initialize the BattleEventManager
+                          this.initializeEventManager();
+                          
                           console.log('Created battleBridge instance on-demand successfully');
                       } catch (instanceError) {
                           console.error('Failed to create battleBridge instance on-demand:', instanceError);
@@ -1597,18 +1581,54 @@ export default class BattleScene extends Phaser.Scene {
 
 
      /**
+      * Initialize the BattleEventManager
+      * @private
+      */
+     initializeEventManager() {
+          try {
+              if (this.battleBridge) {
+                  // Check if BattleEventManager is available
+                  if (window.BattleEventManager) {
+                      console.log('BattleScene: Creating BattleEventManager instance');
+                      this.eventManager = new window.BattleEventManager(this, this.battleBridge);
+                      console.log('BattleScene: BattleEventManager initialized successfully');
+                  } else {
+                      console.warn('BattleScene: BattleEventManager not found, using legacy event setup');
+                      // Fallback to legacy approach if BattleEventManager is not available
+                      this.setupHealthUpdateListeners();
+                      this.setupActionIndicatorListeners();
+                      this.setupCoreEventListeners();
+                  }
+              } else {
+                  console.warn('BattleScene: Cannot initialize event manager - battleBridge not available');
+              }
+          } catch (error) {
+              console.error('BattleScene: Error initializing event manager:', error);
+              // Fallback to legacy approach if there's an error
+              this.setupHealthUpdateListeners();
+              this.setupActionIndicatorListeners();
+              this.setupCoreEventListeners();
+          }
+     }
+
+     /**
       * Cleanup the bridge connection
       */
       cleanupBattleBridge() {
-         // ** Implementation Added for v0.5.0.4b Fix **
+         // ** Refactored for v0.6.1.1 - BattleEventManager implementation **
           try {
-              if (this.battleBridge) {
-                  // Remove specific listeners
+              // Clean up the event manager first
+              if (this.eventManager && typeof this.eventManager.destroy === 'function') {
+                  console.log('BattleScene: Cleaning up BattleEventManager');
+                  this.eventManager.destroy();
+                  this.eventManager = null;
+              } else if (this.battleBridge) {
+                  // Legacy cleanup if no event manager is available
                   this.battleBridge.removeEventListener(this.battleBridge.eventTypes.TURN_STARTED, this.handleTurnStarted.bind(this));
-                  console.log('BattleBridge listeners should be cleaned up if necessary.');
-                  // Resetting the reference, assuming BattleBridge handles its own internal cleanup if needed
-                  // this.battleBridge = null;
+                  console.log('BattleScene: Legacy event listener cleanup performed');
               }
+              
+              console.log('BattleScene: BattleBridge cleanup complete');
           } catch(error) {
                console.error('Error cleaning up BattleBridge:', error);
           }
@@ -2221,7 +2241,7 @@ export default class BattleScene extends Phaser.Scene {
             // Clean up debug tools
             this.cleanupDebugTools();
 
-            // Clean up battle bridge
+            // Clean up battle bridge (including event manager)
             this.cleanupBattleBridge();
 
             // Clean up character teams

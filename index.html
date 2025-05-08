@@ -94,6 +94,8 @@
     <!-- Load BattleBridge class first, then initialization -->
     <script src="js/phaser/bridge/BattleBridge.js"></script>
     <script src="js/phaser/bridge/BattleBridgeInit.js"></script>
+    <!-- BattleEventManager - Must load after BattleBridge but before BattleScene -->
+    <script src="js/phaser/core/BattleEventManager.js"></script>
     <!-- Status Icon Mapper for AI-generated icons -->
     <script src="js/phaser/StatusIconMapper.js"></script>
     <script src="js/phaser/bridge/BattleLogTester.js" defer></script>

@@ -1,6 +1,24 @@
 # AutoBattler Game Changelog
 # Note to Claude- Do not try to re-write this entire file- Just make targeted edits to add new version logs.
 
+## Version 0.6.1.1 - BattleScene Refactoring Phase 1: BattleEventManager (2025-05-07)
+
+### Technical
+- **BattleEventManager**: Implemented new component to handle event management for BattleScene
+  - Extracted event setup and handling logic from BattleScene (~220 lines removed)
+  - Created dedicated component for event listening setup and handling
+  - Improved event handling with comprehensive validation and error isolation
+  - Added proper cleanup mechanism to prevent memory leaks
+
+### Improved
+- **Scene Architecture**: Enhanced BattleScene's component-based structure
+  - Reduced BattleScene complexity by extracting event management
+  - Added proper initialization and cleanup of event manager
+  - Improved error handling with graceful fallbacks
+  - Implemented first phase of planned BattleScene refactoring (6 more phases to follow)
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.1.1_BattleEventManager.md*
+
 ## Version 0.6.0.4 - Phase 3 Utility Integration Cleanup (2025-05-07)
 
 ### Fixed
