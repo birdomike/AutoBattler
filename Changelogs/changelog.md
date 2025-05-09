@@ -2,6 +2,20 @@
 
 All notable changes to the First to Fall game will be documented in this file.
 
+## [0.6.3.5] - TurnIndicator TeamContainer Integration - 2025-05-08
+
+### Changed
+- Integrated TurnIndicator directly into TeamContainer for improved turn highlighting
+- Centralized turn indicator logic in dedicated TurnIndicator component
+- Improved team distinction with blue/red indicators for player/enemy teams
+
+### Technical
+- Removed dependency on CharacterSprite highlight/unhighlight methods
+- Enhanced error handling and component lifecycle management
+- Applied component-based architecture principles for cleaner separation of concerns
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.5_TurnIndicator_TeamContainer_Integration.md*
+
 ## [0.6.3.4] - ActionGenerator ActionType Fix - 2025-05-08
 
 ### Fixed

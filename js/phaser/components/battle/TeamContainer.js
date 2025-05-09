@@ -195,6 +195,20 @@ class TeamContainer {
              // throw error; // Optional: re-throw if it's critical
         }
 
+        // Initialize TurnIndicator for this team
+        this.turnIndicatorInstance = null; // Initialize to null
+        try {
+            if (window.TurnIndicator) { // Check if TurnIndicator class is available
+                this.turnIndicatorInstance = new TurnIndicator(this.scene);
+                // TurnIndicator's constructor handles scene.add.existing(this)
+                console.log(`TeamContainer for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team: TurnIndicator instance created successfully.`);
+            } else {
+                console.error(`TeamContainer for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team: TurnIndicator class not found on window.`);
+            }
+        } catch (error) {
+            console.error(`TeamContainer for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team: Error creating TurnIndicator instance:`, error);
+        }
+
 
         // Initialize character sprites - Wrapped call
         try {
@@ -388,14 +402,26 @@ class TeamContainer {
         console.log(`TC.showTurnIndicator: Found CharacterSprite: ${sprite ? `sprite for ${sprite.character?.name}` : 'null'}. Attempting to call sprite.highlight().`);
 
         if (sprite) {
-            // Unhighlight all others first
-             if (Array.isArray(this.characterSprites)){
-                 this.characterSprites.forEach(s => {
-                      if(s && typeof s.unhighlight === 'function') s.unhighlight()
-                 });
+            if (this.turnIndicatorInstance) {
+                // Hide any currently shown indicator for this team instance immediately
+                this.turnIndicatorInstance.hide(0); // Hide with 0 duration
+
+                // Calculate position at character's feet
+                let bottomOffset = 20; // Default offset
+                if (sprite.characterImage && sprite.characterImage.height) {
+                    // Position it roughly below the character image's vertical center
+                    bottomOffset = (sprite.characterImage.height / 2) - 26; 
+                }
+
+                const indicatorX = sprite.container.x;
+                const indicatorY = sprite.container.y + bottomOffset;
+                const teamColor = this.isPlayerTeam ? 0x4488ff : 0xff4444; // Blue for player, Red for enemy
+
+                console.log(`TC.showTurnIndicator: Calling turnIndicatorInstance.showAt for ${sprite.character?.name} at (${indicatorX}, ${indicatorY}) with color ${teamColor.toString(16)}`);
+                this.turnIndicatorInstance.showAt(indicatorX, indicatorY, teamColor);
+            } else {
+                console.warn(`TC.showTurnIndicator: turnIndicatorInstance is null for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team. Cannot show indicator.`);
             }
-            // Highlight the selected character
-            if (typeof sprite.highlight === 'function') sprite.highlight();
         }
     }
 
@@ -429,14 +455,24 @@ class TeamContainer {
             return; 
         }
         
+        if (this.turnIndicatorInstance) {
+            console.log(`TC.clearTurnIndicators: Hiding turnIndicatorInstance for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team.`);
+            this.turnIndicatorInstance.hide(); // Use default hide animation
+        } else {
+            console.warn(`TC.clearTurnIndicators: turnIndicatorInstance is null for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team. Cannot hide indicator.`);
+        }
+        
         console.log(`TC.clearTurnIndicators: Clearing turn indicators for ${this.isPlayerTeam ? 'player' : 'enemy'} team with ${this.characterSprites.length} sprites.`);
         
-        // Unhighlight all characters in this team
+        // The following code is commented out as turnIndicatorInstance.hide() now handles the primary visual effect
+        // Keeping as a reference for now
+        /*
         this.characterSprites.forEach((sprite, index) => {
             if (sprite && typeof sprite.unhighlight === 'function') {
                 sprite.unhighlight();
             }
         });
+        */
     }
 
     /**
@@ -498,6 +534,15 @@ class TeamContainer {
              });
              this.characterSprites = []; // Clear the array
          }
+        
+        // Destroy the TurnIndicator instance
+        if (this.turnIndicatorInstance) {
+            if (typeof this.turnIndicatorInstance.destroy === 'function') {
+                this.turnIndicatorInstance.destroy();
+                console.log(`TeamContainer destroy: TurnIndicator instance destroyed for team ${this.isPlayerTeam ? 'Player' : 'Enemy'}`);
+            }
+            this.turnIndicatorInstance = null;
+        }
 
         // Destroy container
         if (this.container) {
