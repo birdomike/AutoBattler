@@ -73,12 +73,18 @@ class TargetingSystem {
      * @returns {string} The targeting behavior to use
      */
     resolveTargetingBehavior(actor, ability) {
+        // TEMPORARY DIAGNOSTIC - Remove after bug fix
+        console.log(`[TargetingSystem.resolveTargetingBehavior] Actor: ${actor.name} (Team: ${actor.team})`);
+        console.log(`[TargetingSystem.resolveTargetingBehavior] Ability: ${ability ? ability.name : 'Auto-Attack'}, Type: ${ability?.targetType || 'N/A'}, Logic: ${ability?.targetingLogic || 'N/A'}`);
+        
         if (!this.battleManager.battleBehaviors) {
+            console.log(`[TargetingSystem.resolveTargetingBehavior] No battleBehaviors available, using default 'targetRandomEnemy'`);
             return 'targetRandomEnemy'; // Default behavior
         }
         
         // 1. Check if ability has explicit targeting logic
         if (ability && ability.targetingLogic) {
+            console.log(`[TargetingSystem.resolveTargetingBehavior] Using explicit targetingLogic: ${ability.targetingLogic}`);
             return ability.targetingLogic;
         }
         
@@ -86,6 +92,7 @@ class TargetingSystem {
         if (ability && ability.targetType) {
             const typeBehavior = this.battleManager.battleBehaviors.getTargetingBehaviorFromType(ability.targetType);
             if (typeBehavior) {
+                console.log(`[TargetingSystem.resolveTargetingBehavior] Using targetType mapping: ${ability.targetType} → ${typeBehavior}`);
                 return typeBehavior;
             }
         }
@@ -94,22 +101,27 @@ class TargetingSystem {
         if (ability) {
             // Healing abilities target allies by default
             if (ability.isHealing || ability.damageType === 'healing') {
+                console.log(`[TargetingSystem.resolveTargetingBehavior] Using healing targeting behavior: targetLowestHpAlly`);
                 return 'targetLowestHpAlly';
             }
             
             // Utility abilities (buffs) often target self
             if (ability.damageType === 'utility') {
+                console.log(`[TargetingSystem.resolveTargetingBehavior] Using utility targeting behavior: targetSelf`);
                 return 'targetSelf';
             }
             
             // AoE abilities use appropriate multi-target behavior
             if (ability.isAoE || ability.targetType === 'AllEnemies') {
+                console.log(`[TargetingSystem.resolveTargetingBehavior] Using AoE targeting behavior: targetAllEnemies`);
                 return 'targetAllEnemies';
             }
         }
         
         // 4. Fall back to default targeting behavior
-        return this.battleManager.battleBehaviors.getDefaultTargetingBehavior() || 'targetRandomEnemy';
+        const defaultBehavior = this.battleManager.battleBehaviors.getDefaultTargetingBehavior() || 'targetRandomEnemy';
+        console.log(`[TargetingSystem.resolveTargetingBehavior] Using default targeting behavior: ${defaultBehavior}`);
+        return defaultBehavior;
     }
     
     /**
@@ -149,24 +161,45 @@ class TargetingSystem {
             return null;
         }
         
+        // TEMPORARY DIAGNOSTIC - Remove after bug fix
+        console.log(`[TargetingSystem.processTargetingResult] Initial target for ${actor.name}'s ${ability ? ability.name : 'Auto-Attack'}: ${Array.isArray(target) ? `[${target.map(t => t.name).join(', ')}]` : target.name}`);
+        
         // Arrays are valid for multi-target abilities
         if (Array.isArray(target)) {
             // Filter out any invalid targets
-            const validTargets = target.filter(t => t && t.currentHp > 0 && !t.isDead);
+            const validTargets = target.filter(t => {
+                const isValid = t && t.currentHp > 0 && !t.isDead;
+                
+                // TEMPORARY DIAGNOSTIC - Remove after bug fix
+                console.log(`  Multi-target check: ${t?.name || 'undefined'} (HP: ${t?.currentHp || 'N/A'}, isDead: ${t?.isDead || 'N/A'}) - Valid: ${isValid}`);
+                
+                return isValid;
+            });
             
             if (validTargets.length === 0) {
                 console.warn(`[TargetingSystem] No valid targets in multi-target selection for ${actor.name}`);
                 return null;
             }
             
+            // TEMPORARY DIAGNOSTIC - Remove after bug fix
+            console.log(`[TargetingSystem.processTargetingResult] Final multi-targets: [${validTargets.map(t => t.name).join(', ')}]`);
+            
             return validTargets;
         }
         
         // Single target - verify it's valid
-        if (target.currentHp <= 0 || target.isDead) {
+        const isValidSingleTarget = target.currentHp > 0 && !target.isDead;
+        
+        // TEMPORARY DIAGNOSTIC - Remove after bug fix
+        console.log(`[TargetingSystem.processTargetingResult] Single target check: ${target.name} (HP: ${target.currentHp}, isDead: ${target.isDead}, Team: ${target.team}) - Valid: ${isValidSingleTarget}`);
+        
+        if (!isValidSingleTarget) {
             console.warn(`[TargetingSystem] Selected target ${target.name} is not valid (HP: ${target.currentHp}, isDead: ${target.isDead})`);
             return null;
         }
+        
+        // TEMPORARY DIAGNOSTIC - Remove after bug fix
+        console.log(`[TargetingSystem.processTargetingResult] Final single target: ${target.name} (Team: ${target.team})`);
         
         return target;
     }

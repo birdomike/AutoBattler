@@ -188,6 +188,13 @@ class BattleFlowController {
             this.battleManager.turnInProgress = false;
             this.battleManager.statusEffects = {};
             
+            // TEMPORARY DIAGNOSTIC - Remove after bug fix
+            console.log(`[BattleFlowController] DIAGNOSTIC - Post-initialization team status:`);
+            console.log(`  Player Team (${this.battleManager.playerTeam.length} characters):`, 
+                this.battleManager.playerTeam.map(c => ({ name: c.name, team: c.team, hp: c.currentHp })));
+            console.log(`  Enemy Team (${this.battleManager.enemyTeam.length} characters):`, 
+                this.battleManager.enemyTeam.map(c => ({ name: c.name, team: c.team, hp: c.currentHp })));
+            
             // Initialize passive trigger tracking at battle level
             this.battleManager.passiveTriggersThisBattle = new Map();
             
@@ -399,6 +406,12 @@ class BattleFlowController {
         if (window.battleBridge) {
             try {
                 console.log(`[BattleFlowController] Dispatching CHARACTER_ACTION event for ${action.actor.name}`);
+                
+                // TEMPORARY DIAGNOSTIC - Remove after bug fix
+                if (action && action.actor && action.target) {
+                    console.log(`[BattleFlowController DIAGNOSTIC] Processed action: ${action.actor.name} (Team: ${action.actor.team}) targeting ${action.target.name ? action.target.name : 'multi-target'} (Target Team: ${action.target.team ? action.target.team : 'N/A'}). Is same team (if single target): ${action.target.name && action.actor.team === action.target.team}`);
+                }
+                
                 if (action.useAbility) {
                     // For ability actions
                     window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_ACTION, {

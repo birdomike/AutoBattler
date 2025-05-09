@@ -649,9 +649,24 @@ class CharacterSprite {
      * @param {Function} onComplete - Callback when animation completes
      */
     showAttackAnimation(targetSprite, onComplete) {
+         // TEMPORARY DIAGNOSTIC - Remove after bug fix
+         if (!this.character || !targetSprite || !targetSprite.character) {
+             console.error(`[CharacterSprite] showAttackAnimation: Attacker or Target character data missing! Attacker: ${this.character?.name}, TargetSprite valid: ${!!targetSprite}`);
+             if (onComplete) onComplete();
+             return;
+         }
+         console.log(`[CharacterSprite.showAttackAnimation] Attacker: ${this.character.name} (Team: ${this.character.team}), Attempting to target: ${targetSprite.character.name} (Team: ${targetSprite.character.team}). Is Ally: ${this.character.team === targetSprite.character.team}`);
+
+         // Prevent friendly fire animation
+         if (this.character.team === targetSprite.character.team) {
+             console.warn(`[CharacterSprite.showAttackAnimation] FRIENDLY FIRE ATTEMPT HALTED! ${this.character.name} targeting ally ${targetSprite.character.name}.`);
+             if (onComplete) onComplete(); // Call onComplete to not stall the battle
+             return; // Do not proceed with animation against an ally
+         }
+
          // Validate targetSprite
-         if (!targetSprite || !targetSprite.container) {
-             console.error(`showAttackAnimation (${this.character.name}): Invalid targetSprite provided.`);
+         if (!targetSprite.container) {
+             console.error(`showAttackAnimation (${this.character.name}): Invalid targetSprite container.`);
              if (onComplete) onComplete();
              return;
          }
@@ -666,37 +681,123 @@ class CharacterSprite {
             // Show auto attack action indicator
             this.showActionText('Auto Attack');
             
-            // Store original position
-            const originalX = this.container.x;
-            const originalY = this.container.y;
+            // --- Get GLOBAL position of the attacker's container ---
+            let attackerGlobalPos = new Phaser.Math.Vector2();
+            // Ensure 'this.container' is the actual Phaser.GameObjects.Container for this CharacterSprite
+            if (!this.container || typeof this.container.getWorldTransformMatrix !== 'function') {
+                console.error(`[CS.showAttackAnimation] Attacker ${this.character.name} has no valid .container or getWorldTransformMatrix method!`);
+                if (onComplete) onComplete(); return;
+            }
+            this.container.getWorldTransformMatrix().transformPoint(0, 0, attackerGlobalPos);
+            const originalX = attackerGlobalPos.x;
+            const originalY = attackerGlobalPos.y;
 
-            // Calculate target position (move 70% toward target)
-             // Use targetSprite's container position directly
-            const targetPos = {
-                x: targetSprite.container.x,
-                y: targetSprite.container.y
-            };
+            // --- Get GLOBAL position of the targetSprite's container ---
+            let targetGlobalPos = new Phaser.Math.Vector2();
+            // Ensure 'targetSprite.container' is valid
+            if (!targetSprite || !targetSprite.container || typeof targetSprite.container.getWorldTransformMatrix !== 'function') {
+                console.error(`[CS.showAttackAnimation] Target ${targetSprite?.character?.name || 'Unknown'} has no valid .container or getWorldTransformMatrix method!`);
+                if (onComplete) onComplete(); return;
+            }
+            targetSprite.container.getWorldTransformMatrix().transformPoint(0, 0, targetGlobalPos);
+            const targetX_global = targetGlobalPos.x;
+            const targetY_global = targetGlobalPos.y;
 
-            const moveToX = originalX + (targetPos.x - originalX) * 0.7;
-            const moveToY = originalY + (targetPos.y - originalY) * 0.7;
+            console.log(`[CS.showAttackAnimation GLOBAL COORDS] Attacker ${this.character.name}: (${originalX.toFixed(2)}, ${originalY.toFixed(2)})`);
+            console.log(`  TargetSprite ${targetSprite.character.name}: (${targetX_global.toFixed(2)}, ${targetY_global.toFixed(2)})`);
+
+            // --- Calculate moveTo using these GLOBAL coordinates ---
+            const moveToX = originalX + (targetX_global - originalX) * 0.7;
+            const moveToY = originalY + (targetY_global - originalY) * 0.7;
+
+            console.log(`[CS.showAttackAnimation MOVEMENT] Attacker: ${this.character.name} (Start: ${originalX.toFixed(2)}, ${originalY.toFixed(2)}) to TargetSprite: ${targetSprite.character.name} (At: ${targetX_global.toFixed(2)}, ${targetY_global.toFixed(2)}) Calculated Global moveTo: (${moveToX.toFixed(2)}, ${moveToY.toFixed(2)})`);
+            
+            // Check for any nearby characters that might cause confusion using GLOBAL coordinates
+            if (window.characterSprites) {
+                let allSpritePositions = [];
+                for (const charName in window.characterSprites) {
+                    const charSprite = window.characterSprites[charName];
+                    if (charSprite && charSprite.container && typeof charSprite.container.getWorldTransformMatrix === 'function') {
+                        // Get global position for this character
+                        let charGlobalPos = new Phaser.Math.Vector2();
+                        charSprite.container.getWorldTransformMatrix().transformPoint(0, 0, charGlobalPos);
+                        
+                        allSpritePositions.push({
+                            name: charName,
+                            team: charSprite.character?.team || 'unknown',
+                            x: charGlobalPos.x,  // Global X
+                            y: charGlobalPos.y,   // Global Y
+                            distance: Math.sqrt(
+                                Math.pow(moveToX - charGlobalPos.x, 2) +
+                                Math.pow(moveToY - charGlobalPos.y, 2)
+                            )
+                        });
+                    }
+                }
+                
+                // Sort by distance to the calculated moveToX/Y coordinates
+                allSpritePositions.sort((a, b) => a.distance - b.distance);
+                
+                // Log the 3 closest characters to where the animation is heading
+                console.log(`  Three closest characters to the moveToX/Y point:`);
+                for (let i = 0; i < Math.min(3, allSpritePositions.length); i++) {
+                    console.log(`    ${allSpritePositions[i].name} (${allSpritePositions[i].team}): (${allSpritePositions[i].x}, ${allSpritePositions[i].y}), distance: ${allSpritePositions[i].distance.toFixed(2)}`);
+                }
+                
+                // Check if closest character might not be the intended target
+                if (allSpritePositions.length > 0 && allSpritePositions[0].name !== targetSprite.character.name) {
+                    console.warn(`  WARNING: Closest character to moveToX/Y is NOT the intended target!`);
+                    console.warn(`  Intended target: ${targetSprite.character.name}, but closest is: ${allSpritePositions[0].name}`);
+                    
+                    // Also check for characters that might be on the same team as the attacker
+                    const sameTeamChars = allSpritePositions.filter(char => char.team === this.character.team);
+                    if (sameTeamChars.length > 0 && sameTeamChars[0].distance < 50) { // If an ally is nearby
+                        console.warn(`  POTENTIAL FRIENDLY FIRE RISK: Ally ${sameTeamChars[0].name} is very close to attack path!`);
+                        console.warn(`  Ally distance: ${sameTeamChars[0].distance.toFixed(2)} (vs target distance: ${allSpritePositions.find(c => c.name === targetSprite.character.name)?.distance.toFixed(2) || 'unknown'})`);
+                    }
+                }
+            }
+
+            // Now, we need to convert our global moveToX/Y coordinates back to the container's local space
+            // for the tween to work correctly (since tweens operate in the object's local space)
+            let moveToLocal = { x: 0, y: 0 };
+            
+            // Convert global coordinates to container's local space
+            // Note: We need the container's parent to do this properly
+            if (this.container.parentContainer) {
+                // If the container has a parent, we need to transform the global coordinates to local
+                let inverse = this.container.parentContainer.getWorldTransformMatrix().invert();
+                moveToLocal = inverse.transformPoint(moveToX, moveToY);
+                console.log(`  Converting global moveTo (${moveToX.toFixed(2)}, ${moveToY.toFixed(2)}) to local: (${moveToLocal.x.toFixed(2)}, ${moveToLocal.y.toFixed(2)})`);
+            } else {
+                // No parent container - coordinates are already in the right space
+                moveToLocal.x = moveToX;
+                moveToLocal.y = moveToY;
+                console.log(`  No parent container - using global coordinates directly: (${moveToLocal.x.toFixed(2)}, ${moveToLocal.y.toFixed(2)})`);
+            }
+            
+            // Get the original local coordinates (current position in container's local space)
+            const originalLocalX = this.container.x;
+            const originalLocalY = this.container.y;
+            console.log(`  Original local position: (${originalLocalX.toFixed(2)}, ${originalLocalY.toFixed(2)})`);
 
             // Create animation timeline
             const timeline = this.scene.tweens.createTimeline();
 
-            // Add move to target
+            // Add move to target (using calculated local coordinates)
             timeline.add({
                 targets: this.container,
-                x: moveToX,
-                y: moveToY,
+                x: moveToLocal.x,
+                y: moveToLocal.y,
                 duration: 300,
                 ease: 'Power2'
             });
 
-            // Add return to original position
+            // Add return to original position (using original local coordinates)
             timeline.add({
                 targets: this.container,
-                x: originalX,
-                y: originalY,
+                x: originalLocalX,
+                y: originalLocalY,
                 duration: 300,
                 ease: 'Power2'
             });

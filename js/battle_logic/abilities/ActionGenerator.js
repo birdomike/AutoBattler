@@ -61,11 +61,40 @@ class ActionGenerator {
         let target = null;
         
         if (this.targetingSystem) {
-            const allCharacters = [...this.battleManager.playerTeam, ...this.battleManager.enemyTeam]
-                // HOTFIX3: Filter out invalid characters before passing to targeting system
-                .filter(char => this.validateCharacter(char));
+            // FIXED FRIENDLY FIRE BUG: Pre-filter potential targets for auto-attacks
+            let potentialTargetsForSystem;
             
-            target = this.targetingSystem.selectTarget(character, selectedAbility, allCharacters);
+            if (!selectedAbility) {
+                // For auto-attacks, only include valid enemies
+                const allLivingCharacters = [...this.battleManager.playerTeam, ...this.battleManager.enemyTeam]
+                    .filter(char => this.validateCharacter(char) && char && !char.isDead && char.currentHp > 0);
+                
+                const oppositeTeam = character.team === 'player' ? 'enemy' : 'player';
+                potentialTargetsForSystem = allLivingCharacters.filter(char => char.team === oppositeTeam);
+                
+                // TEMPORARY DIAGNOSTIC - Remove after bug fix
+                console.log(`[ActionGenerator] AUTO-ATTACK for ${character.name} (Team: ${character.team}). Potential ENEMY targets:`, 
+                    potentialTargetsForSystem.map(p => ({name: p.name, team: p.team})));
+                if (potentialTargetsForSystem.length === 0) {
+                    console.warn(`[ActionGenerator] AUTO-ATTACK for ${character.name}: No valid enemy targets found!`);
+                }
+            } else {
+                // For specific abilities, use a broader list as the ability's own targeting logic will apply
+                potentialTargetsForSystem = [...this.battleManager.playerTeam, ...this.battleManager.enemyTeam]
+                    .filter(char => this.validateCharacter(char) && char && !char.isDead && char.currentHp > 0);
+                
+                // TEMPORARY DIAGNOSTIC - Remove after bug fix
+                console.log(`[ActionGenerator] ABILITY (${selectedAbility.name}) for ${character.name}. All potential targets:`, 
+                    potentialTargetsForSystem.map(p => ({name: p.name, team: p.team})));
+            }
+            
+            // TEMPORARY DIAGNOSTIC - Remove after bug fix
+            console.log(`[ActionGenerator] Actor: ${character.name} (Team: ${character.team})`);
+            console.log(`[ActionGenerator] selectedAbility: ${selectedAbility ? selectedAbility.name : 'Auto-Attack'}`);
+            console.log(`[ActionGenerator] Potential targets for TargetingSystem:`, 
+                potentialTargetsForSystem.map(p => ({name: p.name, team: p.team, hp: p.currentHp, defeated: p.isDead })));
+            
+            target = this.targetingSystem.selectTarget(character, selectedAbility, potentialTargetsForSystem);
         } else {
             // Fallback targeting
             console.warn("[ActionGenerator] TargetingSystem not available, using fallback targeting");

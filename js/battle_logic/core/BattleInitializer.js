@@ -82,6 +82,9 @@ class BattleInitializer {
                     ...character,
                     name: character.name || `Unknown ${teamType} ${index}`,
                     team: teamType,
+                    
+                    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+                    _prevTeam: character.team, // Store previous team value for debugging
                     uniqueId: character.uniqueId || `${teamType}_${character.name || 'unknown'}_${character.id || index}`,
                     id: character.id || `char_${Math.random().toString(36).substr(2, 9)}`,
                     currentHp: character.currentHp !== undefined ? character.currentHp : (character.stats?.hp || 100),
@@ -131,6 +134,9 @@ class BattleInitializer {
                     console.error(`[BattleInitializer] Character ${completeChar.name} has invalid currentHp after processing, using default`);
                     completeChar.currentHp = completeChar.stats.hp || 100;
                 }
+                
+                // TEMPORARY DIAGNOSTIC - Remove after bug fix
+                console.log(`[BattleInitializer] ensureCompleteCharacterInitialization for ${completeChar.name}: team=${completeChar.team}, prevTeam=${completeChar._prevTeam || 'undefined'}`);
                 
                 console.log(`[BattleInitializer] Completed initialization for ${completeChar.name} (${teamType})`);
                 return completeChar;
@@ -196,6 +202,9 @@ class BattleInitializer {
             
             // Store team info on the character
             battleChar.team = teamType;
+            
+            // TEMPORARY DIAGNOSTIC - Remove after bug fix
+            console.log(`[BattleInitializer] Final .team for ${battleChar.name}: ${battleChar.team}`);
             
             // Initialize ability cooldowns and identify passive abilities
             if (battleChar.abilities) {

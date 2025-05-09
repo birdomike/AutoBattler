@@ -26,11 +26,23 @@ import behaviorRegistry from './BehaviorRegistry.js';
 function targetRandomEnemy(context) {
     const { actor, potentialTargets, teamManager } = context;
     
+    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+    console.log(`[TargetingBehavior: targetRandomEnemy] Actor: ${actor.name} (Team: ${actor.team})`);
+    console.log(`[TargetingBehavior: targetRandomEnemy] teamManager.getCharacterTeam(actor): ${teamManager.getCharacterTeam(actor)}`);
+    
     // Filter to only include enemies that are alive
     const validTargets = potentialTargets.filter(target => {
-        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
-               !target.defeated;
+        const isEnemy = teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor);
+        const isDead = !!target.defeated;
+        
+        // TEMPORARY DIAGNOSTIC - Remove after bug fix
+        console.log(`  Considering: ${target.name} (Team: ${target.team}, TeamManager team: ${teamManager.getCharacterTeam(target)}, HP: ${target.currentHp}, Defeated: ${target.defeated}). Is Enemy?: ${isEnemy}, IsDead: ${isDead}`);
+        
+        return isEnemy && !isDead;
     });
+    
+    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+    console.log(`[TargetingBehavior: targetRandomEnemy] Valid targets: ${validTargets.length > 0 ? validTargets.map(t => t.name).join(', ') : 'None'}`);    
     
     if (validTargets.length === 0) return null;
     
@@ -91,11 +103,23 @@ function targetHighestHpEnemy(context) {
 function targetAllEnemies(context) {
     const { actor, potentialTargets, teamManager } = context;
     
+    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+    console.log(`[TargetingBehavior: targetAllEnemies] Actor: ${actor.name} (Team: ${actor.team})`);
+    console.log(`[TargetingBehavior: targetAllEnemies] teamManager.getCharacterTeam(actor): ${teamManager.getCharacterTeam(actor)}`);
+    
     // Filter to only include enemies that are alive
     const validTargets = potentialTargets.filter(target => {
-        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
-               !target.defeated;
+        const isEnemy = teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor);
+        const isDead = !!target.defeated;
+        
+        // TEMPORARY DIAGNOSTIC - Remove after bug fix
+        console.log(`  Considering: ${target.name} (Team: ${target.team}, TeamManager team: ${teamManager.getCharacterTeam(target)}, HP: ${target.currentHp}, Defeated: ${target.defeated}). Is Enemy?: ${isEnemy}, IsDead: ${isDead}`);
+        
+        return isEnemy && !isDead;
     });
+    
+    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+    console.log(`[TargetingBehavior: targetAllEnemies] Valid targets: ${validTargets.length > 0 ? validTargets.map(t => t.name).join(', ') : 'None'}`);
     
     if (validTargets.length === 0) return null;
     
