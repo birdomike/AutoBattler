@@ -1,5 +1,15 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.3.18 (2023-08-13)
+
+### Fixed
+- Enhanced PassiveAbilityManager to properly handle global trigger events ('onTurnStart' and 'onTurnEnd')
+- Added new processGlobalPassiveTrigger method to iterate through all non-defeated characters
+- Fixed error: "[PassiveAbilityManager] Invalid character parameter (null or undefined)" when processing global triggers
+- Battle Log now correctly shows ability declarations and auto attacks
+
+*Note: For detailed implementation details, see CHANGELOG_0.6.3.18_GlobalPassiveTriggerFix.md*
+
 ## Version 0.6.3.17 (2023-08-12)
 
 ### Fixed

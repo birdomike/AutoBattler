@@ -73,7 +73,7 @@ class PassiveAbilityManager {
     /**
      * Process passive abilities for a specific trigger event
      * @param {string} trigger - The trigger event (e.g., 'onTurnStart', 'onDamageTaken')
-     * @param {Object} character - The character whose passives should be checked
+     * @param {Object|null} character - The character whose passives should be checked, or null for global triggers
      * @param {Object} additionalData - Additional context data for the passive
      * @returns {Array} Array of executed passive results
      */
@@ -84,7 +84,16 @@ class PassiveAbilityManager {
             return [];
         }
         
-        // Enhanced character validation
+        // Define which triggers are global and should be processed for all characters
+        const globalTriggers = ['onTurnStart', 'onTurnEnd'];
+        
+        // Check if this is a global trigger and character is null
+        if (character === null && globalTriggers.includes(trigger)) {
+            // Handle global trigger by iterating through all characters
+            return this.processGlobalPassiveTrigger(trigger, additionalData);
+        }
+        
+        // Enhanced character validation for non-global triggers
         if (!this.validateCharacter(character)) {
             return [];
         }
@@ -144,6 +153,49 @@ class PassiveAbilityManager {
         });
         
         return results;
+    }
+    
+    /**
+     * Process passive abilities for all non-defeated characters for global triggers
+     * @param {string} trigger - The trigger event (e.g., 'onTurnStart', 'onTurnEnd')
+     * @param {Object} additionalData - Additional context data for the passive
+     * @returns {Array} Array of executed passive results from all characters
+     */
+    processGlobalPassiveTrigger(trigger, additionalData = {}) {
+        // Combined results from all characters
+        const allResults = [];
+        
+        // Validate battle manager and teams
+        if (!this.battleManager) {
+            console.error("[PassiveAbilityManager] Cannot process global trigger: BattleManager not available");
+            return allResults;
+        }
+        
+        // Process player team
+        if (this.battleManager.playerTeam && Array.isArray(this.battleManager.playerTeam)) {
+            // Process each non-defeated character in player team
+            this.battleManager.playerTeam.forEach(character => {
+                if (character && !character.isDead && character.currentHp > 0) {
+                    // Important: This call will include character validation
+                    const characterResults = this.processPassiveAbilities(trigger, character, additionalData);
+                    allResults.push(...characterResults);
+                }
+            });
+        }
+        
+        // Process enemy team
+        if (this.battleManager.enemyTeam && Array.isArray(this.battleManager.enemyTeam)) {
+            // Process each non-defeated character in enemy team
+            this.battleManager.enemyTeam.forEach(character => {
+                if (character && !character.isDead && character.currentHp > 0) {
+                    // Important: This call will include character validation
+                    const characterResults = this.processPassiveAbilities(trigger, character, additionalData);
+                    allResults.push(...characterResults);
+                }
+            });
+        }
+        
+        return allResults;
     }
     
     /**
