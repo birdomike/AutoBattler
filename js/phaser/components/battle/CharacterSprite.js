@@ -771,99 +771,20 @@ class CharacterSprite {
 
 
     /**
- * Highlight this character as active
+ * Highlight this character as active - MOVED TO TurnIndicator.js
  */
 highlight() {
-    if (!this.scene || !this.container) {
-        console.warn(`[CharacterSprite] highlight: Cannot highlight ${this.character?.name}, missing scene or container`);
-        return; // Safety check
-    }
-    
-    console.log(`CS.highlight: Called for character ${this.character?.name}. Initial state: highlightEffect visible=${this.highlightEffect ? (this.highlightEffect.visible ? 'true' : 'false') : 'undefined'}, alpha=${this.highlightEffect ? this.highlightEffect.alpha : 'undefined'}, shadowEffect visible=${this.shadowEffect ? (this.shadowEffect.visible ? 'true' : 'false') : 'undefined'}, alpha=${this.shadowEffect ? this.shadowEffect.alpha : 'undefined'}.`);
-    
-    try { // Added try...catch
-        // Get the character sprite's height to position at the bottom
-        let bottomOffset = 20; // Offset from center of container to bottom of character
-        
-        // Check if we have a character image to better determine position
-        if (this.characterImage && this.characterImage.height) {
-            // Position at the bottom of the character with a smaller offset (moved upward)
-            bottomOffset = (this.characterImage.height / 2) -26; 
-        }
-        
-        // Create highlight effect if it doesn't exist
-        if (!this.highlightEffect || !this.highlightEffect.scene) { // Check if destroyed
-            console.log(`Creating highlight for ${this.character?.name}`);
-            
-            // First, add a subtle shadow (slightly larger than highlight)
-            this.shadowEffect = this.scene.add.ellipse(0, bottomOffset, 80, 14, 0x000000, .4);
-            this.container.add(this.shadowEffect);
-            
-            // Determine color based on team
-            const teamColor = this.character?.team === 'player' ? 0x4488ff : 0xff4444;
-            console.log(`Using team color: ${teamColor.toString(16)} for ${this.character?.name} (team: ${this.character?.team})`);
-            
-            // Create main highlight with MORE flattened ellipse (reduced height)
-            this.highlightEffect = this.scene.add.ellipse(0, bottomOffset - 2, 75, 10, teamColor, 0.9);
-            this.container.add(this.highlightEffect);
-            
-            // Ensure proper z-ordering (shadow behind highlight)
-            this.container.sendToBack(this.shadowEffect);
-            
-            // Add subtle glow animation
-            if (this.scene.tweens) {
-                console.log(`Creating tween for ${this.character?.name}`);
-                this.glowTween = this.scene.tweens.add({
-                    targets: this.highlightEffect,
-                    alpha: { from: 0.3, to: 0.7 },
-                    duration: 1200,
-                    ease: 'Sine.easeInOut',
-                    yoyo: true,
-                    repeat: -1
-                });
-            }
-            
-            console.log(`CS.highlight: Visuals (ellipse, shadow) created/updated. Tweens starting.`);
-        } else {
-            this.highlightEffect.setVisible(true);
-            if (this.shadowEffect) this.shadowEffect.setVisible(true);
-            
-            // Restart glow animation if it exists
-            if (this.glowTween && this.glowTween.isPaused()) {
-                this.glowTween.restart();
-            }
-        }
-    } catch (error) {
-        console.error(`highlight (${this.character.name}): Error creating/showing highlight:`, error);
-    }
+    // Functionality moved to TurnIndicator.js
+    console.log(`CharacterSprite highlight for ${this.character?.name} - delegating to TurnIndicator`);
+    // TeamContainer will handle the actual highlighting via TurnIndicator
 }
 
-
     /**
-     * Remove highlight effect
+     * Remove highlight effect - MOVED TO TurnIndicator.js
      */
     unhighlight() {
-        // Hide both highlight and shadow
-        if (this.highlightEffect && this.highlightEffect.scene) {
-             try { // Added try...catch
-                 this.highlightEffect.setVisible(false);
-                 
-                 // Stop the glow animation if it exists
-                 if (this.glowTween) {
-                     this.glowTween.pause();
-                 }
-             } catch (error) {
-                  console.error(`unhighlight (${this.character.name}): Error hiding highlight:`, error);
-             }
-        }
-        
-        if (this.shadowEffect && this.shadowEffect.scene) {
-            try {
-                this.shadowEffect.setVisible(false);
-            } catch (error) {
-                console.error(`unhighlight (${this.character.name}): Error hiding shadow:`, error);
-            }
-        }
+        // Functionality moved to TurnIndicator.js
+        // TeamContainer will handle unhighlighting via TurnIndicator
     }
 
     /**
@@ -901,11 +822,7 @@ highlight() {
             this.statusEffectContainer = null;
         }
         
-        // Stop any active tweens
-        if (this.glowTween) {
-            this.glowTween.stop();
-            this.glowTween = null;
-        }
+        // Stop any active tweens (highlight tweens moved to TurnIndicator)
 
         // Clean up and destroy container and its children
          if (this.container) {
@@ -929,8 +846,7 @@ highlight() {
          this.healthBar = null;
          this.healthBarBg = null;
          this.hpText = null;
-         this.highlightEffect = null; // Ensure highlight is cleared too
-         this.shadowEffect = null; // Clear shadow effect too
+         // Highlight effect references removed (moved to TurnIndicator)
     }
 }
 

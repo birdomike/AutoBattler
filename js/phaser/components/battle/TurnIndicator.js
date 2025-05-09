@@ -2,7 +2,8 @@
  * TurnIndicator.js
  * A floor marker component that highlights the active character's position during battle
  * 
- * @version 0.6.2.4
+ * @version 0.6.2.6
+ * @updated Removed shadow, simplified implementation
  */
 
 class TurnIndicator extends Phaser.GameObjects.Graphics {
@@ -24,69 +25,34 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
      * @param {number} y - Y position for the indicator
      * @param {number} color - Color of the indicator (hexadecimal)
      * @param {number} duration - Duration of fade-in animation in milliseconds
+     * @param {number} offsetY - Optional vertical offset for fine-tuning position
      */
-    showAt(x, y, color, duration) {
+    showAt(x, y, color, duration = 300, offsetY = -8) {
         if (this.fadeTween) {
             this.fadeTween.stop();
             this.fadeTween = null;
         }
 
         this.clear();
-        this.setPosition(x, y);
+        this.setPosition(x, y + offsetY);
         
-        // Create a 3D-like circle with gradient and shadow
-        const radius = 55;
+        // Create a flattened ellipse for the floor marker
+        // Simplified version without shadow
+        // Reduced by 25% while maintaining same proportions
+        const radius = 56; // 75 * 0.75 = 56.25 (rounded to 56)
         
-        // Draw shadow slightly offset
-        this.fillStyle(0x000000, 0.3);
-        this.fillEllipse(2, 4, radius + 2, radius * 0.5 + 2);
+        // Draw the highlight ellipse with solid color
+        this.fillStyle(color, 0.9);
+        this.fillEllipse(0, 0, radius, radius * 0.27); // Flattened ellipse
         
-        // Draw flattened ellipse for 3D effect
-        const gradientColor = Phaser.Display.Color.IntegerToColor(color);
-        
-        // Handle color darkening with error protection
-        let darkerColor;
-        try {
-            // First try with instance method approach (newer Phaser versions)
-            if (typeof gradientColor.darken === 'function') {
-                const darkened = gradientColor.clone().darken(40);
-                darkerColor = darkened.color;
-            }
-            // Fall back to static method approach if available (some Phaser versions)
-            else if (typeof Phaser.Display.Color.darken === 'function') {
-                darkerColor = Phaser.Display.Color.darken(gradientColor, 40).color;
-            }
-            // Manual fallback calculation if neither method is available
-            else {
-                darkerColor = (
-                    ((Math.max(0, gradientColor.r - 40) & 0xFF) << 16) |
-                    ((Math.max(0, gradientColor.g - 40) & 0xFF) << 8) |
-                    (Math.max(0, gradientColor.b - 40) & 0xFF)
-                );
-            }
-        } catch (error) {
-            console.warn('Error darkening color, using fallback:', error);
-            // Simple fallback - just use a color 40% darker (manually calculated)
-            darkerColor = (
-                ((Math.max(0, gradientColor.r - 40) & 0xFF) << 16) |
-                ((Math.max(0, gradientColor.g - 40) & 0xFF) << 8) |
-                (Math.max(0, gradientColor.b - 40) & 0xFF)
-            );
-        }
-        
-        // Fill with gradient from center to edge
-        this.fillGradientStyle(color, color, darkerColor, darkerColor, 1);
-        this.fillEllipse(0, 0, radius, radius * 0.5);
-        
-        // Add a subtle rim light
-        this.lineStyle(1, 0xffffff, 0.4);
-        this.strokeEllipse(0, 0, radius, radius * 0.5);
-
+        // Animation with pulsing effect
         this.fadeTween = this.scene.tweens.add({
             targets: this,
-            alpha: 0.7,
-            duration: duration,
-            ease: 'Linear'
+            alpha: { from: 0.3, to: 0.7 }, // Pulsing range
+            duration: 1200,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1 // Infinite repetition
         });
     }
 
@@ -94,7 +60,7 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
      * Hide the indicator with a fade out animation
      * @param {number} duration - Duration of fade-out animation in milliseconds
      */
-    hide(duration) {
+    hide(duration = 300) {
         if (this.fadeTween) {
             this.fadeTween.stop();
             this.fadeTween = null;
@@ -104,7 +70,7 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
             targets: this,
             alpha: 0,
             duration: duration,
-            ease: 'Linear'
+            ease: 'Sine.easeOut'
         });
     }
 
@@ -124,5 +90,5 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
 // Make component available globally
 if (typeof window !== 'undefined') {
     window.TurnIndicator = TurnIndicator;
-    console.log("TurnIndicator loaded and registered globally");
+    console.log("TurnIndicator loaded and registered globally - shadow removed per request");
 }
