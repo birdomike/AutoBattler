@@ -69,7 +69,9 @@ class BattleFlowController {
             
             // Deep copy the player team to avoid reference issues
             const playerTeamCopy = playerTeam.length > 0 ? JSON.parse(JSON.stringify(playerTeam)) : [];
-            console.log(`[BattleFlowController] PlayerTeam before preparation: ${playerTeamCopy.length} heroes`);
+            console.log(`[BattleFlowController] PlayerTeam before preparation: ${playerTeamCopy.length} heroes`);            
+            // DIAGNOSTIC (REMOVE LATER): Added log before player team preparation
+            console.log('[BattleFlowController.startBattle] Attempting to prepare player team via BattleManager.');
             
             // Store the prepared player team directly in BattleManager
             this.battleManager.playerTeam = this.battleManager.prepareTeamForBattle(playerTeamCopy);
@@ -173,6 +175,9 @@ class BattleFlowController {
             // Deep copy the enemy team
             const enemyTeamCopy = enemyTeam.length > 0 ? JSON.parse(JSON.stringify(enemyTeam)) : [];
             console.log(`[BattleFlowController] EnemyTeam before preparation: ${enemyTeamCopy.length} enemies`);
+            
+            // DIAGNOSTIC (REMOVE LATER): Added log before enemy team preparation
+            console.log('[BattleFlowController.startBattle] Attempting to prepare enemy team via BattleManager.');
             
             // Store the prepared enemy team directly in BattleManager
             this.battleManager.enemyTeam = this.battleManager.prepareTeamForBattle(enemyTeamCopy);

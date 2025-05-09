@@ -400,10 +400,16 @@ class BattleManager {
      * @returns {Array} - Prepared team for battle
      */
     prepareTeamForBattle(team) {
+        // DIAGNOSTIC (REMOVE LATER): Added log to trace method invocation
+        console.log('[BattleManager.prepareTeamForBattle] Method invoked.');
+        
         // Determine team type based on current context
         const isPlayerTeam = !this.playerTeam || this.playerTeam.length === 0 || 
                           (this.playerTeam.length > 0 && this.enemyTeam && this.enemyTeam.length > 0);
         const teamType = isPlayerTeam ? 'player' : 'enemy';
+        
+        // DIAGNOSTIC (REMOVE LATER): Added log to trace teamType determination
+        console.log(`[BattleManager.prepareTeamForBattle] Determined teamType: ${teamType}. Player team length: ${this.playerTeam?.length || 0}. Preparing to call BattleInitializer.`);
         
         // Facade method that delegates to BattleInitializer with explicit teamType
         if (this.battleInitializer) {

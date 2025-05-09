@@ -253,5 +253,63 @@ window.battleBehaviors = window.battleBehaviors || {
     }
 };
 
+// CRITICAL FIX: Register with uppercase 'B' for BattleManager compatibility
+window.BattleBehaviors = window.battleBehaviors;
+
+// Enhanced debugging to confirm it's being used
+window.battleBehaviors.decideAction = function(decisionLogic, context) {
+    console.log(`[DEBUG] BattleBehaviors.decideAction called with logic: ${decisionLogic}`);
+    console.log(`[DEBUG] Available abilities:`, context.availableAbilities?.map(a => a.name) || []);
+    
+    // Delegate to the original implementation
+    // Check if there are any available abilities
+    if (!context.availableAbilities || context.availableAbilities.length === 0) {
+        return null; // Use basic attack
+    }
+    
+    // Decide based on logic type
+    switch(decisionLogic) {
+        case 'alwaysUseAbilities':
+            // Always use an ability if available
+            return context.availableAbilities[
+                Math.floor(Math.random() * context.availableAbilities.length)
+            ];
+            
+        case 'prioritizeHealing':
+            // Check for healing abilities if there are injured allies
+            const healingAbilities = context.availableAbilities.filter(a => 
+                a.isHealing || a.damageType === 'healing'
+            );
+            
+            // Check if there are injured allies
+            const allies = context.actor.team === 'player' ? 
+                context.battleManager.playerTeam : context.battleManager.enemyTeam;
+            const injuredAllies = allies.filter(a => 
+                a.currentHp > 0 && a.currentHp < a.stats.hp * 0.7
+            );
+            
+            // If there are healing abilities and injured allies, use one
+            if (healingAbilities.length > 0 && injuredAllies.length > 0) {
+                return healingAbilities[
+                    Math.floor(Math.random() * healingAbilities.length)
+                ];
+            }
+            
+            // Otherwise, 50% chance to use a damage ability
+            return Math.random() > 0.5 && context.availableAbilities.length > 0 ? 
+                context.availableAbilities[
+                    Math.floor(Math.random() * context.availableAbilities.length)
+                ] : null;
+            
+        case 'defaultActionDecision':
+        default:
+            // 50% chance to use ability
+            return Math.random() > 0.5 && context.availableAbilities.length > 0 ? 
+                context.availableAbilities[
+                    Math.floor(Math.random() * context.availableAbilities.length)
+                ] : null;
+    }
+};
+
 // Let the console know this loaded
-console.log('Fallback BattleBehaviors.js loaded successfully');
+console.log('Fallback BattleBehaviors.js loaded successfully (registered as both window.battleBehaviors and window.BattleBehaviors)');

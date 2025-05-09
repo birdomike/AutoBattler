@@ -1,3 +1,12 @@
+## Version 0.6.3.7 (2025-05-09)
+
+### Fixed
+- Characters now properly use their abilities in battle instead of only auto-attacks
+- Fixed an issue with the BattleBehaviors system not being properly registered
+- Corrected script loading order to ensure behavior system is available before BattleManager initialization
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.7_FixAbilitySelectionIssue.md*
+
 # Changelog
 
 All notable changes to the First to Fall game will be documented in this file.
