@@ -1,5 +1,15 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.3.17 (2023-08-12)
+
+### Fixed
+- Fixed parameter mismatch in BattleFlowController.finishTurn() when calling processPassiveAbilities
+- Changed to correctly pass null as the character parameter and moved controller reference to additionalData
+- Resolves "[PassiveAbilityManager] Invalid character parameter (null or undefined)" runtime error
+- This fix should allow ability declarations and auto attacks to properly display in the Battle Log
+
+*Note: For detailed implementation details, see CHANGELOG_0.6.3.17_PassiveAbilityParameterFix.md*
+
 ## Version 0.6.3.16 (2023-08-12)
 
 ### Fixed

@@ -838,7 +838,7 @@ class BattleFlowController {
         });
         
         // Delegate end-of-turn passive processing
-        this.battleManager.processPassiveAbilities('onTurnEnd', { controller: this });
+        this.battleManager.processPassiveAbilities('onTurnEnd', null, { controller: this });
         
         // Delegate turn summary logging
         this.battleManager.displayTurnSummary();
