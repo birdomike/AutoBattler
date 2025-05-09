@@ -2,8 +2,8 @@
  * TurnIndicator.js
  * A floor marker component that highlights the active character's position during battle
  * 
- * @version 0.6.2.6
- * @updated Removed shadow, simplified implementation
+ * @version 0.6.3.5
+ * @updated Improved fade-in/fade-out animations with sequential tweening
  */
 
 class TurnIndicator extends Phaser.GameObjects.Graphics {
@@ -24,10 +24,10 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
      * @param {number} x - X position for the indicator
      * @param {number} y - Y position for the indicator
      * @param {number} color - Color of the indicator (hexadecimal)
-     * @param {number} duration - Duration of fade-in animation in milliseconds
+     * @param {number} fadeInDuration - Duration of fade-in animation in milliseconds
      * @param {number} offsetY - Optional vertical offset for fine-tuning position
      */
-    showAt(x, y, color, duration = 300, offsetY = -8) {
+    showAt(x, y, color, fadeInDuration = 300, offsetY = -8) {
         if (this.fadeTween) {
             this.fadeTween.stop();
             this.fadeTween = null;
@@ -42,17 +42,34 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
         const radius = 56; // 75 * 0.75 = 56.25 (rounded to 56)
         
         // Draw the highlight ellipse with solid color
-        this.fillStyle(color, 0.9);
+        this.fillStyle(color, 0.9); // Keep fill alpha high for visibility during pulse
         this.fillEllipse(0, 0, radius, radius * 0.27); // Flattened ellipse
         
-        // Animation with pulsing effect
-        this.fadeTween = this.scene.tweens.add({
+        this.setAlpha(0); // Explicitly set alpha to 0 before fade-in
+
+        // Initial Fade-In Tween
+        this.scene.tweens.add({
             targets: this,
-            alpha: { from: 0.3, to: 0.7 }, // Pulsing range
-            duration: 1200,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1 // Infinite repetition
+            alpha: 0.3, // Target alpha for the start of the pulse
+            duration: fadeInDuration, // Use the passed-in duration for fade-in
+            ease: 'Linear', // Or 'Sine.easeOut'
+            onComplete: () => {
+                // Ensure this instance hasn't been destroyed or hidden in the meantime
+                if (!this.scene || !this.active) return; 
+
+                // Start Pulsing Tween AFTER fade-in is complete
+                if (this.fadeTween) { // Stop any remnants of the fade-in tween just in case
+                    this.fadeTween.stop();
+                }
+                this.fadeTween = this.scene.tweens.add({
+                    targets: this,
+                    alpha: { from: 0.3, to: 0.7 }, // Pulsing range
+                    duration: 800, // Duration of one pulse cycle (e.g., 0.3 -> 0.7 -> 0.3)
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1 // Infinite repetition
+                });
+            }
         });
     }
 
@@ -90,5 +107,5 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
 // Make component available globally
 if (typeof window !== 'undefined') {
     window.TurnIndicator = TurnIndicator;
-    console.log("TurnIndicator loaded and registered globally - shadow removed per request");
+    console.log("TurnIndicator loaded and registered globally - enhanced animations with sequential tweening");
 }

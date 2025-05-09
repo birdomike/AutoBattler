@@ -418,7 +418,8 @@ class TeamContainer {
                 const teamColor = this.isPlayerTeam ? 0x4488ff : 0xff4444; // Blue for player, Red for enemy
 
                 console.log(`TC.showTurnIndicator: Calling turnIndicatorInstance.showAt for ${sprite.character?.name} at (${indicatorX}, ${indicatorY}) with color ${teamColor.toString(16)}`);
-                this.turnIndicatorInstance.showAt(indicatorX, indicatorY, teamColor);
+                const fadeInTime = 250; // ms - for smooth fade-in
+                this.turnIndicatorInstance.showAt(indicatorX, indicatorY, teamColor, fadeInTime);
             } else {
                 console.warn(`TC.showTurnIndicator: turnIndicatorInstance is null for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team. Cannot show indicator.`);
             }
@@ -457,7 +458,8 @@ class TeamContainer {
         
         if (this.turnIndicatorInstance) {
             console.log(`TC.clearTurnIndicators: Hiding turnIndicatorInstance for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team.`);
-            this.turnIndicatorInstance.hide(); // Use default hide animation
+            const fadeOutTime = 250; // ms - for smooth fade-out
+            this.turnIndicatorInstance.hide(fadeOutTime); 
         } else {
             console.warn(`TC.clearTurnIndicators: turnIndicatorInstance is null for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team. Cannot hide indicator.`);
         }
