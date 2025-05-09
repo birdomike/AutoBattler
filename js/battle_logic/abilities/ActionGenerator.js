@@ -72,9 +72,6 @@ class ActionGenerator {
                 const oppositeTeam = character.team === 'player' ? 'enemy' : 'player';
                 potentialTargetsForSystem = allLivingCharacters.filter(char => char.team === oppositeTeam);
                 
-                // TEMPORARY DIAGNOSTIC - Remove after bug fix
-                console.log(`[ActionGenerator] AUTO-ATTACK for ${character.name} (Team: ${character.team}). Potential ENEMY targets:`, 
-                    potentialTargetsForSystem.map(p => ({name: p.name, team: p.team})));
                 if (potentialTargetsForSystem.length === 0) {
                     console.warn(`[ActionGenerator] AUTO-ATTACK for ${character.name}: No valid enemy targets found!`);
                 }
@@ -83,16 +80,7 @@ class ActionGenerator {
                 potentialTargetsForSystem = [...this.battleManager.playerTeam, ...this.battleManager.enemyTeam]
                     .filter(char => this.validateCharacter(char) && char && !char.isDead && char.currentHp > 0);
                 
-                // TEMPORARY DIAGNOSTIC - Remove after bug fix
-                console.log(`[ActionGenerator] ABILITY (${selectedAbility.name}) for ${character.name}. All potential targets:`, 
-                    potentialTargetsForSystem.map(p => ({name: p.name, team: p.team})));
             }
-            
-            // TEMPORARY DIAGNOSTIC - Remove after bug fix
-            console.log(`[ActionGenerator] Actor: ${character.name} (Team: ${character.team})`);
-            console.log(`[ActionGenerator] selectedAbility: ${selectedAbility ? selectedAbility.name : 'Auto-Attack'}`);
-            console.log(`[ActionGenerator] Potential targets for TargetingSystem:`, 
-                potentialTargetsForSystem.map(p => ({name: p.name, team: p.team, hp: p.currentHp, defeated: p.isDead })));
             
             target = this.targetingSystem.selectTarget(character, selectedAbility, potentialTargetsForSystem);
         } else {
@@ -226,9 +214,8 @@ class ActionGenerator {
             }));
         }
         
-        // DIAGNOSTIC: Log the final action object
-        console.log(`[ActionGenerator.generateCharacterAction] Final action for ${action.actor?.name}: actionType='${action.actionType}', abilityName='${action.abilityName}', selectedAbility:`, action.ability);
-        console.log(`[ActionGenerator.generateCharacterAction] FULL ACTION OBJECT:`, JSON.parse(JSON.stringify(action)));
+        // Log the action being generated
+        console.log(`[ActionGenerator] Generated ${action.actionType} action for ${action.actor?.name}: ${action.abilityName}`);
         
         return action;
     }
@@ -313,21 +300,7 @@ class ActionGenerator {
         // 4. Try to use BattleBehaviors system for ability selection
         let selectedAbility = null;
         
-        // NEW LOG A: Check if battleBehaviors is available
-        console.log('[ActionGenerator.selectAbility] NEW LOG A - BattleBehaviors available? ', 
-                    !!this.battleManager.battleBehaviors, 
-                    'battleBehaviors type:', typeof this.battleManager.battleBehaviors);
-        
         if (this.battleManager.battleBehaviors) {
-            // NEW LOG B: Log details about the battleBehaviors object
-            console.log('[ActionGenerator.selectAbility] NEW LOG B - Character actionDecisionLogic:', 
-                         character.actionDecisionLogic);
-            console.log('[ActionGenerator.selectAbility] NEW LOG C - battleBehaviors methods:', 
-                        {
-                            hasBehavior: typeof this.battleManager.battleBehaviors.hasBehavior === 'function',
-                            decideAction: typeof this.battleManager.battleBehaviors.decideAction === 'function',
-                            getDefaultActionDecisionBehavior: typeof this.battleManager.battleBehaviors.getDefaultActionDecisionBehavior === 'function'
-                        });
             
             // Check required methods are functions
             if (typeof this.battleManager.battleBehaviors.hasBehavior !== 'function') {
@@ -345,54 +318,29 @@ class ActionGenerator {
                 teamManager: { getCharacterTeam: (char) => char.team }
             };
             
-            // NEW LOG D: Log decision context
-            console.log('[ActionGenerator.selectAbility] NEW LOG D - Decision context created:', 
-                        { actorName: decisionContext.actor.name, availableAbilityCount: decisionContext.availableAbilities.length });
-            
             try {
-                // NEW LOG E: About to determine which behavior to use
-                console.log('[ActionGenerator.selectAbility] NEW LOG E - About to determine behavior. Character actionDecisionLogic:', character.actionDecisionLogic);
-                
                 // Check if character has specific actionDecisionLogic
                 const decisionLogic = character.actionDecisionLogic;
                 
-                // NEW LOG F: Log behavior choice
+                // Check if the character has a custom logic or use default
                 const usingCustomLogic = decisionLogic && this.battleManager.battleBehaviors.hasBehavior(decisionLogic);
-                console.log('[ActionGenerator.selectAbility] NEW LOG F - Using', 
-                            usingCustomLogic ? `custom logic: ${decisionLogic}` : 'default action decision behavior');
                 
                 // Try to get default behavior before using it
                 const defaultBehavior = this.battleManager.battleBehaviors.getDefaultActionDecisionBehavior && 
                                         this.battleManager.battleBehaviors.getDefaultActionDecisionBehavior();
-                console.log('[ActionGenerator.selectAbility] NEW LOG G - Default behavior:', defaultBehavior);
                 
                 // Use that behavior if available, otherwise use default
                 if (usingCustomLogic) {
-                    // NEW LOG H: About to call decideAction with custom logic
-                    console.log('[ActionGenerator.selectAbility] NEW LOG H - About to call decideAction with custom logic:', decisionLogic);
-                    
                     selectedAbility = this.battleManager.battleBehaviors.decideAction(decisionLogic, decisionContext);
-                    
-                    // NEW LOG I: Result from decideAction with custom logic
-                    console.log('[ActionGenerator.selectAbility] NEW LOG I - Result from decideAction (custom):', 
-                                selectedAbility ? selectedAbility.name : 'null (auto-attack)');
                 } else {
-                    // NEW LOG J: About to call decideAction with default logic
-                    console.log('[ActionGenerator.selectAbility] NEW LOG J - About to call decideAction with default logic:', defaultBehavior);
-                    
                     selectedAbility = this.battleManager.battleBehaviors.decideAction(
                         defaultBehavior,
                         decisionContext
                     );
-                    
-                    // NEW LOG K: Result from decideAction with default logic
-                    console.log('[ActionGenerator.selectAbility] NEW LOG K - Result from decideAction (default):', 
-                                selectedAbility ? selectedAbility.name : 'null (auto-attack)');
                 }
                 
                 // If an ability was selected, set its cooldown
                 if (selectedAbility) {
-                    console.log('[ActionGenerator.selectAbility] NEW LOG L - Setting cooldown for selected ability:', selectedAbility.name);
                     selectedAbility.currentCooldown = selectedAbility.cooldown || 3;
                     return selectedAbility; // Return immediately if behavior system provided a result
                 }

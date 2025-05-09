@@ -10,9 +10,6 @@ class CharacterSprite {
      * @param {number} maxHealth - The character's maximum health (usually character.stats.hp)
      */
     updateHealth(newHealth, maxHealth) {
-
-        console.log(`CharacterSprite.updateHealth: ${this.character?.name} health to ${newHealth}/${maxHealth}`);
-        
         try {
             // Update the internal health tracking
             this.currentHealth = newHealth;
@@ -84,9 +81,6 @@ class CharacterSprite {
      * @param {number} maxHealth - Maximum health value
      */
     updateHealthBar(currentHealth, maxHealth) {
-
-        console.log(`CharacterSprite.updateHealthBar: ${this.character?.name} health ${currentHealth}/${maxHealth}`);
-        
         try {
             // Skip if health bar components don't exist
             if (!this.healthBar || !this.healthBarBg || !this.hpText) {

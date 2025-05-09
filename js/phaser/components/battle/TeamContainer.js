@@ -12,10 +12,6 @@ class TeamContainer {
      * @returns {boolean} - True if a character was found and updated
      */
     updateCharacterHealth(characterId, newHealth, maxHealth) {
-        // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
-        // TODO: REMOVE or MOVE after bug fix / refactoring
-        console.log(`[HEALTH DEBUG] TeamContainer.updateCharacterHealth called for ${typeof characterId === 'object' ? characterId?.name : characterId}, team: ${this.isPlayerTeam ? 'player' : 'enemy'}, characterId: ${typeof characterId === 'object' ? characterId?.uniqueId || characterId?.id : characterId}`);
-        // END TEMPORARY DIAGNOSTIC CODE
 
         console.log(`TeamContainer.updateCharacterHealth: Updating ${typeof characterId === 'object' ? characterId?.name : characterId} to health ${newHealth}/${maxHealth}`);
         
@@ -34,23 +30,12 @@ class TeamContainer {
         });
         
         // Try to find character sprite using enhanced finding logic
-        // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
-        // TODO: REMOVE or MOVE after bug fix / refactoring
-        console.log(`[HEALTH DEBUG] TeamContainer.updateCharacterHealth: About to call findCharacterSprite`);
-        // END TEMPORARY DIAGNOSTIC CODE
+
 
         const sprite = this.findCharacterSprite(characterId);
         
         if (!sprite) {
-            // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
-            // TODO: REMOVE or MOVE after bug fix / refactoring
-            console.warn(`[HEALTH DEBUG] Character sprite not found for ${typeof characterId === 'object' ? characterId?.name : characterId}, ID: ${typeof characterId === 'object' ? characterId?.uniqueId || characterId?.id : characterId}`);
-            // END TEMPORARY DIAGNOSTIC CODE
         } else {
-            // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
-            // TODO: REMOVE or MOVE after bug fix / refactoring
-            console.log(`[HEALTH DEBUG] Found CharacterSprite for ${sprite.character.name}, calling updateHealth`);
-            // END TEMPORARY DIAGNOSTIC CODE
             
             console.log(`TeamContainer: Updating ${sprite.character.name}'s health to ${newHealth}/${maxHealth}`);
             sprite.updateHealth(newHealth, maxHealth);
@@ -67,20 +52,12 @@ class TeamContainer {
      * @returns {Object|null} - The character sprite or null if not found
      */
     findCharacterSprite(character) {
-        // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
-        // TODO: REMOVE or MOVE after bug fix / refactoring
-        console.log(`[HEALTH DEBUG] TeamContainer.findCharacterSprite entry: character=${typeof character === 'object' ? character?.name : character}`);
-        // END TEMPORARY DIAGNOSTIC CODE
 
         if (!character) return null;
         
         // Try finding by direct reference first
         let sprite = this.characterSprites.find(s => s.character === character);
         if (sprite) {
-            // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
-            // TODO: REMOVE or MOVE after bug fix / refactoring
-            console.log(`[HEALTH DEBUG] Found by direct reference: ${sprite.character.name}`);
-            // END TEMPORARY DIAGNOSTIC CODE
             return sprite;
         }
         

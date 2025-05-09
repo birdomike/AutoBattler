@@ -11,8 +11,7 @@ class BattleEventManager {
      * @param {object} battleBridge - Reference to the BattleBridge for event communication
      */
     constructor(scene, battleBridge) {
-        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-        console.log('[BEM Constructor] === CONSTRUCTOR FIRST LINE ===');
+    
         
         // Validate dependencies
         if (!scene) {
@@ -37,8 +36,7 @@ class BattleEventManager {
             hasAddEventListener: this.battleBridge && typeof this.battleBridge.addEventListener === 'function'
         });
         
-        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-        console.log('[BEM Constructor] battleBridge TYPEOF addEventListener:', typeof this.battleBridge?.addEventListener, 'CHARACTER_ACTION type value:', this.battleBridge?.eventTypes?.CHARACTER_ACTION);
+
         
         this.initialize();
     }
@@ -47,8 +45,7 @@ class BattleEventManager {
      * Initialize the event manager and set up event listeners
      */
     initialize() {
-        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-        console.log('[BEM initialize] === INITIALIZE FIRST LINE ===');
+
         
         // Bind all event handlers to preserve 'this' context
         this.handleTurnStarted = this.handleTurnStarted.bind(this);
@@ -213,8 +210,7 @@ class BattleEventManager {
      * @param {function} handler - The bound handler function
      */
     registerEventHandler(eventType, handler) {
-        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-        console.log('[BEM registerEventHandler] Attempting for event:', eventType, 'Handler name:', handler.name || 'anonymous_BEM_handler');
+
         
         if (!this.battleBridge || !eventType || !handler) {
             console.warn("[BattleEventManager] Cannot register event handler - missing required parameters");
@@ -413,16 +409,14 @@ class BattleEventManager {
     * @param {Object} data - Event data
     */
     onCharacterAction(data) {
-    console.log(`BEM.onCharacterAction (for Turn Highlighting): Called for CHARACTER_ACTION. Character: ${data?.character?.name}, Event Data:`, data);
+    
     
     if (!data || !data.character || !this.scene) return;
 
     try {
-    // Log the entire event data for diagnosis
-    console.log(`[BattleEventManager.onCharacterAction] EVENT DATA RECEIVED:`, data);
-    console.log(`[BattleEventManager.onCharacterAction] data.action object:`, data.action);
+
     
-    console.log(`BEM.onCharacterAction (for Turn Highlighting): this.teamManager is ${this.teamManager ? 'defined' : 'undefined'}. Attempting to call updateActiveCharacterVisuals.`);
+    
     // Update active character visuals using TeamDisplayManager if available
     if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
     this.teamManager.updateActiveCharacterVisuals(data.character);
@@ -435,13 +429,10 @@ class BattleEventManager {
     this.scene.uiManager.updateActionTextDisplay(this.scene.battleState.currentTurn, data.character);
     }
 
-    // DIAGNOSTIC: Log action object properties for UI
-    console.log(`[BattleEventManager.onCharacterAction] Received action for UI: actionType='${data.action?.actionType}', abilityName='${data.action?.abilityName}'. Preparing to call showActionText.`);
+
 
     // Show action indicator on character
-    console.log(`BEM.onCharacterAction (for Action Indicator): Character: ${data.character?.name}. Attempting to find CharacterSprite via TeamDisplayManager for showActionText.`);
     const characterSprite = this.getCharacterSprite(data.character);
-    console.log(`BEM.onCharacterAction: CharacterSprite found: ${characterSprite ? 'yes' : 'null'}`);
         
     // Get the text to display based on the action type
         let actionText = "Auto Attack"; // Default
@@ -449,21 +440,10 @@ class BattleEventManager {
             // If we have an action with an actionType and abilityName, use them
             if (data.action && data.action.actionType === 'ability' && data.action.abilityName) {
                 actionText = `${data.action.abilityName}`;
-                console.log(`[BattleEventManager] Using ability name for action indicator: ${actionText}`);
             } else {
-                console.log(`[BattleEventManager] Using default 'Auto Attack' for action indicator due to missing action data`);
-                // Debug more information about why we're not seeing the right action type
-                if (data.action) {
-                    console.log(`[BattleEventManager] Action object exists but didn't match criteria:`, {
-                        actionType: data.action.actionType,
-                        actionTypeIsAbility: data.action.actionType === 'ability',
-                        hasAbilityName: !!data.action.abilityName,
-                        abilityName: data.action.abilityName
-                    });
-                }
             }
             
-            console.log(`[BattleEventManager.onCharacterAction] Determined actionText for CharacterSprite: '${actionText}' based on type: '${data.action?.actionType}' and name: '${data.action?.abilityName}'`);
+
             
             if (characterSprite && characterSprite.showActionText) {
                 characterSprite.showActionText(actionText);
@@ -478,17 +458,16 @@ class BattleEventManager {
      * @param {Object} data - Event data
      */
     onAbilityUsed(data) {
-        console.log(`BEM.onAbilityUsed (for Action Indicator): Character: ${data?.character?.name}, Ability: ${data?.ability?.name}. Event Data:`, data, `Attempting to find CharacterSprite via TeamDisplayManager for showActionText.`);
+
         
         if (!data || !data.character || !data.ability || !this.scene) return;
 
         try {
             // Show action indicator on character
             const characterSprite = this.getCharacterSprite(data.character);
-            console.log(`BEM.onAbilityUsed: CharacterSprite found: ${characterSprite ? 'yes' : 'null'}`);
+
             if (characterSprite && characterSprite.showActionText) {
-                // DIAGNOSTIC: Log data received about ability
-                console.log(`[BattleEventManager.onAbilityUsed] Showing ability: '${data.ability.name}'`);
+
                 
                 // Always display the ability name directly, not prefixed with "Ability:"
                 characterSprite.showActionText(`${data.ability.name}`);

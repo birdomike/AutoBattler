@@ -1,5 +1,16 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.3.20 (2025-05-09)
+
+### Improved
+- Removed unnecessary debug statements from CharacterSprite.js, BattleFlowController.js, and BattleEventManager.js
+- Eliminated verbose health debug logging from character sprites for cleaner console output
+- Removed chevron-marked tracing logs and detailed diagnostic blocks from BattleFlowController
+- Removed raw event data dumps from BattleEventManager to reduce console clutter
+- Maintained essential logging for battle events and errors
+
+*Note: For detailed implementation details, see CHANGELOG_0.6.3.20_ConsoleOutputCleanup.md*
+
 ## Version 0.6.3.19 (2025-05-09)
 
 ### Improved
