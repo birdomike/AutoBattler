@@ -400,25 +400,29 @@ class BattleManager {
      * @returns {Array} - Prepared team for battle
      */
     prepareTeamForBattle(team) {
-        // DIAGNOSTIC (REMOVE LATER): Added log to trace method invocation
         console.log('[BattleManager.prepareTeamForBattle] Method invoked.');
         
-        // Determine team type based on current context
-        const isPlayerTeam = !this.playerTeam || this.playerTeam.length === 0 || 
-                          (this.playerTeam.length > 0 && this.enemyTeam && this.enemyTeam.length > 0);
-        const teamType = isPlayerTeam ? 'player' : 'enemy';
-        
-        // DIAGNOSTIC (REMOVE LATER): Added log to trace teamType determination
-        console.log(`[BattleManager.prepareTeamForBattle] Determined teamType: ${teamType}. Player team length: ${this.playerTeam?.length || 0}. Preparing to call BattleInitializer.`);
-        
-        // Facade method that delegates to BattleInitializer with explicit teamType
-        if (this.battleInitializer) {
-            return this.battleInitializer.prepareTeamForBattle(team, teamType);
+        if (!team || !Array.isArray(team) || team.length === 0) {
+            console.warn('[BattleManager.prepareTeamForBattle] Invalid team provided:', team);
+            return [];
         }
+
+        // CORRECTED TEAM TYPE DETERMINATION LOGIC
+        // If playerTeam is empty, this is the first call and we're preparing the player team
+        // Otherwise, this is the second call and we're preparing the enemy team
+        const isPlayerTeamCurrentlyBeingPrepared = !this.playerTeam || this.playerTeam.length === 0;
+        const teamTypeToPass = isPlayerTeamCurrentlyBeingPrepared ? 'player' : 'enemy';
         
-        // This should not happen since we throw an error during initialization if BattleInitializer is missing
-        console.error(`[BattleManager] CRITICAL ERROR: BattleInitializer not available for team preparation (${teamType})`);
-        return []; // Return empty array as a last resort
+        // Diagnostic log using the corrected teamTypeToPass variable
+        console.log(`[BattleManager.prepareTeamForBattle] Determined teamType: ${teamTypeToPass}. Player team length: ${this.playerTeam?.length || 0}. Preparing to call BattleInitializer.`);
+        
+        // Delegate to BattleInitializer for team preparation
+        if (this.battleInitializer) {
+            return this.battleInitializer.prepareTeamForBattle(team, teamTypeToPass);
+        } else {
+            console.error(`[BattleManager] CRITICAL ERROR: BattleInitializer not available for team preparation (${teamTypeToPass})`);
+            return []; // Return empty array as a last resort
+        }
     }
     
     /**

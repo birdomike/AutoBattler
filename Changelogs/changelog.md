@@ -1,3 +1,13 @@
+## Version 0.6.3.8 (2025-05-09)
+
+### Fixed
+- Fixed critical team assignment bug that was preventing characters from using abilities
+- Corrected team type determination logic in BattleManager's prepareTeamForBattle method
+- Fixed enemy targeting system to properly identify characters on opposing teams
+- Enhanced team type validation to prevent incorrect assignments
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.8_TeamTypeAssignmentFix.md*
+
 ## Version 0.6.3.7 (2025-05-09)
 
 ### Fixed
