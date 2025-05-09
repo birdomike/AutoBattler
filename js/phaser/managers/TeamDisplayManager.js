@@ -235,21 +235,47 @@ class TeamDisplayManager {
         try {
             console.log(`[TeamDisplayManager] Updating turn indicator for ${sprite.character?.name}`);
             
-            // Get container position (with fallbacks for safety)
+            // Get global position by combining team container position with sprite position
             let xPos = 0, yPos = 0;
             
-            if (sprite.container) {
-                xPos = sprite.container.x;
-                yPos = sprite.container.y;
+            if (sprite.container && sprite.character) {
+                // Get the team container
+                const teamContainer = sprite.character.team === 'player' 
+                    ? this.playerTeamContainer 
+                    : this.enemyTeamContainer;
+                
+                if (teamContainer && teamContainer.container) {
+                    // Combine team container position with sprite local position
+                    xPos = teamContainer.container.x + sprite.container.x;
+                    yPos = teamContainer.container.y + sprite.container.y;
+                    
+                    console.log(`[TeamDisplayManager] Global position calculated: ${xPos}, ${yPos}`);
+                } else {
+                    console.warn("[TeamDisplayManager] Team container not found for sprite");
+                    
+                    // Fallback to local position if team container not found
+                    if (sprite.container) {
+                        xPos = sprite.container.x;
+                        yPos = sprite.container.y;
+                    }
+                }
             }
             
-            // Use getBottomCenterPosition if available
+            // Use getBottomCenterPosition if available - apply on global coords
             if (typeof sprite.getBottomCenterPosition === 'function') {
                 try {
                     const pos = sprite.getBottomCenterPosition();
                     if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
-                        xPos = pos.x;
-                        yPos = pos.y;
+                        // Get the team container for offset
+                        const teamContainer = sprite.character?.team === 'player' 
+                            ? this.playerTeamContainer 
+                            : this.enemyTeamContainer;
+                            
+                        if (teamContainer && teamContainer.container) {
+                            // Add team container offset to the bottom center position
+                            xPos = teamContainer.container.x + pos.x;
+                            yPos = teamContainer.container.y + pos.y;
+                        }
                     }
                 } catch (posError) {
                     console.warn("[TeamDisplayManager] Error getting sprite position:", posError);
@@ -260,7 +286,7 @@ class TeamDisplayManager {
             yPos += 40;
             
             // Determine color based on team
-            const isPlayerTeam = sprite.isPlayerTeam;
+            const isPlayerTeam = sprite.character?.team === 'player';
             const color = isPlayerTeam ? 0x3498db : 0xe74c3c; // Blue for player, red for enemy
             
             // Get battle speed multiplier (if available)

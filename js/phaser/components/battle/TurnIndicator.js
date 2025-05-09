@@ -35,7 +35,7 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
         this.setPosition(x, y);
         
         // Create a 3D-like circle with gradient and shadow
-        const radius = 32;
+        const radius = 55;
         
         // Draw shadow slightly offset
         this.fillStyle(0x000000, 0.3);

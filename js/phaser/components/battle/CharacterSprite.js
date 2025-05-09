@@ -795,25 +795,20 @@ highlight() {
         if (!this.highlightEffect || !this.highlightEffect.scene) { // Check if destroyed
             console.log(`Creating highlight for ${this.character?.name}`);
             
-            // First, add a subtle shadow
-            this.shadowEffect = this.scene.add.ellipse(0, bottomOffset, 60, 15, 0x000000, 0.4);
+            // First, add a subtle shadow (slightly larger than highlight)
+            this.shadowEffect = this.scene.add.ellipse(0, bottomOffset, 80, 14, 0x000000, .4);
             this.container.add(this.shadowEffect);
-            this.container.sendToBack(this.shadowEffect);
             
             // Determine color based on team
             const teamColor = this.character?.team === 'player' ? 0x4488ff : 0xff4444;
             console.log(`Using team color: ${teamColor.toString(16)} for ${this.character?.name} (team: ${this.character?.team})`);
             
-            // Use a simple colored ellipse instead of complex graphics
-            this.highlightEffect = this.scene.add.ellipse(0, bottomOffset - 2, 55, 13, teamColor, 0.4);
+            // Create main highlight with MORE flattened ellipse (reduced height)
+            this.highlightEffect = this.scene.add.ellipse(0, bottomOffset - 2, 75, 10, teamColor, 0.9);
             this.container.add(this.highlightEffect);
             
-            // Add the highlight between the shadow and character (middle layer)
-            if (this.shadowEffect) {
-                this.container.bringToTop(this.highlightEffect);
-                this.container.bringToTop(this.shadowEffect);
-                this.container.sendToBack(this.shadowEffect);
-            }
+            // Ensure proper z-ordering (shadow behind highlight)
+            this.container.sendToBack(this.shadowEffect);
             
             // Add subtle glow animation
             if (this.scene.tweens) {
