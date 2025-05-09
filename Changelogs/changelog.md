@@ -1,5 +1,34 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.3.16 (2023-08-12)
+
+### Fixed
+- Fixed critical path error in index.html that was loading the wrong BattleFlowController.js file
+- Updated script reference to use the correct path at js/battle_logic/core/BattleFlowController.js
+- This resolves the action declaration display issue by ensuring the updated BattleFlowController with proper diagnostic logging and action type handling is used
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.16_BattleFlowControllerPathFix.md*
+
+## Version 0.6.3.15 (2023-08-11)
+
+### Fixed
+- Added diagnostic logging in DirectBattleLog to trace action message flow
+- Temporarily disabled CHARACTER_ACTION event listener to fix action message conflicts
+- Enhanced logging for BATTLE_LOG event reception and message queue processing
+- Fixed issue with detailed action declarations not displaying in battle log
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.15_DirectBattleLogDiagnostics.md*
+
+## Version 0.6.3.14 (2023-08-10)
+
+### Fixed
+- Fixed Battle Log UI issue where action declarations weren't displaying properly
+- Modified BattleFlowController to prevent duplicate 'action' type messages
+- Updated console logging with clearer prefixes for better traceability
+- Ensured proper detailed action messages with team identifiers appear in the UI
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.14_BattleLogActionMessages.md*
+
 ## Version 0.6.3.13 (2023-08-09)
 
 ### Changed

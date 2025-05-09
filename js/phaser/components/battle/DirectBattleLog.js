@@ -1,7 +1,7 @@
 /**
  * DirectBattleLog.js
  * A simplified battle log that displays text directly on screen
- * @version 0.5.0.14
+ * @version 0.6.3.15
  */
 class DirectBattleLog {
     constructor(scene, x, y, width, options = {}) {
@@ -166,7 +166,7 @@ class DirectBattleLog {
             // Connect to BATTLE_LOG events
             bridge.addEventListener(bridge.eventTypes.BATTLE_LOG, (data) => {
                 try {
-                    console.log('DirectBattleLog received BATTLE_LOG event:', data);
+                    console.log('DirectBattleLog: BATTLE_LOG event received. Type:', data.type, 'Message:', data.message);
                     if (!data || !data.message) {
                         console.warn('DirectBattleLog: BATTLE_LOG event missing message data', data);
                         return;
@@ -196,6 +196,8 @@ class DirectBattleLog {
                 }
             });
             
+            // TEMPORARILY COMMENTED OUT TO DIAGNOSE ACTION MESSAGES ISSUE
+            /*
             // Listen for CHARACTER_ACTION events (newly added)
             bridge.addEventListener(bridge.eventTypes.CHARACTER_ACTION, (data) => {
                 try {
@@ -223,6 +225,7 @@ class DirectBattleLog {
                     console.error('Error handling CHARACTER_ACTION event:', error);
                 }
             });
+            */
             
             // Listen for abilities
             bridge.addEventListener(bridge.eventTypes.ABILITY_USED, (data) => {
@@ -538,6 +541,12 @@ class DirectBattleLog {
         
         // Process one message
         const message = this.messageQueue.shift();
+        
+        // Special logging for action messages being processed
+        if (message.type === 'action') {
+            console.log(`[DirectBattleLog.processMessageQueue] ACTION MESSAGE BEING PROCESSED FROM QUEUE: "${message.text}"`);
+        }
+        
         this.messages.push(message);
         
         // Limit message count
@@ -561,6 +570,11 @@ class DirectBattleLog {
      * Add a message to the battle log
      */
     addMessage(message, type = 'default') {
+        // Special logging for action messages
+        if (type === 'action') {
+            console.log(`[DirectBattleLog.addMessage] ACTION MESSAGE RECEIVED TO ADD: "${message}"`);
+        }
+        
         // Create message object
         const messageObj = {
             text: message,
