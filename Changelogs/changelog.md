@@ -1,3 +1,13 @@
+## Version 0.6.3.9 (2025-05-09)
+
+### Fixed
+- Ability names now display correctly in battle instead of showing "Auto Attack"
+- Fixed visual feedback to show the name of abilities being used
+- Enhanced BattleBehaviors system initialization with better diagnostics
+- Added safeguards to ensure ability names are properly displayed
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.9_AbilityDisplayFix.md*
+
 ## Version 0.6.3.8 (2025-05-09)
 
 ### Fixed

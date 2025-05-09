@@ -226,6 +226,9 @@ class ActionGenerator {
             }));
         }
         
+        // DIAGNOSTIC: Log the final action object
+        console.log(`[ActionGenerator.generateCharacterAction] Final action for ${action.actor?.name}: actionType='${action.actionType}', abilityName='${action.abilityName}', selectedAbility:`, action.ability);
+        
         return action;
     }
     
@@ -307,7 +310,20 @@ class ActionGenerator {
         // 4. Try to use BattleBehaviors system for ability selection
         let selectedAbility = null;
         
+        // DIAGNOSTIC: Check if battleBehaviors is available
+        console.log('[ActionGenerator.selectAbility] BattleBehaviors available? ', !!this.battleManager.battleBehaviors);
+        
         if (this.battleManager.battleBehaviors) {
+            // DIAGNOSTIC: Log details about the battleBehaviors object
+            console.log('[ActionGenerator.selectAbility] Attempting to use this.battleManager.battleBehaviors. Character actionDecisionLogic:', character.actionDecisionLogic);
+            console.log('[ActionGenerator.selectAbility] battleBehaviors object:', this.battleManager.battleBehaviors);
+            if (typeof this.battleManager.battleBehaviors.hasBehavior !== 'function') {
+                console.error('[ActionGenerator.selectAbility] ERROR: this.battleManager.battleBehaviors.hasBehavior is NOT a function!');
+            }
+            if (typeof this.battleManager.battleBehaviors.decideAction !== 'function') {
+                console.error('[ActionGenerator.selectAbility] ERROR: this.battleManager.battleBehaviors.decideAction is NOT a function!');
+            }
+            
             // Create context for action decision
             const decisionContext = {
                 actor: character,

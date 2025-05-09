@@ -409,34 +409,49 @@ class BattleEventManager {
     }
 
     /**
-     * Handle character action event
-     * @param {Object} data - Event data
-     */
+    * Handle character action event
+    * @param {Object} data - Event data
+    */
     onCharacterAction(data) {
-        console.log(`BEM.onCharacterAction (for Turn Highlighting): Called for CHARACTER_ACTION. Character: ${data?.character?.name}, Event Data:`, data);
+    console.log(`BEM.onCharacterAction (for Turn Highlighting): Called for CHARACTER_ACTION. Character: ${data?.character?.name}, Event Data:`, data);
+    
+    if (!data || !data.character || !this.scene) return;
+
+    try {
+    console.log(`BEM.onCharacterAction (for Turn Highlighting): this.teamManager is ${this.teamManager ? 'defined' : 'undefined'}. Attempting to call updateActiveCharacterVisuals.`);
+    // Update active character visuals using TeamDisplayManager if available
+    if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
+    this.teamManager.updateActiveCharacterVisuals(data.character);
+    } else if (this.scene.updateActiveCharacterVisuals) {
+    this.scene.updateActiveCharacterVisuals(data.character);
+    }
+
+    // Update action text in UI manager
+    if (this.scene.uiManager && typeof this.scene.uiManager.updateActionTextDisplay === 'function') {
+    this.scene.uiManager.updateActionTextDisplay(this.scene.battleState.currentTurn, data.character);
+    }
+
+    // DIAGNOSTIC: Log action object properties for UI
+    console.log(`[BattleEventManager.onCharacterAction] Received action for UI: actionType='${data.action?.actionType}', abilityName='${data.action?.abilityName}'. Preparing to call showActionText.`);
+
+    // Show action indicator on character
+    console.log(`BEM.onCharacterAction (for Action Indicator): Character: ${data.character?.name}. Attempting to find CharacterSprite via TeamDisplayManager for showActionText.`);
+    const characterSprite = this.getCharacterSprite(data.character);
+    console.log(`BEM.onCharacterAction: CharacterSprite found: ${characterSprite ? 'yes' : 'null'}`);
         
-        if (!data || !data.character || !this.scene) return;
-
-        try {
-            console.log(`BEM.onCharacterAction (for Turn Highlighting): this.teamManager is ${this.teamManager ? 'defined' : 'undefined'}. Attempting to call updateActiveCharacterVisuals.`);
-            // Update active character visuals using TeamDisplayManager if available
-            if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
-                this.teamManager.updateActiveCharacterVisuals(data.character);
-            } else if (this.scene.updateActiveCharacterVisuals) {
-                this.scene.updateActiveCharacterVisuals(data.character);
+    // Get the text to display based on the action type
+        let actionText = "Auto Attack"; // Default
+            
+            // If we have an action with an actionType and abilityName, use them
+            if (data.action && data.action.actionType === 'ability' && data.action.abilityName) {
+                actionText = `${data.action.abilityName}`;
+                console.log(`[BattleEventManager] Using ability name for action indicator: ${actionText}`);
+            } else {
+                console.log(`[BattleEventManager] Using default 'Auto Attack' for action indicator due to missing action data`);
             }
-
-            // Update action text in UI manager
-            if (this.scene.uiManager && typeof this.scene.uiManager.updateActionTextDisplay === 'function') {
-                this.scene.uiManager.updateActionTextDisplay(this.scene.battleState.currentTurn, data.character);
-            }
-
-            // Show action indicator on character
-            console.log(`BEM.onCharacterAction (for Action Indicator): Character: ${data.character?.name}. Attempting to find CharacterSprite via TeamDisplayManager for showActionText('Auto Attack').`);
-            const characterSprite = this.getCharacterSprite(data.character);
-            console.log(`BEM.onCharacterAction: CharacterSprite found: ${characterSprite ? 'yes' : 'null'}`); 
+            
             if (characterSprite && characterSprite.showActionText) {
-                characterSprite.showActionText("Auto Attack");
+                characterSprite.showActionText(actionText);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling character action:", error);
@@ -457,7 +472,11 @@ class BattleEventManager {
             const characterSprite = this.getCharacterSprite(data.character);
             console.log(`BEM.onAbilityUsed: CharacterSprite found: ${characterSprite ? 'yes' : 'null'}`);
             if (characterSprite && characterSprite.showActionText) {
-                characterSprite.showActionText(`Ability: ${data.ability.name}`);
+                // DIAGNOSTIC: Log data received about ability
+                console.log(`[BattleEventManager.onAbilityUsed] Showing ability: '${data.ability.name}'`);
+                
+                // Always display the ability name directly, not prefixed with "Ability:"
+                characterSprite.showActionText(`${data.ability.name}`);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling ability used:", error);

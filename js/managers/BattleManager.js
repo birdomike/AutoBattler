@@ -544,6 +544,14 @@ class BattleManager {
      * This allows backward compatibility with existing code
      */
     async initializeBehaviorSystem() {
+        // DIAGNOSTIC: Log the state of behavior systems at startup
+        console.log('[BattleManager.initializeBehaviorSystem] Starting behavior system initialization');
+        console.log('[BattleManager.initializeBehaviorSystem] Available window behaviors:', {
+            'window.battleBehaviors': typeof window.battleBehaviors,
+            'window.BattleBehaviors': typeof window.BattleBehaviors,
+            'this.battleBehaviors': typeof this.battleBehaviors,
+        });
+        
         if (!this.battleBehaviors) {
             try {
                 // Try dynamic import if ESM is supported
@@ -565,15 +573,39 @@ class BattleManager {
                 }
                 
                 this.battleBehaviors = module.default;
-                console.log('Battle Behaviors system loaded successfully');
+                console.log('Battle Behaviors system loaded successfully via ES Module');
             } catch (error) {
                 // Fallback to global if already loaded via script tag
-                if (window.battleBehaviors) {
+                console.log('[BattleManager.initializeBehaviorSystem] ES Module import failed, checking window globals...');
+                
+                // Try both uppercase and lowercase variants for maximum compatibility
+                if (window.BattleBehaviors) {
+                    this.battleBehaviors = window.BattleBehaviors;
+                    console.log('[BattleManager.initializeBehaviorSystem] Battle Behaviors system loaded from window.BattleBehaviors (uppercase)');
+                    
+                    // DIAGNOSTIC: Check required methods on the loaded object
+                    console.log('[BattleManager.initializeBehaviorSystem] Uppercase BattleBehaviors methods:', {
+                        hasBehavior: typeof this.battleBehaviors.hasBehavior === 'function',
+                        decideAction: typeof this.battleBehaviors.decideAction === 'function', 
+                        selectTarget: typeof this.battleBehaviors.selectTarget === 'function',
+                        getDefaultActionDecisionBehavior: typeof this.battleBehaviors.getDefaultActionDecisionBehavior === 'function'
+                    });
+                } 
+                else if (window.battleBehaviors) {
                     this.battleBehaviors = window.battleBehaviors;
-                    console.log('Battle Behaviors system loaded from window');
-                } else {
-                    console.warn('Battle Behaviors system not available:', error);
-                    console.log('Using default behavior when system is not available');
+                    console.log('[BattleManager.initializeBehaviorSystem] Battle Behaviors system loaded from window.battleBehaviors (lowercase)');
+                    
+                    // DIAGNOSTIC: Check required methods on the loaded object
+                    console.log('[BattleManager.initializeBehaviorSystem] Lowercase battleBehaviors methods:', {
+                        hasBehavior: typeof this.battleBehaviors.hasBehavior === 'function',
+                        decideAction: typeof this.battleBehaviors.decideAction === 'function', 
+                        selectTarget: typeof this.battleBehaviors.selectTarget === 'function',
+                        getDefaultActionDecisionBehavior: typeof this.battleBehaviors.getDefaultActionDecisionBehavior === 'function'
+                    });
+                }
+                else {
+                    console.warn('[BattleManager.initializeBehaviorSystem] Battle Behaviors system not available:', error);
+                    console.log('[BattleManager.initializeBehaviorSystem] Using default behavior when system is not available');
                     // Create a simple default behavior system
                     this.battleBehaviors = {
                         hasBehavior: (name) => false,
@@ -592,6 +624,13 @@ class BattleManager {
                 }
             }
         }
+        
+        // Final diagnostic check of the initialized system
+        console.log('[BattleManager.initializeBehaviorSystem] Final behavior system state:', {
+            'this.battleBehaviors defined': !!this.battleBehaviors,
+            'decideAction method exists': typeof this.battleBehaviors?.decideAction === 'function'
+        });
+        
         return this.battleBehaviors;
     }
     
