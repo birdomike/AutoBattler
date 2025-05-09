@@ -1,5 +1,14 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.3.13 (2023-08-09)
+
+### Changed
+- Added diagnostic logging for Battle Log message flow to debug duplicate action declarations
+- Added action object inspection in BattleFlowController.applyActionEffect
+- Added message tracing in BattleLogManager.logMessage to track log entry flow
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.13_BattleLogDiagnostics.md*
+
 ## Version 0.6.3.12 (2023-08-08)
 
 ### Fixed

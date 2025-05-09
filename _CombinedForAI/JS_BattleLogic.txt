@@ -108,7 +108,12 @@ function decideAction_PrioritizeHeal(context) {
     const actorTeam = teamManager.getCharacterTeam(actor);
     
     // Check team health status
-    const allCharacters = battleManager.getAllCharacters();
+    // UPDATED in v0.6.0.2: Use BattleUtilities.getAllCharacters instead of battleManager.getAllCharacters
+    // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
+    const allCharacters = window.BattleUtilities
+        ? window.BattleUtilities.getAllCharacters(battleManager.playerTeam, battleManager.enemyTeam)
+        : [...battleManager.playerTeam, ...battleManager.enemyTeam]; // Fallback for backward compatibility
+    
     const allies = allCharacters.filter(character => 
         teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
     );
@@ -1031,7 +1036,10 @@ function passive_ApplyRegenOnTurnStart(context) {
     }
     
     // Apply regeneration status effect
-    battleManager.addStatusEffect(actor, 'status_regen', 2);
+    // v0.5.27.4_StatusEffectParameterFix: Adding sourceId check and ensuring actor is passed as source
+    // This function was showing as error source for 'Invalid duration parameter (object)'
+    // Updated to use consistent 5-parameter format with explicit stacks
+    battleManager.addStatusEffect(actor, 'status_regen', actor, 2, 1);
     
     return {
         executed: true,
@@ -1127,7 +1135,8 @@ function passive_ApplyStatusOnHit(context) {
     
     // Random chance to apply status
     if (Math.random() < chance) {
-        battleManager.addStatusEffect(source, statusId, duration);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        battleManager.addStatusEffect(source, statusId, actor, duration);
         
         return {
             executed: true,
@@ -1151,9 +1160,25 @@ function passive_TeamBuffOnBattleStart(context) {
     
     // Get all allies
     const actorTeam = teamManager.getCharacterTeam(actor);
-    const allies = battleManager.getAllCharacters().filter(character => 
-        teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
-    );
+    
+    // UPDATED in v0.6.0.4: Use BattleUtilities.getAllCharacters instead of battleManager.getAllCharacters
+    // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
+    let allies = [];
+    if (window.BattleUtilities) {
+        const allCharacters = BattleUtilities.getAllCharacters(
+            battleManager.playerTeam,
+            battleManager.enemyTeam
+        );
+        allies = allCharacters.filter(character => 
+            teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
+        );
+    } else {
+        console.warn("[PassiveBehaviors] BattleUtilities not available for getAllCharacters lookup.");
+        // Fallback implementation
+        allies = [...battleManager.playerTeam, ...battleManager.enemyTeam].filter(character => 
+            teamManager.getCharacterTeam(character) === actorTeam && !character.defeated
+        );
+    }
     
     // Check for ability-specific configuration
     let statusId = 'status_atk_up';
@@ -1174,7 +1199,16 @@ function passive_TeamBuffOnBattleStart(context) {
             return;
         }
         
-        battleManager.addStatusEffect(ally, statusId, duration);
+        // Ensure duration is a number
+        let effectDuration = duration;
+        if (typeof effectDuration !== 'number') {
+            console.warn(`[passive_TeamBuffOnBattleStart] Invalid duration (${typeof duration}) - using default 3`);
+            effectDuration = 3;
+        }
+        
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        // Updated to use consistent 5-parameter format with explicit stacks
+        battleManager.addStatusEffect(ally, statusId, actor, effectDuration, 1);
         applied++;
     });
     
@@ -1199,7 +1233,9 @@ function passive_CriticalMomentum(context) {
     }
     
     // Apply critical chance buff
-    battleManager.addStatusEffect(actor, 'status_crit_up', 2);
+    // FIXED (v0.5.27.3_CircularReferenceHotfix): Added actor as source parameter
+    // Updated to use consistent 5-parameter format with explicit stacks
+    battleManager.addStatusEffect(actor, 'status_crit_up', actor, 2, 1);
     
     return {
         executed: true,
@@ -1219,7 +1255,9 @@ function passive_KillBuff(context) {
     if (trigger !== 'onKill') return { executed: false };
     
     // Apply attack up buff after a kill
-    battleManager.addStatusEffect(actor, 'status_atk_up', 2);
+    // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+    // Updated to use consistent 5-parameter format with explicit stacks
+    battleManager.addStatusEffect(actor, 'status_atk_up', actor, 2, 1);
     
     return {
         executed: true,
@@ -1254,7 +1292,9 @@ function passive_LastStand(context) {
         battleManager.applyHealing(actor, healAmount, actor, null, 'passive');
         
         // Apply defense buff
-        battleManager.addStatusEffect(actor, 'status_def_up', 2);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        // Updated to use consistent 5-parameter format with explicit stacks
+        battleManager.addStatusEffect(actor, 'status_def_up', actor, 2, 1);
         
         return {
             executed: true,
@@ -1278,12 +1318,31 @@ function passive_ProtectiveInstinct(context) {
     
     // Get all allies
     const actorTeam = teamManager.getCharacterTeam(actor);
-    const allies = battleManager.getAllCharacters().filter(character => 
-        teamManager.getCharacterTeam(character) === actorTeam && 
-        character !== actor && // Not self
-        !character.defeated && 
-        (character.currentHp / character.stats.hp) < 0.4 // Below 40% health
-    );
+    
+    // UPDATED in v0.6.0.4: Use BattleUtilities.getAllCharacters instead of battleManager.getAllCharacters
+    // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
+    let allies = [];
+    if (window.BattleUtilities) {
+        const allCharacters = BattleUtilities.getAllCharacters(
+            battleManager.playerTeam,
+            battleManager.enemyTeam
+        );
+        allies = allCharacters.filter(character => 
+            teamManager.getCharacterTeam(character) === actorTeam && 
+            character !== actor && // Not self
+            !character.defeated && 
+            (character.currentHp / character.stats.hp) < 0.4 // Below 40% health
+        );
+    } else {
+        console.warn("[PassiveBehaviors] BattleUtilities not available for getAllCharacters lookup.");
+        // Fallback implementation
+        allies = [...battleManager.playerTeam, ...battleManager.enemyTeam].filter(character => 
+            teamManager.getCharacterTeam(character) === actorTeam && 
+            character !== actor && // Not self
+            !character.defeated && 
+            (character.currentHp / character.stats.hp) < 0.4 // Below 40% health
+        );
+    }
     
     // If there are low-health allies, protect them
     if (allies.length > 0) {
@@ -1291,7 +1350,9 @@ function passive_ProtectiveInstinct(context) {
         
         // Apply shield to up to 2 allies
         for (let i = 0; i < Math.min(2, allies.length); i++) {
-            battleManager.addStatusEffect(allies[i], 'status_shield', 1);
+            // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+            // Updated to use consistent 5-parameter format with explicit stacks
+            battleManager.addStatusEffect(allies[i], 'status_shield', actor, 1, 1);
             protectedCount++;
         }
         
@@ -1362,10 +1423,27 @@ function passive_Intimidate(context) {
     
     // Get enemies
     const actorTeam = teamManager.getCharacterTeam(actor);
-    const enemies = battleManager.getAllCharacters().filter(character => 
-        teamManager.getCharacterTeam(character) !== actorTeam && 
-        !character.defeated
-    );
+    
+    // UPDATED in v0.6.0.4: Use BattleUtilities.getAllCharacters instead of battleManager.getAllCharacters
+    // This aligns with Phase 3 refactoring where utility methods were moved out of BattleManager
+    let enemies = [];
+    if (window.BattleUtilities) {
+        const allCharacters = BattleUtilities.getAllCharacters(
+            battleManager.playerTeam,
+            battleManager.enemyTeam
+        );
+        enemies = allCharacters.filter(character => 
+            teamManager.getCharacterTeam(character) !== actorTeam && 
+            !character.defeated
+        );
+    } else {
+        console.warn("[PassiveBehaviors] BattleUtilities not available for getAllCharacters lookup.");
+        // Fallback implementation
+        enemies = [...battleManager.playerTeam, ...battleManager.enemyTeam].filter(character => 
+            teamManager.getCharacterTeam(character) !== actorTeam && 
+            !character.defeated
+        );
+    }
     
     // If there are enemies, intimidate them
     if (enemies.length > 0) {
@@ -1377,7 +1455,9 @@ function passive_Intimidate(context) {
         const duration = ability.passiveData?.duration || 1;
         
         // Apply status effect
-        battleManager.addStatusEffect(target, statusId, duration);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        // Updated to use consistent 5-parameter format with explicit stacks
+        battleManager.addStatusEffect(target, statusId, actor, duration, 1);
         
         return {
             executed: true,
@@ -1424,7 +1504,9 @@ function passive_OnKillEffect(context) {
             
         case 'buff':
             // Apply a status buff to self
-            battleManager.addStatusEffect(actor, statusId, duration);
+            // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+            // Updated to use consistent 5-parameter format with explicit stacks
+            battleManager.addStatusEffect(actor, statusId, actor, duration, 1);
             
             return {
                 executed: true,
@@ -1491,7 +1573,10 @@ function passive_CriticalHitBoost(context) {
     }
     
     // Apply critical hit buff
-    battleManager.addStatusEffect(actor, 'status_crit_up', duration, { value: bonusAmount });
+    // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+    // Fixed: Use consistent 5-parameter format with numeric stacks
+    let stackCount = (typeof bonusAmount === 'number' && bonusAmount > 0) ? Math.ceil(bonusAmount) : 1;
+    battleManager.addStatusEffect(actor, 'status_crit_up', actor, duration, stackCount);
     
     return {
         executed: true,
@@ -1527,7 +1612,9 @@ function passive_StatusOnHit(context) {
     // Roll for chance
     if (Math.random() < chance) {
         // Apply the status effect
-        battleManager.addStatusEffect(target, statusId, duration);
+        // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
+        // Updated to use consistent 5-parameter format with explicit stacks
+        battleManager.addStatusEffect(target, statusId, actor, duration, 1);
         
         // Get a readable name for the status
         let statusName = statusId;
@@ -1608,11 +1695,23 @@ import behaviorRegistry from './BehaviorRegistry.js';
 function targetRandomEnemy(context) {
     const { actor, potentialTargets, teamManager } = context;
     
+    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+    console.log(`[TargetingBehavior: targetRandomEnemy] Actor: ${actor.name} (Team: ${actor.team})`);
+    console.log(`[TargetingBehavior: targetRandomEnemy] teamManager.getCharacterTeam(actor): ${teamManager.getCharacterTeam(actor)}`);
+    
     // Filter to only include enemies that are alive
     const validTargets = potentialTargets.filter(target => {
-        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
-               !target.defeated;
+        const isEnemy = teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor);
+        const isDead = !!target.defeated;
+        
+        // TEMPORARY DIAGNOSTIC - Remove after bug fix
+        console.log(`  Considering: ${target.name} (Team: ${target.team}, TeamManager team: ${teamManager.getCharacterTeam(target)}, HP: ${target.currentHp}, Defeated: ${target.defeated}). Is Enemy?: ${isEnemy}, IsDead: ${isDead}`);
+        
+        return isEnemy && !isDead;
     });
+    
+    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+    console.log(`[TargetingBehavior: targetRandomEnemy] Valid targets: ${validTargets.length > 0 ? validTargets.map(t => t.name).join(', ') : 'None'}`);    
     
     if (validTargets.length === 0) return null;
     
@@ -1673,11 +1772,23 @@ function targetHighestHpEnemy(context) {
 function targetAllEnemies(context) {
     const { actor, potentialTargets, teamManager } = context;
     
+    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+    console.log(`[TargetingBehavior: targetAllEnemies] Actor: ${actor.name} (Team: ${actor.team})`);
+    console.log(`[TargetingBehavior: targetAllEnemies] teamManager.getCharacterTeam(actor): ${teamManager.getCharacterTeam(actor)}`);
+    
     // Filter to only include enemies that are alive
     const validTargets = potentialTargets.filter(target => {
-        return teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor) && 
-               !target.defeated;
+        const isEnemy = teamManager.getCharacterTeam(target) !== teamManager.getCharacterTeam(actor);
+        const isDead = !!target.defeated;
+        
+        // TEMPORARY DIAGNOSTIC - Remove after bug fix
+        console.log(`  Considering: ${target.name} (Team: ${target.team}, TeamManager team: ${teamManager.getCharacterTeam(target)}, HP: ${target.currentHp}, Defeated: ${target.defeated}). Is Enemy?: ${isEnemy}, IsDead: ${isDead}`);
+        
+        return isEnemy && !isDead;
     });
+    
+    // TEMPORARY DIAGNOSTIC - Remove after bug fix
+    console.log(`[TargetingBehavior: targetAllEnemies] Valid targets: ${validTargets.length > 0 ? validTargets.map(t => t.name).join(', ') : 'None'}`);
     
     if (validTargets.length === 0) return null;
     

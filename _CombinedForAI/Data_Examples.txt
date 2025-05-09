@@ -70,7 +70,7 @@
           "id": "caste_battle_fury",
           "name": "Battle Fury",
           "damage": 0,
-          "cooldown": 5,
+          "cooldown": 6,
           "isHealing": false,
           "damageType": "utility",
           "description": "Enter a state of fury, increasing attack speed and damage",
@@ -231,7 +231,7 @@
         {
           "id": "aqualia_tidal_wave",
           "name": "Tidal Wave",
-          "damage": 30,
+          "damage": 25,
           "cooldown": 3,
           "isHealing": false,
           "damageType": "spell",
@@ -243,7 +243,7 @@
           "effects": [
             {
               "type": "Damage",
-              "value": 30,
+              "value": 25,
               "scalingStat": "Intellect",
               "scaleFactor": 0.5,
               "damageType": "water"
@@ -708,7 +708,7 @@
         {
           "id": "zephyr_wind_slash",
           "name": "Wind Slash",
-          "damage": 32,
+          "damage": 30,
           "cooldown": 3,
           "isHealing": false,
           "damageType": "physical",
@@ -721,16 +721,10 @@
           "effects": [
             {
               "type": "Damage",
-              "value": 32,
+              "value": 30,
               "scalingStat": "Strength",
               "scaleFactor": 0.5,
               "damageType": "air"
-            },
-            {
-              "type": "ApplyStatus",
-              "statusEffectId": "status_bleed",
-              "chance": 0.4,
-              "duration": 2
             }
           ]
         },
@@ -1143,6 +1137,65 @@
         "isAdditive": true
       }
     }
+  ]
+}
+
+===== FILE: type_effectiveness.json =====
+{
+  "advantages": {
+    "fire": ["nature", "ice", "metal"],
+    "water": ["fire", "rock", "metal"],
+    "nature": ["water", "rock"],
+    "electric": ["water", "air"],
+    "ice": ["nature", "air"],
+    "rock": ["fire", "air"],
+    "air": ["nature", "poison"],
+    "light": ["dark", "ethereal"],
+    "dark": ["psychic", "light"],
+    "metal": ["ice", "rock"],
+    "psychic": ["poison", "physical"],
+    "poison": ["nature", "light"],
+    "physical": ["dark", "poison"],
+    "arcane": ["arcane", "nature", "air"],
+    "mechanical": ["arcane", "poison"],
+    "void": ["light", "psychic"],
+    "crystal": ["air", "ice"],
+    "storm": ["air", "water"],
+    "ethereal": ["psychic", "dark"],
+    "blood": ["physical", "light"],
+    "plague": ["nature", "water"],
+    "gravity": ["air", "rock"]
+  },
+  "disadvantages": {
+    "fire": ["water", "rock"],
+    "water": ["nature", "electric"],
+    "nature": ["fire", "ice", "air"],
+    "electric": ["nature", "metal"],
+    "ice": ["fire", "metal"],
+    "rock": ["water", "nature"],
+    "air": ["electric", "rock"],
+    "light": ["metal", "nature"],
+    "dark": ["physical", "metal"],
+    "metal": ["fire", "water"],
+    "psychic": ["dark", "metal"],
+    "poison": ["metal", "rock"],
+    "physical": ["metal", "rock", "ethereal"],
+    "arcane": ["metal", "light"],
+    "mechanical": ["electric", "gravity"],
+    "void": ["arcane", "dark"],
+    "crystal": ["rock", "metal"],
+    "storm": ["rock", "electric"],
+    "ethereal": ["light"],
+    "blood": ["poison", "plague"],
+    "plague": ["fire", "light"],
+    "gravity": ["electric", "storm"]
+  },
+  "immunities": {
+    "metal": ["poison"],
+    "ethereal": ["physical"]
+  },
+  "specialCases": [
+    {"attacker": "light", "defender": "ethereal", "multiplier": 3.0}
   ]
 }
 

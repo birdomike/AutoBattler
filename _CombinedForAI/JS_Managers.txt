@@ -1,11 +1,572 @@
 ﻿
 
+===== FILE: BattleFlowController.js =====
+/**
+ * BattleFlowController
+ * Handles battle flow management separate from BattleManager
+ * Part of BattleManager refactoring - Stage 3
+ * Version 0.5.9 - 2025-05-20
+ */
+
+class BattleFlowController {
+    /**
+     * Create a new BattleFlowController
+     * @param {BattleManager} battleManager - The BattleManager instance
+     */
+    constructor(battleManager) {
+        console.log('[BattleFlowController] Initializing');
+        this.battleManager = battleManager;
+        
+        // Register globally for testing/debugging
+        window.battleFlowController = this;
+    }
+    
+    /**
+     * Enable the flow controller in the BattleManager
+     * @returns {boolean} Success status
+     */
+    enableFlowController() {
+        if (this.battleManager) {
+            console.log("[BattleFlowController] Enabling flow controller");
+            this.battleManager.useNewFlowController = true;
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Disable the flow controller in the BattleManager
+     * @returns {boolean} Success status
+     */
+    disableFlowController() {
+        if (this.battleManager) {
+            console.log("[BattleFlowController] Disabling flow controller");
+            this.battleManager.useNewFlowController = false;
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Starts a battle with the provided teams
+     * @param {Array} playerTeam - Array of player characters
+     * @param {Array} enemyTeam - Array of enemy characters
+     * @returns {Promise<boolean>} Promise resolving to battle start success
+     */
+    async startBattle(playerTeam, enemyTeam) {
+        console.log("[BattleFlowController] Starting battle");
+        
+        try {
+            // 1. Preparation phase
+            await this.prepareForBattle();
+            
+            // 2. Team preparation - delegate team preparation to BattleManager
+            const preparedPlayerTeam = this.battleManager.prepareTeamForBattle(
+                this.deepCopyTeam(playerTeam)
+            );
+            this.battleManager.playerTeam = preparedPlayerTeam;
+            
+            const preparedEnemyTeam = this.battleManager.prepareTeamForBattle(
+                this.deepCopyTeam(enemyTeam)
+            );
+            this.battleManager.enemyTeam = preparedEnemyTeam;
+            
+            // 3. Reset battle state in BattleManager
+            this.resetBattleState();
+            
+            // 4. Render UI (just delegate this operation to BattleManager)
+            this.renderUI(preparedPlayerTeam, preparedEnemyTeam);
+            
+            // 5. Log battle start
+            this.battleManager.logMessage('Battle started!');
+            this.battleManager.logMessage(
+                `${preparedPlayerTeam.length} heroes vs ${preparedEnemyTeam.length} enemies`
+            );
+            console.log('Battle started with teams:', preparedPlayerTeam, preparedEnemyTeam);
+            
+            // 6. Process battle start passive abilities
+            this.processBattleStartPassives();
+            
+            // 7. Start first turn
+            this.battleManager.startNextTurn();
+            
+            return true; // Battle started successfully
+        } catch (error) {
+            console.error("[BattleFlowController] Error starting battle:", error);
+            return false; // Battle failed to start
+        }
+    }
+    
+    /**
+     * Deep copies a team to prevent reference issues
+     * @param {Array} team - Team to copy
+     * @returns {Array} Deep copy of team
+     * @private
+     */
+    deepCopyTeam(team) {
+        if (!team || !Array.isArray(team)) {
+            console.warn('[BattleFlowController] Invalid team provided, using empty array');
+            return [];
+        }
+        return team.length > 0 ? JSON.parse(JSON.stringify(team)) : [];
+    }
+    
+    /**
+     * Prepares battle systems (status effects, behavior system)
+     * @returns {Promise<void>}
+     * @private
+     */
+    async prepareForBattle() {
+        console.log("[BattleFlowController] Preparing battle systems");
+        
+        // Ensure status effect definitions are loaded
+        if (!this.battleManager.statusEffectDefinitions) {
+            try {
+                await this.battleManager.loadStatusEffectDefinitions();
+            } catch (error) {
+                console.warn('[BattleFlowController] Status effect definitions not available, using fallback behavior:', error);
+            }
+        }
+        
+        // Ensure behavior system is initialized
+        if (!this.battleManager.battleBehaviors) {
+            try {
+                await this.battleManager.initializeBehaviorSystem();
+            } catch (error) {
+                console.warn('[BattleFlowController] Behavior system not available, using legacy behavior:', error);
+            }
+        }
+        
+        // Ensure UI is initialized
+        this.ensureUIInitialized();
+    }
+    
+    /**
+     * Ensures the appropriate UI is initialized based on uiMode
+     * @private
+     */
+    ensureUIInitialized() {
+        const uiMode = this.battleManager.uiMode;
+        
+        if (uiMode === "phaser") {
+            console.log('[BattleFlowController] Using Phaser scene for battle visualization');
+        } else if (!this.battleManager.battleUI || !this.battleManager.battleUI.isSetup) {
+            console.log('[BattleFlowController] Initializing DOM UI for battle');
+            try {
+                // Create a BattleUI instance if it doesn't exist
+                if (!this.battleManager.battleUI) {
+                    if (typeof window.BattleUI === 'undefined') {
+                        console.error('[BattleFlowController] BattleUI class is not defined! Cannot create BattleUI instance.');
+                        throw new Error('BattleUI class is not defined!');
+                    }
+                    console.log('[BattleFlowController] Creating new DOM BattleUI instance');
+                    this.battleManager.battleUI = new window.BattleUI(this.battleManager.scene, this.battleManager);
+                }
+                
+                // Initialize the UI
+                this.battleManager.battleUI.initialize();
+            } catch (error) {
+                console.error('[BattleFlowController] Failed to initialize BattleUI:', error);
+                throw error;
+            }
+        }
+    }
+    
+    /**
+     * Resets battle state variables in BattleManager
+     * @private
+     */
+    resetBattleState() {
+        console.log("[BattleFlowController] Resetting battle state");
+        
+        // Reset core battle state variables
+        this.battleManager.currentTurn = 0;
+        this.battleManager.battleActive = true;
+        this.battleManager.isPaused = false;
+        this.battleManager.activeCharacterIndex = 0;
+        this.battleManager.actionQueue = [];
+        this.battleManager.turnActions = [];
+        this.battleManager.turnInProgress = false;
+        this.battleManager.statusEffects = {};
+        
+        // Initialize passive trigger tracking at battle level
+        this.battleManager.passiveTriggersThisBattle = new Map();
+    }
+    
+    /**
+     * Renders characters in the UI
+     * @param {Array} playerTeam - Prepared player team
+     * @param {Array} enemyTeam - Prepared enemy team
+     * @private
+     */
+    renderUI(playerTeam, enemyTeam) {
+        console.log("[BattleFlowController] Rendering characters in UI");
+        
+        // Delegate to BattleManager's UI for DOM mode
+        if (this.battleManager.uiMode !== "phaser" && this.battleManager.battleUI) {
+            this.battleManager.battleUI.renderCharacters(playerTeam, enemyTeam);
+        }
+        
+        // For Phaser UI, dispatch event through BattleManager facade if available
+        if (this.battleManager.uiMode === "phaser") {
+            if (this.battleManager.dispatchBattleEvent) {
+                // Use the facade method
+                this.battleManager.dispatchBattleEvent(
+                    window.battleBridge?.eventTypes.BATTLE_STARTED || 'battle_started', 
+                    { playerTeam, enemyTeam }
+                );
+                console.log('[BattleFlowController] Dispatched BATTLE_STARTED event for Phaser UI');
+            } else if (window.battleBridge) {
+                // Fallback to direct call
+                try {
+                    window.battleBridge.dispatchEvent(
+                        window.battleBridge.eventTypes.BATTLE_STARTED, 
+                        { playerTeam, enemyTeam }
+                    );
+                    console.log('[BattleFlowController] Dispatched BATTLE_STARTED event for Phaser UI');
+                } catch (error) {
+                    console.error('[BattleFlowController] Error dispatching BATTLE_STARTED event:', error);
+                }
+            }
+        }
+    }
+    
+    /**
+    * Processes battle start passive abilities
+    * @private
+    */
+processBattleStartPassives() {
+    console.log("[BattleFlowController] Processing battle start passive abilities");
+    
+    const allCharacters = [
+    ...this.battleManager.playerTeam, 
+    ...this.battleManager.enemyTeam
+    ];
+    
+    allCharacters.forEach(character => {
+    // Enhanced validation before processing passives
+    if (!character) {
+    console.warn("[BattleFlowController] Skipping null character reference in battle start passives");
+    return;
+    }
+    
+    // Validate character has required properties
+    if (!character.name) {
+    console.warn(`[BattleFlowController] Character missing name property in battle start passives`);
+    return;
+    }
+    
+    // Check character is alive
+    if (character.currentHp <= 0 || character.isDead) {
+    console.debug(`[BattleFlowController] Skipping passive processing for defeated character: ${character.name}`);
+    return;
+    }
+    
+    // Check character has passives to process
+    if (!Array.isArray(character.passiveAbilities) || character.passiveAbilities.length === 0) {
+    console.debug(`[BattleFlowController] Character has no passive abilities: ${character.name}`);
+    return;
+    }
+    
+    // All validation passed, process passive abilities
+    this.battleManager.processPassiveAbilities('onBattleStart', character);
+    });
+}
+
+/**
+ * Start the next turn in the battle sequence
+ * @returns {boolean} Success status
+ */
+startNextTurn() {
+    console.log("[BattleFlowController] Starting next turn");
+    
+    try {
+        // 1. Increment turn counter
+        this.battleManager.currentTurn++;
+        
+        // 2. Mark turn as in progress
+        this.battleManager.turnInProgress = true;
+        
+        // 3. Process status effects
+        this.battleManager.processStatusEffects();
+        
+        // 4. Process turn start passive abilities
+        this.processTurnStartPassives();
+        
+        // 5. Generate actions for all characters
+        this.battleManager.generateTurnActions();
+        
+        // 6. Start executing actions
+        if (this.battleManager.actionQueue && this.battleManager.actionQueue.length > 0) {
+            // Log the new turn
+            this.battleManager.logMessage(`Turn ${this.battleManager.currentTurn} begins!`, 'info');
+            
+            // Execute the first action
+            setTimeout(() => {
+                if (!this.battleManager.isPaused) {
+                    this.executeNextAction();
+                }
+            }, 1000);
+            
+            return true;
+        } else {
+            // No actions to execute
+            console.warn("[BattleFlowController] No actions to execute in turn");
+            this.finishTurn();
+            return false;
+        }
+    } catch (error) {
+        console.error("[BattleFlowController] Error starting next turn:", error);
+        return false;
+    }
+}
+
+/**
+ * Process turn start passive abilities for all characters
+ * @private
+ */
+processTurnStartPassives() {
+    console.log("[BattleFlowController] Processing turn start passive abilities");
+    
+    const allCharacters = [
+        ...this.battleManager.playerTeam, 
+        ...this.battleManager.enemyTeam
+    ];
+    
+    allCharacters.forEach(character => {
+        // Skip if character is invalid or defeated
+        if (!character || character.isDead || character.currentHp <= 0) {
+            return;
+        }
+        
+        // Process turn start passives
+        this.battleManager.processPassiveAbilities('onTurnStart', character);
+    });
+}
+
+/**
+ * Execute the next action in the queue
+ * @returns {boolean} Success status
+ */
+executeNextAction() {
+    console.log("[BattleFlowController] Executing next action");
+    
+    try {
+        // Check if battle is paused
+        if (this.battleManager.isPaused) {
+            console.log("[BattleFlowController] Battle is paused, not executing action");
+            return false;
+        }
+        
+        // Check if there are actions to execute
+        if (!this.battleManager.actionQueue || this.battleManager.actionQueue.length === 0) {
+            console.log("[BattleFlowController] No more actions in queue, finishing turn");
+            this.finishTurn();
+            return false;
+        }
+        
+        // Get the next action
+        const action = this.battleManager.actionQueue.shift();
+        
+        // Check if actor is still alive
+        if (action.actor.isDead || action.actor.currentHp <= 0) {
+            console.log(`[BattleFlowController] Actor ${action.actor.name} is defeated, skipping action`);
+            this.executeNextAction();
+            return false;
+        }
+        
+        // Apply the action
+        this.battleManager.applyActionEffect(action);
+        
+        // Schedule next action or finish turn
+        setTimeout(() => {
+            if (!this.battleManager.isPaused) {
+                // Check if battle has ended
+                if (this.battleManager.checkBattleEnd()) {
+                    console.log("[BattleFlowController] Battle has ended during action execution");
+                    return;
+                }
+                
+                // Execute next action or finish turn
+                if (this.battleManager.actionQueue && this.battleManager.actionQueue.length > 0) {
+                    this.executeNextAction();
+                } else {
+                    this.finishTurn();
+                }
+            }
+        }, this.battleManager.actionDelay);
+        
+        return true;
+    } catch (error) {
+        console.error("[BattleFlowController] Error executing action:", error);
+        return false;
+    }
+}
+
+/**
+ * Finish the current turn
+ * @returns {boolean} Success status
+ */
+finishTurn() {
+    console.log("[BattleFlowController] Finishing turn");
+    
+    try {
+        // Mark turn as not in progress
+        this.battleManager.turnInProgress = false;
+        
+        // Clear action queues
+        this.battleManager.actionQueue = [];
+        this.battleManager.turnActions = [];
+        
+        // Display turn summary
+        this.battleManager.displayTurnSummary();
+        
+        // Check if battle has ended
+        if (this.checkBattleEnd()) {
+            console.log("[BattleFlowController] Battle has ended after turn completion");
+            return true;
+        }
+        
+        // Start next turn after delay
+        setTimeout(() => {
+            if (!this.battleManager.isPaused && this.battleManager.battleActive) {
+                this.battleManager.startNextTurn();
+            }
+        }, this.battleManager.turnDelay);
+        
+        return true;
+    } catch (error) {
+        console.error("[BattleFlowController] Error finishing turn:", error);
+        return false;
+    }
+}
+
+/**
+ * Check if the battle is over
+ * @returns {boolean} True if the battle is over
+ */
+checkBattleEnd() {
+    console.log("[BattleFlowController] Checking if battle has ended");
+    
+    try {
+        // Get team references for readability
+        const playerTeam = this.battleManager.playerTeam;
+        const enemyTeam = this.battleManager.enemyTeam;
+        
+        // Count living characters on each team
+        const livingPlayerCharacters = playerTeam.filter(character => 
+            character && !character.isDead && character.currentHp > 0
+        ).length;
+        
+        const livingEnemyCharacters = enemyTeam.filter(character => 
+            character && !character.isDead && character.currentHp > 0
+        ).length;
+        
+        // Check for battle end conditions
+        if (livingPlayerCharacters === 0 && livingEnemyCharacters === 0) {
+            // Both teams defeated - it's a draw
+            console.log("[BattleFlowController] Battle ended in a draw!");
+            this.endBattle('draw');
+            return true;
+        } else if (livingPlayerCharacters === 0) {
+            // All player characters defeated
+            console.log("[BattleFlowController] Player team defeated! Battle lost.");
+            this.endBattle('defeat');
+            return true;
+        } else if (livingEnemyCharacters === 0) {
+            // All enemy characters defeated
+            console.log("[BattleFlowController] Enemy team defeated! Battle won.");
+            this.endBattle('victory');
+            return true;
+        }
+        
+        // Battle continues
+        return false;
+    } catch (error) {
+        console.error("[BattleFlowController] Error checking battle end:", error);
+        return false;
+    }
+}
+
+/**
+ * End the battle with the given result
+ * @param {string} result - 'victory', 'defeat', or 'draw'
+ */
+endBattle(result) {
+    console.log(`[BattleFlowController] Ending battle with result: ${result}`);
+    
+    try {
+        // Update battle state
+        this.battleManager.battleActive = false;
+        
+        // Clear any pending timers
+        if (this.battleManager.turnTimer) {
+            clearTimeout(this.battleManager.turnTimer);
+            this.battleManager.turnTimer = null;
+        }
+        
+        // Log the result
+        let message;
+        let messageType;
+        
+        switch (result) {
+            case 'victory':
+                message = "Victory! You have won the battle!";
+                messageType = 'success';
+                break;
+            case 'defeat':
+                message = "Defeat! Your team has been defeated!";
+                messageType = 'error';
+                break;
+            case 'draw':
+                message = "Draw! Both teams have been defeated!";
+                messageType = 'info';
+                break;
+            default:
+                message = `Battle ended with result: ${result}`;
+                messageType = 'info';
+        }
+        
+        // Log battle end message
+        this.battleManager.logMessage(message, messageType);
+        
+        // Dispatch event for battle end through BattleManager facade if available
+        if (this.battleManager.dispatchBattleEndEvent) {
+            this.battleManager.dispatchBattleEndEvent(result, 'standard');
+        } 
+        // Fallback to direct battleBridge call
+        else if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_ENDED, {
+                    result: result,
+                    winner: result, // Add this for standardization
+                    playerTeam: this.battleManager.playerTeam,
+                    enemyTeam: this.battleManager.enemyTeam
+                });
+            } catch (error) {
+                console.error("[BattleFlowController] Error dispatching battle end event:", error);
+            }
+        }
+        
+        return true;
+    } catch (error) {
+        console.error("[BattleFlowController] Error ending battle:", error);
+        return false;
+    }
+}
+}
+
+// Make the class globally available
+window.BattleFlowController = BattleFlowController;
+
+// Log that the file has been loaded
+console.log('BattleFlowController.js: Loaded and registered globally');
+
+
 ===== FILE: BattleManager.js =====
 /**
  * Battle Manager
  * Controls the flow of battle and combat logic
- * Updated to work with the Tailwind CSS-based BattleUI
- * Version 0.5.1.2b - Added CHARACTER_ACTION event dispatching for action indicators
  */
 
 class BattleManager {
@@ -32,141 +593,200 @@ class BattleManager {
         this.actionQueue = [];
         this.turnActions = [];
         this.turnInProgress = false;
-        this.statusEffects = {}; // Store status effects by character ID
         this.battleBehaviors = null; // Will hold the behavior system when loaded
-        this.statusEffectDefinitions = null; // Will hold status effect definitions from JSON
         this.uiMode = "dom"; // UI mode: "dom" or "phaser"
         
         // Create a simple teamManager for compatibility with behavior system
         this.teamManager = {
             getCharacterTeam: (character) => character.team
         };
+
+        // REFACTORING: Component manager references
+
+        // REFACTORING: References to component managers
+        this.battleFlowController = null;
+        this.battleInitializer = null;
+        this.statusEffectManager = null;
+        this.statusEffectDefinitionLoader = null;
+        this.damageCalculator = null;
+        this.healingProcessor = null;
+        this.typeEffectivenessCalculator = null;
+        this.abilityProcessor = null;
+        this.actionGenerator = null;
+        this.targetingSystem = null;
+        this.passiveAbilityManager = null;
+        this.passiveTriggerTracker = null;
+        this.battleEventDispatcher = null;
+        this.battleLogManager = null;
     }
     
     /**
      * Display a summary of all characters' health at the end of a turn
+     * @returns {boolean} True if summary was displayed successfully
      */
     displayTurnSummary() {
-        this.logMessage('------ END OF TURN SUMMARY ------', 'info');
+        // Direct delegation - no toggle mechanism for streamlined implementation
+        if (this.battleLogManager) {
+            return this.battleLogManager.displayTurnSummary();
+        }
         
-        // Show player team summary
-        this.logMessage('Player Team:', 'info');
-        this.playerTeam.forEach(character => {
-            const status = character.isDead ? 'ðŸ’€ DEFEATED' : `HP: ${character.currentHp}/${character.stats.hp}`;
-            const statusColor = character.isDead ? 'error' : 
-                               (character.currentHp < character.stats.hp * 0.3) ? 'error' :
-                               (character.currentHp < character.stats.hp * 0.7) ? 'action' : 'success';
-            this.logMessage(`  ${character.name}: ${status}`, statusColor);
-        });
-        
-        // Show enemy team summary
-        this.logMessage('Enemy Team:', 'info');
-        this.enemyTeam.forEach(character => {
-            const status = character.isDead ? 'ðŸ’€ DEFEATED' : `HP: ${character.currentHp}/${character.stats.hp}`;
-            const statusColor = character.isDead ? 'error' : 
-                               (character.currentHp < character.stats.hp * 0.3) ? 'error' :
-                               (character.currentHp < character.stats.hp * 0.7) ? 'action' : 'success';
-            this.logMessage(`  ${character.name}: ${status}`, statusColor);
-        });
-        
-        this.logMessage('--------------------------------', 'info');
+        // Minimal fallback with warning
+        console.warn("[BattleManager] BattleLogManager not available, cannot display turn summary");
+        return false;
     }
     
+
+    
     /**
-     * Load status effect definitions from JSON file
+     * Initialize all component managers in proper dependency order
      */
-    async loadStatusEffectDefinitions() {
-        try {
-            // First try to load from data directory
-            console.log('Attempting to load status effect definitions from data directory...');
-            try {
-                const response = await fetch('data/status_effects.json');
-                if (!response.ok) {
-                    throw new Error(`Failed to load data/status_effects.json: ${response.status}`);
-                }
-                const data = await response.json();
-                this.statusEffectDefinitions = {};
-                
-                // Process each status effect
-                if (data && data.status_effects && Array.isArray(data.status_effects)) {
-                    data.status_effects.forEach(effect => {
-                        if (effect && effect.id) {
-                            this.statusEffectDefinitions[effect.id] = effect;
-                        }
-                    });
-                }
-                
-                console.log(`Loaded ${Object.keys(this.statusEffectDefinitions).length} status effect definitions from data directory`);
-            } catch (e) {
-                console.warn('Failed to load from data directory:', e.message);
-                // Try fallback to root directory
-                try {
-                    const response = await fetch('status_effects.json');
-                    if (!response.ok) {
-                        throw new Error(`Failed to load status_effects.json: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    this.statusEffectDefinitions = {};
-                    
-                    // Process each status effect
-                    if (data && data.status_effects && Array.isArray(data.status_effects)) {
-                        data.status_effects.forEach(effect => {
-                            if (effect && effect.id) {
-                                this.statusEffectDefinitions[effect.id] = effect;
-                            }
-                        });
-                    }
-                    
-                    console.log(`Loaded ${Object.keys(this.statusEffectDefinitions).length} status effect definitions from root directory`);
-                } catch (fallbackError) {
-                    console.warn('Failed to load from root directory:', fallbackError.message);
-                    throw e;
-                }
+    async initializeComponentManagers() {
+        console.log('BattleManager: Initializing component managers...');
+        
+        // 1. First initialize core dependencies (status effect system)
+        if (window.StatusEffectDefinitionLoader) {
+            this.statusEffectLoader = new window.StatusEffectDefinitionLoader();
+            console.log('BattleManager: StatusEffectDefinitionLoader initialized');
+            
+            // Only initialize StatusEffectManager if loader is available
+            if (window.StatusEffectManager) {
+                this.statusEffectManager = new window.StatusEffectManager(this, this.statusEffectLoader);
+                console.log('BattleManager: StatusEffectManager initialized');
             }
-        } catch (error) {
-            console.error('Error loading status effect definitions:', error);
-            // Create basic fallback definitions
-            this.setupFallbackStatusEffects();
-            throw error;
+        }
+        
+        // 1a. Initialize BattleInitializer (required component)
+        if (window.BattleInitializer) {
+            this.battleInitializer = new window.BattleInitializer(this);
+            console.log('BattleManager: BattleInitializer initialized');
+        } else {
+            console.error('BattleManager: BattleInitializer not found on global window object. CRITICAL: Battle initialization will fail.');
+            throw new Error('BattleInitializer is required but not available');
+        }
+        
+        // 2. Initialize BattleFlowController (required component)
+        if (window.BattleFlowController) {
+            this.battleFlowController = new window.BattleFlowController(this);
+            console.log('BattleManager: BattleFlowController component initialized');
+        } else {
+            console.error('BattleManager: BattleFlowController not found on global window object');
+            throw new Error('BattleFlowController is required but not available');
+        }
+        
+        // 3. Initialize type effectiveness calculator
+        if (window.TypeEffectivenessCalculator) {
+            this.typeEffectivenessCalculator = new window.TypeEffectivenessCalculator(this);
+            console.log('BattleManager: TypeEffectivenessCalculator initialized');
+            
+
+        }
+        
+        // 4. Initialize damage calculator
+        // Note: Initialize after TypeEffectivenessCalculator to maintain dependency order
+        if (window.DamageCalculator) {
+            this.damageCalculator = new window.DamageCalculator(this);
+            console.log('BattleManager: DamageCalculator initialized');
+            
+
+        }
+        
+        // 5. Initialize healing processor
+        if (window.HealingProcessor) {
+            this.healingProcessor = new window.HealingProcessor(this);
+            console.log('BattleManager: HealingProcessor initialized');
+            
+
+        }
+        
+        // 6. Initialize ability processor
+        if (window.AbilityProcessor) {
+            this.abilityProcessor = new window.AbilityProcessor(this);
+            console.log('BattleManager: AbilityProcessor initialized');
+            
+
+        }
+        
+        // 7. Initialize passive system components
+        if (window.PassiveTriggerTracker) {
+            this.passiveTriggerTracker = new window.PassiveTriggerTracker();
+            console.log('BattleManager: PassiveTriggerTracker initialized');
+            
+
+        }
+        
+        // Initialize PassiveAbilityManager (after PassiveTriggerTracker)
+        if (window.PassiveAbilityManager) {
+            this.passiveAbilityManager = new window.PassiveAbilityManager(this, this.passiveTriggerTracker);
+            console.log('BattleManager: PassiveAbilityManager initialized');
+            
+
+        }
+        
+        // 7. Initialize targeting system
+        if (window.TargetingSystem) {
+            this.targetingSystem = new window.TargetingSystem(this);
+            console.log('BattleManager: TargetingSystem initialized');
+            
+
+        }
+        
+        // 8. Initialize action generator
+        if (window.ActionGenerator) {
+            this.actionGenerator = new window.ActionGenerator(this);
+            console.log('BattleManager: ActionGenerator initialized');
+            
+
+        }
+        
+        // 9. Initialize event dispatcher (Stage 7)
+        if (window.BattleEventDispatcher) {
+            this.battleEventDispatcher = new window.BattleEventDispatcher(this);
+            console.log('BattleManager: BattleEventDispatcher initialized');
+            
+
+        }
+        
+        // 10. Initialize battle log manager (Stage 7) - must be after event dispatcher
+        if (window.BattleLogManager) {
+            this.battleLogManager = new window.BattleLogManager(this, this.battleEventDispatcher);
+            console.log('BattleManager: BattleLogManager initialized');
+            
+
         }
     }
     
     /**
-     * Setup fallback status effect definitions if loading fails
+     * Load status effect definitions from JSON file
+     * This method now simply delegates to the StatusEffectDefinitionLoader's primeDefinitions method.
+     * @returns {Promise<boolean>} Success status
      */
-    setupFallbackStatusEffects() {
-        console.log('Setting up fallback status effect definitions');
-        this.statusEffectDefinitions = {
-            'status_burn': {
-                id: 'status_burn',
-                name: 'Burn',
-                description: 'Taking fire damage over time',
-                type: 'DoT',
-                defaultDuration: 2,
-                maxStacks: 1,
-                behavior: {
-                    trigger: 'onTurnStart',
-                    action: 'Damage',
-                    valueType: 'PercentMaxHP',
-                    value: 0.05
-                }
-            },
-            'status_regen': {
-                id: 'status_regen',
-                name: 'Regeneration',
-                description: 'Healing over time',
-                type: 'HoT',
-                defaultDuration: 3,
-                maxStacks: 1,
-                behavior: {
-                    trigger: 'onTurnStart',
-                    action: 'Heal',
-                    valueType: 'PercentMaxHP',
-                    value: 0.05
-                }
-            }
-        };
+    async loadStatusEffectDefinitions() {
+        // Check if the loader is available
+        if (!this.statusEffectLoader) {
+            console.error('[BattleManager] StatusEffectDefinitionLoader not available! This is a critical error.');
+            return false;
+        }
+        
+        // Check if the loader has the expected method
+        if (typeof this.statusEffectLoader.primeDefinitions !== 'function') {
+            console.error('[BattleManager] StatusEffectDefinitionLoader is missing primeDefinitions method! This is a critical error.');
+            return false;
+        }
+        
+        // Log delegation
+        console.log('[BattleManager] Delegating status effect loading to StatusEffectDefinitionLoader');
+        
+        try {
+            // Call the loader's primeDefinitions method which handles both JSON loading and fallbacks
+            await this.statusEffectLoader.primeDefinitions();
+            return true;
+        } catch (error) {
+            console.error('[BattleManager] Error during status effect definition loading:', error);
+            return false;
+        }
     }
+    
+    // setupFallbackStatusEffects method has been removed - StatusEffectDefinitionLoader now handles all fallbacks internally
 
     /**
      * Initialize the battle manager
@@ -174,14 +794,21 @@ class BattleManager {
     async initialize() {
         console.log('BattleManager: Initializing...');
         
+        // REFACTORING: Initialize component managers
         try {
-            // Load status effect definitions
-            try {
-                await this.loadStatusEffectDefinitions();
-                console.log('BattleManager: Status effect definitions loaded');
-            } catch (error) {
-                console.warn('BattleManager: Status effect definitions not available, using fallback behavior:', error);
-            }
+            // Initialize component managers in dependency order
+            await this.initializeComponentManagers();
+            
+            // Component initialization completed
+            console.log('BattleManager: Components initialized successfully');
+        } catch (error) {
+            console.error('BattleManager: Error initializing component managers:', error);
+        }
+        
+        try {
+            // Load status effect definitions via the StatusEffectDefinitionLoader
+            await this.loadStatusEffectDefinitions();
+            console.log('BattleManager: Status effect definitions loaded');
             
             // Initialize behavior system if available
             try {
@@ -204,209 +831,134 @@ class BattleManager {
     }
     
     /**
-     * Start a battle with the given teams
-     * @param {Array} playerTeam - Array of player characters
-     * @param {Array} enemyTeam - Array of enemy characters
+     * Force initialization of character stats and properties
+     * @param {Array} team - Team of characters to initialize
+     * @param {string} teamType - 'player' or 'enemy'
+     * @returns {Array} Initialized team
      */
-    async startBattle(playerTeam, enemyTeam) {
-        // Make sure status effect definitions are loaded
-        if (!this.statusEffectDefinitions) {
-            try {
-                await this.loadStatusEffectDefinitions();
-            } catch (error) {
-                console.warn('Could not load status effect definitions:', error);
-            }
+    ensureCompleteCharacterInitialization(team, teamType) {
+        // Facade method that delegates to BattleInitializer
+        if (this.battleInitializer) {
+            return this.battleInitializer.ensureCompleteCharacterInitialization(team, teamType);
         }
         
-        // Make sure behavior system is loaded
-        if (!this.battleBehaviors) {
-            try {
-                await this.initializeBehaviorSystem();
-            } catch (error) {
-                console.warn('Could not initialize behavior system:', error);
-            }
+        // This should not happen since we throw an error during initialization if BattleInitializer is missing
+        console.error(`[BattleManager] CRITICAL ERROR: BattleInitializer not available for character initialization (${teamType})`);
+        return []; // Return empty array as a last resort
+    }
+
+    /**
+     * Start a battle with the given teams, with enhanced initialization
+     * @param {Array} rawPlayerTeam - Array of player characters
+     * @param {Array} rawEnemyTeam - Array of enemy characters
+     */
+    async startBattle(rawPlayerTeam, rawEnemyTeam) {
+        // Use BattleInitializer to initialize teams
+        if (this.battleInitializer) {
+            const initializedTeams = this.battleInitializer.initializeTeamsAndCharacters(rawPlayerTeam, rawEnemyTeam);
+            this.playerTeam = initializedTeams.playerTeam;
+            this.enemyTeam = initializedTeams.enemyTeam;
+        } else {
+            // This should not happen since we throw an error during initialization if BattleInitializer is missing
+            console.error("[BattleManager] CRITICAL ERROR: BattleInitializer not available for team initialization");
+            throw new Error("BattleInitializer is required for battle initialization");
         }
-        // Make sure the UI is initialized and ready
-        if (!this.battleUI || !this.battleUI.isSetup) {
-            console.log('Re-initializing battle UI before battle start, uiMode:', this.uiMode);
-            try {
-                // Check UI mode to determine which UI to initialize
-                if (this.uiMode === "phaser") {
-                    console.log('Using Phaser scene for battle visualization, skipping DOM UI initialization');
-                } else {
-                    // Initialize DOM UI for "dom" mode
-                    if (!this.battleUI) {
-                        if (typeof window.BattleUI === 'undefined') {
-                            console.error('BattleUI class is not defined! Cannot create BattleUI instance.');
-                            throw new Error('BattleUI class is not defined!');
-                        }
-                        console.log('Creating new DOM BattleUI instance');
-                        this.battleUI = new window.BattleUI(this.scene, this);
-                    }
-                    this.battleUI.initialize();
-                }
-            } catch (error) {
-                console.error('Failed to initialize BattleUI:', error);
-                throw error;
-            }
+        
+        console.log(`[BattleManager] Starting battle with ${this.playerTeam.length} player characters and ${this.enemyTeam.length} enemy characters`);
+        
+        // Continue with normal battle flow via BattleFlowController
+        return this.battleFlowController.startBattle(this.playerTeam, this.enemyTeam);
+    }
+    
+    /**
+     * Start the next turn
+     */
+    startNextTurn() {
+        // Reset passive trigger tracking for the new turn
+        if (this.passiveTriggerTracker) {
+            this.passiveTriggerTracker.resetTurnTracking();
+        } else {
+            console.warn("[BattleManager] PassiveTriggerTracker not available for turn reset");
+        }
+        
+
+        return this.battleFlowController.startNextTurn();
+    }
+    
+    /**
+     * Execute the next action in the queue
+     */
+    executeNextAction() {
+        // Delegate to the flow controller
+        return this.battleFlowController.executeNextAction();
+    }
+    
+    /**
+     * Apply the effect of an action to its target
+     * @param {Object} action - The action to apply
+     */
+    applyActionEffect(action) {
+        // Delegate to the ability processor if available
+        if (this.abilityProcessor) {
+            // Delegate directly to the component for a clean implementation
+            return this.abilityProcessor.applyActionEffect(action);
         }
 
-        // Validate playerTeam and ensure it's an array
-        if (!playerTeam || !Array.isArray(playerTeam)) {
-            console.warn('Invalid playerTeam provided to startBattle, using empty array');
-            playerTeam = [];
-        }
-        
-        // Deep copy the player team to avoid reference issues
-        const playerTeamCopy = playerTeam.length > 0 ? JSON.parse(JSON.stringify(playerTeam)) : [];
-        console.log(`PlayerTeam before preparation: ${playerTeamCopy.length} heroes`);
-        this.playerTeam = this.prepareTeamForBattle(playerTeamCopy);
-        console.log(`PlayerTeam after preparation: ${this.playerTeam.length} heroes`);
-        
-        // Validate player team was prepared correctly
-        if (this.playerTeam.length === 0 && playerTeam.length > 0) {
-            console.error('Failed to prepare player team properly. Original length:', playerTeam.length);
-        }
-        
-        // Check if enemy team is empty or undefined and generate one if needed
-        if (!enemyTeam || enemyTeam.length === 0) {
-            console.log('No enemy team provided, generating a random one');
-            // Create a simple enemy team for testing
-            enemyTeam = [
-                {
-                    id: 4,
-                    name: "Vaelgor",
-                    type: "dark",
-                    role: "Knight",
-                    stats: {
-                        hp: 120,
-                        attack: 18,
-                        defense: 12
-                    },
-                    abilities: [
-                        {
-                            name: "Shadow Strike",
-                            damage: 28,
-                            cooldown: 3,
-                            isHealing: false,
-                            description: "Attacks from the shadows for heavy damage"
-                        },
-                        {
-                            name: "Void Barrier",
-                            damage: 20,
-                            cooldown: 4,
-                            isHealing: true,
-                            description: "Creates a barrier of dark energy that absorbs damage"
-                        }
-                    ]
-                },
-                {
-                    id: 3,
-                    name: "Sylvanna",
-                    type: "nature",
-                    role: "Ranger",
-                    stats: {
-                        hp: 90,
-                        attack: 15,
-                        defense: 15
-                    },
-                    abilities: [
-                        {
-                            name: "Vine Whip",
-                            damage: 20,
-                            cooldown: 2,
-                            isHealing: false,
-                            description: "Strikes with vines that can ensnare the target"
-                        },
-                        {
-                            name: "Nature's Blessing",
-                            damage: 25,
-                            cooldown: 4,
-                            isHealing: true,
-                            description: "Channels the power of nature to heal wounds"
-                        }
-                    ]
-                },
-                {
-                    id: 5,
-                    name: "Lumina",
-                    type: "light",
-                    role: "Cleric",
-                    stats: {
-                        hp: 85,
-                        attack: 16,
-                        defense: 14
-                    },
-                    abilities: [
-                        {
-                            name: "Holy Smite",
-                            damage: 22,
-                            cooldown: 3,
-                            isHealing: false,
-                            description: "Channels divine light into a powerful attack"
-                        },
-                        {
-                            name: "Divine Protection",
-                            damage: 26,
-                            cooldown: 4,
-                            isHealing: true,
-                            description: "Surrounds an ally with divine light, healing wounds"
-                        }
-                    ]
-                }
-            ];
-        }
-        
-        // Validate enemyTeam and ensure it's an array
-        if (!enemyTeam || !Array.isArray(enemyTeam)) {
-            console.warn('Invalid enemyTeam provided to startBattle, using empty array');
-            enemyTeam = [];
-        }
-        
-        // Deep copy the enemy team to avoid reference issues
-        const enemyTeamCopy = enemyTeam.length > 0 ? JSON.parse(JSON.stringify(enemyTeam)) : [];
-        console.log(`EnemyTeam before preparation: ${enemyTeamCopy.length} enemies`);
-        this.enemyTeam = this.prepareTeamForBattle(enemyTeamCopy);
-        console.log(`EnemyTeam after preparation: ${this.enemyTeam.length} enemies`);
-        
-        // Validate enemy team was prepared correctly
-        if (this.enemyTeam.length === 0 && enemyTeam.length > 0) {
-            console.error('Failed to prepare enemy team properly. Original length:', enemyTeam.length);
-        }
-        
-        // Reset battle state
-        this.currentTurn = 0;
-        this.battleActive = true;
-        this.isPaused = false;
-        this.activeCharacterIndex = 0;
-        this.actionQueue = [];
-        this.turnActions = [];
-        this.turnInProgress = false;
-        this.statusEffects = {};
-        
-        // Initialize passive trigger tracking at battle level
-        this.passiveTriggersThisBattle = new Map();
-        
-        // Render characters on UI
-        if (this.battleUI) {
-            this.battleUI.renderCharacters(this.playerTeam, this.enemyTeam);
-        }
-        
-        // Log battle start
-        this.logMessage('Battle started!');
-        this.logMessage(`${this.playerTeam.length} heroes vs ${this.enemyTeam.length} enemies`);
-        console.log('Battle started with teams:', this.playerTeam, this.enemyTeam);
-        
-        // Process battle start passive abilities for all characters
-        [...this.playerTeam, ...this.enemyTeam].forEach(character => {
-            if (character.currentHp > 0) {
-                this.processPassiveAbilities('onBattleStart', character);
-            }
-        });
-        
-        // Start first turn
-        this.startNextTurn();
+
+        console.warn("BattleManager using legacy applyActionEffect - AbilityProcessor not available");
+        return this.battleFlowController.applyActionEffect(action);
     }
+    
+    /**
+     * Finish the current turn
+     */
+    finishTurn() {
+        // Delegate to the flow controller
+        return this.battleFlowController.finishTurn();
+    }
+    
+    /**
+     * Apply damage to a character - delegated to DamageCalculator component
+     * @param {Object} target - Character receiving damage
+     * @param {number} amount - Amount of damage
+     * @param {Object} source - Character causing damage (optional)
+     * @param {Object} ability - Ability used (optional)
+     * @param {string} damageType - Type of damage (default: 'passive')
+     * @returns {Object} - Object with actualDamage and killed properties
+     */
+    applyDamage(target, amount, source = null, ability = null, damageType = 'passive') {
+        // Defensive validation (match original method's early returns)
+        if (!target || target.isDead || target.currentHp <= 0 || amount <= 0) {
+            return { actualDamage: 0, killed: false };
+        }
+        
+        // Ensure DamageCalculator is available
+        if (!this.damageCalculator) {
+            console.error("DamageCalculator not initialized! Falling back to minimal damage application.");
+            
+            // Minimal fallback implementation to prevent game crashes
+            const previousHp = target.currentHp;
+            target.currentHp = Math.max(0, target.currentHp - amount);
+            const actualDamage = previousHp - target.currentHp;
+            const killed = previousHp > 0 && target.currentHp <= 0;
+            
+            this.logMessage(`${target.name} takes ${actualDamage} damage! (HP: ${target.currentHp}/${target.stats.hp})`, 'error');
+            
+            return { actualDamage, killed };
+        }
+        
+        // Delegate to the specialized calculator component
+        return this.damageCalculator.applyDamage(target, amount, source, ability, damageType);
+    }
+    
+    /**
+     * Check if the battle is over
+     * @returns {boolean} True if the battle is over
+     */
+    checkBattleEnd() {
+        // Delegate to the flow controller
+        return this.battleFlowController.checkBattleEnd();
+    }    
     
     /**
      * Prepare a team for battle by setting initial values
@@ -414,65 +966,29 @@ class BattleManager {
      * @returns {Array} - Prepared team for battle
      */
     prepareTeamForBattle(team) {
-        // Check if this is a player team based on current context
-        const isPlayerTeam = !this.playerTeam || this.playerTeam.length === 0 || 
-                          (this.playerTeam.length > 0 && this.enemyTeam && this.enemyTeam.length > 0);
-        const teamType = isPlayerTeam ? 'player' : 'enemy';
+        console.log('[BattleManager.prepareTeamForBattle] Method invoked.');
         
-        console.log(`Preparing ${teamType} team with ${team.length} characters`);
-        
-        // Validation check
-        if (!team || !Array.isArray(team)) {
-            console.error(`Invalid team provided for ${teamType}, using empty array`);
+        if (!team || !Array.isArray(team) || team.length === 0) {
+            console.warn('[BattleManager.prepareTeamForBattle] Invalid team provided:', team);
             return [];
         }
+
+        // CORRECTED TEAM TYPE DETERMINATION LOGIC
+        // If playerTeam is empty, this is the first call and we're preparing the player team
+        // Otherwise, this is the second call and we're preparing the enemy team
+        const isPlayerTeamCurrentlyBeingPrepared = !this.playerTeam || this.playerTeam.length === 0;
+        const teamTypeToPass = isPlayerTeamCurrentlyBeingPrepared ? 'player' : 'enemy';
         
-        // Map characters to battle-ready format and filter out nulls
-        const preparedTeam = team.map((character, index) => {
-            // Character validation
-            if (!character) {
-                console.error(`Null character at index ${index} in ${teamType} team`);
-                return null;
-            }
-            
-            // No need for deep copy since we already copied at the higher level
-            const battleChar = character;
-            
-            // Set battle-specific properties
-            battleChar.currentHp = battleChar.stats.hp;
-            battleChar.isDead = false;
-            
-            // Ensure character has a unique ID
-            if (!battleChar.id) {
-                battleChar.id = this.generateCharacterId();
-            }
-            
-            // Create a more robust uniqueId that includes team info and name
-            battleChar.uniqueId = `${teamType}_${battleChar.name}_${battleChar.id}`;
-            
-            // Store team info on the character
-            battleChar.team = teamType;
-            
-            // Initialize ability cooldowns and identify passive abilities
-            if (battleChar.abilities) {
-                battleChar.passiveAbilities = [];
-                
-                battleChar.abilities.forEach(ability => {
-                    // Initialize cooldown for active abilities
-                    ability.currentCooldown = 0;
-                    
-                    // Identify passive abilities and store them separately for quick reference
-                    if (ability.abilityType === 'Passive') {
-                        battleChar.passiveAbilities.push(ability);
-                    }
-                });
-            }
-            
-            return battleChar;
-        }).filter(char => char !== null); // Filter out any null entries
+        // Diagnostic log using the corrected teamTypeToPass variable
+        console.log(`[BattleManager.prepareTeamForBattle] Determined teamType: ${teamTypeToPass}. Player team length: ${this.playerTeam?.length || 0}. Preparing to call BattleInitializer.`);
         
-        console.log(`Finished preparing ${teamType} team: ${preparedTeam.length} valid characters`);
-        return preparedTeam;
+        // Delegate to BattleInitializer for team preparation
+        if (this.battleInitializer) {
+            return this.battleInitializer.prepareTeamForBattle(team, teamTypeToPass);
+        } else {
+            console.error(`[BattleManager] CRITICAL ERROR: BattleInitializer not available for team preparation (${teamTypeToPass})`);
+            return []; // Return empty array as a last resort
+        }
     }
     
     /**
@@ -480,467 +996,83 @@ class BattleManager {
      * @returns {string} A unique ID
      */
     generateCharacterId() {
+        // Facade method that delegates to BattleInitializer
+        if (this.battleInitializer) {
+            return this.battleInitializer.generateCharacterId();
+        }
+        
+        // Safe fallback implementation that can be used even if BattleInitializer is missing
+        console.warn("[BattleManager] BattleInitializer not available for ID generation, using fallback");
         return 'char_' + Math.random().toString(36).substr(2, 9);
     }
     
     /**
-     * Start the next turn
-     */
-    startNextTurn() {
-        if (!this.battleActive || this.isPaused || this.turnInProgress) return;
-        
-        this.currentTurn++;
-        console.log('[BattleManager] Attempting to dispatch TURN_STARTED event...');
-        this.logMessage(`Turn ${this.currentTurn} started`, 'info');
-        this.turnInProgress = true;
-        
-        // Reset passive ability trigger tracking for the new turn
-        [...this.playerTeam, ...this.enemyTeam].forEach(character => {
-            character.passiveTriggeredThisTurn = {};
-        });
-        
-        // Update UI
-        if (this.battleUI) {
-            this.battleUI.update();
-        }
-        
-        // Process turn start passive abilities for all characters
-        [...this.playerTeam, ...this.enemyTeam].forEach(character => {
-            if (character.currentHp > 0) {
-                this.processPassiveAbilities('onTurnStart', character, { turnNumber: this.currentTurn });
-            }
-        });
-        
-        // Process status effects at start of turn
-        this.processStatusEffects();
-        
-        // Clear previous actions
-        this.actionQueue = [];
-        this.turnActions = [];
-        
-        // Generate actions for this turn
-        this.generateTurnActions();
-        
-        // Execute the first action
-        setTimeout(() => {
-            this.executeNextAction();
-        }, 500); // Short delay before first action
-    }
-    
-    /**
      * Process status effects for all characters
+     * @returns {boolean} - True if status effects were processed successfully
      */
     processStatusEffects() {
-        // Process each character's status effects
+        // Defensive check
+        if (!this.statusEffectManager) {
+            console.error("StatusEffectManager not initialized! Cannot process status effects.");
+            return false;
+        }
+        
+        // Process status effects for all characters in both teams
         [...this.playerTeam, ...this.enemyTeam].forEach(character => {
-            if (character.currentHp <= 0) return; // Skip dead characters
-            
-            // Use uniqueId if available for character identification
-            const characterId = character.uniqueId || character.id;
-            const characterEffects = this.statusEffects[characterId];
-            if (!characterEffects) return;
-            
-            // Add team identifier for logging
-            const teamIdentifier = character.team === 'player' ? ' (ally)' : ' (enemy)';
-            
-            // Process each effect
-            Object.entries(characterEffects).forEach(([statusId, effect]) => {
-                // Get the effect definition if available
-                const definition = this.statusEffectDefinitions ? this.statusEffectDefinitions[statusId] : null;
-                const effectName = definition ? definition.name : statusId;
-                const stackText = effect.stacks > 1 ? ` (${effect.stacks} stacks)` : '';
-                
-                // Check if we should process effect at turn start
-                if (definition && definition.behavior && definition.behavior.trigger === 'onTurnStart') {
-                    // Process based on behavior action
-                    switch (definition.behavior.action) {
-                        case 'Damage':
-                        case 'damage':
-                            // Calculate damage based on behavior valueType
-                            let damage = 0;
-                            if (definition.behavior.valueType === 'PercentMaxHP') {
-                                damage = Math.floor(character.stats.hp * definition.behavior.value * effect.stacks);
-                            } else if (definition.behavior.valueType === 'PercentCurrentHP') {
-                                damage = Math.floor(character.currentHp * definition.behavior.value * effect.stacks);
-                            } else {
-                                damage = definition.behavior.value * effect.stacks;
-                            }
-                            
-                            // Apply damage using the applyDamage utility
-                            const damageResult = this.applyDamage(
-                                character,           // target
-                                Math.max(1, damage), // damage amount (minimum 1)
-                                null,                // source (null for status effects)
-                                null,                // ability (null for status effects)
-                                definition.behavior.damageType || 'status' // damage type
-                            );
-                            
-                            // No need to check death or update UI as applyDamage handles it
-                            break;
-                            
-                        case 'Heal':
-                        case 'heal':
-                            // Calculate healing based on behavior valueType
-                            let healing = 0;
-                            if (definition.behavior.valueType === 'PercentMaxHP') {
-                                healing = Math.floor(character.stats.hp * definition.behavior.value * effect.stacks);
-                            } else if (definition.behavior.valueType === 'PercentMissingHP') {
-                                healing = Math.floor((character.stats.hp - character.currentHp) * definition.behavior.value * effect.stacks);
-                            } else {
-                                healing = definition.behavior.value * effect.stacks;
-                            }
-                            
-                            // Apply healing using the applyHealing utility
-                            const healingResult = this.applyHealing(
-                                character,           // target
-                                Math.max(0, healing), // healing amount
-                                null,                // source (null for status effects)
-                                null,                // ability (null for status effects)
-                                statusId             // heal type based on status ID
-                            );
-                            
-                            // No need to check resurrection or update UI as applyHealing handles it
-                            break;
-                    }
-                }
-                
-                // Special case for legacy status effects without definitions
-                if (!definition) {
-                    // Simple hardcoded behaviors for backward compatibility
-                    switch (statusId) {
-                        case 'regen':
-                    case 'status_regen':
-                            const healAmount = Math.floor(character.stats.hp * 0.05); // 5% HP regen
-                            character.currentHp = Math.min(character.stats.hp, character.currentHp + healAmount);
-                            this.logMessage(`${character.name}${teamIdentifier} regenerates ${healAmount} HP (HP: ${character.currentHp}/${character.stats.hp})`, 'success');
-                            
-                            // Update UI
-                            if (this.battleUI) {
-                                this.battleUI.updateCharacterHealth(character, healAmount, true);
-                            }
-                            
-                            // Check if character was resurrected
-                            this.checkAndResetDeathStatus(character);
-                            break;
-                            
-                        case 'burn':
-                    case 'status_burn':
-                            const burnDamage = Math.floor(character.stats.hp * 0.08); // 8% HP burn
-                            character.currentHp = Math.max(0, character.currentHp - burnDamage);
-                            this.logMessage(`${character.name}${teamIdentifier} takes ${burnDamage} burn damage (HP: ${character.currentHp}/${character.stats.hp})`, 'error');
-                            
-                            // Update UI
-                            if (this.battleUI) {
-                                this.battleUI.updateCharacterHealth(character, burnDamage, false);
-                            }
-                            break;
-                    }
-                }
-                
-                // Reduce duration and remove if expired
-                effect.duration--;
-                if (effect.duration <= 0) {
-                    delete characterEffects[statusId];
-                    this.logMessage(`${effectName} effect wore off from ${character.name}${teamIdentifier}`, 'info');
-                    this.updateStatusIcons(character);
-                }
-            });
-            
-            // If all effects are gone, remove the character entry
-            if (Object.keys(characterEffects).length === 0) {
-                delete this.statusEffects[characterId];
+            if (character.currentHp > 0) {
+                this.statusEffectManager.processStatusEffects(character);
             }
         });
+        
+        return true;
     }
     
     /**
      * Add a status effect to a character
      * @param {Object} character - Character to affect
      * @param {string} statusId - ID of the status effect
-     * @param {number} duration - Number of turns the effect lasts (optional, uses default if not specified)
-     * @param {number|Object} value - Value for the effect (if applicable)
+     * @param {Object|null} source - Character causing the effect (or null if no specific source)
+     * @param {number} duration - Number of turns the effect lasts 
+     * @param {number} stacks - Number of stacks to apply (default: 1)
+     * @returns {boolean} - True if effect was successfully applied
      */
-    addStatusEffect(character, statusId, duration, value) {
-        // Use uniqueId if available for character identification
-        const characterId = character.uniqueId || character.id;
-        
-        // Initialize character's status effects if not exist
-        if (!this.statusEffects[characterId]) {
-            this.statusEffects[characterId] = {};
+    addStatusEffect(character, statusId, source, duration, stacks = 1) {
+        // Defensive check
+        if (!this.statusEffectManager) {
+            console.error("StatusEffectManager not initialized! Cannot add status effect.");
+            return false;
         }
         
-        // Get status effect definition if available
-        const definition = this.statusEffectDefinitions ? this.statusEffectDefinitions[statusId] : null;
-        
-        // Use default duration from definition or provided duration or fallback to 2 turns
-        let effectDuration = duration;
-        if (effectDuration === undefined) {
-            effectDuration = definition ? definition.defaultDuration : 2;
+        // Ensure duration is a number
+        if (typeof duration !== 'number') {
+            console.warn(`[BattleManager] Invalid duration parameter (${typeof duration}) in addStatusEffect for '${statusId}' - using default 3`);
+            duration = 3; // Default duration
         }
         
-        // Check if character already has this status effect
-        if (this.statusEffects[characterId][statusId]) {
-            // Check if we should stack or just refresh duration
-            if (definition && definition.maxStacks > 1) {
-                // Stackable effect - increase stack count up to max
-                const currentStacks = this.statusEffects[characterId][statusId].stacks || 1;
-                const newStacks = Math.min(currentStacks + 1, definition.maxStacks);
-                
-                this.statusEffects[characterId][statusId] = {
-                    duration: effectDuration,
-                    stacks: newStacks,
-                    value: value,
-                    definitionId: statusId
-                };
-                
-                // Log stack increase
-                const teamIdentifier = character.team === 'player' ? ' (ally)' : ' (enemy)';
-                this.logMessage(`${character.name}${teamIdentifier}'s ${definition.name || statusId} increased to ${newStacks} stacks for ${effectDuration} turns`, 'info');
-            } else {
-                // Non-stacking effect - refresh duration
-                this.statusEffects[characterId][statusId].duration = effectDuration;
-                
-                // Optionally update value
-                if (value !== undefined) {
-                    this.statusEffects[characterId][statusId].value = value;
-                }
-                
-                // Log refresh
-                const teamIdentifier = character.team === 'player' ? ' (ally)' : ' (enemy)';
-                const effectName = definition ? definition.name : statusId;
-                this.logMessage(`${character.name}${teamIdentifier}'s ${effectName} refreshed for ${effectDuration} turns`, 'info');
-            }
-        } else {
-            // New status effect - create instance
-            this.statusEffects[characterId][statusId] = {
-                duration: effectDuration,
-                stacks: 1,
-                value: value,
-                definitionId: statusId
-            };
-            
-            // Include team identifier in the log message
-            const teamIdentifier = character.team === 'player' ? ' (ally)' : ' (enemy)';
-            // Format display name - prefer definition name, fallback to capitalized ID without prefix
-            const effectName = definition ? definition.name : statusId.replace('status_', '').charAt(0).toUpperCase() + statusId.replace('status_', '').slice(1);
-            this.logMessage(`${character.name}${teamIdentifier} is affected by ${effectName} for ${effectDuration} turns`, 'info');
+        // Ensure stacks is a number
+        if (typeof stacks !== 'number') {
+            console.warn(`[BattleManager] Invalid stacks parameter (${typeof stacks}) in addStatusEffect for '${statusId}' - using default 1`);
+            stacks = 1; // Default stacks
         }
         
-        // Update status icons
-        this.updateStatusIcons(character);
+        // Direct delegation with validated parameters
+        return this.statusEffectManager.addStatusEffect(character, statusId, source, duration, stacks);
     }
     
     /**
      * Update status icons for a character
      * @param {Object} character - Character to update icons for
+     * @returns {boolean} - True if icons were successfully updated
      */
     updateStatusIcons(character) {
-        // Use uniqueId if available for character identification
-        const characterId = character.uniqueId || character.id;
-        const statusContainer = document.getElementById(`status-icons-${characterId}`);
-        if (!statusContainer) return;
+        // Defensive check
+        if (!this.statusEffectManager) {
+            console.error("StatusEffectManager not initialized! Cannot update status icons.");
+            return false;
+        }
         
-        // Clear current icons
-        statusContainer.innerHTML = '';
-        
-        // If character has no effects, return
-        if (!this.statusEffects[characterId]) return;
-        
-        // Add icon for each effect
-        Object.entries(this.statusEffects[characterId]).forEach(([statusId, effect]) => {
-        // Get effect definition if available
-        const definition = this.statusEffectDefinitions ? this.statusEffectDefinitions[statusId] : null;
-        
-        // Format display name - prefer definition name, fallback to capitalized ID without prefix
-        const displayName = definition ? definition.name : statusId.replace('status_', '').charAt(0).toUpperCase() + statusId.replace('status_', '').slice(1);
-        
-        const icon = document.createElement('span');
-        icon.className = 'status-icon';
-        
-        let tooltipContent = '';
-        let iconHTML = '';
-        let cssClass = '';
-            
-            // Try to set background image from status-icons subfolder
-            const iconId = statusId.replace('status_', '');
-            const iconPath = `assets/images/icons/status/status-icons/${iconId}.png`;
-            
-            // Create an image object to check if the icon exists
-            const img = new Image();
-            img.onload = () => {
-                // Icon loaded successfully, set it as background
-                icon.style.backgroundImage = `url(${iconPath})`;
-                icon.style.backgroundSize = 'cover';
-                icon.style.backgroundPosition = 'center';
-                // Clear any inner HTML/text content
-                icon.innerHTML = '';
-            };
-            img.onerror = () => {
-                console.warn(`Could not load icon for ${statusId}`);
-                // Icon failed to load, use the emoji fallback below
-                // The switch statement below will set the iconHTML
-            };
-            img.src = iconPath;
-            
-            // Initially set background properties in case image loads
-            icon.style.backgroundSize = 'cover';
-            icon.style.backgroundPosition = 'center';
-            
-            // If we have a definition, use it
-            if (definition) {
-                // Add the stack count if more than 1
-                const stackText = effect.stacks > 1 ? ` x${effect.stacks}` : '';
-                
-                // Determine icon and class based on effect type
-                switch (definition.type) {
-                    case 'Buff':
-                    case 'buff':
-                        cssClass = 'bg-blue-500';
-                        iconHTML = 'â¬†ï¸' + stackText;
-                        break;
-                        
-                    case 'Debuff':
-                    case 'debuff':
-                        cssClass = 'bg-orange-500';
-                        iconHTML = 'â¬‡ï¸' + stackText;
-                        break;
-                        
-                    case 'DoT':
-                    case 'dot':
-                        cssClass = 'bg-red-700';
-                        iconHTML = 'ðŸ”¥' + stackText;
-                        break;
-                        
-                    case 'HoT':
-                    case 'hot':
-                        cssClass = 'bg-green-500';
-                        iconHTML = 'ðŸ’š' + stackText;
-                        break;
-                        
-                    case 'Control':
-                    case 'control':
-                        cssClass = 'bg-purple-600';
-                        iconHTML = 'âš¡' + stackText;
-                        break;
-                        
-                    case 'Shield':
-                    case 'shield':
-                        cssClass = 'bg-gray-400';
-                        iconHTML = 'ðŸ›¡ï¸' + stackText;
-                        break;
-                        
-                    default:
-                        cssClass = 'bg-gray-500';
-                        iconHTML = 'â“' + stackText;
-                }
-                
-                // Create tooltip content from definition
-                tooltipContent = `
-                    <div class="tooltip-title">${displayName}</div>
-                    <div class="tooltip-content">
-                        <div>${definition.description}</div>
-                        <div>Duration: ${effect.duration} turns</div>
-                        ${effect.stacks > 1 ? `<div>Stacks: ${effect.stacks}</div>` : ''}
-                    </div>
-                `;
-            } else {
-                // Fallback for legacy status effects
-                switch (statusId) {
-                    case 'regen':
-                        cssClass = 'bg-yellow-300';
-                        iconHTML = 'âž•';
-                        tooltipContent = `
-                            <div class="tooltip-title">Regeneration</div>
-                            <div class="tooltip-content">
-                                <div>Restores 5% of max HP each turn</div>
-                                <div>Duration: ${effect.duration} turns</div>
-                            </div>
-                        `;
-                        break;
-                    case 'burn':
-                        cssClass = 'bg-red-700';
-                        iconHTML = 'ðŸ”¥';
-                        tooltipContent = `
-                            <div class="tooltip-title">Burn</div>
-                            <div class="tooltip-content">
-                                <div>Takes 8% of max HP as damage each turn</div>
-                                <div>Duration: ${effect.duration} turns</div>
-                            </div>
-                        `;
-                        break;
-                    case 'stun':
-                    case 'status_stun':
-                        cssClass = 'bg-gray-400';
-                        iconHTML = 'âš¡';
-                        tooltipContent = `
-                            <div class="tooltip-title">Stunned</div>
-                            <div class="tooltip-content">
-                                <div>Cannot perform actions while stunned</div>
-                                <div>Duration: ${effect.duration} turns</div>
-                            </div>
-                        `;
-                        break;
-                    case 'defense_up':
-                    case 'status_def_up':
-                        cssClass = 'bg-blue-500';
-                        iconHTML = 'ðŸ›¡ï¸';
-                        tooltipContent = `
-                            <div class="tooltip-title">Defense Up</div>
-                            <div class="tooltip-content">
-                                <div>Defense increased by 50%</div>
-                                <div>Duration: ${effect.duration} turns</div>
-                            </div>
-                        `;
-                        break;
-                    case 'attack_up':
-                    case 'status_atk_up':
-                        cssClass = 'bg-orange-500';
-                        iconHTML = 'âš”ï¸';
-                        tooltipContent = `
-                            <div class="tooltip-title">Attack Up</div>
-                            <div class="tooltip-content">
-                                <div>Attack increased by 50%</div>
-                                <div>Duration: ${effect.duration} turns</div>
-                            </div>
-                        `;
-                        break;
-                    case 'slow':
-                    case 'status_spd_down':
-                        cssClass = 'bg-gray-400';
-                        iconHTML = 'â³';
-                        tooltipContent = `
-                            <div class="tooltip-title">Slowed</div>
-                            <div class="tooltip-content">
-                                <div>Takes actions later in the turn order</div>
-                                <div>Duration: ${effect.duration} turns</div>
-                            </div>
-                        `;
-                        break;
-                    default:
-                        cssClass = 'bg-gray-500';
-                        iconHTML = 'â“';
-                        tooltipContent = `
-                            <div class="tooltip-title">${displayName}</div>
-                            <div class="tooltip-content">
-                                <div>${statusId.includes('status_') ? 'Status effect' : 'Effect'}</div>
-                                <div>Duration: ${effect.duration} turns</div>
-                            </div>
-                        `;
-                }
-            }
-            
-            // Add class and icon
-            icon.classList.add(cssClass);
-            icon.innerHTML = iconHTML;
-            
-            // Add to container
-            statusContainer.appendChild(icon);
-            
-            // Use our custom tooltip method in BattleUI instead of global tooltipManager
-            if (this.battleUI) {
-                this.battleUI.addStatusTooltip(icon, tooltipContent);
-            }
-        });
+        // Direct delegation
+        return this.statusEffectManager.updateStatusIcons(character);
     }
     
     /**
@@ -978,6 +1110,14 @@ class BattleManager {
      * This allows backward compatibility with existing code
      */
     async initializeBehaviorSystem() {
+        // DIAGNOSTIC: Log the state of behavior systems at startup
+        console.log('[BattleManager.initializeBehaviorSystem] Starting behavior system initialization');
+        console.log('[BattleManager.initializeBehaviorSystem] Available window behaviors:', {
+            'window.battleBehaviors': typeof window.battleBehaviors,
+            'window.BattleBehaviors': typeof window.BattleBehaviors,
+            'this.battleBehaviors': typeof this.battleBehaviors,
+        });
+        
         if (!this.battleBehaviors) {
             try {
                 // Try dynamic import if ESM is supported
@@ -999,15 +1139,39 @@ class BattleManager {
                 }
                 
                 this.battleBehaviors = module.default;
-                console.log('Battle Behaviors system loaded successfully');
+                console.log('Battle Behaviors system loaded successfully via ES Module');
             } catch (error) {
                 // Fallback to global if already loaded via script tag
-                if (window.battleBehaviors) {
+                console.log('[BattleManager.initializeBehaviorSystem] ES Module import failed, checking window globals...');
+                
+                // Try both uppercase and lowercase variants for maximum compatibility
+                if (window.BattleBehaviors) {
+                    this.battleBehaviors = window.BattleBehaviors;
+                    console.log('[BattleManager.initializeBehaviorSystem] Battle Behaviors system loaded from window.BattleBehaviors (uppercase)');
+                    
+                    // DIAGNOSTIC: Check required methods on the loaded object
+                    console.log('[BattleManager.initializeBehaviorSystem] Uppercase BattleBehaviors methods:', {
+                        hasBehavior: typeof this.battleBehaviors.hasBehavior === 'function',
+                        decideAction: typeof this.battleBehaviors.decideAction === 'function', 
+                        selectTarget: typeof this.battleBehaviors.selectTarget === 'function',
+                        getDefaultActionDecisionBehavior: typeof this.battleBehaviors.getDefaultActionDecisionBehavior === 'function'
+                    });
+                } 
+                else if (window.battleBehaviors) {
                     this.battleBehaviors = window.battleBehaviors;
-                    console.log('Battle Behaviors system loaded from window');
-                } else {
-                    console.warn('Battle Behaviors system not available:', error);
-                    console.log('Using default behavior when system is not available');
+                    console.log('[BattleManager.initializeBehaviorSystem] Battle Behaviors system loaded from window.battleBehaviors (lowercase)');
+                    
+                    // DIAGNOSTIC: Check required methods on the loaded object
+                    console.log('[BattleManager.initializeBehaviorSystem] Lowercase battleBehaviors methods:', {
+                        hasBehavior: typeof this.battleBehaviors.hasBehavior === 'function',
+                        decideAction: typeof this.battleBehaviors.decideAction === 'function', 
+                        selectTarget: typeof this.battleBehaviors.selectTarget === 'function',
+                        getDefaultActionDecisionBehavior: typeof this.battleBehaviors.getDefaultActionDecisionBehavior === 'function'
+                    });
+                }
+                else {
+                    console.warn('[BattleManager.initializeBehaviorSystem] Battle Behaviors system not available:', error);
+                    console.log('[BattleManager.initializeBehaviorSystem] Using default behavior when system is not available');
                     // Create a simple default behavior system
                     this.battleBehaviors = {
                         hasBehavior: (name) => false,
@@ -1026,6 +1190,13 @@ class BattleManager {
                 }
             }
         }
+        
+        // Final diagnostic check of the initialized system
+        console.log('[BattleManager.initializeBehaviorSystem] Final behavior system state:', {
+            'this.battleBehaviors defined': !!this.battleBehaviors,
+            'decideAction method exists': typeof this.battleBehaviors?.decideAction === 'function'
+        });
+        
         return this.battleBehaviors;
     }
     
@@ -1036,384 +1207,16 @@ class BattleManager {
      * @returns {Object|null} The action or null
      */
     generateCharacterAction(character, team) {
-        // If character is dead, no action
-        if (character.isDead || character.currentHp <= 0) return null;
-        
-        // Assign team to character if not already set
-        character.team = team;
-        
-        // Check if character is stunned
-        if (this.statusEffects[character.uniqueId || character.id]?.stun) {
-            this.logMessage(`${character.name} is stunned and cannot act!`, 'info');
-            return null;
+        // Delegate to the action generator if available
+        if (this.actionGenerator) {
+            return this.actionGenerator.generateCharacterAction(character, team);
         }
         
-        // Determine targets based on team
-        const possibleTargets = team === 'player' ? this.enemyTeam : this.playerTeam;
+
+        console.warn("BattleManager using legacy generateCharacterAction - ActionGenerator not available");
         
-        // Filter for living targets
-        const livingTargets = possibleTargets.filter(target => target.currentHp > 0);
-        
-        // If no living targets, no action
-        if (livingTargets.length === 0) return null;
-        
-        // Initialize variables with defaults
-        let target = null;
-        let useAbility = false;
-        let selectedAbility = null;
-        
-        // Try to use the behavior system if available
-        if (this.battleBehaviors) {
-            // STEP 1: DECIDE WHICH ABILITY TO USE (OR BASIC ATTACK)
-            // ---------------------------------------------
-            
-            // Get all available abilities (not on cooldown and NOT passive)
-            const availableAbilities = character.abilities?.filter(ability => {
-                // Skip if ability is undefined or null
-                if (!ability) return false;
-                
-                // Skip passive abilities explicitly marked as such
-                if (ability.abilityType === 'Passive' || ability.abilityType === 'passive') return false;
-                
-                // Also skip abilities with passive-specific properties
-                if (ability.passiveTrigger || ability.passiveBehavior) return false;
-                
-                // Only include abilities not on cooldown
-                return ability.currentCooldown === 0;
-            }) || [];
-            
-            // Log available abilities for debugging
-            if (availableAbilities.length > 0) {
-                console.debug(`${character.name} has ${availableAbilities.length} available active abilities`);
-            }
-            
-            // Create context for action decision
-            const decisionContext = {
-                actor: character,
-                availableAbilities: availableAbilities,
-                battleManager: this,
-                teamManager: { getCharacterTeam: (char) => char.team }
-            };
-            
-            // Check -> Delegate -> Default pattern
-            try {
-                // Check: Does the character have a specific actionDecisionLogic?
-                const decisionLogic = character.actionDecisionLogic;
-                
-                // Delegate: If yes, use that behavior
-                if (decisionLogic && this.battleBehaviors.hasBehavior(decisionLogic)) {
-                    selectedAbility = this.battleBehaviors.decideAction(decisionLogic, decisionContext);
-                } else {
-                    // Default: Fall back to default behavior
-                    selectedAbility = this.battleBehaviors.decideAction(
-                        this.battleBehaviors.getDefaultActionDecisionBehavior(),
-                        decisionContext
-                    );
-                }
-            } catch (error) {
-                console.error('Error in action decision behavior:', error);
-                // Proceed with fallback logic on error
-                selectedAbility = null;
-            }
-            
-            // STEP 2: DETERMINE THE TARGET
-            // -------------------------------
-            if (selectedAbility) {
-                useAbility = true;
-                
-                // Create context for targeting
-                const targetingContext = {
-                    actor: character,
-                    potentialTargets: [...this.playerTeam, ...this.enemyTeam],
-                    teamManager: { getCharacterTeam: (char) => char.team },
-                    ability: selectedAbility,
-                    battleManager: this
-                };
-                
-                try {
-                    // Check: Does the ability have specific targetingLogic?
-                    const targetingLogic = selectedAbility.targetingLogic || 
-                                           (selectedAbility.targetType ? 
-                                             this.battleBehaviors.getTargetingBehaviorFromType(selectedAbility.targetType) :
-                                             null);
-                    
-                    // Use appropriate targeting behavior based on ability type
-                    const isHealing = selectedAbility.isHealing || selectedAbility.damageType === 'healing';
-                    const isBuff = false; // TODO: Implement buff detection
-                    
-                    // Force ally targeting for healing abilities
-                    let effectiveTargetingLogic = targetingLogic;
-                    if (isHealing && !effectiveTargetingLogic) {
-                        // Healing abilities should target allies by default
-                        effectiveTargetingLogic = 'targetLowestHpAlly';
-                        console.debug(`Forcing ally targeting for healing ability: ${selectedAbility.name}`);
-                    }
-                    
-                    // Delegate: If yes, use that behavior
-                    if (effectiveTargetingLogic && this.battleBehaviors.hasBehavior(effectiveTargetingLogic)) {
-                        target = this.battleBehaviors.selectTarget(effectiveTargetingLogic, targetingContext);
-                    } else {
-                        // Default: Fall back to default targeting
-                        target = this.battleBehaviors.selectTarget(
-                            this.battleBehaviors.getDefaultTargetingBehavior(),
-                            targetingContext
-                        );
-                    }
-                    
-                    // If target is an array (multi-target ability), use first target for now
-                    // Future enhancement: Handle multi-target abilities properly
-                    if (Array.isArray(target) && target.length > 0) {
-                        target = target[0];
-                    }
-                    
-                    // If no valid target found, use default targeting
-                    if (!target) {
-                        target = livingTargets[Math.floor(Math.random() * livingTargets.length)];
-                    }
-                    
-                    // Set cooldown for the ability
-                    selectedAbility.currentCooldown = selectedAbility.cooldown || 3;
-                } catch (error) {
-                    console.error('Error in targeting behavior:', error);
-                    // Use random targeting as fallback
-                    target = livingTargets[Math.floor(Math.random() * livingTargets.length)];
-                }
-            } else {
-                // Basic attack - use default targeting
-                target = livingTargets[Math.floor(Math.random() * livingTargets.length)];
-            }
-        } else {
-            // FALLBACK: Use legacy behavior when behavior system is not available
-            // ---------------------------------------------------------------------
-            
-            // Select a random target initially
-            target = livingTargets[Math.floor(Math.random() * livingTargets.length)];
-            
-            // Legacy ability selection logic
-            if (character.abilities && character.abilities.length > 0) {
-                // Get available abilities (not on cooldown)
-                const availableAbilities = character.abilities.filter(ability => 
-                    ability.currentCooldown === 0
-                );
-                
-                if (availableAbilities.length > 0 && Math.random() > 0.5) {
-                    // 50% chance to use an ability if available
-                    useAbility = true;
-                    selectedAbility = availableAbilities[Math.floor(Math.random() * availableAbilities.length)];
-                    
-                    // If it's a healing ability, find a friendly target instead
-                    if (selectedAbility.isHealing || selectedAbility.damageType === 'healing') {
-                        const friendlyTargets = team === 'player' ? this.playerTeam : this.enemyTeam;
-                        const injuredTargets = friendlyTargets.filter(t => 
-                            t.currentHp > 0 && t.currentHp < t.stats.hp
-                        );
-                        
-                        if (injuredTargets.length > 0) {
-                            // Target the most injured friendly
-                            injuredTargets.sort((a, b) => 
-                                (a.currentHp / a.stats.hp) - (b.currentHp / b.stats.hp)
-                            );
-                            target = injuredTargets[0];
-                        } else if (friendlyTargets.some(t => t.currentHp > 0)) {
-                            // If no injured targets, pick any living friendly
-                            const livingFriendlies = friendlyTargets.filter(t => t.currentHp > 0);
-                            target = livingFriendlies[Math.floor(Math.random() * livingFriendlies.length)];
-                        }
-                    }
-                    
-                    // Handle utility abilities specifically
-                    if (selectedAbility.damageType === 'utility') {
-                        // For utility abilities like buffs or evasion, target self
-                        target = character;
-                    }
-                    
-                    // Set cooldown
-                    selectedAbility.currentCooldown = selectedAbility.cooldown;
-                }
-            }
-        }
-        
-        // Calculate damage for the selected action
-        const damageResult = this.calculateDamage(character, target, selectedAbility);
-        
-        // Create the action object
-        return {
-            actor: character,
-            target: target,
-            team: team,
-            useAbility: useAbility,
-            ability: selectedAbility,
-            damage: damageResult.damage,
-            scalingText: damageResult.scalingText,
-            scalingStat: damageResult.scalingStat,
-            damageType: damageResult.damageType
-        };
-    }
-    
-    /**
-     * Execute the next action in the queue
-     */
-    executeNextAction() {
-        if (!this.battleActive || this.isPaused) {
-            this.turnInProgress = false;
-            return;
-        }
-        
-        if (this.actionQueue.length === 0) {
-            this.finishTurn();
-            return;
-        }
-        
-        const action = this.actionQueue.shift();
-        
-        // Check if the actor is still alive before proceeding
-        if (action.actor.isDead || action.actor.currentHp <= 0) {
-            console.log(`Skipping action for defeated character: ${action.actor.name}`);
-            // Skip to next action
-            this.executeNextAction();
-            return;
-        }
-        
-        // Check if the target is still alive (unless it's a healing ability)
-        const isHealing = action.ability && (action.ability.isHealing || action.ability.damageType === 'healing');
-        if (!isHealing && (action.target.isDead || action.target.currentHp <= 0)) {
-            // Target is defeated, find a new target
-            console.log(`Original target defeated, finding new target for ${action.actor.name}`);
-            
-            // Determine possible targets based on team
-            const possibleTargets = action.team === 'player' ? this.enemyTeam : this.playerTeam;
-            
-            // Filter for living targets
-            const livingTargets = possibleTargets.filter(target => !target.isDead && target.currentHp > 0);
-            
-            if (livingTargets.length === 0) {
-                // No valid targets left, skip this action
-                console.log(`No valid targets left for ${action.actor.name}, skipping action`);
-                this.executeNextAction();
-                return;
-            }
-            
-            // Select a new random target
-            action.target = livingTargets[Math.floor(Math.random() * livingTargets.length)];
-            console.log(`New target selected: ${action.target.name}`);
-            
-            // Recalculate damage for the new target
-            const { damage, scalingText, scalingStat } = this.calculateDamage(action.actor, action.target, action.ability);
-            action.damage = damage;
-            action.scalingText = scalingText;
-            action.scalingStat = scalingStat;
-        }
-        
-        // Add team to actor and target if not set
-        if (!action.actor.team) {
-            action.actor.team = action.team;
-        }
-        
-        if (!action.target.team) {
-            action.target.team = action.team === 'player' ? 'enemy' : 'player';
-        }
-        
-        // Generate uniqueId for actor and target if needed
-        if (!action.actor.uniqueId) {
-            action.actor.uniqueId = `${action.actor.team}_${action.actor.id}`;
-        }
-        
-        if (!action.target.uniqueId) {
-            action.target.uniqueId = `${action.target.team}_${action.target.id}`;
-        }
-        
-        // Log the action
-        let message;
-        // Add team info to actor and target names for better clarity
-        const actorName = `${action.actor.name}${action.team === 'player' ? ' (ally)' : ' (enemy)'}`;
-        const targetName = `${action.target.name}${action.team === 'player' ? ' (enemy)' : ' (ally)'}`;
-        
-        if (action.useAbility) {
-            // Handle different ability types in log message
-            if (action.ability.isHealing || action.ability.damageType === 'healing') {
-                message = `${actorName} uses [${action.ability.name}] to heal ${targetName}!`;
-            } else if (action.ability.damageType === 'utility') {
-                message = `${actorName} uses [${action.ability.name}]!`;
-            } else {
-                message = `${actorName} uses [${action.ability.name}] on ${targetName}!`;
-            }
-        } else {
-            message = `${actorName} attacks ${targetName} for ${action.damage} damage!`;
-        }
-        this.logMessage(message, 'action');
-        
-        // Dispatch CHARACTER_ACTION event via BattleBridge if available
-        if (this.uiMode === "phaser" && window.battleBridge) {
-            try {
-                console.log(`BattleManager: Dispatching CHARACTER_ACTION event for ${action.actor.name}`);
-                if (action.useAbility) {
-                    // For ability actions
-                    window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_ACTION, {
-                        character: action.actor,
-                        action: {
-                            type: 'ability',
-                            name: action.ability.name,
-                            abilityName: action.ability.name,
-                            target: action.target
-                        }
-                    });
-                } else {
-                    // For auto-attack actions
-                    window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_ACTION, {
-                        character: action.actor,
-                        action: {
-                            type: 'autoAttack',
-                            name: 'Auto Attack',
-                            target: action.target
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('BattleManager: Error dispatching CHARACTER_ACTION event:', error);
-            }
-        }
-        
-        // Set active character in UI
-        if (this.battleUI) {
-            this.battleUI.setActiveCharacter(action.actor);
-            
-            // Slight delay before showing animation
-            setTimeout(() => {
-                // Show attack animation
-                this.battleUI.showAttackAnimation(action.actor, action.target, action.ability);
-                
-                // Apply damage/healing to target
-                this.applyActionEffect(action);
-                
-                // Check for battle end
-                if (this.checkBattleEnd()) {
-                    return; // Battle ended, don't continue
-                }
-                
-                // Random chance to apply status effect
-                if (action.useAbility && !action.ability.isHealing && action.ability.damageType !== 'utility' && Math.random() < 0.3) {
-                    // 30% chance to apply an effect with an ability
-                    this.applyRandomStatusEffect(action.target);
-                }
-                
-                // Schedule next action
-                const actualDelay = this.actionDelay / this.speedMultiplier;
-                setTimeout(() => this.executeNextAction(), actualDelay);
-                
-            }, 300);
-        } else {
-            // No UI, just process the action immediately
-            this.applyActionEffect(action);
-            
-            // Check for battle end
-            if (this.checkBattleEnd()) {
-                return; // Battle ended, don't continue
-            }
-            
-            // Schedule next action
-            const actualDelay = this.actionDelay / this.speedMultiplier;
-            setTimeout(() => this.executeNextAction(), actualDelay);
-        }
+        // Safe fallback: return null (no action) if ActionGenerator not available
+        return null;
     }
     
     /**
@@ -1421,232 +1224,14 @@ class BattleManager {
      * @param {Object} target - The character to affect
      */
     applyRandomStatusEffect(target) {
-        // Get all damage over time effects from definitions if available
-        let possibleEffects = [];
-        
-        if (this.statusEffectDefinitions) {
-            // Get all DoT effects from the definitions
-            const dotEffects = Object.entries(this.statusEffectDefinitions)
-                .filter(([id, def]) => def.type === 'DoT' || def.type === 'Debuff')
-                .map(([id, def]) => ({ id, duration: def.defaultDuration || 2 }));
-            
-            if (dotEffects.length > 0) {
-                possibleEffects = dotEffects;
-            }
+        // Delegate to the ability processor if available
+        if (this.abilityProcessor) {
+            return this.abilityProcessor.applyRandomStatusEffect(target);
         }
         
-        // Fallback to hardcoded effects if no definitions or filtered list is empty
-        if (possibleEffects.length === 0) {
-            possibleEffects = [
-                { id: 'status_burn', duration: 2 },
-                { id: 'status_stun', duration: 1 },
-                { id: 'status_spd_down', duration: 2 }
-            ];
-        }
-        
-        // Select a random effect
-        const randomEffect = possibleEffects[Math.floor(Math.random() * possibleEffects.length)];
-        
-        // Apply the effect
-        this.addStatusEffect(target, randomEffect.id, randomEffect.duration);
-    }
-    
-    /**
-     * Apply the effect of an action to its target
-     * @param {Object} action - The action to apply
-     */
-    applyActionEffect(action) {
-        // Get team info for clearer logging
-        const actorTeam = action.team;
-        const targetTeam = actorTeam === 'player' ? 'enemy' : 'player';
-        
-        // Handle array of targets (for multi-target abilities)
-        if (Array.isArray(action.target)) {
-            // Process each target individually
-            action.target.forEach(target => {
-                // Create a single-target version of the action
-                const singleAction = {...action, target};
-                this.applyActionEffect(singleAction);
-            });
-            return;
-        }
-        
-        // Check if this is an action with the new effects array
-        if (action.ability && action.ability.effects && Array.isArray(action.ability.effects) && action.ability.effects.length > 0) {
-            // New effect system - process each effect in the array
-            action.ability.effects.forEach(effect => {
-                this.processEffect(effect, action.actor, action.target, action.ability);
-            });
-            return;
-        }
-        
-        // Legacy action processing
-        if (action.ability && (action.ability.isHealing || action.ability.damageType === 'healing')) {
-            // Healing ability
-            const healAmount = action.damage;
-            const previousHp = action.target.currentHp;
-            action.target.currentHp = Math.min(
-            action.target.currentHp + healAmount,
-            action.target.stats.hp
-            );
-            
-            // Calculate actual healing done (may be less than healAmount if at max HP)
-            const actualHealing = action.target.currentHp - previousHp;
-            
-            // Include team info in the log message for healing too
-            const targetTeam = action.target.team;
-            const targetInfo = `${action.target.name}${targetTeam === 'player' ? ' (ally)' : ' (enemy)'}`;
-            
-            // Add scaling information to healing message
-            if (action.scalingText) {
-                this.logMessage(`${targetInfo} is healed for ${healAmount} HP ${action.scalingText}! (HP: ${action.target.currentHp}/${action.target.stats.hp})`, 'success');
-            } else {
-                this.logMessage(`${targetInfo} is healed for ${healAmount} HP! (HP: ${action.target.currentHp}/${action.target.stats.hp})`, 'success');
-            }
-            
-            // Process healing-related passive abilities
-            
-            // 1. onHealed for the target
-            if (actualHealing > 0) {
-                this.processPassiveAbilities('onHealed', action.target, {
-                    source: action.actor,
-                    healAmount: actualHealing,
-                    ability: action.ability,
-                    healPercent: action.target.stats.hp > 0 ? actualHealing / action.target.stats.hp : 0 // Add healing percentage
-                });
-                
-                // Show passive trigger visual feedback if using BattleUI
-                if (this.battleUI && this.battleUI.showPassiveEffect) {
-                    this.battleUI.showPassiveEffect(action.target, 'Healing received');
-                }
-            }
-            
-            // 2. onHealingDone for the healer
-            if (actualHealing > 0 && action.actor !== action.target) { // Only trigger for healing others
-                this.processPassiveAbilities('onHealingDone', action.actor, {
-                    target: action.target,
-                    healAmount: actualHealing,
-                    ability: action.ability,
-                    healPercent: action.target.stats.hp > 0 ? actualHealing / action.target.stats.hp : 0 // Add healing percentage
-                });
-                
-                // Show passive trigger visual feedback if using BattleUI
-                if (this.battleUI && this.battleUI.showPassiveEffect) {
-                    this.battleUI.showPassiveEffect(action.actor, 'Healing done');
-                }
-            }
-            
-            // Check if target was dead and should be revived
-            const wasRevived = this.checkAndResetDeathStatus(action.target);
-            
-            // Process revival passive if character was revived
-            if (wasRevived) {
-                this.processPassiveAbilities('onRevive', action.target, {
-                    reviver: action.actor,
-                    ability: action.ability
-                });
-            }
-            
-            // Add regeneration status if it's a healing ability
-            if (Math.random() < 0.5) { // 50% chance
-                this.addStatusEffect(action.target, 'regen', 2);
-            }
-        } else if (action.ability && action.ability.damageType === 'utility') {
-            // Utility ability - special effects instead of damage
-            const targetTeam = action.target.team;
-            const targetInfo = `${action.target.name}${targetTeam === 'player' ? ' (ally)' : ' (enemy)'}`;
-            
-            // Handle different utility effects
-            if (action.ability.name === "Evasive Maneuver") {
-                // Add evasion effect (this is just a placeholder, evasion mechanic would need to be implemented)
-                this.logMessage(`${targetInfo} becomes harder to hit!`, 'info');
-                this.addStatusEffect(action.target, 'defense_up', 2);
-            } else {
-                // Generic utility effect message
-                this.logMessage(`${targetInfo} is affected by ${action.ability.name}!`, 'info');
-            }
-        } else {
-            // Damaging action
-            const previousHp = action.target.currentHp;
-            action.target.currentHp = Math.max(0, action.target.currentHp - action.damage);
-            
-            // Calculate actual damage dealt (may be less than action.damage if target had low HP)
-            const actualDamage = previousHp - action.target.currentHp;
-            
-            // Include team info in the log message for clarity when characters share names
-            // For targets, we need to use opposite team designation from the actor
-            const targetTeam = action.team === 'player' ? 'enemy' : 'player';
-            const targetInfo = `${action.target.name}${targetTeam === 'player' ? ' (ally)' : ' (enemy)'}`;
-            
-            // Add scaling information to damage message
-            if (action.scalingText) {
-                this.logMessage(`${targetInfo} takes ${action.damage} damage ${action.scalingText}! (HP: ${action.target.currentHp}/${action.target.stats.hp})`, action.useAbility ? 'error' : 'default');
-            } else {
-                this.logMessage(`${targetInfo} takes ${action.damage} damage! (HP: ${action.target.currentHp}/${action.target.stats.hp})`, action.useAbility ? 'error' : 'default');
-            }
-            
-            // Process damage-related passive abilities
-            
-            // 1. onDamageTaken for the target
-            if (actualDamage > 0) {
-                this.processPassiveAbilities('onDamageTaken', action.target, {
-                    source: action.actor,
-                    damageAmount: actualDamage,
-                    ability: action.ability,
-                    wasCritical: false, // TODO: Add critical hit tracking
-                    reflectionDepth: 0 // Initialize reflection depth tracking
-                });
-            }
-            
-            // 2. onDamageDealt for the attacker
-            if (actualDamage > 0) {
-                this.processPassiveAbilities('onDamageDealt', action.actor, {
-                    target: action.target,
-                    damageAmount: actualDamage,
-                    ability: action.ability,
-                    wasCritical: false, // TODO: Add critical hit tracking
-                    damagePercent: action.target.stats.hp > 0 ? actualDamage / action.target.stats.hp : 0 // Add damage percentage
-                });
-            }
-            
-            // Check if target died
-            if (action.target.currentHp <= 0) {
-                action.target.isDead = true;
-                action.target.currentHp = 0; // Ensure HP doesn't go below 0
-                // Use the same targetInfo for defeat message
-                this.logMessage(`${targetInfo} is defeated! âš°ï¸`, 'error'); // Added coffin emoji for visibility
-                
-                // Process defeat passive abilities
-                this.processPassiveAbilities('onDefeat', action.target, {
-                    killer: action.actor,
-                    ability: action.ability
-                });
-                
-                // Process on-kill passive ability with visual feedback
-                const killResults = this.processPassiveAbilities('onKill', action.actor, {
-                    defeated: action.target,
-                    ability: action.ability
-                });
-                
-                // Show visual feedback for kill effects if there were executed passives
-                if (killResults && killResults.length > 0 && this.battleUI && this.battleUI.showPassiveEffect) {
-                    const passiveNames = killResults
-                        .filter(result => result.executed)
-                        .map(result => {
-                            // Extract passive name from message if available
-                            if (result.message && result.message.includes("'s")) {
-                                return result.message.split("'s")[1].trim();
-                            }
-                            return 'Kill Effect';
-                        });
-                    
-                    if (passiveNames.length > 0) {
-                        // Show the passive effect visualization
-                        this.battleUI.showPassiveEffect(action.actor, passiveNames[0]);
-                    }
-                }
-            }
-        }
+
+        console.warn("BattleManager using legacy applyRandomStatusEffect - AbilityProcessor not available");
+        return false;
     }
     
     /**
@@ -1657,153 +1242,67 @@ class BattleManager {
      * @param {Object} ability - The ability being used
      */
     processEffect(effect, actor, target, ability) {
-        // Get team identifiers for logging
-        const actorTeamId = actor.team === 'player' ? ' (ally)' : ' (enemy)';
-        const targetTeamId = target.team === 'player' ? ' (ally)' : ' (enemy)';
-        const actorInfo = `${actor.name}${actorTeamId}`;
-        const targetInfo = `${target.name}${targetTeamId}`;
-        
-        // Check if this effect should apply based on team relationships
-        const isTargetAlly = target.team === actor.team || target.isAllyOf === true;
-        
-        // Skip if effect shouldn't apply to allies but target is an ally
-        if (effect.targetAllies === false && isTargetAlly) {
-            console.debug(`Skipping effect on ${target.name}: ally=${isTargetAlly}, effect allows allies: false`);
-            return; // Skip this effect
+        // Delegate to the ability processor if available
+        if (this.abilityProcessor) {
+            return this.abilityProcessor.processEffect(effect, actor, target, ability);
         }
         
-        // Skip if effect shouldn't apply to enemies but target is an enemy
-        if (effect.targetEnemies === false && !isTargetAlly) {
-            console.debug(`Skipping effect on ${target.name}: ally=${isTargetAlly}, effect allows enemies: false`);
-            return; // Skip this effect
-        }
-        
-        console.debug(`Processing effect on ${target.name}: isAlly=${isTargetAlly}, effect allows allies: ${effect.targetAllies !== false}, effect allows enemies: ${effect.targetEnemies !== false}`);
-        
-        // Handle different effect types
-        switch (effect.type) {
-            case 'Damage':
-            case 'damage':
-                // Only apply damage if target is an enemy or area damage specifically allows allies
-                if (!isTargetAlly || effect.targetAllies === true) {
-                    // Calculate damage for this specific effect
-                    const damageResult = this.calculateDamage(actor, target, ability, effect);
-                    const damage = damageResult.damage;
-                    
-                    // Apply damage to target
-                    target.currentHp = Math.max(0, target.currentHp - damage);
-                    
-                    // Log the damage
-                    if (damageResult.scalingText) {
-                        this.logMessage(`${targetInfo} takes ${damage} damage ${damageResult.scalingText}! (HP: ${target.currentHp}/${target.stats.hp})`, 'error');
-                    } else {
-                        this.logMessage(`${targetInfo} takes ${damage} damage! (HP: ${target.currentHp}/${target.stats.hp})`, 'error');
-                    }
-                    
-                    // Check if target died
-                    if (target.currentHp <= 0) {
-                        target.isDead = true;
-                        target.currentHp = 0; // Ensure HP doesn't go below 0
-                        this.logMessage(`${targetInfo} is defeated! âš°ï¸`, 'error');
-                    }
-                }
-                break;
-                
-            case 'Healing':
-            case 'healing':
-                // Only apply healing if target is an ally or area healing specifically allows enemies
-                if (isTargetAlly || effect.targetEnemies === true) {
-                    // Calculate healing amount for this specific effect
-                    const healResult = this.calculateDamage(actor, target, ability, effect);
-                    const healAmount = healResult.damage; // We reuse damage calculation for healing
-                    
-                    // Apply healing to target
-                    target.currentHp = Math.min(target.stats.hp, target.currentHp + healAmount);
-                    
-                    // Log the healing
-                    if (healResult.scalingText) {
-                        this.logMessage(`${targetInfo} is healed for ${healAmount} HP ${healResult.scalingText}! (HP: ${target.currentHp}/${target.stats.hp})`, 'success');
-                    } else {
-                        this.logMessage(`${targetInfo} is healed for ${healAmount} HP! (HP: ${target.currentHp}/${target.stats.hp})`, 'success');
-                    }
-                    
-                    // Check if target was dead but now has HP
-                    this.checkAndResetDeathStatus(target);
-                }
-                break;
-                
-            case 'ApplyStatus':
-            case 'applyStatus':
-                // Apply status based on team relationships
-                // Buffs typically go to allies, debuffs to enemies
-                const statusId = effect.statusEffectId;
-                const duration = effect.duration || 2;
-                let applyStatus = true;
-                
-                // Get the definition to check if it's a buff or debuff
-                const statusDef = this.statusEffectDefinitions ? this.statusEffectDefinitions[statusId] : null;
-                const isBuffType = statusDef && (statusDef.type === 'Buff' || statusDef.type === 'HoT' || statusDef.type === 'Shield');
-                const isDebuffType = statusDef && (statusDef.type === 'Debuff' || statusDef.type === 'DoT' || statusDef.type === 'Control');
-                
-                // Check default targeting behavior if not explicitly specified
-                // By default, buffs go to allies and debuffs go to enemies
-                if (effect.targetAllies === undefined && effect.targetEnemies === undefined) {
-                    if (isBuffType && !isTargetAlly) applyStatus = false;
-                    if (isDebuffType && isTargetAlly) applyStatus = false;
-                }
-                
-                // Check if the status effect has a chance component
-                if (effect.chance && effect.chance < 1.0) {
-                    // Only apply if random roll succeeds
-                    applyStatus = applyStatus && (Math.random() < effect.chance);
-                    if (!applyStatus) {
-                        this.logMessage(`${actorInfo}'s attempt to inflict ${statusId} failed!`, 'info');
-                    }
-                }
-                
-                // Apply the status effect if applicable
-                if (applyStatus) {
-                    this.addStatusEffect(target, statusId, duration);
-                }
-                break;
-                
-            case 'StatBuff':
-            case 'statBuff':
-                // Apply stat buffs based on team relationships
-                // By default, positive stat mods go to allies, negative to enemies
-                const isPositiveMod = !effect.value || effect.value > 0;
-                
-                // Skip if doesn't match team targeting rules
-                if ((isPositiveMod && !isTargetAlly && effect.targetEnemies !== true) ||
-                    (!isPositiveMod && isTargetAlly && effect.targetAllies !== true)) {
-                    break;
-                }
-                
-                // Not fully implemented yet, will add in Pass 6 with status effect system refactor
-                this.logMessage(`${targetInfo} receives a stat modification from ${actorInfo}!`, 'info');
-                
-                // For now, map common stat buffs to existing status effects
-                if (effect.targetStat === 'Attack') {
-                    this.addStatusEffect(target, isPositiveMod ? 'status_atk_up' : 'status_atk_down', effect.duration || 3);
-                } else if (effect.targetStat === 'Defense') {
-                    this.addStatusEffect(target, isPositiveMod ? 'status_def_up' : 'status_def_down', effect.duration || 3);
-                }
-                break;
-                
-            default:
-                // Unknown effect type
-                this.logMessage(`Unknown effect type: ${effect.type}`, 'info');
-        }
+
+        console.warn("BattleManager using legacy processEffect - AbilityProcessor not available");
+        return false;
     }
     
     /**
-     * Calculate damage for an action
+     * Calculate damage for an action.
+     * Delegates calculation to DamageCalculator component.
      * @param {Object} attacker - The attacking character
      * @param {Object} target - The target character
      * @param {Object|null} ability - The ability used (if any)
-     * @param {Object|null} effect - The specific effect from an ability's effects array (if any)
-     * @returns {Object} The calculated damage, scaling text, and scaling stat
+     * @param {Object|null} effect - The specific effect from an ability (if any)
+     * @returns {Object} - Complete damage calculation result with metadata
+     * @see DamageCalculator for implementation details
      */
+    calculateDamage(attacker, target, ability, effect = null) {
+        // Defensive check - ensure DamageCalculator is available
+        if (!this.damageCalculator) {
+            console.error("DamageCalculator component not found during delegation in BattleManager!");
+            // Return a safe default object matching the expected structure
+            return { 
+                damage: 0, 
+                scalingText: '', 
+                scalingStat: 0, 
+                scalingStatName: '', 
+                damageType: ability ? (ability.damageType || 'physical') : 'physical',
+                isCritical: false,
+                typeMultiplier: 1
+            };
+        }
+        
+        // Direct delegation to DamageCalculator - no adapter wrapper needed now that it returns the full object
+        return this.damageCalculator.calculateDamage(attacker, target, ability, effect);
+    }
+    
+   /**
+     * Calculate type advantage multiplier.
+     * Delegates calculation to the TypeEffectivenessCalculator component.
+     * @param {string} attackerType - Attacker's type
+     * @param {string} defenderType - Defender's type
+     * @returns {number} Damage multiplier (1.5 for advantage, 0.75 for disadvantage, 1.0 otherwise)
+     * @see TypeEffectivenessCalculator for implementation details
+     */
+    calculateTypeMultiplier(attackerType, defenderType) {
+        // Delegate directly to the component
+        if (this.typeEffectivenessCalculator) {
+             // Call the method on the initialized component instance
+             return this.typeEffectivenessCalculator.calculateTypeMultiplier(attackerType, defenderType);
+        } else {
+             // Fallback if the component wasn't properly initialized (should not happen in normal flow)
+             console.error("TypeEffectivenessCalculator component not found during delegation in BattleManager!");
+             // Return a neutral multiplier as a safe default
+             return 1.0;
+        }
+    }
+    
     /**
      * Process passive abilities for a specific trigger event
      * @param {string} trigger - The trigger event (e.g., 'onTurnStart', 'onDamageTaken')
@@ -1812,329 +1311,14 @@ class BattleManager {
      * @returns {Array} Array of executed passive results
      */
     processPassiveAbilities(trigger, character, additionalData = {}) {
-        // Skip if character is defeated or has no passive abilities
-        if (!character || character.isDead || character.currentHp <= 0 || !character.passiveAbilities || !character.passiveAbilities.length) {
-            return [];
+        // Delegate to PassiveAbilityManager if available
+        if (this.passiveAbilityManager) {
+            return this.passiveAbilityManager.processPassiveAbilities(trigger, character, additionalData);
         }
         
-        // Initialize tracking object if it doesn't exist
-        if (!character.passiveTriggeredThisTurn) {
-            character.passiveTriggeredThisTurn = {};
-        }
-        
-        // Initialize battle-level tracking if needed
-        if (!this.passiveTriggersThisBattle) {
-            this.passiveTriggersThisBattle = new Map();
-        }
-        
-        // Will store results from executed passives
-        const results = [];
-        
-        // Skip if we don't have the behavior system
-        if (!this.battleBehaviors) {
-            return results;
-        }
-        
-        // Process each passive ability
-        character.passiveAbilities.forEach(ability => {
-            // Skip if this passive has already been triggered this turn for this trigger type
-            const passiveId = ability.id || ability.name;
-            const triggerKey = `${passiveId}_${trigger}`;
-            
-            if (character.passiveTriggeredThisTurn[triggerKey]) {
-                console.debug(`Skipping duplicate trigger of ${passiveId} for ${character.name}, already triggered this turn`);
-                return; // Skip this passive ability
-            }
-            
-            // Special handling for onBattleStart trigger - needs battle-level tracking
-            if (trigger === 'onBattleStart') {
-                // Create a unique key for this ability trigger in this battle
-                const battleTriggerKey = `${character.uniqueId || character.id}_${passiveId}_${trigger}`;
-                
-                // Check if this has already been triggered in this battle
-                if (this.passiveTriggersThisBattle.has(battleTriggerKey)) {
-                    console.debug(`Skipping duplicate battle start trigger: ${ability.name} for ${character.name}`);
-                    return; // Skip this passive ability
-                }
-                
-                // Mark as triggered for this battle
-                this.passiveTriggersThisBattle.set(battleTriggerKey, true);
-            }
-            
-            // Check if this passive has a trigger that matches the current trigger
-            if (ability.passiveTrigger === trigger) {
-                // Create context for the passive behavior
-                const passiveContext = {
-                    actor: character,
-                    ability: ability,
-                    battleManager: this,
-                    teamManager: this.teamManager,
-                    trigger: trigger,
-                    additionalData: additionalData
-                };
-                
-                // Get the behavior function name
-                const behaviorName = ability.passiveBehavior;
-                
-                // If the passive has a behavior function and our system has it registered
-                if (behaviorName && this.battleBehaviors.hasBehavior(behaviorName)) {
-                    try {
-                        // Execute the passive behavior
-                        const result = this.battleBehaviors.executePassiveBehavior(behaviorName, passiveContext);
-                        
-                        // If passive executed successfully, add to results and log message
-                        if (result && result.executed) {
-                            // Mark this passive as triggered for this turn and trigger type
-                            character.passiveTriggeredThisTurn[triggerKey] = true;
-                            
-                            results.push(result);
-                            
-                            // Log the passive activation if a message was provided
-                            if (result.message) {
-                                const teamIdentifier = character.team === 'player' ? ' (ally)' : ' (enemy)';
-                                this.logMessage(`${character.name}${teamIdentifier}'s passive ability: ${result.message}`, 'action');
-                            }
-                        }
-                    } catch (error) {
-                        console.error(`Error executing passive ability '${ability.name}':`, error);
-                    }
-                }
-            }
-        });
-        
-        return results;
-    }
-    
-    calculateDamage(attacker, target, ability, effect = null) {
-        let baseDamage;
-        let scalingStat = 0;
-        let scalingText = '';
-        let scalingStatName = '';
-        let damageType = '';
-        
-        // Determine if we're using the enhanced effect system or traditional ability properties
-        const useEffectSystem = effect && typeof effect === 'object';
-        
-        if (ability) {
-            // First determine effect type (damage, healing, or utility)
-            let effectType = useEffectSystem ? effect.type : 
-                            (ability.isHealing || ability.damageType === 'healing') ? 'Healing' : 
-                            (ability.damageType === 'utility') ? 'Utility' : 'Damage';
-            
-            // Get base damage/healing value
-            baseDamage = useEffectSystem ? (effect.value || ability.damage) : ability.damage;
-            
-            // Get damage type (for type effectiveness)
-            damageType = useEffectSystem ? (effect.damageType || ability.damageType) : ability.damageType;
-            
-            // Determine scaling based on damage type
-            if (effectType === 'Damage' || effectType === 'damage') {
-                if (damageType === 'physical') {
-                    // Get scaling stat and factor
-                    const scaleFactor = useEffectSystem ? (effect.scaleFactor || 0.5) : 0.5;
-                    scalingStat = Math.floor(attacker.stats.strength * scaleFactor);
-                    scalingStatName = 'Strength';
-                    scalingText = `(+${scalingStat} from Strength)`;
-                    baseDamage += scalingStat;
-                } else if (damageType === 'spell') {
-                    // Spell abilities scale with Intellect
-                    const scaleFactor = useEffectSystem ? (effect.scaleFactor || 0.5) : 0.5;
-                    scalingStat = Math.floor(attacker.stats.intellect * scaleFactor);
-                    scalingStatName = 'Intellect';
-                    scalingText = `(+${scalingStat} from Intellect)`;
-                    baseDamage += scalingStat;
-                }
-            } else if (effectType === 'Healing' || effectType === 'healing') {
-                // Healing effects scale with Spirit
-                const scaleFactor = useEffectSystem ? (effect.scaleFactor || 0.5) : 0.5;
-                scalingStat = Math.floor(attacker.stats.spirit * scaleFactor);
-                scalingStatName = 'Spirit';
-                scalingText = `(+${scalingStat} from Spirit)`;
-                baseDamage += scalingStat;
-                
-                // Log healing with scaling info
-                this.logMessage(`Ability scales with Spirit: ${baseDamage - scalingStat} base + ${scalingStat} = ${baseDamage} total healing`, 'info');
-                return { damage: baseDamage, scalingText, scalingStat, scalingStatName, damageType };
-            } else if (effectType === 'Utility' || effectType === 'utility' || 
-                      effectType === 'ApplyStatus' || effectType === 'StatBuff') {
-                // Utility effects might scale with Spirit
-                const scaleFactor = useEffectSystem ? (effect.scaleFactor || 0.3) : 0.3;
-                scalingStat = Math.floor(attacker.stats.spirit * scaleFactor);
-                scalingStatName = 'Spirit';
-                scalingText = `(boosted by Spirit)`;
-                
-                // For utility effects, return 0 damage but track Spirit scaling
-                this.logMessage(`Utility effect scales with Spirit: ${scalingStat} bonus effectiveness`, 'info');
-                return { damage: 0, scalingText, scalingStat, scalingStatName, damageType };
-            }
-        } else {
-            // Basic attack damage
-            baseDamage = attacker.stats.attack;
-            damageType = 'physical'; // Basic attacks are physical
-        }
-        
-        // Apply defense reduction
-        let defense = target.stats.defense;
-        
-        // Get character IDs for status effects
-        const attackerId = attacker.uniqueId || attacker.id;
-        const targetId = target.uniqueId || target.id;
-        
-        // Check for defense_up status effect (legacy check - will be updated in Pass 6)
-        if (this.statusEffects[targetId]?.defense_up) {
-            defense = Math.floor(defense * 1.5); // 50% more defense
-        }
-        
-        let damage = Math.max(1, baseDamage - (defense / 2));
-        
-        // Check for attack_up status effect (legacy check - will be updated in Pass 6)
-        if (this.statusEffects[attackerId]?.attack_up) {
-            damage = Math.floor(damage * 1.5); // 50% more damage
-        }
-        
-        // Apply type advantage/disadvantage
-        const typeMultiplier = this.calculateTypeMultiplier(attacker.type, target.type);
-        damage = Math.round(damage * typeMultiplier);
-        
-        // Apply random variance (Â±20%)
-        const variance = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
-        damage = Math.round(damage * variance);
-        
-        // Miss chance (5%)
-        if (Math.random() < 0.05) {
-            this.logMessage(`${attacker.name}'s attack missed!`, 'info');
-            return { damage: 0, scalingText: '', scalingStat: 0, scalingStatName: '', damageType };
-        }
-        
-        // Critical hit chance (10%)
-        if (Math.random() < 0.1) {
-            damage = Math.round(damage * 1.5);
-            this.logMessage(`Critical hit!`, 'success');
-        }
-        
-        // Log ability scaling information if it's not a basic attack
-        if (ability && this.battleUI) {
-            if (scalingStatName) {
-                this.logMessage(`Ability scales with ${scalingStatName}: ${ability.damage} base + ${scalingStat} = ${baseDamage} pre-defense damage`, 'info');
-            }
-        }
-        
-        return { 
-            damage: Math.max(1, damage), 
-            scalingText, 
-            scalingStat,
-            scalingStatName,
-            damageType
-        };
-    }
-    
-    /**
-     * Calculate type advantage multiplier
-     * @param {string} attackerType - Attacker's type
-     * @param {string} defenderType - Defender's type
-     * @returns {number} Damage multiplier
-     */
-    calculateTypeMultiplier(attackerType, defenderType) {
-        // Type advantage chart
-        const advantages = {
-            fire: 'nature',    // Fire is strong against Nature
-            water: 'fire',     // Water is strong against Fire
-            nature: 'water',   // Nature is strong against Water
-            light: 'dark',     // Light is strong against Dark
-            dark: 'light',     // Dark is strong against Light
-            air: 'earth'       // Air is strong against Earth (not used yet)
-        };
-        
-        if (advantages[attackerType] === defenderType) {
-            // Attacker has advantage
-            this.logMessage(`${attackerType.charAt(0).toUpperCase() + attackerType.slice(1)} is super effective against ${defenderType}!`, 'success');
-            return 1.5;
-        } else if (advantages[defenderType] === attackerType) {
-            // Defender has advantage
-            this.logMessage(`${attackerType.charAt(0).toUpperCase() + attackerType.slice(1)} is not very effective against ${defenderType}.`, 'info');
-            return 0.75;
-        }
-        
-        return 1.0; // No advantage
-    }
-    
-    /**
-     * Finish the current turn
-     */
-    finishTurn() {
-        this.turnInProgress = false;
-        
-        // Reduce ability cooldowns
-        this.playerTeam.concat(this.enemyTeam).forEach(character => {
-            if (character.abilities) {
-                character.abilities.forEach(ability => {
-                    if (ability.currentCooldown > 0) {
-                        ability.currentCooldown--;
-                    }
-                });
-            }
-            
-            // Process turn end passive abilities
-            if (character.currentHp > 0) {
-                this.processPassiveAbilities('onTurnEnd', character, { turnNumber: this.currentTurn });
-            }
-            
-            // Random chance to apply a buff at the end of turn
-            if (character.currentHp > 0 && Math.random() < 0.1) { // 10% chance
-                const buffs = [
-                    { type: 'defense_up', duration: 2 },
-                    { type: 'attack_up', duration: 2 },
-                    { type: 'regen', duration: 2 }
-                ];
-                
-                const randomBuff = buffs[Math.floor(Math.random() * buffs.length)];
-                this.addStatusEffect(character, randomBuff.type, randomBuff.duration);
-            }
-        });
-        
-        // Display end of turn summary
-        this.displayTurnSummary();
-        
-        // Check for battle end
-        if (this.checkBattleEnd()) {
-            return;
-        }
-        
-        // Schedule next turn
-        const actualDelay = this.turnDelay / this.speedMultiplier;
-        this.turnTimer = setTimeout(() => this.startNextTurn(), actualDelay);
-    }
-    
-    /**
-     * Check if the battle is over
-     * @returns {boolean} True if the battle is over
-     */
-    checkBattleEnd() {
-        // Count characters that are actually dead (isDead flag or hp <= 0)
-        const playerDeadCount = this.playerTeam.filter(char => char.isDead || char.currentHp <= 0).length;
-        const enemyDeadCount = this.enemyTeam.filter(char => char.isDead || char.currentHp <= 0).length;
-        
-        // Check if all characters on either team are dead
-        const allPlayersDead = playerDeadCount === this.playerTeam.length;
-        const allEnemiesDead = enemyDeadCount === this.enemyTeam.length;
-        
-        // Log the current dead counts for debugging
-        if (playerDeadCount > 0 || enemyDeadCount > 0) {
-            console.log(`Dead count - Players: ${playerDeadCount}/${this.playerTeam.length}, Enemies: ${enemyDeadCount}/${this.enemyTeam.length}`);
-        }
-        
-        if (allPlayersDead || allEnemiesDead) {
-            if (allPlayersDead && allEnemiesDead) {
-                this.endBattle('draw');
-            } else if (allPlayersDead) {
-                this.endBattle('defeat');
-            } else {
-                this.endBattle('victory');
-            }
-            return true;
-        }
-        
-        return false;
+        // Fallback with warning if PassiveAbilityManager is not available
+        console.warn("[BattleManager] PassiveAbilityManager not available for processing passive abilities");
+        return []; // Return empty results as fallback
     }
     
     /**
@@ -2196,7 +1380,7 @@ class BattleManager {
             this.logMessage('Battle resumed', 'info');
             if (!this.turnInProgress) {
                 this.startNextTurn();
-            } else {
+            } else { 
                 this.executeNextAction();
             }
         }
@@ -2245,32 +1429,32 @@ class BattleManager {
      * Log a message to the battle log
      * @param {string} message - The message to log
      * @param {string} type - The type of message (default, info, success, action, error)
+     * @returns {boolean} True if logged successfully
      */
     logMessage(message, type = 'default') {
-        // Log to console for debugging
+        // Direct delegation - no toggle mechanism for streamlined implementation
+        if (this.battleLogManager) {
+            return this.battleLogManager.logMessage(message, type);
+        }
+        
+        // Minimal fallback implementation (no original implementation preserved)
+        console.warn(`[BattleManager] BattleLogManager not available, using minimal logging`);
         console.log(`[BattleLog ${type}]: ${message}`);
         
-        // Dispatch event through BattleBridge if available
+        // Try direct UI or battleBridge communication as last resort
         if (window.battleBridge) {
             try {
-                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG, {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG || 'BATTLE_LOG', {
                     message: message,
-                    type: type,
-                    timestamp: new Date().toISOString()
+                    type: type
                 });
             } catch (error) {
-                console.warn('Failed to dispatch battle log event:', error);
+                console.error('[BattleManager] Error dispatching log event:', error);
             }
         }
         
-        // Set default type if not provided or invalid
-        const validTypes = ['default', 'info', 'success', 'action', 'error', 'player', 'enemy'];
-        if (!validTypes.includes(type)) {
-            type = 'default';
-        }
-        
         // Add to DOM battle log if in DOM mode and battleUI is available
-        if (this.uiMode === "dom" && this.battleUI) {
+        if (this.uiMode === "dom" && this.battleUI && typeof this.battleUI.addLogMessage === 'function') {
             try {
                 this.battleUI.addLogMessage(message, type);
             } catch (error) {
@@ -2278,131 +1462,30 @@ class BattleManager {
             }
         }
         
-        // Send event to battle bridge if available
-        if (window.battleBridge) {
-            try {
-                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_LOG, {
-                    message: message,
-                    type: type,
-                    timestamp: new Date().toISOString()
-                });
-            } catch (error) {
-                console.error('Error dispatching battle log event:', error);
-            }
-        }
+        return false;
     }
     
-    /**
+   /**
      * End the battle
      * @param {string} result - Battle result ('victory', 'defeat', 'draw')
      */
     endBattle(result) {
-        this.battleActive = false;
-        this.turnInProgress = false;
-        
-        // Clear any pending turn timer
-        if (this.turnTimer) {
-            clearTimeout(this.turnTimer);
-            this.turnTimer = null;
-        }
-        
-        // Process battle end passive abilities for all living characters
-        [...this.playerTeam, ...this.enemyTeam].forEach(character => {
-            if (character.currentHp > 0) {
-                this.processPassiveAbilities('onBattleEnd', character, { result });
-            }
-        });
-        
-        // Count defeated characters for detailed result message
-        const playerDeadCount = this.playerTeam.filter(char => char.isDead || char.currentHp <= 0).length;
-        const enemyDeadCount = this.enemyTeam.filter(char => char.isDead || char.currentHp <= 0).length;
-        
-        // Log battle end with detailed reason
-        switch (result) {
-            case 'victory':
-                this.logMessage(`\nðŸ† VICTORY! Your team has won the battle! ðŸ†`, 'success');
-                this.logMessage(`${enemyDeadCount}/${this.enemyTeam.length} enemy characters defeated.`, 'success');
-                if (playerDeadCount > 0) {
-                    this.logMessage(`${playerDeadCount}/${this.playerTeam.length} of your characters were lost in battle.`, 'info');
-                } else {
-                    this.logMessage(`Amazing! All of your characters survived the battle!`, 'success');
-                }
-                break;
-            case 'defeat':
-                this.logMessage(`\nðŸ”´ DEFEAT! Your team has been defeated. ðŸ”´`, 'error');
-                this.logMessage(`${playerDeadCount}/${this.playerTeam.length} of your characters were defeated.`, 'error');
-                if (enemyDeadCount > 0) {
-                    this.logMessage(`${enemyDeadCount}/${this.enemyTeam.length} enemy characters were defeated before your loss.`, 'info');
-                } else {
-                    this.logMessage(`Your team was completely overwhelmed!`, 'error');
-                }
-                break;
-            case 'draw':
-                this.logMessage(`\nðŸŒŠ THE BATTLE ENDED IN A DRAW. ðŸŒŠ`, 'info');
-                this.logMessage(`All characters on both teams have been defeated!`, 'info');
-                break;
-            default:
-                this.logMessage('The battle has ended.', 'info');
-        }
-        
-        // Show final health summary
-        this.logMessage('------ FINAL BATTLE SUMMARY ------', 'info');
-        
-        // Show player team summary
-        this.logMessage('Player Team:', 'info');
-        this.playerTeam.forEach(character => {
-            const status = character.isDead ? 'ðŸ’€ DEFEATED' : `HP: ${character.currentHp}/${character.stats.hp}`;
-            const statusColor = character.isDead ? 'error' : 
-                               (character.currentHp < character.stats.hp * 0.3) ? 'error' :
-                               (character.currentHp < character.stats.hp * 0.7) ? 'action' : 'success';
-            this.logMessage(`  ${character.name}: ${status}`, statusColor);
-        });
-        
-        // Show enemy team summary
-        this.logMessage('Enemy Team:', 'info');
-        this.enemyTeam.forEach(character => {
-            const status = character.isDead ? 'ðŸ’€ DEFEATED' : `HP: ${character.currentHp}/${character.stats.hp}`;
-            const statusColor = character.isDead ? 'error' : 
-                               (character.currentHp < character.stats.hp * 0.3) ? 'error' :
-                               (character.currentHp < character.stats.hp * 0.7) ? 'action' : 'success';
-            this.logMessage(`  ${character.name}: ${status}`, statusColor);
-        });
-        
-        this.logMessage('--------------------------------', 'info');
-        
-        // Show battle result in UI
-        if (this.battleUI) {
-            setTimeout(() => {
-                this.battleUI.showBattleResult(result);
-            }, 1000);
-        }
+        // Delegate to the flow controller
+        this.battleFlowController.endBattle(result);
     }
     
     /**
-     * Log a message to the battle log
-     * @param {string} message - Message to log
-     * @param {string} type - Message type (default, success, error, etc.)
-     */
-    logMessage(message, type = 'default') {
-        // Log to console
-        console.log(`[Battle] ${message}`);
-        
-        // Log to UI
-        if (this.battleUI) {
-            this.battleUI.addLogMessage(message, type);
-        }
-    }
-    
-    /**
-     * Reset character's dead status if they are healed
-     * @param {Object} character - Character to check
-     */
-    /**
-     * Reset character's dead status if they are healed
-     * @param {Object} character - Character to check
+     * Check if character was dead but now has HP, and reset death status if needed
+     * @param {Object} character - The character to check
      * @returns {boolean} - True if character was revived, false otherwise
      */
     checkAndResetDeathStatus(character) {
+        // Delegate to HealingProcessor if available
+        if (this.healingProcessor) {
+            return this.healingProcessor.checkAndResetDeathStatus(character);
+        }
+        
+        // Original implementation
         // If character was marked as dead but now has HP, reset death status
         if (character.isDead && character.currentHp > 0) {
             character.isDead = false;
@@ -2422,179 +1505,50 @@ class BattleManager {
     }
     
     /**
-     * Shuffle an array randomly
-     * @param {Array} array - The array to shuffle
-     * @returns {Array} The shuffled array
+     * Apply direct healing to a target (for passive abilities, etc.).
+     * This method acts as a facade, delegating core logic to HealingProcessor
+     * and handling subsequent side effects like logging and passive triggers.
+     * @param {Object} target - The character receiving healing
+     * @param {number} amount - Amount of healing to apply
+     * @param {Object} source - Character causing the healing (optional)
+     * @param {Object} ability - Ability associated with the healing (optional)
+     * @param {string} healType - Type of healing (e.g., 'passive', 'regen') (optional)
+     * @returns {Object} - Result containing { healing: number, revived: boolean }
      */
-    /**
-     * Apply direct damage to a target (for passive abilities, reflections, etc.)
-     * @param {Object} target - The character taking damage
-     * @param {number} amount - Amount of damage to deal
-     * @param {Object} source - Character causing the damage (optional)
-     * @param {Object} ability - Ability associated with the damage (optional)
-     * @param {string} damageType - Type of damage (e.g., 'reflected', 'passive') (optional)
-     * @returns {Object} - Result containing the actual damage dealt and if it killed the target
-     */
-    applyDamage(target, amount, source = null, ability = null, damageType = 'normal', additionalParams = {}) {
-        // Validate inputs
-        if (!target) {
-            console.error(`Invalid target: null in applyDamage`);
-            return { damage: 0, killed: false };
-        }
-        
-        if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
-            console.error(`Invalid damage amount: ${amount} (${typeof amount}) for ${target.name}`);
-            return { damage: 0, killed: false };
-        }
-        
-        // Validate target health
-        if (isNaN(target.currentHp)) {
-            console.error(`Target has invalid health: ${target.name}, hp=${target.currentHp}`);
-            // Try to recover by resetting health to a valid value
-            target.currentHp = target.stats.hp > 0 ? Math.min(target.stats.hp, Math.max(0, target.currentHp || 0)) : 0;
-            
-            // If still invalid, abort damage
-            if (isNaN(target.currentHp)) {
-                console.error(`Failed to recover target health, aborting damage`);
-                return { damage: 0, killed: false };
-            }
-        }
-        
-        // Store previous state to calculate actual damage
-        const previousHp = target.currentHp;
-        const wasAlreadyDefeated = target.isDead || target.currentHp <= 0;
-        
-        // Apply damage, ensuring health doesn't go below 0
-        target.currentHp = Math.max(0, target.currentHp - amount);
-        
-        // Calculate actual damage dealt (may be less than amount if target had low HP)
-        const actualDamage = previousHp - target.currentHp;
-        
-        // Add team info to log message for clarity
-        const targetTeam = target.team;
-        const targetInfo = `${target.name}${targetTeam === 'player' ? ' (ally)' : ' (enemy)'}`;        
-        const sourceInfo = source ? `${source.name}${source.team === 'player' ? ' (ally)' : ' (enemy)'}` : 'Effect';
-        
-        // Format message based on damage source
-        let message = '';
-        if (source) {
-            message = `${targetInfo} takes ${actualDamage} damage from ${sourceInfo}'s ${damageType}! (HP: ${target.currentHp}/${target.stats.hp})`;
-        } else {
-            message = `${targetInfo} takes ${actualDamage} damage from ${damageType}! (HP: ${target.currentHp}/${target.stats.hp})`;
-        }
-        this.logMessage(message, 'error');
-        
-        // Update UI
-        if (this.battleUI) {
-            this.battleUI.updateCharacterHealth(target, actualDamage, false);
-        }
-        
-        // Check if target was defeated
-        let wasKilled = false;
-        if (target.currentHp <= 0 && !wasAlreadyDefeated) {
-            target.isDead = true;
-            this.logMessage(`${targetInfo} is defeated! âš°ï¸`, 'error');
-            wasKilled = true;
-            
-            // Trigger onDefeat passive ability
-            if (source) {
-                this.processPassiveAbilities('onDefeat', target, {
-                    killer: source,
-                    ability: ability,
-                    damageType: damageType,
-                    reflectionDepth: additionalParams && additionalParams.reflectionDepth ? additionalParams.reflectionDepth : 0
-                });
-                
-                // Trigger onKill passive ability for the source
-                this.processPassiveAbilities('onKill', source, {
-                    defeated: target,
-                    ability: ability,
-                    damageType: damageType,
-                    reflectionDepth: additionalParams && additionalParams.reflectionDepth ? additionalParams.reflectionDepth : 0
-                });
-            }
-        }
-        
-        return {
-            damage: actualDamage,
-            killed: wasKilled
-        };
-    }
-    /**
-    * Apply direct healing to a target (for passive abilities, etc.)
-    * @param {Object} target - The character receiving healing
-    * @param {number} amount - Amount of healing to apply
-    * @param {Object} source - Character causing the healing (optional)
-    * @param {Object} ability - Ability associated with the healing (optional)
-    * @param {string} healType - Type of healing (e.g., 'passive', 'regen') (optional)
-    * @returns {Object} - Result containing the actual healing done and if it revived the target
-    */
     applyHealing(target, amount, source = null, ability = null, healType = 'passive') {
-    // Validate inputs
-    if (!target || !amount || isNaN(amount) || amount <= 0) {
-        console.error(`Invalid healing parameters: target=${target?.name || 'null'}, amount=${amount}`);
-        return { healing: 0, revived: false };
-    }
-    
-    // Validate target health
-    if (isNaN(target.currentHp)) {
-        console.error(`Target has invalid health: ${target.name}, hp=${target.currentHp}`);
-        // Try to recover by resetting health to a valid value
-        target.currentHp = target.currentHp > 0 ? target.currentHp : 0;
-        // If still invalid, abort healing
-        if (isNaN(target.currentHp)) {
-            console.error(`Failed to recover target health, aborting healing`);
+        // 1. Ensure HealingProcessor component is available
+        if (!this.healingProcessor) {
+            console.error('[BattleManager Utility] HealingProcessor component not found! Cannot apply direct healing.');
+            // Return default object structure matching original utility method's format
             return { healing: 0, revived: false };
         }
-    }
-    
-    // Store previous HP to calculate actual healing done
-    const previousHp = target.currentHp;
-    const wasDefeated = target.isDead || target.currentHp <= 0;
-    
-    // Apply healing with validation
-    target.currentHp = Math.min(target.stats.hp, target.currentHp + amount);
-    
-    // Verify resulting health is valid
-    if (isNaN(target.currentHp)) {
-        console.error(`Healing resulted in invalid health: ${target.name}`);
-        // Revert to previous health
-        target.currentHp = previousHp;
-        return { healing: 0, revived: false };
-    }
-    
-    const actualHealing = target.currentHp - previousHp;
-    
-    // Log the healing with team identifiers
-    const targetTeam = target.team;
-    const targetInfo = `${target.name}${targetTeam === 'player' ? ' (ally)' : ' (enemy)'}`;        
-    const sourceInfo = source ? `${source.name}${source.team === 'player' ? ' (ally)' : ' (enemy)'}` : 'Effect';
-    
-    // Format the message based on whether we have a source
-    const message = source
-    ? `${targetInfo} is healed for ${actualHealing} HP from ${sourceInfo}'s ${healType}! (HP: ${target.currentHp}/${target.stats.hp})`
-    : `${targetInfo} is healed for ${actualHealing} HP from ${healType}! (HP: ${target.currentHp}/${target.stats.hp})`;
-    
-    this.logMessage(message, 'success');
-    
-    // Update UI
-    if (this.battleUI) {
-    this.battleUI.updateCharacterHealth(target, actualHealing, true);
-    }
-    
-    // Check if target was revived
-    const revived = wasDefeated && this.checkAndResetDeathStatus(target);
-    
-    // Process passive for healing received
-    if (actualHealing > 0) {
-    this.processPassiveAbilities('onHealed', target, {
-        source: source,
-            healAmount: actualHealing,
-            ability: ability,
-            healType: healType
+
+        // 2. Delegate the core healing logic to the HealingProcessor
+        // HealingProcessor handles HP capping, CHARACTER_HEALED event dispatch, and returns results.
+        const result = this.healingProcessor.applyHealing(target, amount, source, ability, healType);
+        const actualHealing = result.actualHealing;
+        const wasRevivalPossible = result.revived; // Processor detected conditions for revival
+
+        // 3. Handle Side Effects (Logging & Passives) here in BattleManager based on the result
+        if (actualHealing > 0) {
+            // Log the healing event
+            const targetTeam = target.team;
+            const targetInfo = `${target.name}${targetTeam === 'player' ? ' (ally)' : ' (enemy)'}`;
+            const sourceInfo = source ? `${source.name}${source.team === 'player' ? ' (ally)' : ' (enemy)'}` : 'Effect';
+            const message = source
+                ? `${targetInfo} is healed for ${actualHealing} HP from ${sourceInfo}'s ${healType}! (HP: ${target.currentHp}/${target.stats.hp})`
+                : `${targetInfo} is healed for ${actualHealing} HP from ${healType}! (HP: ${target.currentHp}/${target.stats.hp})`;
+            this.logMessage(message, 'success'); // Use the BattleManager's logMessage
+
+            // Trigger 'onHealed' passive for the target
+            this.processPassiveAbilities('onHealed', target, {
+                source: source,
+                healAmount: actualHealing,
+                ability: ability,
+                healType: healType
             });
-            
-            // If there's a source and it's not self-healing, trigger healing done passive
+
+            // Trigger 'onHealingDone' for the source (if not self-healing)
             if (source && source !== target) {
                 this.processPassiveAbilities('onHealingDone', source, {
                     target: target,
@@ -2603,118 +1557,222 @@ class BattleManager {
                     healType: healType
                 });
             }
-            
-            // If character was revived, trigger revival passive
-            if (revived) {
-                this.processPassiveAbilities('onRevive', target, {
-                    reviver: source,
-                    ability: ability,
-                    healType: healType
-                });
-            }
         }
-        
-        return { healing: actualHealing, revived };
+
+        // 4. Check and Reset Death Status (Delegate state change to processor)
+        let resurrectionOccurred = false;
+        if (wasRevivalPossible) {
+             // Check processor exists and has the method before calling
+             if (this.healingProcessor.checkAndResetDeathStatus) {
+                // Call the processor's method to handle the actual state change (isDefeated = false) and log revival
+                resurrectionOccurred = this.healingProcessor.checkAndResetDeathStatus(target);
+             } else {
+                 console.warn("[BM Utility Heal] HealingProcessor is missing checkAndResetDeathStatus method!");
+             }
+        }
+
+        // 5. Trigger 'onRevive' passive ONLY if resurrection actually occurred
+        if (resurrectionOccurred) {
+            this.processPassiveAbilities('onRevive', target, {
+                reviver: source,
+                ability: ability,
+                healType: healType
+            });
+        }
+
+        // 6. Update UI (If needed for direct calls - evaluate later if purely event-driven is better)
+        // Note: This direct UI call might become obsolete if UI relies solely on BattleBridge events.
+        if (this.battleUI && actualHealing > 0) {
+             if (typeof this.battleUI.updateCharacterHealth === 'function') {
+                this.battleUI.updateCharacterHealth(target, actualHealing, true);
+             }
+        }
+
+        // 7. Return the result, adapting keys for compatibility with original utility method format
+        return { healing: actualHealing, revived: resurrectionOccurred };
     }
     
-    applyDamage(target, amount, source = null, ability = null, damageType = 'passive') {
-        if (!target || target.isDead || target.currentHp <= 0 || amount <= 0) {
-            return { damage: 0, killed: false };
+    // Utility methods have been removed and moved to BattleUtilities static class
+    // See js/battle_logic/utilities/BattleUtilities.js
+    
+    /**
+     * Dispatch a battle event
+     * @param {string} eventType - The type of event
+     * @param {Object} eventData - The event data
+     * @returns {boolean} True if dispatched successfully
+     */
+    dispatchBattleEvent(eventType, eventData) {
+        // Direct delegation - no toggle mechanism for streamlined implementation
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchEvent(eventType, eventData);
         }
         
-        // Store previous HP to calculate actual damage dealt
-        const previousHp = target.currentHp;
+        // Minimal fallback implementation (no original implementation preserved)
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch ${eventType}`);
         
-        // Apply damage
-        target.currentHp = Math.max(0, target.currentHp - amount);
-        const actualDamage = previousHp - target.currentHp;
-        
-        // Log the damage with team identifiers
-        const targetTeam = target.team;
-        const targetInfo = `${target.name}${targetTeam === 'player' ? ' (ally)' : ' (enemy)'}`;
-        const sourceInfo = source ? `${source.name}${source.team === 'player' ? ' (ally)' : ' (enemy)'}` : 'Effect';
-        
-        // Format the message based on whether we have a source
-        const message = source
-            ? `${targetInfo} takes ${actualDamage} ${damageType} damage from ${sourceInfo}! (HP: ${target.currentHp}/${target.stats.hp})`
-            : `${targetInfo} takes ${actualDamage} ${damageType} damage! (HP: ${target.currentHp}/${target.stats.hp})`;
-            
-        this.logMessage(message, 'error');
-        
-        // Update UI
-        if (this.battleUI) {
-            this.battleUI.updateCharacterHealth(target, actualDamage, false);
-        }
-        
-        // Process passive for damage taken
-        if (actualDamage > 0) {
-            this.processPassiveAbilities('onDamageTaken', target, {
-                source: source,
-                damageAmount: actualDamage,
-                ability: ability,
-                damageType: damageType
-            });
-        }
-        
-        // Check if target died
-        let killed = false;
-        if (target.currentHp <= 0) {
-            target.isDead = true;
-            target.currentHp = 0; // Ensure HP doesn't go below 0
-            killed = true;
-            
-            // Log defeat
-            this.logMessage(`${targetInfo} is defeated! âš°ï¸`, 'error');
-            
-            // Process passive abilities for defeat/kill
-            if (source) {
-                this.processPassiveAbilities('onKill', source, {
-                    defeated: target,
-                    ability: ability,
-                    damageType: damageType
-                });
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(eventType, eventData);
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching ${eventType}:`, error);
             }
-            
-            this.processPassiveAbilities('onDefeat', target, {
-                killer: source,
-                ability: ability,
-                damageType: damageType
-            });
         }
         
-        return { damage: actualDamage, killed };
+        return false;
     }
     
     /**
-     * Get all characters from both teams
-     * @returns {Array} Array of all characters in the battle
+     * Dispatch an event when a character takes damage
+     * @param {Object} target - The character taking damage
+     * @param {number} amount - Amount of damage
+     * @param {Object|null} source - Source of the damage (character or null)
+     * @param {Object|null} ability - Ability that caused damage (or null)
+     * @returns {boolean} - Success status
      */
-    getAllCharacters() {
-        return [...this.playerTeam, ...this.enemyTeam];
+    dispatchDamageEvent(target, amount, source = null, ability = null) {
+        // Direct delegation - no toggle mechanism
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchCharacterDamagedEvent(target, amount, source, ability);
+        }
+        
+        // Minimal fallback
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch damage event`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_DAMAGED, {
+                    character: target,
+                    target: target,
+                    amount: amount,
+                    source: source,
+                    ability: ability,
+                    newHealth: target.currentHp,
+                    maxHealth: target.stats.hp
+                });
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching damage event:`, error);
+            }
+        }
+        
+        return false;
     }
     
-    shuffleArray(array) {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    /**
+     * Dispatch an event when a character is healed
+     * @param {Object} target - The character being healed
+     * @param {number} amount - Amount of healing
+     * @param {Object|null} source - Source of the healing (character or null)
+     * @param {Object|null} ability - Ability that caused healing (or null)
+     * @returns {boolean} - Success status
+     */
+    dispatchHealingEvent(target, amount, source = null, ability = null) {
+        // Direct delegation - no toggle mechanism
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchCharacterHealedEvent(target, amount, source, ability);
         }
-        return newArray;
+        
+        // Minimal fallback
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch healing event`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_HEALED, {
+                    character: target,
+                    target: target,
+                    amount: amount,
+                    source: source,
+                    ability: ability,
+                    newHealth: target.currentHp,
+                    maxHealth: target.stats.hp
+                });
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching healing event:`, error);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Dispatch an event when a character performs an action
+     * @param {Object} character - The character performing the action
+     * @param {Object} action - The action data
+     * @returns {boolean} - Success status
+     */
+    dispatchActionEvent(character, action) {
+        // Direct delegation - no toggle mechanism
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchCharacterActionEvent(character, action);
+        }
+        
+        // Minimal fallback
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch action event`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.CHARACTER_ACTION, {
+                    character: character,
+                    action: action
+                });
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching action event:`, error);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Dispatch an event when a battle ends
+     * @param {string} winner - Winner of the battle ('player', 'enemy', or 'draw')
+     * @param {string} reason - Reason for battle end
+     * @returns {boolean} - Success status
+     */
+    dispatchBattleEndEvent(winner, reason = 'standard') {
+        // Direct delegation - no toggle mechanism
+        if (this.battleEventDispatcher) {
+            return this.battleEventDispatcher.dispatchBattleEndedEvent(winner, reason);
+        }
+        
+        // Minimal fallback
+        console.warn(`[BattleManager] BattleEventDispatcher not available, cannot dispatch battle end event`);
+        
+        // Try direct battleBridge as last resort
+        if (window.battleBridge) {
+            try {
+                window.battleBridge.dispatchEvent(window.battleBridge.eventTypes.BATTLE_ENDED, {
+                    winner: winner,
+                    reason: reason
+                });
+                return true;
+            } catch (error) {
+                console.error(`[BattleManager] Error dispatching battle end event:`, error);
+            }
+        }
+        
+        return false;
     }
 }
 
-// Export for use in other modules
+// Export as ES Module
+// Make BattleManager available globally for traditional scripts
+if (typeof window !== 'undefined') {
+  window.BattleManager = BattleManager;
+  console.log("BattleManager class definition loaded and exported to window.BattleManager");
+}
+
+// Legacy global assignment for maximum compatibility
 window.BattleManager = BattleManager;
 
-// Debug check for BattleManager
-console.log("BattleManager class defined:", typeof BattleManager);
-console.log("window.BattleManager assigned:", typeof window.BattleManager);
-
-// Force assignment if needed
-if (typeof BattleManager === 'function' && typeof window.BattleManager !== 'function') {
-    console.log("Fixing window.BattleManager assignment");
-    window.BattleManager = BattleManager;
-}
+// End of BattleManager class
 
 
 ===== FILE: TeamManager.js =====

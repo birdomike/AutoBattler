@@ -68,7 +68,7 @@ This document outlines a phased approach to refactoring the BattleScene.js file,
 
 **Estimated LOC Removed from BattleScene.js**: ~130-180 lines
 
-## Phase 3: Extract Team Display & Active Indicator Management (TeamDisplayManager)
+## Phase 3: Extract Team Display & Active Indicator Management (TeamDisplayManager)- Complete
 
 **Goal**: Remove the logic for creating/managing team visuals and handling the active character indicators.
 
@@ -95,7 +95,7 @@ This document outlines a phased approach to refactoring the BattleScene.js file,
 
 **Estimated LOC Removed from BattleScene.js**: ~70-100 lines
 
-## Phase 4: Extract Asset Loading (BattleAssetLoader)
+## Phase 4: Extract Asset Loading (BattleAssetLoader)- Pausing until Bugs are fixed
 
 **Goal**: Remove asset loading logic from preload.
 

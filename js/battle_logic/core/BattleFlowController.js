@@ -390,8 +390,8 @@ class BattleFlowController {
         // Log the action
         let message;
         // Add team info to actor and target names for better clarity
-        const actorName = `${action.actor.name}${action.team === 'player' ? ' (ally)' : ' (enemy)'}`;
-        const targetName = `${action.target.name}${action.team === 'player' ? ' (enemy)' : ' (ally)'}`;
+        const actorName = `${action.actor.name}${action.team === 'player' ? ' (ally)' : ' (enemy)'}`;        
+        const targetName = `${action.target.name}${action.team === 'player' ? ' (enemy)' : ' (ally)'}`;        
         
         if (action.useAbility) {
             // Handle different ability types in log message
@@ -409,6 +409,8 @@ class BattleFlowController {
         
         // Generate and log proper action declaration for the battle log
         if (action && action.actor) {
+            console.log(`[BattleFlowController.applyActionEffect] Entered for Battle Log. Action received:`, JSON.parse(JSON.stringify(action)));
+            
             // Add team identifiers for clarity
             const actorName = `${action.actor.name}${action.team === 'player' ? ' (ally)' : ' (enemy)'}`;
             
@@ -431,7 +433,14 @@ class BattleFlowController {
             }
             
             // Log the action declaration
-            this.battleManager.logMessage(actionDeclaration, 'action');
+            console.log(`[BattleFlowController.applyActionEffect] Built actionDeclaration for Battle Log: "${actionDeclaration}"`); 
+            console.log(`[BattleFlowController.applyActionEffect] Action object for this declaration:`, JSON.parse(JSON.stringify(action)));
+            if (this.battleManager && typeof this.battleManager.logMessage === 'function') {
+                console.log(`[BattleFlowController.applyActionEffect] Calling this.battleManager.logMessage for action declaration.`);
+                this.battleManager.logMessage(actionDeclaration, 'action');
+            } else {
+                console.error('[BattleFlowController.applyActionEffect] this.battleManager.logMessage is NOT available or not a function for action declaration!');
+            }
         }
         
         // Dispatch CHARACTER_ACTION event directly via BattleBridge
@@ -502,6 +511,8 @@ class BattleFlowController {
      * @param {Object} action - The action to apply
      */
     async applyActionEffect(action) {
+        // [DEBUGGING] Log the action object
+        console.log(`[BattleFlowController.applyActionEffect] Entered. Action received:`, JSON.parse(JSON.stringify(action)));
         // Get team info for clearer logging
         const actorTeam = action.team;
         const targetTeam = actorTeam === 'player' ? 'enemy' : 'player';

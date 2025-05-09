@@ -83,7 +83,7 @@ Understanding the difference between local and global coordinates is essential f
 
 ![Local vs Global Coordinates](https://placeholder-for-diagram-of-coordinates.png)
 
-*Note: The diagram would show a parent container with (x=100, y=100) and a child at local coordinates (x=50, y=50), resulting in global coordinates of (x=150, y=150).*
+*Note: The diagram would show the Scene origin (0,0), a parent container with (x=100, y=100) and its origin within the scene, and a child at local coordinates (x=50, y=50) relative to Container's origin, resulting in global coordinates of (x=150, y=150). This visualization clearly demonstrates the relationship between the Scene, Container, and Child coordinate spaces.*
 
 ### Converting Between Coordinate Systems
 
@@ -93,10 +93,13 @@ Phaser provides methods to convert between coordinate systems:
 // Get global position of a local point
 let globalPoint = new Phaser.Math.Vector2();
 gameObject.getWorldTransformMatrix().transformPoint(localX, localY, globalPoint);
+// Most commonly, using (0,0) gets the global position of the gameObject's origin point:
+// gameObject.getWorldTransformMatrix().transformPoint(0, 0, globalPoint);
 
 // Convert global to local
 let localPoint = new Phaser.Math.Vector2();
 gameObject.getWorldTransformMatrix().invert().transformPoint(globalX, globalY, localPoint);
+// The resulting localPoint coordinates will be relative to the gameObject's origin
 ```
 
 ### The Container Paradigm
@@ -124,7 +127,7 @@ gameObject.setOrigin(0.5, 0.5);
 gameObject.setOrigin(0, 0);
 ```
 
-This origin also affects how rotation is applied.
+This origin also affects how rotation and scaling transformations are applied. When you rotate or scale an object, these transformations pivot around the origin point, which can dramatically change the visual result depending on where the origin is set.
 
 ## 4. AutoBattler's UI Architecture
 
@@ -406,6 +409,49 @@ function animateBetweenContainers(source, target, animatedSprite) {
         }
     });
 }
+
+// Alternative approach: Temporarily re-parent an existing sprite
+function animateExistingSpriteBetweenContainers(sprite, sourceContainer, targetContainer, scene) {
+    // Store original position and parent
+    const originalParent = sprite.parentContainer;
+    const originalLocalPos = { x: sprite.x, y: sprite.y };
+    
+    // Get current global position
+    let globalPos = new Phaser.Math.Vector2();
+    sprite.getWorldTransformMatrix().transformPoint(0, 0, globalPos);
+    
+    // Get target global position
+    let targetGlobal = new Phaser.Math.Vector2();
+    targetContainer.getWorldTransformMatrix().transformPoint(0, 0, targetGlobal);
+    
+    // Remove from current container
+    if (sourceContainer) {
+        sourceContainer.remove(sprite);
+    }
+    
+    // Add directly to scene at current global position
+    scene.add.existing(sprite);
+    sprite.setPosition(globalPos.x, globalPos.y);
+    
+    // Animate in scene coordinates
+    scene.tweens.add({
+        targets: sprite,
+        x: targetGlobal.x,
+        y: targetGlobal.y,
+        duration: 500,
+        onComplete: () => {
+            // Re-parent to original container or target container as needed
+            // This example returns it to the original parent
+            scene.children.remove(sprite);
+            originalParent.add(sprite);
+            sprite.setPosition(originalLocalPos.x, originalLocalPos.y);
+        }
+    });
+}
+
+// Note: The first approach (creating a temporary sprite) is generally cleaner
+// and avoids altering the main scene graph unnecessarily. Use the second
+// approach only when you specifically need to animate the original object.
 ```
 
 ### Creating UI at Specific Scene Depths
@@ -424,6 +470,8 @@ effectSprite.setDepth(50);
 // Character sprites at standard depth
 characterSprite.container.setDepth(10);
 ```
+
+Important note: `setDepth()` is local to the current Scene. For complex UIs that might use multiple overlaid Phaser Scenes in the future (e.g., a dedicated UI Scene on top of the BattleScene), true cross-scene layering would involve Phaser's Scene management API methods like `scene.bringToTop()`. However, for our current single-scene approach, depth values work perfectly.
 
 ## 9. Common Pitfalls to Avoid
 

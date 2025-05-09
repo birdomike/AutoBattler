@@ -33,6 +33,7 @@ class BattleLogManager {
      * @returns {boolean} True if logged successfully
      */
     logMessage(message, type = 'default') {
+        console.log(`[BattleLogManager.logMessage] Received to display: "${message}", Type: "${type}"`);
         // Parameter validation
         if (!message) {
             console.warn("[BattleLogManager] Empty message not logged");
