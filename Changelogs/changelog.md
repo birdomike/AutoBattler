@@ -1,5 +1,14 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.3.19 (2025-05-09)
+
+### Improved
+- Removed temporary debug logging from BattleBridge.js and CharacterSprite.js
+- Cleaned up console output for improved readability and performance
+- Improved code quality by removing diagnostic code that was cluttering the codebase
+
+*Note: For detailed implementation details, see CHANGELOG_0.6.3.19_DiagnosticCodeCleanup.md*
+
 ## Version 0.6.3.18 (2023-08-13)
 
 ### Fixed

@@ -2,7 +2,7 @@
  * BattleBridge.js
  * Handles communication between BattleManager and Phaser Battle Scene
  * 
- * Version 0.5.1.2d - 2025-05-04
+ * Version 0.5.1.3d - 2025-05-09
  */
 
 class BattleBridge {
@@ -126,30 +126,11 @@ class BattleBridge {
      * @param {Object} data - The event data
      */
     dispatchEvent(eventType, data) {
-        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-        console.log('[BB dispatchEvent CALLED] EventType:', eventType, 'Data Keys:', data ? Object.keys(data) : 'No data', 'Raw Data (beware circular):', data);
-        
         console.log(`BattleBridge: Dispatching event ${eventType}`, data);
         
         if (!this.eventListeners[eventType]) {
             console.warn(`BattleBridge: No listeners for event "${eventType}"`);
             return;
-        }
-        
-        // DIAGNOSTIC: Log all registered event types and their listener counts
-        if (eventType === 'character_action' || eventType === 'ability_used') {
-            console.log('BattleBridge: Event listeners summary:', Object.entries(this.eventListeners).map(([type, listeners]) => {
-                return `${type}: ${listeners.length} listeners`;
-            }));
-        }
-        
-        // Log listener count for debugging
-        console.log(`BattleBridge: Found ${this.eventListeners[eventType].length} listeners for ${eventType}`);
-        
-        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-        if (this.eventListeners[eventType] && this.eventListeners[eventType].length > 0) { 
-            console.log('[BB dispatchEvent] Registered callbacks for ' + eventType + ':', 
-                this.eventListeners[eventType].map(cb => cb.name || 'anonymous_handler')); 
         }
         
         // Add event type to data for reference
@@ -162,13 +143,7 @@ class BattleBridge {
         try {
             this.eventListeners[eventType].forEach((callback, index) => {
                 try {
-                    console.log(`BattleBridge: Calling listener ${index} for ${eventType}`, {
-                        listenerFunction: typeof callback,
-                        listenerThisContext: callback.hasOwnProperty('this') ? 'has this context' : 'no this context',
-                        listenerToString: callback.toString().substring(0, 100) + '...' // First 100 chars of function source
-                    });
-                    callback(eventData);
-                    console.log(`BattleBridge: Listener ${index} completed successfully`);
+                callback(eventData);
                 } catch (error) {
                     console.error(`BattleBridge: Error in event listener ${index} for "${eventType}":`, error);
                 }
@@ -239,14 +214,8 @@ class BattleBridge {
             // Patch processAbility
             if (originalProcessAbility) {
                 this.battleManager.processAbility = function(character, ability, targets) {
-                    // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-                    console.log('[BB processAbility Patch] === ENTERED === Character:', character?.name, 'Ability:', ability?.name);
-                    
                     console.log('BattleBridge: processAbility patched method called with:', character?.name, ability?.name);
                     const result = originalProcessAbility.apply(this, arguments);
-                    
-                    // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-                    console.log('[BB processAbility Patch] >>> DISPATCHING ABILITY_USED. Character:', character.name, 'Ability:', ability.name);
                     
                     self.dispatchEvent(self.eventTypes.ABILITY_USED, {
                         source: character,  // Using 'source' for consistency
@@ -419,17 +388,11 @@ class BattleBridge {
             const originalApplyActionEffect = this.battleManager.applyActionEffect;
             if (originalApplyActionEffect) {
                 this.battleManager.applyActionEffect = function(action) {
-                    console.log('[BB applyActionEffect Patch] === ENTERED === Action Object:', action ? JSON.parse(JSON.stringify(action)) : 'action is null/undefined', 'Condition (action && action.actor && action.actionType) will be:', !!(action && action.actor && action.actionType));
-                    
                     console.log('BattleBridge: applyActionEffect patched method called for:', 
                                action?.actor?.name, 'targeting', action?.target?.name);
                     
                     // Dispatch CHARACTER_ACTION event before applying the effect
                     if (action.actor && action.actionType) {
-                        // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-                        console.log('[BB applyActionEffect Patch] >>> CONDITION MET - DISPATCHING CHARACTER_ACTION. Actor Name:', 
-                          action.actor.name, 'Action Type:', action.actionType);
-                        // DIAGNOSTIC: Log exact event structure being dispatched
                         const eventType = self.eventTypes.CHARACTER_ACTION;
                         const eventData = {
                             character: action.actor,
@@ -441,17 +404,6 @@ class BattleBridge {
                                 target: action.target
                             }
                         };
-                        
-                        // Log the exact event data we're about to dispatch
-                        console.log('[BattleBridge.applyActionEffect Patch] Action object JUST BEFORE dispatching CHARACTER_ACTION:', 
-                            JSON.parse(JSON.stringify(eventData.action)));
-                        
-                        console.log(`BattleBridge: Dispatching CHARACTER_ACTION event for ${action.actor.name} performing ${action.actionType}`, {
-                            exactEventType: eventType,
-                            eventTypeExists: Object.values(self.eventTypes).includes(eventType),
-                            eventDataStructure: Object.keys(eventData),
-                            listenerCount: self.eventListeners[eventType]?.length || 0
-                        });
                         
                         self.dispatchEvent(eventType, eventData);
                     }
