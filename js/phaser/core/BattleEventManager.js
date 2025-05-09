@@ -418,6 +418,10 @@ class BattleEventManager {
     if (!data || !data.character || !this.scene) return;
 
     try {
+    // Log the entire event data for diagnosis
+    console.log(`[BattleEventManager.onCharacterAction] EVENT DATA RECEIVED:`, data);
+    console.log(`[BattleEventManager.onCharacterAction] data.action object:`, data.action);
+    
     console.log(`BEM.onCharacterAction (for Turn Highlighting): this.teamManager is ${this.teamManager ? 'defined' : 'undefined'}. Attempting to call updateActiveCharacterVisuals.`);
     // Update active character visuals using TeamDisplayManager if available
     if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
@@ -448,7 +452,18 @@ class BattleEventManager {
                 console.log(`[BattleEventManager] Using ability name for action indicator: ${actionText}`);
             } else {
                 console.log(`[BattleEventManager] Using default 'Auto Attack' for action indicator due to missing action data`);
+                // Debug more information about why we're not seeing the right action type
+                if (data.action) {
+                    console.log(`[BattleEventManager] Action object exists but didn't match criteria:`, {
+                        actionType: data.action.actionType,
+                        actionTypeIsAbility: data.action.actionType === 'ability',
+                        hasAbilityName: !!data.action.abilityName,
+                        abilityName: data.action.abilityName
+                    });
+                }
             }
+            
+            console.log(`[BattleEventManager.onCharacterAction] Determined actionText for CharacterSprite: '${actionText}' based on type: '${data.action?.actionType}' and name: '${data.action?.abilityName}'`);
             
             if (characterSprite && characterSprite.showActionText) {
                 characterSprite.showActionText(actionText);

@@ -407,6 +407,33 @@ class BattleFlowController {
         }
         this.battleManager.logMessage(message, 'action');
         
+        // Generate and log proper action declaration for the battle log
+        if (action && action.actor) {
+            // Add team identifiers for clarity
+            const actorName = `${action.actor.name}${action.team === 'player' ? ' (ally)' : ' (enemy)'}`;
+            
+            // Create the message based on action type and target type
+            let actionDeclaration = "";
+            
+            if (action.useAbility && action.ability) {
+                // Format for different targeting scenarios
+                if (Array.isArray(action.target)) {
+                    const targetCount = action.target.length;
+                    actionDeclaration = `${actorName} uses [${action.ability.name}] on ${targetCount} targets!`;
+                } else {
+                    const targetName = `${action.target.name}${action.target.team === 'player' ? ' (ally)' : ' (enemy)'}`;
+                    actionDeclaration = `${actorName} uses [${action.ability.name}] on ${targetName}!`;
+                }
+            } else {
+                // Auto attack message
+                const targetName = action.target ? `${action.target.name}${action.target.team === 'player' ? ' (ally)' : ' (enemy)'}` : "target";
+                actionDeclaration = `${actorName} performs an auto attack on ${targetName}!`;
+            }
+            
+            // Log the action declaration
+            this.battleManager.logMessage(actionDeclaration, 'action');
+        }
+        
         // Dispatch CHARACTER_ACTION event directly via BattleBridge
         if (window.battleBridge) {
             try {
@@ -423,6 +450,7 @@ class BattleFlowController {
                         character: action.actor,
                         action: {
                             type: 'ability',
+                            actionType: 'ability', // Ensure both type and actionType are set for consistency
                             name: action.ability.name,
                             abilityName: action.ability.name,
                             target: action.target
@@ -434,7 +462,9 @@ class BattleFlowController {
                         character: action.actor,
                         action: {
                             type: 'autoAttack',
+                            actionType: 'autoAttack', // Ensure both type and actionType are set for consistency
                             name: 'Auto Attack',
+                            abilityName: 'Auto Attack', // Add abilityName for consistency
                             target: action.target
                         }
                     });

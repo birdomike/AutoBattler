@@ -258,7 +258,9 @@ window.BattleBehaviors = window.battleBehaviors;
 
 // Enhanced debugging to confirm it's being used
 window.battleBehaviors.decideAction = function(decisionLogic, context) {
+    console.log(`[DEBUG] BattleBehaviors.decideAction called... First line of the method`);
     console.log(`[DEBUG] BattleBehaviors.decideAction called with logic: ${decisionLogic}`);
+    console.log(`[DEBUG] Actor:`, context.actor ? context.actor.name : 'undefined');
     console.log(`[DEBUG] Available abilities:`, context.availableAbilities?.map(a => a.name) || []);
     
     // Delegate to the original implementation

@@ -301,22 +301,34 @@ class ActionGenerator {
         
         // 2. If no abilities available, use basic attack
         if (availableAbilities.length === 0) {
+            console.log('[ActionGenerator.selectAbility] Character has no available abilities, using auto-attack');
             return null;
         }
         
         // 3. Debug logging
         console.debug(`[ActionGenerator] ${character.name} has ${availableAbilities.length} available active abilities`);
+        console.log('[ActionGenerator.selectAbility] Available abilities:', availableAbilities.map(a => a.name));
         
         // 4. Try to use BattleBehaviors system for ability selection
         let selectedAbility = null;
         
-        // DIAGNOSTIC: Check if battleBehaviors is available
-        console.log('[ActionGenerator.selectAbility] BattleBehaviors available? ', !!this.battleManager.battleBehaviors);
+        // NEW LOG A: Check if battleBehaviors is available
+        console.log('[ActionGenerator.selectAbility] NEW LOG A - BattleBehaviors available? ', 
+                    !!this.battleManager.battleBehaviors, 
+                    'battleBehaviors type:', typeof this.battleManager.battleBehaviors);
         
         if (this.battleManager.battleBehaviors) {
-            // DIAGNOSTIC: Log details about the battleBehaviors object
-            console.log('[ActionGenerator.selectAbility] Attempting to use this.battleManager.battleBehaviors. Character actionDecisionLogic:', character.actionDecisionLogic);
-            console.log('[ActionGenerator.selectAbility] battleBehaviors object:', this.battleManager.battleBehaviors);
+            // NEW LOG B: Log details about the battleBehaviors object
+            console.log('[ActionGenerator.selectAbility] NEW LOG B - Character actionDecisionLogic:', 
+                         character.actionDecisionLogic);
+            console.log('[ActionGenerator.selectAbility] NEW LOG C - battleBehaviors methods:', 
+                        {
+                            hasBehavior: typeof this.battleManager.battleBehaviors.hasBehavior === 'function',
+                            decideAction: typeof this.battleManager.battleBehaviors.decideAction === 'function',
+                            getDefaultActionDecisionBehavior: typeof this.battleManager.battleBehaviors.getDefaultActionDecisionBehavior === 'function'
+                        });
+            
+            // Check required methods are functions
             if (typeof this.battleManager.battleBehaviors.hasBehavior !== 'function') {
                 console.error('[ActionGenerator.selectAbility] ERROR: this.battleManager.battleBehaviors.hasBehavior is NOT a function!');
             }
@@ -332,23 +344,56 @@ class ActionGenerator {
                 teamManager: { getCharacterTeam: (char) => char.team }
             };
             
+            // NEW LOG D: Log decision context
+            console.log('[ActionGenerator.selectAbility] NEW LOG D - Decision context created:', 
+                        { actorName: decisionContext.actor.name, availableAbilityCount: decisionContext.availableAbilities.length });
+            
             try {
+                // NEW LOG E: About to determine which behavior to use
+                console.log('[ActionGenerator.selectAbility] NEW LOG E - About to determine behavior. Character actionDecisionLogic:', character.actionDecisionLogic);
+                
                 // Check if character has specific actionDecisionLogic
                 const decisionLogic = character.actionDecisionLogic;
                 
+                // NEW LOG F: Log behavior choice
+                const usingCustomLogic = decisionLogic && this.battleManager.battleBehaviors.hasBehavior(decisionLogic);
+                console.log('[ActionGenerator.selectAbility] NEW LOG F - Using', 
+                            usingCustomLogic ? `custom logic: ${decisionLogic}` : 'default action decision behavior');
+                
+                // Try to get default behavior before using it
+                const defaultBehavior = this.battleManager.battleBehaviors.getDefaultActionDecisionBehavior && 
+                                        this.battleManager.battleBehaviors.getDefaultActionDecisionBehavior();
+                console.log('[ActionGenerator.selectAbility] NEW LOG G - Default behavior:', defaultBehavior);
+                
                 // Use that behavior if available, otherwise use default
-                if (decisionLogic && this.battleManager.battleBehaviors.hasBehavior(decisionLogic)) {
+                if (usingCustomLogic) {
+                    // NEW LOG H: About to call decideAction with custom logic
+                    console.log('[ActionGenerator.selectAbility] NEW LOG H - About to call decideAction with custom logic:', decisionLogic);
+                    
                     selectedAbility = this.battleManager.battleBehaviors.decideAction(decisionLogic, decisionContext);
+                    
+                    // NEW LOG I: Result from decideAction with custom logic
+                    console.log('[ActionGenerator.selectAbility] NEW LOG I - Result from decideAction (custom):', 
+                                selectedAbility ? selectedAbility.name : 'null (auto-attack)');
                 } else {
+                    // NEW LOG J: About to call decideAction with default logic
+                    console.log('[ActionGenerator.selectAbility] NEW LOG J - About to call decideAction with default logic:', defaultBehavior);
+                    
                     selectedAbility = this.battleManager.battleBehaviors.decideAction(
-                        this.battleManager.battleBehaviors.getDefaultActionDecisionBehavior(),
+                        defaultBehavior,
                         decisionContext
                     );
+                    
+                    // NEW LOG K: Result from decideAction with default logic
+                    console.log('[ActionGenerator.selectAbility] NEW LOG K - Result from decideAction (default):', 
+                                selectedAbility ? selectedAbility.name : 'null (auto-attack)');
                 }
                 
                 // If an ability was selected, set its cooldown
                 if (selectedAbility) {
+                    console.log('[ActionGenerator.selectAbility] NEW LOG L - Setting cooldown for selected ability:', selectedAbility.name);
                     selectedAbility.currentCooldown = selectedAbility.cooldown || 3;
+                    return selectedAbility; // Return immediately if behavior system provided a result
                 }
             } catch (error) {
                 console.error('[ActionGenerator] Error in action decision behavior:', error);
@@ -356,11 +401,15 @@ class ActionGenerator {
             }
         } else {
             // 5. Fallback ability selection when behavior system not available
+            console.log('[ActionGenerator.selectAbility] Using fallback ability selection (behavior system not available)');
             // 50% chance to use an ability if available
             if (Math.random() > 0.5) {
                 selectedAbility = availableAbilities[Math.floor(Math.random() * availableAbilities.length)];
                 // Set cooldown
                 selectedAbility.currentCooldown = selectedAbility.cooldown || 3;
+                console.log('[ActionGenerator.selectAbility] Fallback selected:', selectedAbility.name);
+            } else {
+                console.log('[ActionGenerator.selectAbility] Fallback chose auto-attack');
             }
         }
         
