@@ -1,5 +1,24 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.3.12 (2023-08-08)
+
+### Fixed
+- Fixed action indicator text positioning issue - ability names now appear directly above characters instead of at screen's top-left
+- Improved ability name handling to display cleaner text without prefixes
+- Enhanced positioning logic in ActionIndicator with better container management
+- Added more detailed logging for text positioning
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.12_ActionIndicatorPositioning.md*
+
+## Version 0.6.3.11 (2023-08-08)
+
+### Changed
+- Added enhanced diagnostics to trace action object flow through the event system
+- Added duplicate actionType property in BattleBridge event dispatching
+- Added full action object logging in ActionGenerator
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.11_ActionEventDiagnostics.md*
+
 ## Version 0.6.3.10 (2023-08-08)
 
 ### Fixed

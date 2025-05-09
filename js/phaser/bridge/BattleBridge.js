@@ -435,11 +435,16 @@ class BattleBridge {
                             character: action.actor,
                             action: {
                                 type: action.actionType,
+                                actionType: action.actionType, // ADDED: Duplicate type as actionType
                                 name: action.abilityName || action.actionType,
                                 abilityName: action.abilityName, // Include raw ability name
                                 target: action.target
                             }
                         };
+                        
+                        // Log the exact event data we're about to dispatch
+                        console.log('[BattleBridge.applyActionEffect Patch] Action object JUST BEFORE dispatching CHARACTER_ACTION:', 
+                            JSON.parse(JSON.stringify(eventData.action)));
                         
                         console.log(`BattleBridge: Dispatching CHARACTER_ACTION event for ${action.actor.name} performing ${action.actionType}`, {
                             exactEventType: eventType,

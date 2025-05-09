@@ -325,8 +325,8 @@ class CharacterSprite {
                 const statusName = actionText.split('Status:')[1]?.trim() || actionText;
                 this.actionIndicator.showStatusEffect(statusName);
             } else {
-                // Generic action text
-                this.actionIndicator.showAction(actionText);
+                // Display the text directly - likely an ability name without the "Ability:" prefix
+                this.actionIndicator.showAbility(actionText);
             }
         } catch (error) {
             console.error(`showActionText (${this.character?.name}): Error showing action text:`, error);

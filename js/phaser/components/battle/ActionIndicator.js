@@ -27,7 +27,7 @@ class ActionIndicator {
      */
     initialize() {
         // Create text with shadow for better readability
-        this.text = this.scene.add.text(0, 0, '', {
+        this.text = this.scene.add.text(0, -60, '', {
             fontFamily: 'Arial',
             fontSize: '14px',
             color: '#ffffff',
@@ -52,8 +52,14 @@ class ActionIndicator {
         
         // Add to the parent's container if it exists, otherwise directly to scene
         if (this.parent.container) {
+            console.log(`ActionIndicator.initialize: Adding text to parent container for ${this.parent?.character?.name}`);
             this.parent.container.add(this.text);
+            
+            // Since we're adding to the container, position is relative to container origin (0,0)
+            // Default position above the character's head
+            this.text.setPosition(0, -60);
         } else {
+            console.warn(`ActionIndicator.initialize: No parent container for ${this.parent?.character?.name}`);
             // Position relative to parent manually
             this.updatePosition();
         }
@@ -66,10 +72,17 @@ class ActionIndicator {
         if (!this.parent || !this.text) return;
         
         // Position above the character's head
-        const xPos = this.parent.container ? 0 : this.parent.x;
-        const yPos = this.parent.container ? -60 : (this.parent.y - 60);
+        if (this.parent.container) {
+            // Position is relative to container
+            this.text.setPosition(0, -60);
+        } else {
+            // Position relative to scene coordinates
+            const xPos = this.parent.x || 0;
+            const yPos = (this.parent.y || 0) - 60;
+            this.text.setPosition(xPos, yPos);
+        }
         
-        this.text.setPosition(xPos, yPos);
+        console.log(`ActionIndicator.updatePosition: Updated for ${this.parent?.character?.name}, text position: (${this.text.x}, ${this.text.y}), parent has container: ${this.parent?.container ? 'yes' : 'no'}`);
     }
     
     /**
@@ -78,7 +91,7 @@ class ActionIndicator {
      * @param {object} options - Optional configuration for the animation
      */
     showAction(actionText, options = {}) {
-        console.log(`ActionIndicator.showAction: Called with text: '${actionText}' for character: ${this.parent?.character?.name || 'unknown'}. Text object state: content=${this.text ? this.text.text : 'undefined'}, alpha=${this.text ? this.text.alpha : 'undefined'}, visible=${this.text ? (this.text.visible ? 'true' : 'false') : 'undefined'}. Parent container exists: ${this.parent?.container ? 'yes' : 'no'}. Tween starting.`);
+        console.log(`ActionIndicator.showAction: Called with text: '${actionText}' for character: ${this.parent?.character?.name || 'unknown'}. Text position before update: (${this.text?.x}, ${this.text?.y}). Parent container exists: ${this.parent?.container ? 'yes' : 'no'}`);
         
         // Default options
         const config = {
@@ -98,8 +111,11 @@ class ActionIndicator {
         this.text.setText(actionText);
         this.text.setColor(config.color);
         
-        // Update position before animation
+        // Make sure position is correct before animation
         this.updatePosition();
+        
+        // Log the current position
+        console.log(`ActionIndicator.showAction: Text position after update: (${this.text.x}, ${this.text.y}) for character: ${this.parent?.character?.name || 'unknown'}`);
         
         // Store original y position
         const startY = this.text.y;
@@ -157,7 +173,7 @@ class ActionIndicator {
      * @param {string} abilityName - The name of the ability
      */
     showAbility(abilityName) {
-        this.showAction(`Ability: ${abilityName}`, {
+        this.showAction(abilityName, {
             color: '#42f5a7' // Light green color for abilities
         });
     }

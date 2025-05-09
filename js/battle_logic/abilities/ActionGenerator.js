@@ -228,6 +228,7 @@ class ActionGenerator {
         
         // DIAGNOSTIC: Log the final action object
         console.log(`[ActionGenerator.generateCharacterAction] Final action for ${action.actor?.name}: actionType='${action.actionType}', abilityName='${action.abilityName}', selectedAbility:`, action.ability);
+        console.log(`[ActionGenerator.generateCharacterAction] FULL ACTION OBJECT:`, JSON.parse(JSON.stringify(action)));
         
         return action;
     }
