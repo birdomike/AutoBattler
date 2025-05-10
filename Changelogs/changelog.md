@@ -1,3 +1,18 @@
+## Version 0.6.3.36 (May 10, 2025)
+
+### Improved
+- Removed unnecessary debugging logs that were cluttering the console
+- Removed verbose [DETAILED DEBUG] messages from CharacterSprite and ActionIndicator
+- Streamlined console output by removing outdated debugging artifacts
+- Eliminated call stack tracing that was left from previous debugging sessions
+
+### Technical
+- Cleaned up remnants of debugging code from v0.6.3.24 that were no longer needed
+- Maintained normal logging infrastructure while removing excessive debug statements
+- Improved code clarity by removing obsolete debugging code
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.36_DebuggingCleanup.md*
+
 ## Version 0.6.3.35 (May 10, 2025)
 
 ### Fixed
