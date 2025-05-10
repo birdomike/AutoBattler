@@ -627,8 +627,9 @@ class CharacterSprite {
      * Show attack animation
      * @param {CharacterSprite} targetSprite - Target character sprite instance
      * @param {Function} onComplete - Callback when animation completes
+     * @param {Object} actionContext - Context about the action being animated
      */
-    showAttackAnimation(targetSprite, onComplete) {
+    showAttackAnimation(targetSprite, onComplete, actionContext) {
         console.log(`[DETAILED DEBUG] CharacterSprite.showAttackAnimation called for ${this.character?.name} targeting ${targetSprite?.character?.name}`);
         console.log(`[DETAILED DEBUG] Character ability info:`, {
             lastUsedAbility: this.character?.lastUsedAbility || 'unknown',
@@ -664,9 +665,24 @@ class CharacterSprite {
           }
 
         try { // Added try...catch
-            // REMOVED: No longer force 'Auto Attack' text for all animations
-            // this.showActionText('Auto Attack');
-            // This line was causing AoE abilities to display 'Auto Attack' instead of their actual name
+            // Context-aware action text handling
+            if (actionContext) {
+                if (actionContext.actionType === 'autoAttack') {
+                    this.showActionText('Auto Attack');
+                    console.log(`[CharacterSprite.showAttackAnimation] Character: ${this.character?.name}, Action: Auto Attack. Explicitly setting ActionIndicator.`);
+                } else if (actionContext.actionType === 'ability') {
+                    // For abilities, BattleEventManager should have already set the ActionIndicator text
+                    // via the CHARACTER_ACTION event. We generally do not want to override it here.
+                    console.log(`[CharacterSprite.showAttackAnimation] Character: ${this.character?.name}, Action: Ability (${actionContext.abilityName || 'Unknown Ability'}). ActionIndicator should have been set by event. No override here.`);
+                } else {
+                    console.warn(`[CharacterSprite.showAttackAnimation] Character: ${this.character?.name}, Unknown actionType in actionContext: ${actionContext.actionType}. ActionIndicator not explicitly set here.`);
+                }
+            } else {
+                // This case should ideally not happen if actionContext is always passed.
+                // This was the old problematic behavior. We want to avoid this.
+                console.error(`[CharacterSprite.showAttackAnimation] Character: ${this.character?.name}, CRITICAL: actionContext was not provided! ActionIndicator may be incorrect or stale.`);
+                // DO NOT default to this.showActionText('Auto Attack'); here without context.
+            }
             
             // --- Get GLOBAL position of the attacker's container ---
             let attackerGlobalPos = new Phaser.Math.Vector2();

@@ -639,8 +639,9 @@ export default class BattleScene extends Phaser.Scene {
      * @param {Object} attacker - Attacking character
      * @param {Object} target - Target character
      * @param {Function} onComplete - Callback when animation completes
+     * @param {Object} actionContext - Context about the action being animated
      */
-    showAttackAnimation(attacker, target, onComplete) {
+    showAttackAnimation(attacker, target, onComplete, actionContext) {
         try {
             if (!attacker || !target) {
                 if (onComplete) onComplete();
@@ -681,7 +682,21 @@ export default class BattleScene extends Phaser.Scene {
                 return;
             }
 
-            attackerSprite.showAttackAnimation(targetSprite, onComplete);
+            // Create default actionContext if none is provided
+            if (!actionContext) {
+                // Try to infer the action type
+                const inferredActionType = attacker.lastUsedAbility ? 'ability' : 'autoAttack';
+                const inferredAbilityName = attacker.lastUsedAbility?.name || 'Unknown Ability';
+                
+                actionContext = {
+                    actionType: inferredActionType,
+                    abilityName: inferredAbilityName
+                };
+                
+                console.log(`[BattleScene] showAttackAnimation: Created inferred actionContext:`, actionContext);
+            }
+
+            attackerSprite.showAttackAnimation(targetSprite, onComplete, actionContext);
         } catch (error) {
             console.error('[BattleScene] Error showing attack animation:', error);
             if (onComplete) onComplete();

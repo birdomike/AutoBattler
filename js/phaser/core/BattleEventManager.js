@@ -379,7 +379,22 @@ class BattleEventManager {
 
             // Show attack animation if source is available
             if (data.source && this.scene.showAttackAnimation) {
-                this.scene.showAttackAnimation(data.source, data.character);
+                // Create action context from ability data if available
+                let actionContext = null;
+                
+                if (data.ability) {
+                    actionContext = {
+                        actionType: 'ability',
+                        abilityName: data.ability.name
+                    };
+                } else {
+                    actionContext = {
+                        actionType: 'autoAttack'
+                    };
+                }
+                
+                console.log(`[BattleEventManager.onCharacterDamaged] Calling showAttackAnimation with actionContext:`, actionContext);
+                this.scene.showAttackAnimation(data.source, data.character, null, actionContext);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling character damaged:", error);

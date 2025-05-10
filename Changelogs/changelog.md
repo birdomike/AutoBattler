@@ -1,3 +1,14 @@
+## Version 0.6.3.26 (May 10, 2025)
+
+### Improved
+- Implemented robust, context-aware solution for ActionIndicator text display
+- Enhanced CharacterSprite to make intelligent decisions about action text based on action type
+- Added actionContext parameter to showAttackAnimation call chain for proper context propagation
+- Ensured auto-attacks display "Auto Attack" while abilities show their correct names
+- Added fallback inference for edge cases where action context is unavailable
+
+*Note: For detailed information on implementation, see CHANGELOG_0.6.3.26_ActionIndicatorContextAwareFix.md*
+
 ## Version 0.6.3.25 (May 10, 2025)
 
 ### Fixed
