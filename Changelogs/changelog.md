@@ -1,3 +1,14 @@
+## Version 0.6.3.29 (May 10, 2025)
+
+### Technical
+- Added temporary debugging for stat scaling factor issue investigation
+- Implemented detailed tracing of scale factor usage throughout damage calculation
+- Added diagnostic logging before and after scaling calculations to verify correct values
+- Added check points for stat scaling text generation
+- All debugging logs use [DEBUG-SCALING] prefix for easy filtering
+
+*Note: For detailed information on debugging implementation, see CHANGELOG_0.6.3.29_ScalingFactorDebugging.md*
+
 ## Version 0.6.3.28 (May 10, 2025)
 
 ### Fixed

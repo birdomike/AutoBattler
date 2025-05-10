@@ -100,13 +100,19 @@ class DamageCalculator {
             if (effect && effect.scaleFactor !== undefined) {
                 console.log(`[DamageCalculator] Using effect-specific scaleFactor: ${effect.scaleFactor} (from effect)`);
                 scaleFactor = effect.scaleFactor;
+                // TEMPORARY DEBUG: Verify scaleFactor was correctly set after assignment
+                console.log(`[DEBUG-SCALING] After effect assignment, scaleFactor = ${scaleFactor}`);
             }
             // Use ability's specific scale factor if defined and no effect override
             else if (ability.scaleFactor !== undefined) {
                 console.log(`[DamageCalculator] Using ability-level scaleFactor: ${ability.scaleFactor} (from ability)`);
                 scaleFactor = ability.scaleFactor;
+                // TEMPORARY DEBUG: Verify scaleFactor was correctly set after assignment
+                console.log(`[DEBUG-SCALING] After ability assignment, scaleFactor = ${scaleFactor}`);
             } else {
                 console.log(`[DamageCalculator] Using default scaleFactor: ${scaleFactor}`);
+                // TEMPORARY DEBUG: Verify default scaleFactor value
+                console.log(`[DEBUG-SCALING] Using default scaleFactor = ${scaleFactor}`);
             }
             
             // Check effect for scaling stat first (higher priority)
@@ -139,8 +145,15 @@ class DamageCalculator {
             attackerStat = attacker.stats[scalingStat] || 0;
         }
 
+        // TEMPORARY DEBUG: Log values right before calculation to verify inputs
+        console.log(`[DEBUG-SCALING] PRE-CALCULATION - attackerStat: ${attackerStat}, scaleFactor: ${scaleFactor}, ability: ${ability?.name}, character: ${attacker?.name}`);
+        
         // Apply stat scaling to base damage
         const statScaling = attackerStat * scaleFactor;
+        
+        // TEMPORARY DEBUG: Log the actual calculation result
+        console.log(`[DEBUG-SCALING] CALCULATION RESULT - statScaling: ${statScaling}, rounded: ${Math.round(statScaling)}`);
+        
         let totalDamage = baseDamage + statScaling;
 
         // Apply type effectiveness multiplier if both types are available
@@ -208,6 +221,9 @@ class DamageCalculator {
             } else {
                 scalingStatName = scalingStat.charAt(0).toUpperCase() + scalingStat.slice(1);
             }
+            
+            // TEMPORARY DEBUG: Verify the final scaling text values
+            console.log(`[DEBUG-SCALING] SCALING TEXT - using roundedScaling: ${roundedScaling} for ${scalingStatName} with ability: ${ability?.name}`);
             
             scalingText = `(+${roundedScaling} from ${scalingStatName})`;
             
