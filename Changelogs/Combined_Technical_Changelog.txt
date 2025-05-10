@@ -1,0 +1,1316 @@
+﻿Combined Technical Changelog  (generated 2025-05-09 20:52)
+
+===== CHANGELOG_0.6.3.21_VerboseLoggingImplementation =====
+
+# CHANGELOG 0.6.3.21 - Verbose Logging Implementation
+
+## Overview
+This update implements a simple verbose logging system that moves specific debug logs behind a conditional flag. This allows detailed diagnostic information to remain in the codebase but only appear in the console when the verbose logging feature is enabled. The changes reduce console clutter during normal development and testing, while preserving the ability to see detailed logs when diagnosing specific issues.
+
+## Implementation Details
+
+### 1. VerboseLogging.js
+Created a new utility file that defines a global flag for controlling verbose logging:
+
+```javascript
+/**
+ * Simple verbose logging control
+ * Set window.VERBOSE_LOGGING to true in the console to see verbose logs
+ */
+window.VERBOSE_LOGGING = false;
+
+console.log("[VerboseLogging] Verbose logging is currently DISABLED. Set window.VERBOSE_LOGGING = true to enable.");
+```
+
+This flag can be toggled at runtime in the browser console by setting `window.VERBOSE_LOGGING = true` when needed.
+
+### 2. Updated Files for Verbose Logging
+
+#### 2.1 ActionGenerator.js
+- Moved ability selection details to verbose logging
+- Updated console log statements to check `window.VERBOSE_LOGGING` before executing
+- Example pattern:
+```javascript
+if (window.VERBOSE_LOGGING) {
+    console.debug(`[ActionGenerator] ${character.name} has ${availableAbilities.length} available active abilities`);
+    console.log('[ActionGenerator.selectAbility] Available abilities:', availableAbilities.map(a => a.name));
+}
+```
+
+#### 2.2 TargetingSystem.js
+- Moved targeting resolution logs to verbose logging
+- Comprehensive updates to all debug statements to be conditional
+- Updated method signatures to maintain the same logging pattern
+- Example pattern:
+```javascript
+if (window.VERBOSE_LOGGING) {
+    console.log(`[TargetingSystem.processTargetingResult] Single target check: ${target.name} (HP: ${target.currentHp}, isDead: ${target.isDead}, Team: ${target.team}) - Valid: ${isValidSingleTarget}`);
+}
+```
+
+#### 2.3 TeamDisplayManager.js
+- Moved component state updates to verbose logging
+- Conditional logging for global position calculations
+- Example pattern:
+```javascript
+if (window.VERBOSE_LOGGING) {
+    console.log(`[TeamDisplayManager] Global position calculated: ${xPos}, ${yPos}`);
+}
+```
+
+#### 2.4 TeamContainer.js
+- Added verbose conditional blocks around highlight clearing logs
+- Updated character health update logging
+- Example pattern:
+```javascript
+if (window.VERBOSE_LOGGING) {
+    console.log(`TC.clearAllHighlights: Called for ${this.isPlayerTeam ? 'player' : 'enemy'} team, clearing highlights for ${this.characterSprites.length} sprites.`);
+}
+```
+
+#### 2.5 ActionIndicator.js
+- Conditional logging for position tracking and updates
+- Maintained critical warnings outside of verbose mode
+- Example pattern:
+```javascript
+if (window.VERBOSE_LOGGING) {
+    console.log(`ActionIndicator.showAction: Text position after update: (${this.text.x}, ${this.text.y}) for character: ${this.parent?.character?.name || 'unknown'}`);
+}
+```
+
+### 3. Impact on Codebase
+
+The implementation follows these patterns:
+1. Log statements that provide debugging context are now wrapped in `if (window.VERBOSE_LOGGING) { ... }` blocks
+2. Error and warning logs that indicate problems remain unconditional
+3. Basic status logs for critical operations remain unconditional
+4. Logs related to specific subsystem details (targeting, ability selection, positioning, etc.) are now conditional
+
+## Testing Process
+
+The changes were tested as follows:
+1. Verified that normal game operation shows a cleaner console with only essential information
+2. Enabled verbose logging in the console (`window.VERBOSE_LOGGING = true`) and confirmed all diagnostic information reappears
+3. Verified that warning and error logs still appear regardless of verbose setting
+4. Checked that the console notification about verbose logging appears on game start
+
+## User Guide
+
+### For Developers
+- To enable verbose logging during development, open your browser console and type:
+```javascript
+window.VERBOSE_LOGGING = true;
+```
+- To disable verbose logging, set the value to false:
+```javascript
+window.VERBOSE_LOGGING = false;
+```
+
+### Key Categories of Verbose Logs
+1. **Ability Selection**: Detailed information about available abilities, selection logic, and decision making
+2. **Targeting Resolution**: Debug information about target selection, validation, and final targets
+3. **Team Management**: Team container highlighting, turn indication, and character lookups
+4. **Positioning**: Detailed position calculations for UI elements like action indicators and turn markers
+5. **Character Health**: Verbose health updates and character lookup diagnostics
+
+## Future Improvements
+
+Future enhancements to build on this system could include:
+1. Multiple logging levels (ERROR, WARN, INFO, DEBUG, TRACE)
+2. Category-specific logging toggles (e.g., enable only targeting logs)
+3. Log persistence to local storage
+4. UI-based logging controls for easier toggling during development
+5. Log file output via downloadable data
+
+## Additional Notes
+
+This change preserves all the valuable diagnostic information that was previously cluttering the console while making it optional. The logging statements themselves were left largely unchanged to preserve their diagnostic value, with only the conditional check added.
+
+The simplicity of this approach (a global flag) makes it easy to understand and use, while more sophisticated logging could be implemented in the future if needed.
+
+
+===== CHANGELOG_0.6.3.20_ConsoleOutputCleanup =====
+
+# CHANGELOG 0.6.3.20 - Console Output Cleanup
+
+## Overview
+This update removes unnecessary debug statements and verbose logging from three key files in the AutoBattler game to improve console readability and performance. The change follows a comprehensive audit of debugging statements that were left in the codebase after initial development and bug fixes.
+
+## Files Modified
+
+### 1. CharacterSprite.js
+
+#### Changes:
+- Removed all `[HEALTH DEBUG]` statements from health update methods
+- Specifically removed:
+  - Debug logging from `updateHealth()` method
+  - Debug logging from `updateHealthBar()` method
+
+#### Example code removed:
+```javascript
+console.log(`CharacterSprite.updateHealth: ${this.character?.name} health to ${newHealth}/${maxHealth}`);
+console.log(`CharacterSprite.updateHealthBar: ${this.character?.name} health ${currentHealth}/${maxHealth}`);
+```
+
+#### Reasoning:
+These debug statements were added during health-related bug investigations but are no longer needed for normal operation. The regular health updates are still being logged at an appropriate level through the `console.log("Health bar updated for ${character?.name}: ${healthPercent * 100}% (${safeCurrentHealth}/${safeMaxHealth})")` statement that remains in the code.
+
+### 2. BattleFlowController.js
+
+#### Changes:
+- Removed DIAGNOSTIC parameter logging
+- Eliminated call tracing with chevrons (`>>> BFC.executeNextAction: ...`)
+- Removed detailed log blocks for action declaration
+- Removed temporary debugging for battle end events
+- Removed console.trace() statements
+- Cleaned up multi-target damage logging
+
+#### Example code removed:
+```javascript
+// TEMPORARY DIAGNOSTIC - Remove after bug fix
+console.log(`[BattleFlowController] DIAGNOSTIC - Post-initialization team status:`);
+console.log(`  Player Team (${this.battleManager.playerTeam.length} characters):`, 
+    this.battleManager.playerTeam.map(c => ({ name: c.name, team: c.team, hp: c.currentHp })));
+
+// DIAGNOSTIC: Trace executeNextAction flow - Remove later
+console.log(`>>> BFC.executeNextAction: Effect applied for ${action?.actor?.name}.`);
+console.log(`>>> BFC.executeNextAction: Checking battle end...`);
+```
+
+#### Reasoning:
+These verbose diagnostic statements were added during development to trace execution flow and debug specific battle flow issues. With those issues now resolved, the statements were creating unnecessary console noise and potentially impacting performance during battle execution.
+
+### 3. BattleEventManager.js
+
+#### Changes:
+- Removed raw event data dumps
+- Removed constructor and initialization diagnostics
+- Eliminated verbose object logging in event handlers
+- Removed character sprite lookup debugging
+- Streamlined character action and ability used logging
+
+#### Example code removed:
+```javascript
+// TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
+console.log('[BEM Constructor] === CONSTRUCTOR FIRST LINE ===');
+
+// Log the entire event data for diagnosis
+console.log(`[BattleEventManager.onCharacterAction] EVENT DATA RECEIVED:`, data);
+console.log(`[BattleEventManager.onCharacterAction] data.action object:`, data.action);
+```
+
+#### Reasoning:
+These debug statements were added during the implementation of the event management system, particularly to trace event propagation and handle complex nested objects. With the system now working correctly, these verbose logs were cluttering the console without providing ongoing value.
+
+## Performance Considerations
+
+Although the primary goal of this update was to improve console readability, there is also a small performance benefit:
+- Reduced string concatenation operations during battle (particularly in health updates)
+- Eliminated unnecessary object serialization (e.g., `JSON.parse(JSON.stringify(action))`)
+- Reduced console I/O operations, which can be expensive in browsers
+
+## Testing
+
+The changes were tested by running complete battles and verifying that:
+1. All essential battle information is still being logged
+2. Error conditions are still properly reported
+3. Battle flow proceeds correctly without the debug statements
+4. Game performance feels more responsive with reduced console activity
+
+## Future Improvements
+
+Additional console output cleanup opportunities exist in other files:
+1. `TeamDisplayManager.js` - Component state updates
+2. `TargetingSystem.js` - Targeting resolution logs  
+3. `ActionIndicator.js` - Position tracking
+
+These will be addressed in a future update after verifying the current changes have no negative impact.
+
+
+===== CHANGELOG_0.6.3.19_DiagnosticCodeCleanup =====
+
+# Technical Changelog: Version 0.6.3.19 - Diagnostic Code Cleanup
+
+## Overview
+This release removes temporary diagnostic debugging statements that were previously added for troubleshooting specific issues. These statements were cluttering the console output and were no longer needed after the issues had been fixed.
+
+## Files Modified
+1. `C:\Personal\AutoBattler\js\phaser\bridge\BattleBridge.js`
+2. `C:\Personal\AutoBattler\js\phaser\components\battle\CharacterSprite.js`
+
+## Detailed Changes
+
+### BattleBridge.js
+
+#### Changes
+- Removed the "TEMP DIAGNOSTIC" console.log statements in the `dispatchEvent` method
+- Removed verbose listener diagnostics that were printing detailed information about each listener
+- Removed process debugging in `applyActionEffect` and `processAbility` patch methods
+- Updated version from 0.5.1.2d to 0.5.1.3d
+
+#### Before
+The `dispatchEvent` method contained multiple debugging outputs:
+```javascript
+dispatchEvent(eventType, data) {
+    // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
+    console.log('[BB dispatchEvent CALLED] EventType:', eventType, 'Data Keys:', data ? Object.keys(data) : 'No data', 'Raw Data (beware circular):', data);
+    
+    console.log(`BattleBridge: Dispatching event ${eventType}`, data);
+    
+    // Log listener count for debugging
+    console.log(`BattleBridge: Found ${this.eventListeners[eventType].length} listeners for ${eventType}`);
+    
+    // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
+    if (this.eventListeners[eventType] && this.eventListeners[eventType].length > 0) { 
+        console.log('[BB dispatchEvent] Registered callbacks for ' + eventType + ':', 
+            this.eventListeners[eventType].map(cb => cb.name || 'anonymous_handler')); 
+    }
+    
+    // More verbose diagnostic logging...
+}
+```
+
+#### After
+The `dispatchEvent` method now contains only essential logging:
+```javascript
+dispatchEvent(eventType, data) {
+    console.log(`BattleBridge: Dispatching event ${eventType}`, data);
+    
+    if (!this.eventListeners[eventType]) {
+        console.warn(`BattleBridge: No listeners for event "${eventType}"`);
+        return;
+    }
+    
+    // Continue with event dispatching without verbose diagnostics
+}
+```
+
+### CharacterSprite.js
+
+#### Changes
+- Removed the "TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG" console.log statements in the `updateHealth` and `updateHealthBar` methods
+- Removed excessive diagnostic logging in the `showAttackAnimation` method
+- Removed unnecessary position tracking and character proximity checks in attack animations
+- Improved error messages to be more consistent in formatting
+
+#### Before
+The health methods contained diagnostic statements:
+```javascript
+updateHealth(newHealth, maxHealth) {
+    // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
+    // TODO: REMOVE or MOVE after bug fix / refactoring
+    console.log(`[HEALTH DEBUG] CharacterSprite.updateHealth called for ${this.character?.name}, HP: ${newHealth}/${maxHealth}`);
+    // END TEMPORARY DIAGNOSTIC CODE
+    
+    // Regular implementation code...
+    
+    // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
+    // TODO: REMOVE or MOVE after bug fix / refactoring
+    console.log(`[HEALTH DEBUG] CharacterSprite.updateHealth calling updateHealthBar for ${this.character?.name}`);
+    // END TEMPORARY DIAGNOSTIC CODE
+}
+```
+
+#### After
+The health methods now contain only essential logging:
+```javascript
+updateHealth(newHealth, maxHealth) {
+    console.log(`CharacterSprite.updateHealth: ${this.character?.name} health to ${newHealth}/${maxHealth}`);
+    
+    // Regular implementation code without diagnostic statements
+}
+```
+
+The `showAttackAnimation` method was also streamlined to remove extensive diagnostic logs about global coordinates, character proximity, and potential targeting issues, which were initially added for troubleshooting animation targeting bugs.
+
+## Rationale
+These changes were made for the following reasons:
+
+1. **Code Clarity**: Removing temporary diagnostic code improves code readability and maintainability.
+2. **Console Performance**: Reducing console output improves browser performance, especially during complex battles where these messages were appearing frequently.
+3. **Cleanup After Bug Fixes**: The diagnostic code was added to help fix specific bugs that have now been resolved, making the diagnostic code unnecessary.
+4. **Standardized Logging**: The remaining logs follow a more consistent format.
+
+## Impact
+These changes have no functional impact on the game's operation, but improve the developer experience by:
+
+1. Making the console output cleaner and easier to read
+2. Reducing client-side performance overhead from excessive logging
+3. Making the codebase easier to maintain by removing temporary code
+
+## Testing
+The game was tested with a variety of battle scenarios to ensure that removing the diagnostic code did not affect functionality:
+
+1. Multiple battle rounds with different team compositions
+2. Various ability triggers and effects
+3. Attack animations between characters
+4. Health updates and battle log display
+
+No issues were observed after removing the diagnostic code.
+
+
+===== CHANGELOG_0.6.3.18_GlobalPassiveTriggerFix =====
+
+# Technical Changelog 0.6.3.18: Global Passive Trigger Fix
+
+## Issue Description
+
+After implementing the fix for the parameter mismatch in `BattleFlowController.finishTurn()` (in v0.6.3.17), the error message "[PassiveAbilityManager] Invalid character parameter (null or undefined)" was still appearing. This error originated from `BattleFlowController.startNextTurn()` calling `processPassiveAbilities('onTurnStart', null, ...)` and similar calls with a `null` character parameter for other global triggers.
+
+While the syntax of the call was corrected in v0.6.3.17, the `PassiveAbilityManager` itself needed to be updated to properly handle these global trigger events that need to apply to all eligible characters in both teams.
+
+## Root Cause Analysis
+
+The core issue was that the `PassiveAbilityManager.processPassiveAbilities()` method was designed to process passives for a single character, and would fail validation if passed `null` as the character parameter. However, global triggers like 'onTurnStart' and 'onTurnEnd' conceptually need to be processed for all non-defeated characters on both teams.
+
+### The Code Problem:
+
+In `PassiveAbilityManager.js`, the `processPassiveAbilities()` method always tried to validate the character parameter:
+
+```javascript
+// Enhanced character validation
+if (!this.validateCharacter(character)) {
+    return [];
+}
+```
+
+But the `validateCharacter()` method would log an error for null values:
+
+```javascript
+// Basic null check
+if (!character) {
+    console.error("[PassiveAbilityManager] Invalid character parameter (null or undefined)");
+    return false;
+}
+```
+
+This caused the validation to fail and return an empty array when `null` was passed for a global trigger type, even though the intention was to apply the trigger to all eligible characters.
+
+## Technical Solution
+
+The solution was to implement a comprehensive global trigger handling system in `PassiveAbilityManager`:
+
+1. **Identify Global Triggers**: Define which trigger types should be treated as global events.
+2. **Add Global Trigger Handling Logic**: Modify `processPassiveAbilities()` to detect when a global trigger with a `null` character is being processed, and invoke a new method to handle this special case.
+3. **Create a Global Processing Method**: Implement a new `processGlobalPassiveTrigger()` method that iterates through all non-defeated characters in both teams and processes the trigger for each.
+
+### Implementation Details:
+
+1. **New Global Trigger Detection**:
+```javascript
+// Define which triggers are global and should be processed for all characters
+const globalTriggers = ['onTurnStart', 'onTurnEnd'];
+
+// Check if this is a global trigger and character is null
+if (character === null && globalTriggers.includes(trigger)) {
+    // Handle global trigger by iterating through all characters
+    return this.processGlobalPassiveTrigger(trigger, additionalData);
+}
+```
+
+2. **New `processGlobalPassiveTrigger()` Method**:
+```javascript
+/**
+ * Process passive abilities for all non-defeated characters for global triggers
+ * @param {string} trigger - The trigger event (e.g., 'onTurnStart', 'onTurnEnd')
+ * @param {Object} additionalData - Additional context data for the passive
+ * @returns {Array} Array of executed passive results from all characters
+ */
+processGlobalPassiveTrigger(trigger, additionalData = {}) {
+    // Combined results from all characters
+    const allResults = [];
+    
+    // Validate battle manager and teams
+    if (!this.battleManager) {
+        console.error("[PassiveAbilityManager] Cannot process global trigger: BattleManager not available");
+        return allResults;
+    }
+    
+    // Process player team
+    if (this.battleManager.playerTeam && Array.isArray(this.battleManager.playerTeam)) {
+        // Process each non-defeated character in player team
+        this.battleManager.playerTeam.forEach(character => {
+            if (character && !character.isDead && character.currentHp > 0) {
+                // Important: This call will include character validation
+                const characterResults = this.processPassiveAbilities(trigger, character, additionalData);
+                allResults.push(...characterResults);
+            }
+        });
+    }
+    
+    // Process enemy team
+    if (this.battleManager.enemyTeam && Array.isArray(this.battleManager.enemyTeam)) {
+        // Process each non-defeated character in enemy team
+        this.battleManager.enemyTeam.forEach(character => {
+            if (character && !character.isDead && character.currentHp > 0) {
+                // Important: This call will include character validation
+                const characterResults = this.processPassiveAbilities(trigger, character, additionalData);
+                allResults.push(...characterResults);
+            }
+        });
+    }
+    
+    return allResults;
+}
+```
+
+## Implementation Benefits
+
+1. **No Architectural Changes Required**: The fix is contained entirely within `PassiveAbilityManager.js`, keeping the existing interfaces intact.
+2. **Improved Error Handling**: The validation error no longer appears when processing legitimate global triggers.
+3. **Proper Processing of Global Events**: All eligible characters now properly receive global trigger events.
+4. **Consistent Results Structure**: The method returns the combined results from all characters in the same format as the original method.
+5. **Maintainable Design**: The approach is extensible to additional global trigger types in the future if needed.
+
+## Testing
+
+Testing involved:
+1. Starting a battle and confirming that the console error "[PassiveAbilityManager] Invalid character parameter" no longer appears.
+2. Verifying that ability declarations and auto attacks are properly displayed in the Battle Log.
+3. Ensuring that turn-based passive abilities trigger correctly for all eligible characters.
+
+## Related Files
+
+- `C:\Personal\AutoBattler\js\battle_logic\passives\PassiveAbilityManager.js` - Updated to handle global triggers
+- `C:\Personal\AutoBattler\js\battle_logic\core\BattleFlowController.js` - Previous fix to call signature in v0.6.3.17
+
+## Lessons Learned
+
+1. **Design for Global Events**: When building systems that respond to events, consider that some events might have global scope requiring iteration over multiple entities.
+2. **Parameter Null Values**: Consider what null parameter values mean in your API design - they can be legitimate values indicating special handling rather than just errors.
+3. **Validation and Business Logic**: Distinguish between parameter validation errors and special cases that require different business logic paths.
+
+## Future Considerations
+
+1. **Additional Global Triggers**: The implementation allows for easy addition of more global trigger types by simply adding them to the `globalTriggers` array.
+2. **Optimization Potential**: For games with many characters, the iteration approach used might be optimized further, such as by maintaining separate collections of characters with passive abilities for each trigger type.
+3. **Formalize API**: A future enhancement could be to formally document that global triggers should be passed with a null character parameter as part of the API contract.
+
+
+===== CHANGELOG_0.6.3.17_PassiveAbilityParameterFix =====
+
+# Technical Changelog 0.6.3.17: PassiveAbility Parameter Fix
+
+## Issue Description
+
+After fixing the path in index.html to load the correct BattleFlowController.js (in v0.6.3.16), a new runtime error emerged in the console:
+
+```
+PassiveAbilityManager.js:29 [PassiveAbilityManager] Invalid character parameter (null or undefined)
+```
+
+This error prevented ability declarations and auto attacks from displaying in the Battle Log.
+
+## Root Cause Analysis
+
+The issue was traced to an incorrect parameter order in BattleFlowController.js, specifically in the `finishTurn()` method.
+
+### The Code Problem:
+
+In BattleFlowController.js, the `finishTurn()` method was calling `processPassiveAbilities()` with the wrong parameter order:
+
+```javascript
+// INCORRECT - passing an object with controller reference as the character parameter
+this.battleManager.processPassiveAbilities('onTurnEnd', { controller: this });
+```
+
+The PassiveAbilityManager expects a valid character object (or null) as the second parameter, and any additional data as the third parameter. 
+
+The `validateCharacter()` method in PassiveAbilityManager checks if the character is null or has required properties, and logs an error when receiving an object that isn't a proper character.
+
+### Technical Details:
+
+The `processPassiveAbilities()` function in BattleManager (which delegates to PassiveAbilityManager) has the following signature:
+
+```javascript
+processPassiveAbilities(triggerType, character, additionalData)
+```
+
+- `triggerType`: String indicating when the passive should trigger (e.g., 'onTurnEnd')
+- `character`: The character object that has the passive ability (or null for global events)
+- `additionalData`: Additional context data for the passive ability
+
+By passing `{ controller: this }` as the second parameter instead of the third, we were providing an invalid character object that would fail validation in PassiveAbilityManager.
+
+## Fix Implementation
+
+The fix was to correctly pass `null` as the character parameter and move the controller reference to the additionalData parameter position:
+
+```javascript
+// CORRECT - passing null as character parameter and controller as additionalData
+this.battleManager.processPassiveAbilities('onTurnEnd', null, { controller: this });
+```
+
+This matches the pattern used elsewhere in the BattleFlowController, such as in `startNextTurn()`:
+
+```javascript
+this.battleManager.processPassiveAbilities('onTurnStart', null, { turnNumber: this.battleManager.currentTurn });
+```
+
+## Testing
+
+Testing involved:
+1. Making the change to BattleFlowController.js
+2. Starting a battle and observing the console output
+3. Verifying that the "[PassiveAbilityManager] Invalid character parameter" error no longer appears
+4. Confirming that ability declarations and auto attacks now correctly display in the Battle Log
+
+## Related Files
+
+- `C:\Personal\AutoBattler\js\battle_logic\core\BattleFlowController.js` - Fixed the parameter order
+- `C:\Personal\AutoBattler\js\battle_logic\passives\PassiveAbilityManager.js` - Contains the validation logic that was generating the error
+
+## Lessons Learned
+
+1. When working with multi-parameter function calls, always verify the correct parameter order, especially when some parameters are optional
+2. Error messages from validation checks provide valuable clues about parameter mismatches
+3. Similar patterns in other function calls within the same codebase can serve as a guide for proper usage
+
+## Future Considerations
+
+1. Additional parameter validation could be added to BattleManager to catch these issues before they reach PassiveAbilityManager
+2. Consider using named parameters (objects) for functions with many parameters to avoid order-dependency
+3. Apply similar fixes to any other locations that might have similar parameter order issues
+
+
+===== CHANGELOG_0.6.3.16_BattleFlowControllerPathFix =====
+
+# Detailed Changelog: BattleFlowController Path Fix (v0.6.3.16)
+
+## Issue Background
+
+Despite implementing fixes in the BattleFlowController.js file to properly handle action declarations and adding diagnostic logging, our changes weren't taking effect in the game. The diagnostic logs we expected to see in the console (with prefixes like `[BattleFlowController.executeNextAction - Detailed Log]`) weren't appearing at all, indicating that our modified code wasn't being loaded.
+
+## Root Cause Analysis
+
+A comprehensive investigation revealed that index.html was loading the wrong BattleFlowController.js file from an outdated location. Specifically:
+
+1. Our updated BattleFlowController.js was located at:
+   ```
+   C:\Personal\AutoBattler\js\battle_logic\core\BattleFlowController.js
+   ```
+
+2. But index.html was loading an older version from:
+   ```
+   C:\Personal\AutoBattler\js\managers\BattleFlowController.js
+   ```
+
+3. The older version (v0.5.9) had a completely different implementation of the `executeNextAction()` method that:
+   - Did not have our diagnostic logging
+   - Did not properly format action declarations
+   - Did not send action declarations to the battle log with the 'action' type
+
+This explains why our changes to implement proper action declarations weren't taking effect - the game was using an entirely different file than the one we had modified.
+
+## Changes Made
+
+The fix was straightforward but critical - we updated the script reference in index.html to point to the correct file:
+
+```diff
+- <!-- BattleFlowController v0.5.9 - Must load before BattleManager -->
+- <script src="js/managers/BattleFlowController.js" defer></script>
++ <!-- BattleFlowController - Must load before BattleManager -->
++ <script src="js/battle_logic/core/BattleFlowController.js" defer></script>
+```
+
+This change ensures that the game loads our updated BattleFlowController.js file, which includes:
+
+1. Proper diagnostic logging for action message flow tracing
+2. Correctly formatted action declarations with team identifiers
+3. Proper logging of action declarations to the battle log with `type: 'action'`
+
+## Implementation Approach
+
+This fix followed a careful diagnostic process:
+1. First, we traced the issue to missing console logs that should have been present
+2. We located both versions of the BattleFlowController.js file
+3. We compared the two implementations and confirmed the older version lacked our changes
+4. We updated the script path in index.html to point to the correct, updated file
+
+## Testing Procedure
+
+To verify the fix, the game should be run with developer tools open to observe:
+
+1. In the browser console:
+   - Check for log entries with format: `[BattleFlowController.executeNextAction - Detailed Log] Action received: ...`
+   - Check for log entries with format: `[BattleFlowController.executeNextAction - Detailed Log] Built actionDeclaration for Battle Log: "..."`
+   - Check for log entries with format: `[BattleFlowController.executeNextAction - Detailed Log] Calling this.battleManager.logMessage for action declaration.`
+
+2. In the game UI:
+   - Verify that detailed action declarations (e.g., "Drakarion (enemy) uses [Fireball] on Target (ally)!") appear in the battle log
+   - Verify that they appear in yellow text and bold (the styling for 'action' type messages)
+
+## Lessons Learned
+
+This issue highlights several important lessons:
+
+1. **Path Management**: Maintaining consistent file paths across project components is critical
+2. **Migration Tracking**: When refactoring components to new locations, all references must be updated
+3. **Diagnostic Verification**: Always verify that diagnostic logs are actually appearing as expected
+4. **Module Tracing**: Analyzing which modules are actually being loaded is essential when debugging
+
+In future refactoring efforts, we should implement:
+
+1. A more consistent directory structure with clearly defined module locations
+2. Automated path checking to ensure all references point to valid files
+3. Consolidated script loading to reduce the chance of path errors
+
+
+===== CHANGELOG_0.6.3.15_DirectBattleLogDiagnostics =====
+
+# Detailed Changelog: DirectBattleLog Diagnostics for Action Messages (v0.6.3.15)
+
+## Issue Background
+
+Despite the fix in v0.6.3.14 to ensure BattleFlowController was sending only a single, detailed action declaration via the 'action' message type, these messages were still not appearing in the battle log UI. A comprehensive analysis of the message flow pipeline from BattleFlowController through BattleManager, BattleLogManager, BattleEventDispatcher, BattleBridge, and finally to DirectBattleLog revealed a potential conflict within the DirectBattleLog component.
+
+## Root Cause Analysis
+
+The analysis identified that DirectBattleLog had two independent paths for receiving and displaying action-related messages:
+
+1. Via the general `BATTLE_LOG` event listener, which should receive messages with `type: 'action'` from BattleFlowController through the message pipeline
+2. Via a separate `CHARACTER_ACTION` event listener, which created its own, simpler action messages
+
+This dual-path handling was likely causing a conflict where the simpler messages from the `CHARACTER_ACTION` event were overriding or interfering with the detailed messages from the `BATTLE_LOG` event.
+
+## Changes Made
+
+To diagnose and fix this issue, the following changes were made to DirectBattleLog.js:
+
+1. **Temporarily Disabled the CHARACTER_ACTION Listener:**
+   ```javascript
+   // TEMPORARILY COMMENTED OUT TO DIAGNOSE ACTION MESSAGES ISSUE
+   /*
+   // Listen for CHARACTER_ACTION events (newly added)
+   bridge.addEventListener(bridge.eventTypes.CHARACTER_ACTION, (data) => {
+       // ... listener code ...
+   });
+   */
+   ```
+   This removed the potential source of conflict by disabling the second path for action messages.
+
+2. **Enhanced Logging for BATTLE_LOG Event Reception:**
+   ```javascript
+   // Connect to BATTLE_LOG events
+   bridge.addEventListener(bridge.eventTypes.BATTLE_LOG, (data) => {
+       try {
+           console.log('DirectBattleLog: BATTLE_LOG event received. Type:', data.type, 'Message:', data.message);
+           // ... remaining code ...
+       } catch (error) {
+           console.warn('Error handling BATTLE_LOG event:', error);
+       }
+   });
+   ```
+   This improved logging format makes it easier to see exactly what type of message is being received.
+
+3. **Added Diagnostic Logging in addMessage for Action Type Messages:**
+   ```javascript
+   addMessage(message, type = 'default') {
+       // Special logging for action messages
+       if (type === 'action') {
+           console.log(`[DirectBattleLog.addMessage] ACTION MESSAGE RECEIVED TO ADD: "${message}"`);
+       }
+       
+       // ... remaining code ...
+   }
+   ```
+   This helps verify that action messages are being properly received by the addMessage method.
+
+4. **Added Diagnostic Logging in processMessageQueue for Action Type Messages:**
+   ```javascript
+   // Process one message
+   const message = this.messageQueue.shift();
+   
+   // Special logging for action messages being processed
+   if (message.type === 'action') {
+       console.log(`[DirectBattleLog.processMessageQueue] ACTION MESSAGE BEING PROCESSED FROM QUEUE: "${message.text}"`);
+   }
+   
+   this.messages.push(message);
+   ```
+   This helps trace whether action messages are being properly dequeued and processed.
+
+## Implementation Approach
+
+The fix followed a careful diagnostic approach:
+
+1. First, all potential points where action messages might be lost were identified
+2. Specific diagnostic logging was added at each of these points
+3. The conflicting CHARACTER_ACTION event listener was disabled while maintaining the code for future reference
+4. Logging statements were carefully formatted to make diagnosing the message flow easier
+
+## Testing Procedure
+
+To verify the fix, the game should be run with developer tools open to observe:
+
+1. In the browser console:
+   - Check for log entries with format: `DirectBattleLog: BATTLE_LOG event received. Type: action Message: [message content]`
+   - Check for log entries with format: `[DirectBattleLog.addMessage] ACTION MESSAGE RECEIVED TO ADD: "[message content]"`
+   - Check for log entries with format: `[DirectBattleLog.processMessageQueue] ACTION MESSAGE BEING PROCESSED FROM QUEUE: "[message content]"`
+
+2. In the game UI:
+   - Verify that detailed action declarations (e.g., "Drakarion uses [Fireball] on Target!") appear in the battle log
+   - Verify that they appear in yellow text and bold (the styling for 'action' type messages)
+
+## Future Considerations
+
+After diagnosing the issue and confirming the fix, several approaches could be taken:
+
+1. Leave the CHARACTER_ACTION listener disabled permanently if the detailed BATTLE_LOG 'action' messages are sufficient
+2. Modify the CHARACTER_ACTION listener to use a different message type (e.g., 'character_action') to avoid conflicts
+3. Combine both approaches by selectively using information from both events to create a single, comprehensive message
+
+The decision on which approach to take should be made after evaluating the diagnostic results and considering the desired format for action messages in the battle log.
+
+
+===== CHANGELOG_0.6.3.14_BattleLogActionMessages =====
+
+# CHANGELOG 0.6.3.14 - Battle Log Action Messages Fix
+
+## Overview
+
+This update addresses an issue with the Battle Log UI where action declarations (what a character is doing) weren't displaying properly in the UI. The problem was caused by two separate code blocks in `BattleFlowController.executeNextAction()` both sending messages of type 'action' to the `BattleLogManager`, causing one to override the other before they could be displayed.
+
+## Problem Analysis
+
+### Issue Description
+The Battle Log UI was correctly displaying various messages (damage, healing, status effects, turn summaries) but was MISSING the explicit action declarations that state what action a character is performing. Messages like "Caste (ally) uses [Shatter Blade] on Sylvanna (enemy)!" should have been displayed but weren't appearing.
+
+### Root Cause
+In `BattleFlowController.executeNextAction()`, two separate blocks were sending messages of type 'action' to the battle log:
+
+1. First block (around lines 327-343): Created a simpler format message and sent it with `this.battleManager.logMessage(message, 'action')`.
+2. Second block (around lines 346-369): Created a more detailed `actionDeclaration` with proper team identifiers and correct formatting, then sent it with the same function and message type.
+
+Since both were sent with the same message type ('action'), only one was being processed/displayed by the UI, and due to potential timing issues or overwriting, the detailed message that should have been displayed was lost.
+
+### Diagnostic Process
+The issue was identified by examining the message flow from `BattleFlowController` to `BattleLogManager`. Console logs were added to trace the messages and confirmed that both blocks were sending 'action' type messages separately.
+
+## Solution Implementation
+
+### Approach
+The solution was to disable the first, simpler message block from sending to the Battle Log, while keeping the second, more detailed block active. This ensures only one correctly formatted action message is sent per game action.
+
+### Changes Made
+
+1. **Modified BattleFlowController.executeNextAction() first block**:
+   - Changed from calling `this.battleManager.logMessage(message, 'action')` to only logging to console
+   - Added a comment explaining this block is now deactivated for Battle Log
+   - Added descriptive prefix to console log: `[BattleFlowController.executeNextAction - Simpler Log Block - DEACTIVATED FOR BATTLE LOG]`
+
+2. **Updated BattleFlowController.executeNextAction() second block**:
+   - Fixed console log prefixes to correctly reference `executeNextAction` instead of `applyActionEffect`
+   - Made prefixes more descriptive with "- Detailed Log" for clarity
+   - Kept the key line `this.battleManager.logMessage(actionDeclaration, 'action')` active
+   - Added improved error handling and log messages for debugging
+
+### Code Changes
+
+#### Changed in BattleFlowController.js:
+
+```diff
+-        // Log the action
++        // Log the action (DISABLED FOR BATTLE LOG - sent to console only)
+         let message;
+         // Add team info to actor and target names for better clarity
+         const actorName = `${action.actor.name}${action.team === 'player' ? ' (ally)' : ' (enemy)'}`;        
+         const targetName = `${action.target.name}${action.team === 'player' ? ' (enemy)' : ' (ally)'}`;        
+         
+         if (action.useAbility) {
+             // Handle different ability types in log message
+             if (action.ability.isHealing || action.ability.damageType === 'healing') {
+                 message = `${actorName} uses [${action.ability.name}] to heal ${targetName}!`;
+             } else if (action.ability.damageType === 'utility') {
+                 message = `${actorName} uses [${action.ability.name}]!`;
+             } else {
+                 message = `${actorName} uses [${action.ability.name}] on ${targetName}!`;
+             }
+         } else {
+             message = `${actorName} attacks ${targetName} for ${action.damage} damage!`;
+         }
+-        this.battleManager.logMessage(message, 'action');
++        // DEACTIVATED: No longer send to Battle Log, only log to console
++        console.log(`[BattleFlowController.executeNextAction - Simpler Log Block - DEACTIVATED FOR BATTLE LOG]: ${message}`);
+```
+
+```diff
+         // Generate and log proper action declaration for the battle log
+         if (action && action.actor) {
+-            console.log(`[BattleFlowController.applyActionEffect] Entered for Battle Log. Action received:`, JSON.parse(JSON.stringify(action)));
++            console.log(`[BattleFlowController.executeNextAction - Detailed Log] Action received:`, JSON.parse(JSON.stringify(action)));
+             
+             // Add team identifiers for clarity
+             const actorName = `${action.actor.name}${action.team === 'player' ? ' (ally)' : ' (enemy)'}`;
+```
+
+```diff
+             // Log the action declaration
+-            console.log(`[BattleFlowController.applyActionEffect] Built actionDeclaration for Battle Log: "${actionDeclaration}"`); 
+-            console.log(`[BattleFlowController.applyActionEffect] Action object for this declaration:`, JSON.parse(JSON.stringify(action)));
++            console.log(`[BattleFlowController.executeNextAction - Detailed Log] Built actionDeclaration for Battle Log: "${actionDeclaration}"`);
++            console.log(`[BattleFlowController.executeNextAction - Detailed Log] Action object for this declaration:`, JSON.parse(JSON.stringify(action)));
+             if (this.battleManager && typeof this.battleManager.logMessage === 'function') {
+-                console.log(`[BattleFlowController.applyActionEffect] Calling this.battleManager.logMessage for action declaration.`);
++                console.log(`[BattleFlowController.executeNextAction - Detailed Log] Calling this.battleManager.logMessage for action declaration.`);
+                 this.battleManager.logMessage(actionDeclaration, 'action');
+             } else {
+-                console.error('[BattleFlowController.applyActionEffect] this.battleManager.logMessage is NOT available or not a function for action declaration!');
++                console.error('[BattleFlowController.executeNextAction - Detailed Log] this.battleManager.logMessage is NOT available or not a function for action declaration!');
+             }
+```
+
+## Testing and Verification
+
+The changes ensure that:
+
+1. Only one message with type 'action' (the detailed one) is sent from BattleFlowController per game action.
+2. The console logs show:
+   - `[BattleFlowController.executeNextAction - Simpler Log Block - DEACTIVATED FOR BATTLE LOG]: ...`
+   - `[BattleFlowController.executeNextAction - Detailed Log] Action received: ...`
+   - `[BattleFlowController.executeNextAction - Detailed Log] Built actionDeclaration for Battle Log: "..."`
+   - `[BattleFlowController.executeNextAction - Detailed Log] Calling this.battleManager.logMessage for action declaration.`
+   - Followed by `[BattleLogManager.logMessage] Received to display: "THE_DETAILED_ACTION_DECLARATION", Type: "action"`
+3. The Battle Log UI properly displays the correctly formatted, detailed action declarations.
+
+### Test Cases
+
+1. **Single-target abilities**: 
+   - Verify messages like "ActorName (ally) uses [AbilityName] on TargetName (enemy)!" appear correctly
+   - Check both player->enemy and enemy->player scenarios
+
+2. **Auto-attacks**: 
+   - Verify messages like "ActorName (ally) auto-attacks TargetName (enemy)!" appear correctly
+
+3. **Multi-target abilities**:
+   - Verify messages for area-of-effect abilities display the correct number of targets
+
+## Impact Analysis
+
+### Areas Affected
+- Battle Log UI message display
+- Console logging patterns for debugging
+- BattleFlowController action flow
+
+### Benefits
+- Action declarations now appear correctly in the Battle Log UI
+- Improved clarity in console logs for debugging
+- Proper team identifiers in messages help distinguish between allies and enemies
+- Better readability for players following the battle through the log
+
+### Potential Risks
+None identified - the change simply prevents duplicate messages of the same type from being sent.
+
+## Conclusion
+
+This fix resolves the issue with missing action declarations in the Battle Log UI by ensuring only one properly formatted 'action' type message is sent per game action, with no duplication that could cause override issues. The resulting log is more informative and clearly shows what each character is doing during their turn.
+
+
+===== CHANGELOG_0.6.3.13_BattleLogDiagnostics =====
+
+# Technical Changelog: Battle Log Diagnostics (v0.6.3.13)
+
+## Overview
+
+Added diagnostic logging to track the flow of action declarations through the Battle Log system to help identify why action declarations might be missing or duplicated in the Battle Log UI.
+
+## Problem Analysis
+
+The Battle Log was not consistently showing action declarations such as "Character uses [Ability] on Target". The issue appeared to be related to the flow of these messages through multiple components:
+
+1. Action generation in ActionGenerator.js 
+2. Action execution in BattleFlowController.executeNextAction()
+3. Effect application in BattleFlowController.applyActionEffect()
+4. Message display via BattleLogManager.logMessage()
+
+The debugging was focused on determining where in this chain the messages might be lost or duplicated.
+
+## Changes Made
+
+### 1. Added action object logging in BattleFlowController.applyActionEffect()
+
+```javascript
+// At the start of BattleFlowController.applyActionEffect()
+console.log(`[BattleFlowController.applyActionEffect] Entered. Action received:`, JSON.parse(JSON.stringify(action)));
+```
+
+This allows us to inspect the full action object as it enters the method, including:
+- actor information
+- target information
+- ability details
+- action type and other properties
+
+### 2. Added pre-log message tracking in BattleFlowController.applyActionEffect()
+
+```javascript
+// Before calling this.battleManager.logMessage() with the action declaration
+console.log(`[BattleFlowController.applyActionEffect] PRE-LOG: Action Declaration: "${actionDeclaration}", Type: "action"`);
+```
+
+This shows the exact message and type being sent to the BattleLogManager, allowing us to confirm if proper formatting is occurring.
+
+### 3. Added message reception tracking in BattleLogManager.logMessage()
+
+```javascript
+// At the start of BattleLogManager.logMessage()
+console.log(`[BattleLogManager.logMessage] Received to display: "${message}", Type: "${type}"`);
+```
+
+This confirms that messages are actually reaching the BattleLogManager and what their content looks like when they arrive.
+
+## Expected Diagnostic Output
+
+The debugging logs should show:
+1. The complete action object structure in BattleFlowController
+2. The formatted action declaration message before it's sent to the log
+3. Confirmation that the message was received by BattleLogManager
+
+By examining these logs, we can identify:
+- If multiple similar messages are being generated for the same action
+- If messages are being lost between components
+- If the formatting of messages is inconsistent or incorrect
+
+## Testing Plan
+
+To fully diagnose the issue:
+
+1. Start a battle with player and enemy teams
+2. Observe the console logs for each character action
+3. Compare the logged messages with what appears in the Battle Log UI
+4. Look for duplicates or missing messages in the sequence of logs
+
+## Next Steps
+
+After collecting diagnostic information, potential fixes may include:
+- Removing duplicate log calls if they exist
+- Ensuring consistent message formatting
+- Addressing any issues with message transmission between components
+
+## References
+
+- BattleFlowController.js: Primary logic for battle execution and action effects
+- BattleLogManager.js: Handles formatting and display of battle log messages
+- ActionGenerator.js: Creates action objects including action types and ability information
+
+
+===== CHANGELOG_0.6.3.12_ActionIndicatorPositioning =====
+
+# Technical Changelog: Version 0.6.3.12 - Action Indicator Positioning Fix
+
+## Overview
+
+This update fixes the positioning issue with the Action Indicator text (the text that appears above characters when they perform actions). After the v0.6.3.10 fixes, the Action Indicator was correctly showing ability names but was appearing in the wrong location (near the top-left of the screen) rather than above the character's head.
+
+## Files Changed
+
+1. `js/phaser/components/battle/ActionIndicator.js`
+2. `js/phaser/components/battle/CharacterSprite.js`
+
+## Detailed Changes
+
+### 1. ActionIndicator.js - Fixed Positioning Logic
+
+Fixed the initialization and positioning code to ensure the text appears above the character's head:
+
+```javascript
+// Set initial y position during creation
+this.text = this.scene.add.text(0, -60, '', {
+    // styles...
+});
+
+// In initialize() method
+if (this.parent.container) {
+    console.log(`ActionIndicator.initialize: Adding text to parent container for ${this.parent?.character?.name}`);
+    this.parent.container.add(this.text);
+    
+    // Since we're adding to the container, position is relative to container origin (0,0)
+    // Default position above the character's head
+    this.text.setPosition(0, -60);
+}
+
+// In updatePosition() method
+if (this.parent.container) {
+    // Position is relative to container
+    this.text.setPosition(0, -60);
+} else {
+    // Position relative to scene coordinates
+    const xPos = this.parent.x || 0;
+    const yPos = (this.parent.y || 0) - 60;
+    this.text.setPosition(xPos, yPos);
+}
+```
+
+Added additional logging to help diagnose positioning issues, including the text's position before and after updates.
+
+### 2. CharacterSprite.js - Improved Action Text Handling
+
+Updated the `showActionText()` method to properly handle ability names without a prefix:
+
+```javascript
+// Old code: Generic fallback used showAction()
+} else {
+    // Generic action text
+    this.actionIndicator.showAction(actionText);
+}
+
+// New code: Generic fallback uses showAbility() for proper styling
+} else {
+    // Display the text directly - likely an ability name without the "Ability:" prefix
+    this.actionIndicator.showAbility(actionText);
+}
+```
+
+This ensures any text that doesn't match specific patterns (like "Auto Attack" or "Status:") is treated as an ability name, which gives it the appropriate green color and styling.
+
+### 3. ActionIndicator.js - Simplified Ability Display
+
+Removed the "Ability:" prefix from ability names in the `showAbility()` method:
+
+```javascript
+// Old code: Added "Ability:" prefix
+showAbility(abilityName) {
+    this.showAction(`Ability: ${abilityName}`, {
+        color: '#42f5a7' // Light green color for abilities
+    });
+}
+
+// New code: Just shows the ability name
+showAbility(abilityName) {
+    this.showAction(abilityName, {
+        color: '#42f5a7' // Light green color for abilities
+    });
+}
+```
+
+This change makes the ability names cleaner in the Action Indicator.
+
+## Technical Analysis
+
+The root cause of the positioning issue was in how the text position was being set relative to its parent container. The text was being created at position (0,0) and then later repositioned, but the repositioning logic wasn't considering the text's place in the display hierarchy.
+
+### Key Improvements:
+
+1. **Consistent Positioning**: The text is now positioned at a fixed y-offset of -60 from its parent container's origin, ensuring it always appears above the character.
+
+2. **Enhanced Error Handling**: Added more robust position fallbacks (using || 0) to prevent NaN coordinates.
+
+3. **Better Logging**: Added detailed logging of text positions for easier debugging.
+
+4. **Improved Text Style Classification**: Now properly treats unclassified text as ability names for better visual differentiation.
+
+This fix should ensure that ability names now appear correctly positioned above each character's head, making it clearer which character is performing which action.
+
+
+===== CHANGELOG_0.6.3.11_ActionEventDiagnostics =====
+
+# Technical Changelog: Version 0.6.3.11 - Action Event Diagnostics
+
+## Overview
+
+This update adds enhanced diagnostic logging to trace the flow of action objects from creation in ActionGenerator through BattleBridge to BattleEventManager. The goal is to identify why the Action Indicator text and Battle Log declarations aren't showing abilities correctly despite the action objects being created with the correct properties.
+
+## Files Changed
+
+1. `js/phaser/bridge/BattleBridge.js`
+2. `js/battle_logic/abilities/ActionGenerator.js`
+
+## Detailed Changes
+
+### 1. BattleBridge.js - Enhanced Event Data Logging and Consistency
+
+Added explicit logging of the event data being dispatched in the patched `applyActionEffect` method:
+
+```javascript
+// Added detailed logging of the exact event data payload
+console.log('[BattleBridge.applyActionEffect Patch] Action object JUST BEFORE dispatching CHARACTER_ACTION:', 
+    JSON.parse(JSON.stringify(eventData.action)));
+```
+
+Added `actionType` property to ensure consistency with both property naming patterns:
+
+```javascript
+// Added actionType property alongside type for consistency
+action: {
+    type: action.actionType,
+    actionType: action.actionType, // ADDED: Duplicate type as actionType
+    name: action.abilityName || action.actionType,
+    abilityName: action.abilityName,
+    target: action.target
+}
+```
+
+### 2. ActionGenerator.js - Full Action Object Logging
+
+Added complete action object logging to capture the exact structure of the object being returned:
+
+```javascript
+// Added full action object logging using JSON.parse(JSON.stringify()) to avoid circular references
+console.log(`[ActionGenerator.generateCharacterAction] FULL ACTION OBJECT:`, JSON.parse(JSON.stringify(action)));
+```
+
+## Technical Analysis
+
+The focus of these changes is to diagnose a potential data integrity issue where:
+
+1. ActionGenerator creates an action object with `actionType='ability'` and `abilityName='Flame Strike'`
+2. BattleEventManager receives an action object with `actionType=undefined` and `abilityName='Auto Attack'`
+
+The strategic logging added in this update will allow us to see:
+- The exact action object structure when it leaves ActionGenerator
+- The exact event data payload when it's about to be dispatched by BattleBridge
+- Any differences between the two points that could explain the discrepancy
+
+By explicitly adding both `type` and `actionType` properties to the event data in BattleBridge, we're ensuring the receiving code has access to the action type regardless of which property name it's checking for.
+
+## Next Steps
+
+After collecting logs from these changes, we can:
+1. Identify exactly where and how the action data is being transformed
+2. Apply targeted fixes to ensure data integrity throughout the event flow
+3. Verify that both the Action Indicator and Battle Log display abilities correctly
+
+
+===== CHANGELOG_0.6.3.10_AbilityUIFixes =====
+
+# Technical Changelog: Version 0.6.3.10 - Ability UI & BattleBehaviors Fixes
+
+## Overview
+
+This update addresses issues where character abilities weren't displaying properly in the UI and adds extensive debugging instrumentation to diagnose and fix the problems. The primary issues fixed are:
+
+1. Character abilities not showing correctly in the Action Indicator (showed "Auto Attack" even when abilities were being used)
+2. Missing ability declarations in the Battle Log
+3. Enhanced diagnostics for BattleBehaviors system to troubleshoot why ability decisions weren't being used
+
+## Files Changed
+
+1. `js/battle_logic/abilities/ActionGenerator.js`
+2. `js/phaser/core/BattleEventManager.js`
+3. `js/battle_logic/core/BattleFlowController.js`
+4. `js/battle_logic/fallback/BattleBehaviors.js`
+
+## Detailed Changes
+
+### 1. ActionGenerator.js - Improved BattleBehaviors Integration
+
+Enhanced logging in `selectAbility()` method to:
+- Added a total of 12 detailed log points (NEW LOG A through NEW LOG L)
+- Track the full flow of ability selection decision making
+- Validate battleBehaviors object and methods
+- Report on decision logic selection and results
+- **Critical Fix**: Added early `return` if the behavior system provides a selection result to prevent the fallback logic from overriding it
+
+```javascript
+// Key changes:
+// Added early return to prevent fallback logic from running
+if (selectedAbility) {
+    console.log('[ActionGenerator.selectAbility] NEW LOG L - Setting cooldown for selected ability:', selectedAbility.name);
+    selectedAbility.currentCooldown = selectedAbility.cooldown || 3;
+    return selectedAbility; // Return immediately if behavior system provided a result
+}
+```
+
+### 2. BattleEventManager.js - Enhanced Action Handling
+
+Enhanced the `onCharacterAction()` method to:
+- Add comprehensive logging of the event data received
+- Validate the structure of the action object
+- Debug why action text was defaulting to "Auto Attack" even for abilities
+- Add detailed logging about action determination
+
+```javascript
+// Added detailed diagnostics for action text determination:
+console.log(`[BattleEventManager] Action object exists but didn't match criteria:`, {
+    actionType: data.action.actionType,
+    actionTypeIsAbility: data.action.actionType === 'ability',
+    hasAbilityName: !!data.action.abilityName,
+    abilityName: data.action.abilityName
+});
+
+console.log(`[BattleEventManager.onCharacterAction] Determined actionText for CharacterSprite: '${actionText}' based on type: '${data.action?.actionType}' and name: '${data.action?.abilityName}'`);
+```
+
+### 3. BattleFlowController.js - Added Proper Action Declarations
+
+Enhanced the `executeNextAction()` method to:
+- Add dedicated action declaration messages to the battle log
+- Generate targeted declarations based on action and target types
+- **Critical Fix**: Ensure all CHARACTER_ACTION events have consistent property structure by adding both `type` and `actionType` properties
+
+```javascript
+// Added for better action messaging
+if (action && action.actor) {
+    // Add team identifiers for clarity
+    const actorName = `${action.actor.name}${action.team === 'player' ? ' (ally)' : ' (enemy)'}`;
+    
+    // Create the message based on action type and target type
+    let actionDeclaration = "";
+    
+    if (action.useAbility && action.ability) {
+        // Format for different targeting scenarios
+        if (Array.isArray(action.target)) {
+            const targetCount = action.target.length;
+            actionDeclaration = `${actorName} uses [${action.ability.name}] on ${targetCount} targets!`;
+        } else {
+            const targetName = `${action.target.name}${action.target.team === 'player' ? ' (ally)' : ' (enemy)'}`;
+            actionDeclaration = `${actorName} uses [${action.ability.name}] on ${targetName}!`;
+        }
+    } else {
+        // Auto attack message
+        const targetName = action.target ? `${action.target.name}${action.target.team === 'player' ? ' (ally)' : ' (enemy)'}` : "target";
+        actionDeclaration = `${actorName} performs an auto attack on ${targetName}!`;
+    }
+    
+    // Log the action declaration
+    this.battleManager.logMessage(actionDeclaration, 'action');
+}
+```
+
+### 4. BattleBehaviors.js - First Line Logging
+
+Enhanced the `decideAction()` method to:
+- Add explicit first-line logging to confirm method is executing
+- Log the actor name for better context
+- Improve debugging of ability selection process
+
+```javascript
+console.log(`[DEBUG] BattleBehaviors.decideAction called... First line of the method`);
+console.log(`[DEBUG] Actor:`, context.actor ? context.actor.name : 'undefined');
+```
+
+## Technical Improvements
+
+1. **Data Flow Consistency**: 
+   - Ensured consistent property names in action objects (`type`/`actionType`, `name`/`abilityName`)
+   - Prevented fallback ability selection from overriding behavior system decisions
+
+2. **Improved Diagnostics**:
+   - Added 20+ strategic log points to trace execution flow
+   - Added object structure validation at critical decision points
+   - Enhanced readability of log messages with clearer prefixes and context
+
+3. **User Experience**:
+   - Battle log now properly shows which abilities are being used
+   - Character sprites now display the correct ability names over their heads
+
+## Root Cause Analysis
+
+The primary issues were:
+
+1. **ActionGenerator Selection Override**: The behavior system was selecting abilities correctly, but the method didn't return early, allowing fallback logic to potentially override the selection.
+
+2. **Inconsistent Action Properties**: The event flow used inconsistent property naming (`type` vs `actionType`, missing `abilityName`), causing the UI to default to "Auto Attack" display.
+
+3. **Missing Battle Log Declarations**: There was no specific code to announce ability usage in the battle log, only damage and effect outcomes.
+
+## Follow-Up Tasks
+
+1. Further testing of ability selection system with character-specific decision logic
+2. Potential refactoring of action event structure to standardize property names
+3. Simplify action declaration logic and consolidate messaging
+
+---
+
+This update addresses symptoms identified in version 0.6.3.8/9 and should significantly improve ability display and feedback to the player.
+
+

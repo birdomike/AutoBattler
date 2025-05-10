@@ -294,8 +294,10 @@ class ActionGenerator {
         }
         
         // 3. Debug logging
-        console.debug(`[ActionGenerator] ${character.name} has ${availableAbilities.length} available active abilities`);
-        console.log('[ActionGenerator.selectAbility] Available abilities:', availableAbilities.map(a => a.name));
+        if (window.VERBOSE_LOGGING) {
+            console.debug(`[ActionGenerator] ${character.name} has ${availableAbilities.length} available active abilities`);
+            console.log('[ActionGenerator.selectAbility] Available abilities:', availableAbilities.map(a => a.name));
+        }
         
         // 4. Try to use BattleBehaviors system for ability selection
         let selectedAbility = null;

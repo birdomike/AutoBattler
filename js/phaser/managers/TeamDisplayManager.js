@@ -184,10 +184,14 @@ class TeamDisplayManager {
         }
         
         try {
-            console.log(`TDM.updateActiveCharacterVisuals: Called for Turn Highlighting. Character: ${characterData.name}`);
+            if (window.VERBOSE_LOGGING) {
+                console.log(`TDM.updateActiveCharacterVisuals: Called for Turn Highlighting. Character: ${characterData.name}`);
+            }
             
             // Clear previous highlighting in all teams
-            console.log(`TDM.updateActiveCharacterVisuals: Attempting to clear indicators on TeamContainers.`);
+            if (window.VERBOSE_LOGGING) {
+                console.log(`TDM.updateActiveCharacterVisuals: Attempting to clear indicators on TeamContainers.`);
+            }
             if (this.playerTeamContainer) {
                 this.playerTeamContainer.clearAllHighlights();
             }
@@ -205,7 +209,9 @@ class TeamDisplayManager {
                 return false;
             }
             
-            console.log(`TDM.updateActiveCharacterVisuals: Attempting showTurnIndicator on ${characterData.team} TeamContainer for character ${characterData.name || characterData.id}.`);
+            if (window.VERBOSE_LOGGING) {
+                console.log(`TDM.updateActiveCharacterVisuals: Attempting showTurnIndicator on ${characterData.team} TeamContainer for character ${characterData.name || characterData.id}.`);
+            }
             
             // Show character highlight
             sprite.highlight();
@@ -249,7 +255,9 @@ class TeamDisplayManager {
                     xPos = teamContainer.container.x + sprite.container.x;
                     yPos = teamContainer.container.y + sprite.container.y;
                     
-                    console.log(`[TeamDisplayManager] Global position calculated: ${xPos}, ${yPos}`);
+                    if (window.VERBOSE_LOGGING) {
+                        console.log(`[TeamDisplayManager] Global position calculated: ${xPos}, ${yPos}`);
+                    }
                 } else {
                     console.warn("[TeamDisplayManager] Team container not found for sprite");
                     
@@ -297,10 +305,14 @@ class TeamDisplayManager {
             const fadeDuration = baseFadeDuration / speedMultiplier;
             
             // Use the turnIndicator's showAt method
-            console.log(`[TeamDisplayManager] Showing turn indicator at position ${xPos},${yPos}`);
+            if (window.VERBOSE_LOGGING) {
+                console.log(`[TeamDisplayManager] Showing turn indicator at position ${xPos},${yPos}`);
+            }
             this.turnIndicator.showAt(xPos, yPos, color, fadeDuration);
             
-            console.log(`[TeamDisplayManager] Turn indicator updated for ${sprite.character?.name} at position: ${xPos},${yPos}`);
+            if (window.VERBOSE_LOGGING) {
+                console.log(`[TeamDisplayManager] Turn indicator updated for ${sprite.character?.name} at position: ${xPos},${yPos}`);
+            }
         } catch (error) {
             console.error("[TeamDisplayManager] Error updating turn indicator:", error);
         }

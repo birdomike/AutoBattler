@@ -1,5 +1,20 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.4.0 (2025-05-09)
+
+### Added
+- Implemented verbose logging system with a simple global toggle
+- Added ability to control detailed console output at runtime via `window.VERBOSE_LOGGING`
+- Moved detailed diagnostic logs to conditional verbose mode
+
+### Improved
+- Reduced console clutter during normal development and testing
+- Transitioned detailed logs from ActionGenerator, TargetingSystem, TeamDisplayManager, TeamContainer, and ActionIndicator to verbose mode
+- Maintained critical warnings and errors as unconditional logs
+- Preserved all diagnostic information behind verbose flag for when needed
+
+*Note: For detailed implementation details, see CHANGELOG_0.6.4.0_VerboseLoggingImplementation.md*
+
 ## Version 0.6.3.20 (2025-05-09)
 
 ### Improved

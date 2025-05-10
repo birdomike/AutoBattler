@@ -12,22 +12,29 @@ class TeamContainer {
      * @returns {boolean} - True if a character was found and updated
      */
     updateCharacterHealth(characterId, newHealth, maxHealth) {
-
-        console.log(`TeamContainer.updateCharacterHealth: Updating ${typeof characterId === 'object' ? characterId?.name : characterId} to health ${newHealth}/${maxHealth}`);
-        
-        // Check if characterSprites is valid
-        if (!Array.isArray(this.characterSprites) || this.characterSprites.length === 0) {
-            console.warn('TeamContainer.updateCharacterHealth: No character sprites available');
-            return false;
-        }
-        
-        // Log available characters for debugging
-        console.log('Available characters in team:');
-        this.characterSprites.forEach(sprite => {
-            if (sprite && sprite.character) {
-                console.log(`- ${sprite.character.name} (id: ${sprite.character.id}, uniqueId: ${sprite.character.uniqueId}, team: ${sprite.character.team})`);
+        if (window.VERBOSE_LOGGING) {
+            console.log(`TeamContainer.updateCharacterHealth: Updating ${typeof characterId === 'object' ? characterId?.name : characterId} to health ${newHealth}/${maxHealth}`);
+            
+            // Check if characterSprites is valid
+            if (!Array.isArray(this.characterSprites) || this.characterSprites.length === 0) {
+                console.warn('TeamContainer.updateCharacterHealth: No character sprites available');
+                return false;
             }
-        });
+            
+            // Log available characters for debugging
+            console.log('Available characters in team:');
+            this.characterSprites.forEach(sprite => {
+                if (sprite && sprite.character) {
+                    console.log(`- ${sprite.character.name} (id: ${sprite.character.id}, uniqueId: ${sprite.character.uniqueId}, team: ${sprite.character.team})`);
+                }
+            });
+        } else {
+            // Check if characterSprites is valid without logging
+            if (!Array.isArray(this.characterSprites) || this.characterSprites.length === 0) {
+                console.warn('TeamContainer.updateCharacterHealth: No character sprites available');
+                return false;
+            }
+        }
         
         // Try to find character sprite using enhanced finding logic
 
@@ -36,8 +43,9 @@ class TeamContainer {
         
         if (!sprite) {
         } else {
-            
-            console.log(`TeamContainer: Updating ${sprite.character.name}'s health to ${newHealth}/${maxHealth}`);
+            if (window.VERBOSE_LOGGING) {
+                console.log(`TeamContainer: Updating ${sprite.character.name}'s health to ${newHealth}/${maxHealth}`);
+            }
             sprite.updateHealth(newHealth, maxHealth);
             return true;
         }
@@ -367,7 +375,9 @@ class TeamContainer {
      * @param {string|number} identifier - Character name or index
      */
     showTurnIndicator(identifier) {
-        console.log(`TC.showTurnIndicator: Called for Turn Highlighting with ID [${identifier}]. Attempting to find CharacterSprite.`);
+        if (window.VERBOSE_LOGGING) {
+            console.log(`TC.showTurnIndicator: Called for Turn Highlighting with ID [${identifier}]. Attempting to find CharacterSprite.`);
+        }
         let sprite;
 
         if (typeof identifier === 'number') {
@@ -376,7 +386,9 @@ class TeamContainer {
             sprite = this.getCharacterSpriteByName(identifier);
         }
         
-        console.log(`TC.showTurnIndicator: Found CharacterSprite: ${sprite ? `sprite for ${sprite.character?.name}` : 'null'}. Attempting to call sprite.highlight().`);
+        if (window.VERBOSE_LOGGING) {
+            console.log(`TC.showTurnIndicator: Found CharacterSprite: ${sprite ? `sprite for ${sprite.character?.name}` : 'null'}. Attempting to call sprite.highlight().`);
+        }
 
         if (sprite) {
             if (this.turnIndicatorInstance) {
@@ -394,7 +406,9 @@ class TeamContainer {
                 const indicatorY = sprite.container.y + bottomOffset;
                 const teamColor = this.isPlayerTeam ? 0x4488ff : 0xff4444; // Blue for player, Red for enemy
 
-                console.log(`TC.showTurnIndicator: Calling turnIndicatorInstance.showAt for ${sprite.character?.name} at (${indicatorX}, ${indicatorY}) with color ${teamColor.toString(16)}`);
+                if (window.VERBOSE_LOGGING) {
+                    console.log(`TC.showTurnIndicator: Calling turnIndicatorInstance.showAt for ${sprite.character?.name} at (${indicatorX}, ${indicatorY}) with color ${teamColor.toString(16)}`);
+                }
                 const fadeInTime = 250; // ms - for smooth fade-in
                 this.turnIndicatorInstance.showAt(indicatorX, indicatorY, teamColor, fadeInTime);
             } else {
@@ -413,7 +427,9 @@ class TeamContainer {
             return; 
         }
         
-        console.log(`TC.clearAllHighlights: Called for ${this.isPlayerTeam ? 'player' : 'enemy'} team, clearing highlights for ${this.characterSprites.length} sprites.`);
+        if (window.VERBOSE_LOGGING) {
+            console.log(`TC.clearAllHighlights: Called for ${this.isPlayerTeam ? 'player' : 'enemy'} team, clearing highlights for ${this.characterSprites.length} sprites.`);
+        }
         
         // Unhighlight all characters in this team
         this.characterSprites.forEach((sprite, index) => {
@@ -434,14 +450,18 @@ class TeamContainer {
         }
         
         if (this.turnIndicatorInstance) {
-            console.log(`TC.clearTurnIndicators: Hiding turnIndicatorInstance for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team.`);
+            if (window.VERBOSE_LOGGING) {
+                console.log(`TC.clearTurnIndicators: Hiding turnIndicatorInstance for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team.`);
+            }
             const fadeOutTime = 250; // ms - for smooth fade-out
             this.turnIndicatorInstance.hide(fadeOutTime); 
         } else {
             console.warn(`TC.clearTurnIndicators: turnIndicatorInstance is null for ${this.isPlayerTeam ? 'Player' : 'Enemy'} team. Cannot hide indicator.`);
         }
         
-        console.log(`TC.clearTurnIndicators: Clearing turn indicators for ${this.isPlayerTeam ? 'player' : 'enemy'} team with ${this.characterSprites.length} sprites.`);
+        if (window.VERBOSE_LOGGING) {
+            console.log(`TC.clearTurnIndicators: Clearing turn indicators for ${this.isPlayerTeam ? 'player' : 'enemy'} team with ${this.characterSprites.length} sprites.`);
+        }
         
         // The following code is commented out as turnIndicatorInstance.hide() now handles the primary visual effect
         // Keeping as a reference for now

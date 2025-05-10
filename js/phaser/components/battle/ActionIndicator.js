@@ -10,8 +10,10 @@ class ActionIndicator {
      * @param {CharacterSprite} parent - The character sprite this indicator is attached to
      */
     constructor(scene, parent) {
-        // DIAGNOSTIC: Check parent character
-        console.log(`ActionIndicator constructor called for character: ${parent?.character?.name || 'unknown'}`);
+        // Log to verbose
+        if (window.VERBOSE_LOGGING) {
+            console.log(`ActionIndicator constructor called for character: ${parent?.character?.name || 'unknown'}`);
+        }
 
         this.scene = scene;
         this.parent = parent;
@@ -52,7 +54,9 @@ class ActionIndicator {
         
         // Add to the parent's container if it exists, otherwise directly to scene
         if (this.parent.container) {
-            console.log(`ActionIndicator.initialize: Adding text to parent container for ${this.parent?.character?.name}`);
+            if (window.VERBOSE_LOGGING) {
+                console.log(`ActionIndicator.initialize: Adding text to parent container for ${this.parent?.character?.name}`);
+            }
             this.parent.container.add(this.text);
             
             // Since we're adding to the container, position is relative to container origin (0,0)
@@ -82,7 +86,9 @@ class ActionIndicator {
             this.text.setPosition(xPos, yPos);
         }
         
-        console.log(`ActionIndicator.updatePosition: Updated for ${this.parent?.character?.name}, text position: (${this.text.x}, ${this.text.y}), parent has container: ${this.parent?.container ? 'yes' : 'no'}`);
+        if (window.VERBOSE_LOGGING) {
+            console.log(`ActionIndicator.updatePosition: Updated for ${this.parent?.character?.name}, text position: (${this.text.x}, ${this.text.y}), parent has container: ${this.parent?.container ? 'yes' : 'no'}`);
+        }
     }
     
     /**
@@ -91,7 +97,9 @@ class ActionIndicator {
      * @param {object} options - Optional configuration for the animation
      */
     showAction(actionText, options = {}) {
-        console.log(`ActionIndicator.showAction: Called with text: '${actionText}' for character: ${this.parent?.character?.name || 'unknown'}. Text position before update: (${this.text?.x}, ${this.text?.y}). Parent container exists: ${this.parent?.container ? 'yes' : 'no'}`);
+        if (window.VERBOSE_LOGGING) {
+            console.log(`ActionIndicator.showAction: Called with text: '${actionText}' for character: ${this.parent?.character?.name || 'unknown'}. Text position before update: (${this.text?.x}, ${this.text?.y}). Parent container exists: ${this.parent?.container ? 'yes' : 'no'}`);
+        }
         
         // Default options
         const config = {
@@ -114,8 +122,10 @@ class ActionIndicator {
         // Make sure position is correct before animation
         this.updatePosition();
         
-        // Log the current position
-        console.log(`ActionIndicator.showAction: Text position after update: (${this.text.x}, ${this.text.y}) for character: ${this.parent?.character?.name || 'unknown'}`);
+        // Log the current position to verbose
+        if (window.VERBOSE_LOGGING) {
+            console.log(`ActionIndicator.showAction: Text position after update: (${this.text.x}, ${this.text.y}) for character: ${this.parent?.character?.name || 'unknown'}`);
+        }
         
         // Store original y position
         const startY = this.text.y;
