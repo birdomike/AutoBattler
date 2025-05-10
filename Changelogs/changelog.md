@@ -1,5 +1,12 @@
 # AutoBattler Game Changelog
 
+## Version 0.6.3.22 (2025-05-09)
+
+### Fixed
+- Battle UI "Turn 0" display issue where turn number wasn't updating properly in the battle header.
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.22_TurnDisplayFix.md*
+
 ## Version 0.6.4.0 (2025-05-09)
 
 ### Added

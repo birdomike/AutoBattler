@@ -254,9 +254,22 @@ class BattleEventManager {
         if (!data || !this.scene) return;
 
         try {
-            // Update turn number display
-            if (this.scene.updateTurnNumberDisplay) {
-                this.scene.updateTurnNumberDisplay(data.turnNumber);
+            // Update turn number display using UIManager
+            if (this.scene.uiManager && typeof this.scene.uiManager.updateTurnNumberDisplay === 'function') {
+                console.log(`[BattleEventManager] Updating turn number display to ${data.turnNumber}`);
+                this.scene.uiManager.updateTurnNumberDisplay(data.turnNumber);
+            } else {
+                console.warn("[BattleEventManager] Cannot update turn display - scene.uiManager not available or missing updateTurnNumberDisplay method");
+                // Fallback to legacy method if available
+                if (this.scene.updateTurnNumberDisplay) {
+                    this.scene.updateTurnNumberDisplay(data.turnNumber);
+                }
+            }
+            
+            // Also update the scene's battleState for consistency
+            if (this.scene.battleState) {
+                this.scene.battleState.currentTurn = data.turnNumber;
+                console.log(`[BattleEventManager] Updated scene.battleState.currentTurn to ${data.turnNumber}`);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling turn started:", error);
