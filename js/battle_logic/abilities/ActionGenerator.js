@@ -456,9 +456,21 @@ class ActionGenerator {
             };
         }
         
-        // Use DamageCalculator if available
+        // Extract the damage effect from ability's effects array (if applicable)
+        let damageEffect = null;
+        if (ability && ability.effects && Array.isArray(ability.effects)) {
+            // Find the first damage effect in the array
+            damageEffect = ability.effects.find(effect => 
+                (effect.type === 'Damage' || effect.type === 'damage'));
+                
+            if (damageEffect) {
+                console.log(`[ActionGenerator] Found damage effect for ${ability.name} with scaleFactor: ${damageEffect.scaleFactor}`);
+            }
+        }
+        
+        // Use DamageCalculator if available - NOW PASSING THE DAMAGE EFFECT
         if (this.damageCalculator) {
-            return this.damageCalculator.calculateDamage(attacker, target, ability);
+            return this.damageCalculator.calculateDamage(attacker, target, ability, damageEffect);
         }
         
         // Fallback to BattleManager's method if DamageCalculator not available

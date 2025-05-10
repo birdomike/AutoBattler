@@ -1,3 +1,13 @@
+## Version 0.6.3.32 (May 10, 2025)
+
+### Fixed
+- Fixed AoE ability scaling factor issue in ActionGenerator - abilities like Frost Chain now correctly use their effect-specific scaling factors
+- Modified ActionGenerator to properly extract and pass damage effects to DamageCalculator
+- Ensures correct stat scaling text appears in battle log (+58 from Intellect for Frost Chain instead of +73)
+- Improves ability balance by using the intended scaling factors for all AoE abilities
+
+*Note: For detailed information on implementation, see CHANGELOG_0.6.3.32_ActionGeneratorScalingFactorFix.md*
+
 ## Version 0.6.3.31 (May 10, 2025)
 
 ### Improved
@@ -60,18 +70,3 @@
 - Added fallback inference for edge cases where action context is unavailable
 
 *Note: For detailed information on implementation, see CHANGELOG_0.6.3.26_ActionIndicatorContextAwareFix.md*
-
-## Version 0.6.3.25 (May 10, 2025)
-
-### Fixed
-- Fixed AoE ability name display in action indicators - abilities now show their correct names instead of "Auto Attack" during animations
-- Removed hardcoded "Auto Attack" text setting in character attack animations
-- Multi-target abilities like "Tidal Wave" and "Frost Chain" properly display their names above characters
-
-*Note: For detailed information on implementation, see CHANGELOG_0.6.3.25_AoEAbilityTextFix.md*
-
-## Version 0.6.3.24 (May 10, 2025)
-
-### Technical
-- [UNAUTHORIZED] Added extensive debugging code for AoE ability display investigation
-- Added call stack tracking in Char
