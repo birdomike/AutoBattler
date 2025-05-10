@@ -1,3 +1,23 @@
+## Version 0.6.3.24 (May 10, 2025)
+
+### Technical
+- [UNAUTHORIZED] Added extensive debugging code for AoE ability display investigation
+- Added call stack tracking in CharacterSprite and ActionIndicator
+- Added event timeline logging in BattleBridge
+- Added detailed output for ability text display
+
+*Note: For detailed information on these unauthorized changes, see CHANGELOG_0.6.3.24_UnauthorizedDebuggingAdditions.md*
+
+## Version 0.6.3.23 (May 10, 2025)
+
+### Technical
+- Added fix for AoE ability display bug (still investigating)
+- Improved handling of multi-target abilities in BattleFlowController and AbilityProcessor
+- Enhanced prevention of duplicate Character Action events in BattleBridge
+- Added extended diagnostic logging for ability display debugging
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.23_AoEAbilityDisplayFix.md*
+
 # AutoBattler Game Changelog
 
 ## Version 0.6.3.22 (2025-05-09)

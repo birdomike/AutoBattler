@@ -97,6 +97,9 @@ class ActionIndicator {
      * @param {object} options - Optional configuration for the animation
      */
     showAction(actionText, options = {}) {
+        console.log(`[DETAILED DEBUG] ActionIndicator.showAction called with text '${actionText}' for ${this.parent?.character?.name}`);
+        console.log(`[DETAILED DEBUG] Call stack:`, new Error().stack);
+        
         if (window.VERBOSE_LOGGING) {
             console.log(`ActionIndicator.showAction: Called with text: '${actionText}' for character: ${this.parent?.character?.name || 'unknown'}. Text position before update: (${this.text?.x}, ${this.text?.y}). Parent container exists: ${this.parent?.container ? 'yes' : 'no'}`);
         }
@@ -173,6 +176,7 @@ class ActionIndicator {
      * Show auto attack action
      */
     showAutoAttack() {
+        console.log(`[DETAILED DEBUG] ActionIndicator.showAutoAttack called for ${this.parent?.character?.name}`);
         this.showAction('Auto Attack', {
             color: '#f0f0f0' // Light grey color
         });
@@ -183,6 +187,7 @@ class ActionIndicator {
      * @param {string} abilityName - The name of the ability
      */
     showAbility(abilityName) {
+        console.log(`[DETAILED DEBUG] ActionIndicator.showAbility called with name '${abilityName}' for ${this.parent?.character?.name}`);
         this.showAction(abilityName, {
             color: '#42f5a7' // Light green color for abilities
         });

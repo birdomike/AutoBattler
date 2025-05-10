@@ -42,8 +42,16 @@ class AbilityProcessor {
         if (Array.isArray(action.target)) {
             // Process each target individually
             for (const target of action.target) {
-                // Create a single-target version of the action
-                const singleAction = {...action, target};
+                // Create a single-target version of the action with proper ability properties
+                const singleAction = {
+                    ...action, 
+                    target,
+                    // Explicitly copy these properties to ensure they propagate correctly for AoE abilities
+                    actionType: action.actionType || (action.useAbility ? 'ability' : 'autoAttack'),
+                    abilityName: action.useAbility && action.ability ? action.ability.name : 'Auto Attack',
+                    // Mark this as a sub-action from an AoE ability to prevent duplicate CHARACTER_ACTION events
+                    _isAoeSubAction: true
+                };
                 this.applyActionEffect(singleAction);
             }
             return;

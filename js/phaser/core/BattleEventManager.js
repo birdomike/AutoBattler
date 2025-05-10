@@ -427,7 +427,13 @@ class BattleEventManager {
     if (!data || !data.character || !this.scene) return;
 
     try {
-
+        // Diagnostic logging to debug AoE ability display bug
+        console.log(`[BattleEventManager.onCharacterAction] Received action data:`, {
+            character: data.character?.name,
+            actionType: data.action?.actionType,
+            abilityName: data.action?.abilityName,
+            isSubAction: data.action?._isAoeSubAction
+        });
     
     
     // Update active character visuals using TeamDisplayManager if available
@@ -453,13 +459,18 @@ class BattleEventManager {
             // If we have an action with an actionType and abilityName, use them
             if (data.action && data.action.actionType === 'ability' && data.action.abilityName) {
                 actionText = `${data.action.abilityName}`;
+                console.log(`[BattleEventManager.onCharacterAction] Using ability name: ${data.action.abilityName}`);
             } else {
+                console.log(`[BattleEventManager.onCharacterAction] Using default: Auto Attack`);
             }
             
 
             
             if (characterSprite && characterSprite.showActionText) {
                 characterSprite.showActionText(actionText);
+                console.log(`[BattleEventManager.onCharacterAction] Calling showActionText with: ${actionText}`);
+            } else {
+                console.warn(`[BattleEventManager.onCharacterAction] Could not show action text - missing characterSprite or showActionText method`);
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling character action:", error);

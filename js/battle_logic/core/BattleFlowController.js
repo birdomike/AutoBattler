@@ -530,7 +530,15 @@ class BattleFlowController {
                 const target = action.target[i];
                 
                 // Create a single-target version of the action
-                const singleAction = {...action, target};
+                const singleAction = {
+            ...action, 
+            target,
+            // Explicitly copy these properties to ensure they propagate correctly for AoE abilities
+            actionType: action.actionType || (action.useAbility ? 'ability' : 'autoAttack'),
+            abilityName: action.useAbility && action.ability ? action.ability.name : 'Auto Attack',
+            // Mark this as a sub-action from an AoE ability to prevent duplicate CHARACTER_ACTION events
+            _isAoeSubAction: true
+        };
                 
                 // HOTFIX8: Use pre-calculated damage if available
                 if (action.isMultiTarget && action.targetDamages && action.targetDamages[i]) {

@@ -283,6 +283,9 @@ class CharacterSprite {
      * @param {string} actionText - The action being performed
      */
     showActionText(actionText) {
+        console.log(`[DETAILED DEBUG] CharacterSprite.showActionText called for ${this.character?.name} with text '${actionText}'`);
+        console.log(`[DETAILED DEBUG] Call stack:`, new Error().stack);
+        
         console.log(`CS.showActionText: Called for ${this.character?.name} with text: '${actionText}'. this.actionIndicator instance is ${this.actionIndicator ? 'defined' : 'undefined'}.`);
         
         try {
@@ -626,6 +629,14 @@ class CharacterSprite {
      * @param {Function} onComplete - Callback when animation completes
      */
     showAttackAnimation(targetSprite, onComplete) {
+        console.log(`[DETAILED DEBUG] CharacterSprite.showAttackAnimation called for ${this.character?.name} targeting ${targetSprite?.character?.name}`);
+        console.log(`[DETAILED DEBUG] Character ability info:`, {
+            lastUsedAbility: this.character?.lastUsedAbility || 'unknown',
+            isAoE: this.character?.lastUsedAbility?.isAoE || false,
+            targetType: this.character?.lastUsedAbility?.targetType || 'unknown',
+            abilityName: this.character?.lastUsedAbility?.name || 'unknown'
+        });
+         
          if (!this.character || !targetSprite || !targetSprite.character) {
              console.error(`[CharacterSprite] showAttackAnimation: Attacker or Target character data missing! Attacker: ${this.character?.name}, TargetSprite valid: ${!!targetSprite}`);
              if (onComplete) onComplete();

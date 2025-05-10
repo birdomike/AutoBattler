@@ -126,6 +126,11 @@ class BattleBridge {
      * @param {Object} data - The event data
      */
     dispatchEvent(eventType, data) {
+        // Add event timeline tracking for CHARACTER_ACTION events
+        if (eventType === this.eventTypes.CHARACTER_ACTION) {
+            console.log(`[EVENT TIMELINE] ${Date.now()} - CHARACTER_ACTION for ${data.character?.name} - Type: ${data.action?.actionType}, Name: ${data.action?.abilityName}, IsSubAction: ${data.action?._isAoeSubAction}`);
+        }
+
         console.log(`BattleBridge: Dispatching event ${eventType}`, data);
         
         if (!this.eventListeners[eventType]) {
@@ -391,8 +396,9 @@ class BattleBridge {
                     console.log('BattleBridge: applyActionEffect patched method called for:', 
                                action?.actor?.name, 'targeting', action?.target?.name);
                     
-                    // Dispatch CHARACTER_ACTION event before applying the effect
-                    if (action.actor && action.actionType) {
+                    // Only dispatch CHARACTER_ACTION event if this isn't a sub-action from an AoE ability
+                    // Multi-target actions are already dispatched by BattleFlowController
+                    if (action.actor && action.actionType && !action._isAoeSubAction) {
                         const eventType = self.eventTypes.CHARACTER_ACTION;
                         const eventData = {
                             character: action.actor,
