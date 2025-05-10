@@ -5,6 +5,52 @@
  * These functions define how passive abilities trigger and what effects they apply.
  */
 
+/**
+ * Helper function to apply status effects through StatusEffectManager
+ * Falls back to BattleManager.addStatusEffect if StatusEffectManager isn't accessible
+ * 
+ * @param {Object} battleManager - Reference to BattleManager
+ * @param {Object} character - Character to apply the effect to
+ * @param {string} effectId - ID of the effect to apply
+ * @param {Object|null} source - Character causing the effect (or null if no specific source)
+ * @param {number} duration - How many turns the effect lasts
+ * @param {number} stacks - Number of stacks to apply (for stackable effects)
+ * @returns {boolean} - Whether the effect was successfully applied
+ */
+function applyStatusEffect(battleManager, character, effectId, source, duration, stacks = 1) {
+    // Parameter validation
+    if (!battleManager || !character || !effectId) {
+        console.warn('[PassiveBehaviors.applyStatusEffect] Missing required parameters', { 
+            hasBattleManager: !!battleManager, 
+            hasCharacter: !!character, 
+            effectId 
+        });
+        return false;
+    }
+    
+    // Ensure duration is a number
+    if (typeof duration !== 'number') {
+        console.warn(`[PassiveBehaviors.applyStatusEffect] Invalid duration (${typeof duration}) for ${effectId} - using default 3`);
+        duration = 3;
+    }
+    
+    // Try to use StatusEffectManager first
+    if (battleManager.statusEffectManager) {
+        console.log(`[PassiveBehaviors] Using StatusEffectManager.addStatusEffect for ${effectId}`);
+        return battleManager.statusEffectManager.addStatusEffect(character, effectId, source, duration, stacks);
+    } else if (typeof battleManager.getStatusEffectManager === 'function') {
+        const statusEffectManager = battleManager.getStatusEffectManager();
+        if (statusEffectManager) {
+            console.log(`[PassiveBehaviors] Using getStatusEffectManager().addStatusEffect for ${effectId}`);
+            return statusEffectManager.addStatusEffect(character, effectId, source, duration, stacks);
+        }
+    }
+    
+    // Fall back to BattleManager.addStatusEffect
+    console.log(`[PassiveBehaviors] StatusEffectManager not accessible, falling back to BattleManager.addStatusEffect for ${effectId}`);
+    return battleManager.addStatusEffect(character, effectId, source, duration, stacks);
+}
+
 import behaviorRegistry from './BehaviorRegistry.js';
 
 /**
@@ -62,7 +108,8 @@ function passive_ApplyRegenOnTurnStart(context) {
     // v0.5.27.4_StatusEffectParameterFix: Adding sourceId check and ensuring actor is passed as source
     // This function was showing as error source for 'Invalid duration parameter (object)'
     // Updated to use consistent 5-parameter format with explicit stacks
-    battleManager.addStatusEffect(actor, 'status_regen', actor, 2, 1);
+    // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+    applyStatusEffect(battleManager, actor, 'status_regen', actor, 2, 1);
     
     return {
         executed: true,
@@ -159,7 +206,8 @@ function passive_ApplyStatusOnHit(context) {
     // Random chance to apply status
     if (Math.random() < chance) {
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
-        battleManager.addStatusEffect(source, statusId, actor, duration);
+        // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+        applyStatusEffect(battleManager, source, statusId, actor, duration, 1);
         
         return {
             executed: true,
@@ -231,7 +279,8 @@ function passive_TeamBuffOnBattleStart(context) {
         
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
         // Updated to use consistent 5-parameter format with explicit stacks
-        battleManager.addStatusEffect(ally, statusId, actor, effectDuration, 1);
+        // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+        applyStatusEffect(battleManager, ally, statusId, actor, effectDuration, 1);
         applied++;
     });
     
@@ -258,7 +307,8 @@ function passive_CriticalMomentum(context) {
     // Apply critical chance buff
     // FIXED (v0.5.27.3_CircularReferenceHotfix): Added actor as source parameter
     // Updated to use consistent 5-parameter format with explicit stacks
-    battleManager.addStatusEffect(actor, 'status_crit_up', actor, 2, 1);
+    // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+    applyStatusEffect(battleManager, actor, 'status_crit_up', actor, 2, 1);
     
     return {
         executed: true,
@@ -280,7 +330,8 @@ function passive_KillBuff(context) {
     // Apply attack up buff after a kill
     // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
     // Updated to use consistent 5-parameter format with explicit stacks
-    battleManager.addStatusEffect(actor, 'status_atk_up', actor, 2, 1);
+    // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+    applyStatusEffect(battleManager, actor, 'status_atk_up', actor, 2, 1);
     
     return {
         executed: true,
@@ -317,7 +368,8 @@ function passive_LastStand(context) {
         // Apply defense buff
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
         // Updated to use consistent 5-parameter format with explicit stacks
-        battleManager.addStatusEffect(actor, 'status_def_up', actor, 2, 1);
+        // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+        applyStatusEffect(battleManager, actor, 'status_def_up', actor, 2, 1);
         
         return {
             executed: true,
@@ -375,7 +427,8 @@ function passive_ProtectiveInstinct(context) {
         for (let i = 0; i < Math.min(2, allies.length); i++) {
             // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
             // Updated to use consistent 5-parameter format with explicit stacks
-            battleManager.addStatusEffect(allies[i], 'status_shield', actor, 1, 1);
+            // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+            applyStatusEffect(battleManager, allies[i], 'status_shield', actor, 1, 1);
             protectedCount++;
         }
         
@@ -480,7 +533,8 @@ function passive_Intimidate(context) {
         // Apply status effect
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
         // Updated to use consistent 5-parameter format with explicit stacks
-        battleManager.addStatusEffect(target, statusId, actor, duration, 1);
+        // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+        applyStatusEffect(battleManager, target, statusId, actor, duration, 1);
         
         return {
             executed: true,
@@ -529,7 +583,8 @@ function passive_OnKillEffect(context) {
             // Apply a status buff to self
             // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
             // Updated to use consistent 5-parameter format with explicit stacks
-            battleManager.addStatusEffect(actor, statusId, actor, duration, 1);
+            // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+            applyStatusEffect(battleManager, actor, statusId, actor, duration, 1);
             
             return {
                 executed: true,
@@ -598,8 +653,9 @@ function passive_CriticalHitBoost(context) {
     // Apply critical hit buff
     // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
     // Fixed: Use consistent 5-parameter format with numeric stacks
+    // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
     let stackCount = (typeof bonusAmount === 'number' && bonusAmount > 0) ? Math.ceil(bonusAmount) : 1;
-    battleManager.addStatusEffect(actor, 'status_crit_up', actor, duration, stackCount);
+    applyStatusEffect(battleManager, actor, 'status_crit_up', actor, duration, stackCount);
     
     return {
         executed: true,
@@ -637,7 +693,8 @@ function passive_StatusOnHit(context) {
         // Apply the status effect
         // FIXED (v0.5.27.2_FixStatusEffectCalls): Added actor as source parameter
         // Updated to use consistent 5-parameter format with explicit stacks
-        battleManager.addStatusEffect(target, statusId, actor, duration, 1);
+        // v0.6.3.36_StatusEffectRoutingFix: Route through StatusEffectManager via helper function
+        applyStatusEffect(battleManager, target, statusId, actor, duration, 1);
         
         // Get a readable name for the status
         let statusName = statusId;

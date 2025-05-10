@@ -1,3 +1,20 @@
+## Version 0.6.3.37 (May 10, 2025)
+
+### Fixed
+- Fixed status effect warning issue in PassiveBehaviors.js by routing all effects through StatusEffectManager
+- Eliminated "Creating minimal fallback for status effect" console warnings from passive abilities
+- Enhanced PassiveBehaviors.js with centralized status effect handling
+- Improved status effect tooltips for passive-applied effects
+
+### Technical
+- Implemented new applyStatusEffect helper function in PassiveBehaviors.js
+- Modified 11 passive behavior functions to use the helper function
+- Added comprehensive error handling and fallbacks for status effect application
+- Created robust routing to ensure status effect definitions are properly propagated
+- Maintained architectural principle that StatusEffectManager should be the consistent point of entry for status effects
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.37_PassiveBehaviorsStatusEffectRoutingFix.md*
+
 ## Version 0.6.3.36 (May 10, 2025)
 
 ### Improved
