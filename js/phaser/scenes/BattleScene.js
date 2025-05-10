@@ -696,6 +696,7 @@ export default class BattleScene extends Phaser.Scene {
                 console.log(`[BattleScene] showAttackAnimation: Created inferred actionContext:`, actionContext);
             }
 
+            console.log(`[BattleScene] showAttackAnimation: Calling attackerSprite.showAttackAnimation with actionContext:`, actionContext);
             attackerSprite.showAttackAnimation(targetSprite, onComplete, actionContext);
         } catch (error) {
             console.error('[BattleScene] Error showing attack animation:', error);
