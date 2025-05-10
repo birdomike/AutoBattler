@@ -1,3 +1,13 @@
+## Version 0.6.3.27 (May 10, 2025)
+
+### Fixed
+- Fixed error "[PassiveAbilityManager] Invalid character: missing name property" at the end of battles
+- Corrected parameter order in BattleFlowController.endBattle() for processPassiveAbilities call
+- Added 'onBattleEnd' to the globalTriggers array in PassiveAbilityManager
+- Ensured proper handling of end-of-battle passive abilities
+
+*Note: For detailed information on implementation, see CHANGELOG_0.6.3.27_PassiveAbilityManagerErrorFix.md*
+
 ## Version 0.6.3.26 (May 10, 2025)
 
 ### Improved

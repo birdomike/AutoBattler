@@ -918,7 +918,7 @@ const enemyDefeated = this.battleManager.enemyTeam.filter(char => char.isDefeate
         clearTimeout(this.battleManager.turnTimer);
         
         // Delegate end-of-battle passive processing
-        this.battleManager.processPassiveAbilities('onBattleEnd', { result });
+        this.battleManager.processPassiveAbilities('onBattleEnd', null, { result });
         
         // Log battle result
         const resultMessages = {

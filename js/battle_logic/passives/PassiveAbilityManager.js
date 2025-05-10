@@ -85,7 +85,7 @@ class PassiveAbilityManager {
         }
         
         // Define which triggers are global and should be processed for all characters
-        const globalTriggers = ['onTurnStart', 'onTurnEnd'];
+        const globalTriggers = ['onTurnStart', 'onTurnEnd', 'onBattleEnd'];
         
         // Check if this is a global trigger and character is null
         if (character === null && globalTriggers.includes(trigger)) {
