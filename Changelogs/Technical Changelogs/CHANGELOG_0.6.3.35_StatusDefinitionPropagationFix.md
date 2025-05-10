@@ -36,6 +36,7 @@ The solution directly addresses the root cause by modifying `StatusEffectManager
    - After successfully creating or updating a status effect, it now calls the new dispatch method
    - Passes the full status definition that was already retrieved earlier in the method
    - Uses appropriate context data (character, stacks, duration, source) for complete event information
+   - **Bug Fix**: Fixed variable scope issue for new effects by using conditional dispatch to handle different code paths correctly
 
 ## Implementation Details
 
@@ -75,13 +76,19 @@ dispatchStatusEffectApplied(character, statusId, duration, definition, stacks = 
 }
 ```
 
-Modified the existing `addStatusEffect` method to call this at the appropriate point:
+Modified the existing `addStatusEffect` method to properly handle both existing and new effect code paths:
 
 ```javascript
-// After successfully adding/updating the effect...
 // MODIFIED v0.6.3.35_StatusDefinitionPropagationFix: Dispatch STATUS_EFFECT_APPLIED event with full definition
-const effectToUse = existingEffect || newEffect;
-this.dispatchStatusEffectApplied(character, effectId, effectToUse.duration, definition, effectToUse.stacks || 1, source);
+// Use the appropriate effect object based on which code path was taken
+if (existingEffect) {
+    // For existing effects, use existingEffect with updated properties
+    this.dispatchStatusEffectApplied(character, effectId, existingEffect.duration, definition, existingEffect.stacks || 1, source);
+} else {
+    // For new effects, we can use duration and stacks directly since we just created it
+    // The newEffect variable is scoped inside the else block above and not accessible here
+    this.dispatchStatusEffectApplied(character, effectId, duration, definition, stacks, source);
+}
 ```
 
 ## Implementation Benefits
@@ -98,6 +105,8 @@ this.dispatchStatusEffectApplied(character, effectId, effectToUse.duration, defi
 
 6. **Eliminates Console Warnings**: The fix removes the "Creating minimal fallback" console warnings by providing proper definitions.
 
+7. **Addresses Variable Scope**: The final implementation correctly handles code path differences without causing variable scope issues.
+
 ## Testing Verification
 
 Testing involved:
@@ -106,6 +115,7 @@ Testing involved:
 2. Verifying that no "Creating minimal fallback for status effect" warnings appear in the console
 3. Checking that status effect tooltips display properly with complete information
 4. Validating that this fix doesn't break existing status effect application logic
+5. Testing with different status effect code paths (existing effects vs. new effects)
 
 ## Lessons Learned
 
@@ -116,5 +126,9 @@ Testing involved:
 3. **Architectural Clarity**: Component responsibilities should be clearly defined - StatusEffectManager should handle all aspects of status effect data, including event payload preparation.
 
 4. **Defensive Coding**: Including thorough validation and multiple fallback mechanisms creates more resilient event-driven systems.
+
+5. **Variable Scope Management**: When working with conditionally created variables in complex methods, always ensure references are valid in all code paths.
+
+6. **Separate Code Paths**: Handle each code path independently to avoid assuming variables defined in one path are available in another.
 
 This fix demonstrates how respecting the architectural principle that "components should enrich data they own before propagating it" leads to more robust and maintainable code.

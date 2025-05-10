@@ -5,12 +5,14 @@
 - Eliminated "Creating minimal fallback for status effect" console warnings
 - Improved tooltip display for passive-applied status effects
 - Enhanced StatusEffectManager to properly include full definitions in events
+- Fixed variable scope issue causing ReferenceError with passive abilities
 
 ### Technical
 - Implemented new dispatchStatusEffectApplied method in StatusEffectManager
 - Added multiple dispatch fallback mechanisms for compatibility
 - Maintained component-responsibility principles in the event system
 - Created complete event payload with all necessary status effect data
+- Properly handled different code paths for existing vs. new status effects
 
 *Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.35_StatusDefinitionPropagationFix.md*
 

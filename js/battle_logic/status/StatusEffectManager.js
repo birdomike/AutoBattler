@@ -179,10 +179,16 @@ class StatusEffectManager {
             );
         }
         
-        // MODIFIED v0.6.3.32_StatusDefinitionPropagationFix: Dispatch STATUS_EFFECT_APPLIED event with full definition
-        // The existing or newly created effect has the correct stacks and sourceId
-        const effectToUse = existingEffect || newEffect;
-        this.dispatchStatusEffectApplied(character, effectId, effectToUse.duration, definition, effectToUse.stacks || 1, source);
+        // MODIFIED v0.6.3.35_StatusDefinitionPropagationFix: Dispatch STATUS_EFFECT_APPLIED event with full definition
+        // Use the appropriate effect object based on which code path was taken
+        if (existingEffect) {
+            // For existing effects, use existingEffect with updated properties
+            this.dispatchStatusEffectApplied(character, effectId, existingEffect.duration, definition, existingEffect.stacks || 1, source);
+        } else {
+            // For new effects, we can use duration and stacks directly since we just created it
+            // The newEffect variable is scoped inside the else block above and not accessible here
+            this.dispatchStatusEffectApplied(character, effectId, duration, definition, stacks, source);
+        }
         
         // Dispatch event to update UI
         this.updateStatusIcons(character);
