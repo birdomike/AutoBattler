@@ -1,3 +1,12 @@
+## Version 0.6.3.25 (May 10, 2025)
+
+### Fixed
+- Fixed AoE ability name display in action indicators - abilities now show their correct names instead of "Auto Attack" during animations
+- Removed hardcoded "Auto Attack" text setting in character attack animations
+- Multi-target abilities like "Tidal Wave" and "Frost Chain" properly display their names above characters
+
+*Note: For detailed information on implementation, see CHANGELOG_0.6.3.25_AoEAbilityTextFix.md*
+
 ## Version 0.6.3.24 (May 10, 2025)
 
 ### Technical

@@ -664,8 +664,9 @@ class CharacterSprite {
           }
 
         try { // Added try...catch
-            // Show auto attack action indicator
-            this.showActionText('Auto Attack');
+            // REMOVED: No longer force 'Auto Attack' text for all animations
+            // this.showActionText('Auto Attack');
+            // This line was causing AoE abilities to display 'Auto Attack' instead of their actual name
             
             // --- Get GLOBAL position of the attacker's container ---
             let attackerGlobalPos = new Phaser.Math.Vector2();
