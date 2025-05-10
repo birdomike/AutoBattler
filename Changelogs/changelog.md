@@ -1,3 +1,13 @@
+## Version 0.6.3.28 (May 10, 2025)
+
+### Fixed
+- Fixed an issue where abilities with effect-specific scaling factors (like Frost Chain) were using default values instead of their defined values
+- Implemented hierarchical checking for ability scaling factors: effect-level → ability-level → default
+- Added diagnostic logging to verify correct scaling factors are being applied
+- This addresses a balance issue where abilities like Frost Chain were doing more damage than intended due to incorrect scaling
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.28_AbilityScalingFactorFix.md*
+
 ## Version 0.6.3.27 (May 10, 2025)
 
 ### Fixed

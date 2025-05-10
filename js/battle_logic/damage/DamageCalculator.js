@@ -96,14 +96,30 @@ class DamageCalculator {
                 scaleFactor = 0.5; // 50% of intellect adds to damage
             }
             
-            // Use ability's specific scale factor if defined
-            if (ability.scaleFactor !== undefined) {
+            // Check effect for scale factor first (higher priority)
+            if (effect && effect.scaleFactor !== undefined) {
+                console.log(`[DamageCalculator] Using effect-specific scaleFactor: ${effect.scaleFactor} (from effect)`);
+                scaleFactor = effect.scaleFactor;
+            }
+            // Use ability's specific scale factor if defined and no effect override
+            else if (ability.scaleFactor !== undefined) {
+                console.log(`[DamageCalculator] Using ability-level scaleFactor: ${ability.scaleFactor} (from ability)`);
                 scaleFactor = ability.scaleFactor;
+            } else {
+                console.log(`[DamageCalculator] Using default scaleFactor: ${scaleFactor}`);
             }
             
+            // Check effect for scaling stat first (higher priority)
+            if (effect && effect.scalingStat) {
+                console.log(`[DamageCalculator] Using effect-specific scalingStat: ${effect.scalingStat} (from effect)`);
+                scalingStat = effect.scalingStat;
+            }
             // Override scaling stat if ability specifies one
-            if (ability.scalingStat) {
+            else if (ability.scalingStat) {
+                console.log(`[DamageCalculator] Using ability-level scalingStat: ${ability.scalingStat} (from ability)`);
                 scalingStat = ability.scalingStat;
+            } else {
+                console.log(`[DamageCalculator] Using default scalingStat: ${scalingStat}`);
             }
         } else {
             // Auto-attack calculation (no ability)
