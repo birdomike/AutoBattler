@@ -74,6 +74,11 @@ class StatusEffectTooltip {
      * @param {number} stacks - Number of stacks of the effect
      */
     showTooltip(statusId, definition, position, duration, stacks) {
+        // Check if scene is still valid
+        if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) {
+            console.warn('[StatusEffectTooltip] Cannot show tooltip, scene is invalid or inactive.');
+            return;
+        }
         // Store current status details
         this.currentStatus = {
             statusId,
@@ -252,8 +257,17 @@ class StatusEffectTooltip {
         const formattedTitle = this.formatStatusName(title);
         
         // Set text content with center alignment
-        this.titleText.setText(formattedTitle);
-        this.descText.setText(description);
+        if (this.titleText) {
+            this.titleText.setText(formattedTitle);
+        } else {
+            console.warn(`[StatusEffectTooltip] Attempted to set text on a null titleText object for statusId: ${title}`);
+        }
+        
+        if (this.descText) {
+            this.descText.setText(description);
+        } else {
+            console.warn(`[StatusEffectTooltip] Attempted to set text on a null descText object for statusId: ${title}`);
+        }
         
         // Create info text with proper formatting
         let infoLines = [];
@@ -274,14 +288,18 @@ class StatusEffectTooltip {
         }
         
         // Set info text
-        this.infoText.setText(infoLines.join('\n'));
+        if (this.infoText) {
+            this.infoText.setText(infoLines.join('\n'));
+        } else {
+            console.warn(`[StatusEffectTooltip] Attempted to set text on a null infoText object for statusId: ${title}`);
+        }
         
         // Calculate optimal width based on content
-        const textWidth = Math.max(
-            this.titleText.width,
-            this.descText.width,
-            this.infoText.width
-        );
+        let titleWidth = this.titleText ? this.titleText.width : 0;
+        let descWidth = this.descText ? this.descText.width : 0;
+        let infoWidth = this.infoText ? this.infoText.width : 0;
+        
+        const textWidth = Math.max(titleWidth, descWidth, infoWidth);
         
         // Calculate tooltip width with padding
         const tooltipWidth = Math.max(
@@ -290,72 +308,90 @@ class StatusEffectTooltip {
         );
         
         // Update word wrap width
-        this.descText.setWordWrapWidth(tooltipWidth - (this.config.padding.x * 2));
+        if (this.descText) {
+            this.descText.setWordWrapWidth(tooltipWidth - (this.config.padding.x * 2));
+        }
         
         // Position elements with proper spacing (centered horizontally)
         const startY = this.config.padding.y;
         const centerX = tooltipWidth / 2;
         
         // Position title at top (centered)
-        this.titleText.setPosition(centerX, startY + (this.titleText.height / 2));
+        let titleHeight = 0;
+        if (this.titleText) {
+            titleHeight = this.titleText.height;
+            this.titleText.setPosition(centerX, startY + (titleHeight / 2));
+        }
         
         // Position description below title with spacing (centered)
-        const descY = startY + this.titleText.height + this.config.padding.inner + (this.descText.height / 2);
-        this.descText.setPosition(centerX, descY);
+        let descHeight = 0;
+        if (this.descText) {
+            descHeight = this.descText.height;
+            const descY = startY + titleHeight + this.config.padding.inner + (descHeight / 2);
+            this.descText.setPosition(centerX, descY);
+        }
         
         // Position info text below description with spacing (centered)
-        const infoY = descY + (this.descText.height / 2) + this.config.padding.inner + (this.infoText.height / 2);
-        this.infoText.setPosition(centerX, infoY);
+        if (this.infoText) {
+            const descYPosition = startY + titleHeight + this.config.padding.inner;
+            const infoY = descYPosition + (descHeight / 2) + this.config.padding.inner + (this.infoText.height / 2);
+            this.infoText.setPosition(centerX, infoY);
+        }
         
         // Calculate total height
-        const tooltipHeight = infoY + (this.infoText.height / 2) + this.config.padding.y;
+        let infoHeight = this.infoText ? this.infoText.height : 0;
+        let descYPosition = startY + titleHeight + this.config.padding.inner;
+        let infoY = descYPosition + (descHeight / 2) + this.config.padding.inner;
+        const tooltipHeight = infoY + (infoHeight / 2) + this.config.padding.y;
         
         // Draw background and border with rounded corners
-        this.graphics.clear();
+        if (this.graphics) {
+            this.graphics.clear();
+            
+            // Set border color based on status effect type
+            const borderColor = this.getBorderColorByType(definition?.type);
+            
+            // Create gradient background
+            const bgTopColor = this.config.backgroundColor;
+            const bgBottomColor = Phaser.Display.Color.IntegerToRGB(bgTopColor);
+            bgBottomColor.r = Math.max(0, bgBottomColor.r - 10);
+            bgBottomColor.g = Math.max(0, bgBottomColor.g - 10);
+            bgBottomColor.b = Math.max(0, bgBottomColor.b - 10);
+            const bgBottomColorInt = Phaser.Display.Color.GetColor(
+                bgBottomColor.r, 
+                bgBottomColor.g, 
+                bgBottomColor.b
+            );
+            
+            // Draw background with subtle gradient
+            this.graphics.fillGradientStyle(
+                bgTopColor, bgTopColor,  // Top colors
+                bgBottomColorInt, bgBottomColorInt,  // Bottom colors
+                this.config.backgroundAlpha
+            );
         
-        // Set border color based on status effect type
-        const borderColor = this.getBorderColorByType(definition?.type);
-        
-        // Create gradient background
-        const bgTopColor = this.config.backgroundColor;
-        const bgBottomColor = Phaser.Display.Color.IntegerToRGB(bgTopColor);
-        bgBottomColor.r = Math.max(0, bgBottomColor.r - 10);
-        bgBottomColor.g = Math.max(0, bgBottomColor.g - 10);
-        bgBottomColor.b = Math.max(0, bgBottomColor.b - 10);
-        const bgBottomColorInt = Phaser.Display.Color.GetColor(
-            bgBottomColor.r, 
-            bgBottomColor.g, 
-            bgBottomColor.b
-        );
-        
-        // Draw background with subtle gradient
-        this.graphics.fillGradientStyle(
-            bgTopColor, bgTopColor,  // Top colors
-            bgBottomColorInt, bgBottomColorInt,  // Bottom colors
-            this.config.backgroundAlpha
-        );
-        
-        // Draw rounded rectangle background
-        this.graphics.fillRoundedRect(
-            0, 0,
-            tooltipWidth,
-            tooltipHeight,
-            this.config.cornerRadius
-        );
-        
-        // Draw border with slight inset
-        this.graphics.lineStyle(
-            this.config.borderWidth,
-            borderColor,
-            1
-        );
-        this.graphics.strokeRoundedRect(
-            this.config.borderWidth / 2,
-            this.config.borderWidth / 2,
-            tooltipWidth - this.config.borderWidth,
-            tooltipHeight - this.config.borderWidth,
-            this.config.cornerRadius
-        );
+            // Draw rounded rectangle background
+            this.graphics.fillRoundedRect(
+                0, 0,
+                tooltipWidth,
+                tooltipHeight,
+                this.config.cornerRadius
+            );
+            
+            // Draw border with slight inset
+            this.graphics.lineStyle(
+                this.config.borderWidth,
+                borderColor,
+                1
+            );
+            this.graphics.strokeRoundedRect(
+                this.config.borderWidth / 2,
+                this.config.borderWidth / 2,
+                tooltipWidth - this.config.borderWidth,
+                tooltipHeight - this.config.borderWidth,
+                this.config.cornerRadius
+            );
+        }
         
         // Store dimensions for positioning
         this.tooltipWidth = tooltipWidth;
@@ -424,10 +460,18 @@ class StatusEffectTooltip {
      * Clear the tooltip content
      */
     clearContent() {
-        this.titleText.setText('');
-        this.descText.setText('');
-        this.infoText.setText('');
-        this.graphics.clear();
+        if (this.titleText) {
+            this.titleText.setText('');
+        }
+        if (this.descText) {
+            this.descText.setText('');
+        }
+        if (this.infoText) {
+            this.infoText.setText('');
+        }
+        if (this.graphics) {
+            this.graphics.clear();
+        }
     }
     
     /**
@@ -474,12 +518,19 @@ class StatusEffectTooltip {
     destroy() {
         if (this.currentTween) {
             this.scene.tweens.remove(this.currentTween);
+            this.currentTween = null;
         }
         
         if (this.container) {
             this.container.destroy();
             this.container = null;
         }
+        
+        // Explicitly null out references to child objects
+        this.titleText = null;
+        this.descText = null;
+        this.infoText = null;
+        this.graphics = null;
         
         // Remove singleton reference
         if (window.statusEffectTooltip === this) {

@@ -1,3 +1,16 @@
+## Version 0.6.3.34 (May 10, 2025)
+
+### Fixed
+- Fixed "Cannot read properties of null (reading 'cut')" error in StatusEffectTooltip.js by adding robust null checks
+- Improved tooltip stability during scene transitions and rapid mouse movements
+
+### Technical
+- Enhanced defensive programming practices in UI components
+- Implemented proper scene validity checking in UI components
+- Added explicit resource cleanup in tooltip destruction process
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.34_StatusEffectTooltipFix.md*
+
 ## Version 0.6.3.33 (May 10, 2025)
 
 ### Technical
