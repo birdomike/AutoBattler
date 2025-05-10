@@ -179,6 +179,11 @@ class StatusEffectManager {
             );
         }
         
+        // MODIFIED v0.6.3.32_StatusDefinitionPropagationFix: Dispatch STATUS_EFFECT_APPLIED event with full definition
+        // The existing or newly created effect has the correct stacks and sourceId
+        const effectToUse = existingEffect || newEffect;
+        this.dispatchStatusEffectApplied(character, effectId, effectToUse.duration, definition, effectToUse.stacks || 1, source);
+        
         // Dispatch event to update UI
         this.updateStatusIcons(character);
         
@@ -229,6 +234,68 @@ class StatusEffectManager {
         return true;
     }
 
+    /**
+     * Dispatches a STATUS_EFFECT_APPLIED event with full definition data
+     * @param {Object} character - The character the effect is applied to
+     * @param {string} statusId - The ID of the status effect
+     * @param {number} duration - The duration of the effect
+     * @param {Object} definition - The complete status effect definition object
+     * @param {number} stacks - Number of stacks of the effect
+     * @param {Object} source - The character that caused the effect
+     */
+    dispatchStatusEffectApplied(character, statusId, duration, definition, stacks = 1, source = null) {
+        if (!character || !statusId || !definition) {
+            console.warn('[StatusEffectManager] Cannot dispatch STATUS_EFFECT_APPLIED: missing required parameters');
+            return;
+        }
+        
+        try {
+            // Get bridge instance using correct accessor pattern
+            const battleBridge = window.getBattleBridge ? window.getBattleBridge() : window.battleBridge;
+            
+            if (battleBridge && typeof battleBridge.dispatchEvent === 'function') {
+                // Use STATUS_EFFECT_APPLIED event type
+                const eventType = battleBridge.eventTypes.STATUS_EFFECT_APPLIED || 'status_effect_applied';
+                
+                // Dispatch event with full definition included
+                battleBridge.dispatchEvent(eventType, {
+                    character: character,
+                    statusId: statusId,
+                    duration: duration,
+                    stacks: stacks,
+                    source: source,
+                    statusDefinition: definition // Include the full definition
+                });
+                console.log(`[StatusEffectManager] Dispatched STATUS_EFFECT_APPLIED for ${statusId} with full definition`); 
+            } else {
+                // Fallback: Try through BattleManager if that's the pattern used elsewhere
+                if (this.battleManager && this.battleManager.dispatchUIEvent) {
+                    // Try to use the constant from BattleBridge if available
+                    const eventType = window.battleBridge?.eventTypes?.STATUS_EFFECT_APPLIED || 'status_effect_applied';
+                    this.battleManager.dispatchUIEvent(eventType, {
+                        character: character,
+                        statusId: statusId,
+                        duration: duration,
+                        stacks: stacks,
+                        source: source,
+                        statusDefinition: definition // Include the full definition
+                    });
+                    console.log(`[StatusEffectManager] Dispatched STATUS_EFFECT_APPLIED via battleManager for ${statusId} with full definition`);
+                } else if (this.battleManager && this.battleManager.battleEventDispatcher) {
+                    // Try using battleEventDispatcher if available
+                    this.battleManager.battleEventDispatcher.dispatchStatusEffectAppliedEvent(
+                        character, statusId, duration, stacks, definition
+                    );
+                    console.log(`[StatusEffectManager] Dispatched STATUS_EFFECT_APPLIED via battleEventDispatcher for ${statusId} with full definition`);
+                } else {
+                    console.warn("[StatusEffectManager] Cannot dispatch STATUS_EFFECT_APPLIED: no event dispatcher available");
+                }
+            }
+        } catch (err) {
+            console.error('[StatusEffectManager] Error dispatching STATUS_EFFECT_APPLIED event:', err);
+        }
+    }
+    
     getActiveEffects(character) {
         if (!character || !character.statusEffects) {
             return [];
