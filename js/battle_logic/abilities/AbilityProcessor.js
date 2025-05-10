@@ -381,6 +381,17 @@ class AbilityProcessor {
                         return; // Exit early if component is missing
                     }
                     
+                    // ***** START NEW TEMPORARY LOGGING *****
+                    console.log(`[AbilityProcessor.processEffect DEBUG] Calling calculateDamage for:
+        Actor: ${actor.name} (${actor.id})
+        Target: ${target.name} (${target.id})
+        Ability: ${ability.name}
+        Effect Type: ${effect.type}
+        Effect Value (Base Damage): ${effect.value}
+        Effect scaleFactor: ${effect.scaleFactor}
+        Effect scalingStat: ${effect.scalingStat}`);
+                    // ***** END NEW TEMPORARY LOGGING *****
+                    
                     // Calculate damage for this specific effect
                     const damageResult = this.battleManager.damageCalculator.calculateDamage(actor, target, ability, effect);
                     const damage = damageResult.damage;
