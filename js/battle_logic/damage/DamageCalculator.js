@@ -134,15 +134,48 @@ class DamageCalculator {
             // Auto-attacks don't have stat scaling beyond the base attack value
         }
 
+        // ADDED DEBUG: Examine attacker object to diagnose stat resolution issues
+        console.log(`[DamageCalculator DEBUG] Attacker object received:`, JSON.parse(JSON.stringify(attacker)));
+        console.log(`[DamageCalculator DEBUG] Attacker stats:`, attacker.stats);
+        console.log(`[DamageCalculator DEBUG] Looking for ${scalingStat} (exact case), and lowercase: ${scalingStat.toLowerCase()}`);
+        
+        // Check if stat name case sensitivity is causing issues
+        if (attacker.stats) {
+            console.log(`[DamageCalculator DEBUG] Direct property check - attacker.stats.intellect: ${attacker.stats.intellect}`);
+            console.log(`[DamageCalculator DEBUG] Direct property check - attacker.stats.strength: ${attacker.stats.strength}`);
+            console.log(`[DamageCalculator DEBUG] Direct property check - attacker.stats.spirit: ${attacker.stats.spirit}`);
+        }
+        
+        // Before trying case-insensitive match, try exact match first
+        let foundExactMatch = false;
+        if (attacker.stats && Object.prototype.hasOwnProperty.call(attacker.stats, scalingStat)) {
+            console.log(`[DamageCalculator DEBUG] Found exact match for ${scalingStat} in attacker.stats`);
+            attackerStat = attacker.stats[scalingStat];
+            foundExactMatch = true;
+        }
+        
         // Get the appropriate attacker stat for scaling - HOTFIX2: Use safe access with defaults
-        if (scalingStat === "strength") {
-            attackerStat = attacker.stats.strength || 0;
-        } else if (scalingStat === "intellect") {
-            attackerStat = attacker.stats.intellect || 0;
-        } else if (scalingStat === "spirit") {
-            attackerStat = attacker.stats.spirit || 0;
-        } else {
-            attackerStat = attacker.stats[scalingStat] || 0;
+        // Try case-insensitive approach if no exact match
+        if (!foundExactMatch) {
+            if (scalingStat.toLowerCase() === "strength") {
+                attackerStat = attacker.stats?.strength || 0;
+                console.log(`[DamageCalculator DEBUG] Using strength: ${attackerStat}`);
+            } else if (scalingStat.toLowerCase() === "intellect") {
+                attackerStat = attacker.stats?.intellect || 0;
+                console.log(`[DamageCalculator DEBUG] Using intellect: ${attackerStat}`);
+            } else if (scalingStat.toLowerCase() === "spirit") {
+                attackerStat = attacker.stats?.spirit || 0;
+                console.log(`[DamageCalculator DEBUG] Using spirit: ${attackerStat}`);
+            } else {
+                // Try lowercase version of the stat name
+                attackerStat = attacker.stats ? (attacker.stats[scalingStat.toLowerCase()] || 0) : 0;
+                console.log(`[DamageCalculator DEBUG] Using generic stat access: ${attackerStat}`);
+            }
+        }
+        
+        // Sanity check - if we couldn't find the stat, log a very clear warning
+        if (attackerStat === 0 && attacker.name) {
+            console.warn(`[DamageCalculator WARN] Could not find stat ${scalingStat} for ${attacker.name}! Using 0 as fallback.`);
         }
 
         // TEMPORARY DEBUG: Log values right before calculation to verify inputs

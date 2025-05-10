@@ -52,6 +52,26 @@ class AbilityProcessor {
                     // Mark this as a sub-action from an AoE ability to prevent duplicate CHARACTER_ACTION events
                     _isAoeSubAction: true
                 };
+                
+                // DEBUG: Check the actor object in singleAction to diagnose why stats might be missing
+                console.log(`[AbilityProcessor.applyActionEffect DEBUG] AoE singleAction created:`);
+                console.log(`  - Actor: ${singleAction.actor?.name}`);
+                console.log(`  - Actor has stats object: ${!!singleAction.actor?.stats}`);
+                if (singleAction.actor?.stats) {
+                    console.log(`  - Actor.stats.intellect: ${singleAction.actor.stats.intellect}`);
+                    console.log(`  - Actor.stats.strength: ${singleAction.actor.stats.strength}`);
+                }
+                console.log(`  - Ability: ${singleAction.ability?.name}`);
+                console.log(`  - Ability has effects: ${!!singleAction.ability?.effects}`);
+                if (singleAction.ability?.effects) {
+                    console.log(`  - Effects array length: ${singleAction.ability.effects.length}`);
+                    // Check first damage effect
+                    const damageEffect = singleAction.ability.effects.find(e => e.type === 'Damage' || e.type === 'damage');
+                    if (damageEffect) {
+                        console.log(`  - Damage effect found with scaleFactor: ${damageEffect.scaleFactor}`);
+                    }
+                }
+                
                 this.applyActionEffect(singleAction);
             }
             return;
@@ -381,7 +401,7 @@ class AbilityProcessor {
                         return; // Exit early if component is missing
                     }
                     
-                    // ***** START NEW TEMPORARY LOGGING *****
+                    // ***** ENHANCED DEBUG LOGGING *****
                     console.log(`[AbilityProcessor.processEffect DEBUG] Calling calculateDamage for:
         Actor: ${actor.name} (${actor.id})
         Target: ${target.name} (${target.id})
@@ -390,7 +410,21 @@ class AbilityProcessor {
         Effect Value (Base Damage): ${effect.value}
         Effect scaleFactor: ${effect.scaleFactor}
         Effect scalingStat: ${effect.scalingStat}`);
-                    // ***** END NEW TEMPORARY LOGGING *****
+                    
+                    // Add detailed logging of actor object to diagnose stats issue
+                    console.log(`[AbilityProcessor.processEffect DEBUG] Actor object details:`);
+                    if (actor.stats) {
+                        console.log(`  - Stats available: true`);
+                        console.log(`  - Actor.stats.intellect: ${actor.stats.intellect}`);
+                        console.log(`  - Actor.stats.strength: ${actor.stats.strength}`);
+                        console.log(`  - Actor.stats.spirit: ${actor.stats.spirit}`);
+                    } else {
+                        console.log(`  - Stats available: false`);
+                    }
+                    // Check for any team or uniqueId issues
+                    console.log(`  - Actor.team: ${actor.team}`);
+                    console.log(`  - Actor.uniqueId: ${actor.uniqueId}`);
+                    // ***** END ENHANCED DEBUG LOGGING *****
                     
                     // Calculate damage for this specific effect
                     const damageResult = this.battleManager.damageCalculator.calculateDamage(actor, target, ability, effect);

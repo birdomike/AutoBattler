@@ -1,3 +1,14 @@
+## Version 0.6.3.33 (May 10, 2025)
+
+### Technical
+- Added enhanced debugging to diagnose the stat resolution issue in AoE abilities
+- Implemented diagnostic logging in DamageCalculator to examine attacker object structure
+- Added case-insensitive stat name handling to improve stat resolution reliability
+- Added detailed actor object inspection in AbilityProcessor for AoE targets
+- This debugging will pinpoint why attackerStat resolves to 0 for AoE ability targets
+
+*Note: For detailed information on implementation, see CHANGELOG_0.6.3.33_AoEStatResolutionDebugging.md*
+
 ## Version 0.6.3.32 (May 10, 2025)
 
 ### Fixed
@@ -49,24 +60,3 @@
 - This addresses a balance issue where abilities like Frost Chain were doing more damage than intended due to incorrect scaling
 
 *Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.28_AbilityScalingFactorFix.md*
-
-## Version 0.6.3.27 (May 10, 2025)
-
-### Fixed
-- Fixed error "[PassiveAbilityManager] Invalid character: missing name property" at the end of battles
-- Corrected parameter order in BattleFlowController.endBattle() for processPassiveAbilities call
-- Added 'onBattleEnd' to the globalTriggers array in PassiveAbilityManager
-- Ensured proper handling of end-of-battle passive abilities
-
-*Note: For detailed information on implementation, see CHANGELOG_0.6.3.27_PassiveAbilityManagerErrorFix.md*
-
-## Version 0.6.3.26 (May 10, 2025)
-
-### Improved
-- Implemented robust, context-aware solution for ActionIndicator text display
-- Enhanced CharacterSprite to make intelligent decisions about action text based on action type
-- Added actionContext parameter to showAttackAnimation call chain for proper context propagation
-- Ensured auto-attacks display "Auto Attack" while abilities show their correct names
-- Added fallback inference for edge cases where action context is unavailable
-
-*Note: For detailed information on implementation, see CHANGELOG_0.6.3.26_ActionIndicatorContextAwareFix.md*
