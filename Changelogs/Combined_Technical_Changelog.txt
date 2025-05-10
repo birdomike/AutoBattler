@@ -1,4 +1,458 @@
-﻿Combined Technical Changelog  (generated 2025-05-10 01:31)
+﻿Combined Technical Changelog  (generated 2025-05-10 10:55)
+
+===== CHANGELOG_0.6.3.31_TeamBuilderLayoutEnhancement =====
+
+# CHANGELOG 0.6.3.31 - TeamBuilder Layout Enhancement
+
+## Issue Description
+
+The TeamBuilder UI had two significant layout issues:
+
+1. **Overlap between Hero Details and Battle Options**:
+   - The hero details section (specifically the abilities display) would overlap with the battle options section when a hero had more than 2 abilities
+   - This created a poor visual experience and made it difficult to view all ability information
+
+2. **Unwanted Vertical Scrollbar**:
+   - The main UI had a small vertical scrollbar appearing on the right side of the screen
+   - This was visually distracting and indicated layout issues in the core UI structure
+
+## Root Cause Analysis
+
+### Overlap Issue Root Causes:
+1. **Vertical Layout**: Abilities were being displayed in a single vertical column, consuming too much vertical space
+2. **No Defined Boundaries**: There was no clear separation between the hero details and battle options sections
+3. **Overflow Handling**: The `#detail-content` div had `overflow-y: hidden` which caused content to be clipped rather than properly accommodated
+
+### Scrollbar Issue Root Causes:
+1. **Overflow Settings**: The `.screen` class had `overflow: auto` which allowed scrolling
+2. **Height Calculations**: Using `min-height` instead of fixed heights on key containers
+3. **Content Overflow**: Content slightly exceeding the viewport height in some cases
+
+## Technical Solution
+
+The solution was implemented in multiple phases:
+
+### Phase 1: Implement 2x2 Grid Layout for Abilities
+
+```css
+.detail-abilities {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Create 2 columns */
+    grid-gap: 10px; /* Add spacing between grid items */
+    margin-bottom: 15px;
+}
+
+/* Make the Abilities title span the full grid width */
+.detail-abilities h4 {
+    grid-column: 1 / -1; /* Span all columns */
+}
+
+.ability-box {
+    background-color: var(--darker-bg);
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 0; /* Remove bottom margin since grid handles spacing */
+    height: 100%; /* Ensure consistent height */
+    display: flex;
+    flex-direction: column;
+}
+```
+
+This transformed the abilities display from a single column to a 2x2 grid, significantly reducing the vertical space required.
+
+### Phase 2: Visual Separation Between Sections
+
+```css
+#battle-options {
+    flex-shrink: 0;
+    border-top: 2px solid var(--border);
+    padding-top: 15px;
+    margin-top: 0;
+    background-color: rgba(15, 21, 35, 0.7);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    overflow-y: visible;
+}
+
+/* Add a visible separator between sections */
+#battle-options::before {
+    content: '';
+    display: block;
+    width: 90%;
+    height: 4px;
+    background: linear-gradient(to right, transparent, var(--highlight), transparent);
+    margin: -15px auto 15px auto;
+    border-radius: 2px;
+}
+```
+
+These changes added a visual gradient separator and slight background color difference to clearly distinguish the battle options section.
+
+### Phase 3: Battle Options Grid Layout
+
+```css
+#battle-modes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Match the abilities grid */
+    grid-gap: 10px;
+    margin-bottom: 16px;
+}
+
+.battle-mode {
+    padding: 10px;
+    border-radius: 8px;
+    background-color: var(--darker-bg);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+```
+
+This made the battle options section use the same grid layout for visual consistency.
+
+### Phase 4: Fix Scrollbar Issue
+
+```css
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh; /* Fixed height instead of min-height */
+    width: 100vw;
+    background-color: var(--dark-bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    overflow: hidden; /* Prevent scrolling at body level */
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden; /* Prevent scrolling */
+}
+
+.main-content {
+    display: flex;
+    gap: 20px;
+    width: 98%;
+    max-width: 2000px;
+    margin: 0 auto;
+    flex: 1;
+    height: calc(100vh - 150px); /* Use fixed height instead of min-height */
+}
+```
+
+These changes fixed the scrollbar by:
+1. Using fixed heights instead of minimum heights
+2. Setting `overflow: hidden` on key containers
+3. Ensuring the layout stays within viewport dimensions
+
+### Phase 5: Add Height Constraint for Detail Content
+
+```css
+#detail-content {
+    flex-grow: 1;
+    max-height: 55vh; /* Constraint for detail content height */
+    overflow-y: visible;
+    overflow-x: hidden;
+    margin-bottom: 15px;
+}
+```
+
+This final adjustment added a maximum height constraint to the detail content section to ensure it doesn't push the battle options too far down, allowing better balance between sections.
+
+## Implementation Benefits
+
+1. **Efficient Space Usage**: The 2x2 grid layout uses horizontal space more efficiently, allowing display of 4 abilities without overflow
+2. **Clear Visual Hierarchy**: The new layout provides clear visual separation between different UI sections
+3. **Consistent Design Language**: Grid layouts are used consistently for both abilities and battle options
+4. **Eliminated Scrollbar**: Fixed the unwanted scrollbar by properly managing container heights and overflow
+5. **Better Balance**: Achieved better vertical balance between hero details and battle options sections
+
+## Testing
+
+Testing the solution involved:
+1. Verifying that all 4 abilities are displayed in a 2x2 grid without overlap
+2. Confirming no scrollbar appears in the main UI
+3. Checking that all battle modes are properly displayed in a matching grid layout
+4. Ensuring tooltips and interactive elements still function correctly
+5. Testing different heroes to ensure consistent layout across all characters
+
+## Lessons Learned
+
+1. **Grid Layouts for Density**: CSS Grid is excellent for displaying dense information in limited space
+2. **Visual Separation**: Clear visual boundaries between functionally different sections improves usability
+3. **Fixed vs. Minimum Heights**: Using fixed heights instead of minimum heights provides more predictable layouts
+4. **Overflow Control**: Carefully managing overflow at all container levels is critical for preventing unwanted scrollbars
+5. **Consistent Patterns**: Using similar layout patterns (like grids) across related UI sections creates visual harmony
+
+This UI enhancement provides a more polished user experience while accommodating the game's expanding content needs, particularly the addition of up to 4 abilities per character.
+
+
+===== CHANGELOG_0.6.3.30_AbilityProcessorDebugLogging =====
+
+# CHANGELOG 0.6.3.30 - AbilityProcessor Debug Logging
+
+## Issue Investigation
+
+Following our attempts to trace the scaling factor issue with abilities like Frost Chain and Tidal Wave, we've identified a potential problem in how effect-specific scaling factors are handled during AoE ability processing. The original debugging in DamageCalculator.js didn't appear for all targets of AoE abilities, suggesting that the effect object with its specific scaleFactor might not be correctly preserved when processing each target.
+
+## Debugging Approach
+
+We've added targeted debug logging in the `AbilityProcessor.processEffect()` method, specifically in the damage case, to capture what data is being passed to the DamageCalculator for each target of an AoE ability. This will help us trace exactly what's happening with the effect object and its properties when multi-target abilities are processed.
+
+## Implementation Details
+
+The following debug logging was added to `AbilityProcessor.js` within the `processEffect` method's 'Damage' case, right before the call to calculateDamage:
+
+```javascript
+// ***** START NEW TEMPORARY LOGGING *****
+console.log(`[AbilityProcessor.processEffect DEBUG] Calling calculateDamage for:
+        Actor: ${actor.name} (${actor.id})
+        Target: ${target.name} (${target.id})
+        Ability: ${ability.name}
+        Effect Type: ${effect.type}
+        Effect Value (Base Damage): ${effect.value}
+        Effect scaleFactor: ${effect.scaleFactor}
+        Effect scalingStat: ${effect.scalingStat}`);
+// ***** END NEW TEMPORARY LOGGING *****
+```
+
+This logging captures:
+- The actor and target names and IDs
+- The ability name
+- The effect details including type, base value (damage), and most importantly, the scaling factor and scaling stat
+
+## Expected Insights
+
+This debug logging will help determine:
+
+1. **Whether the effect object is complete**: Does each target of an AoE ability receive a complete effect object with all properties intact?
+2. **Scaling factor consistency**: Is the correct scaling factor (0.4 for Frost Chain, 0.5 for Tidal Wave) being passed to the damage calculator for each target?
+3. **Object reference integrity**: Are there any inconsistencies between how the original action is processed and how the individual target actions are processed?
+
+## Testing Instructions
+
+1. Start a battle with Aqualia in either player or enemy team
+2. Wait for Aqualia to use either Frost Chain or Tidal Wave
+3. Observe the console logs with the `[AbilityProcessor.processEffect DEBUG]` prefix
+4. Check that each target of the AoE ability shows the expected scaling factor in the logs
+
+## Removal Plan
+
+This logging is clearly marked as temporary with START/END comments. It should be removed once the scaling factor issue is identified and fixed.
+
+## Next Steps
+
+After reviewing the debug logs, we'll potentially need to fix how multi-target actions are processed to ensure that effect-specific properties like scaleFactor are properly preserved when splitting an AoE ability into individual target actions.
+
+
+===== CHANGELOG_0.6.3.29_ScalingFactorDebugging =====
+
+# CHANGELOG 0.6.3.29 - Scaling Factor Debugging Implementation
+
+## Issue Description
+
+Despite adding a fix for abilities with effect-specific scaling factors in version 0.6.3.28, there appears to be a discrepancy between the logged scaling factor and the actual calculation result. Specifically, for Aqualia's "Frost Chain" ability, the battle log shows "+73 from Intellect" damage contribution, which implies a 0.5 scaling factor is being used rather than the intended 0.4 scaling factor (which would result in approximately "+58 from Intellect").
+
+We need to trace exactly how the scaleFactor is flowing through the damage calculation process to identify where the issue might be occurring.
+
+## Debugging Approach
+
+Strategic debug logging has been added at key points in the `DamageCalculator.js` file to trace the scaling factor from assignment through calculation to final display:
+
+1. **Assignment Verification**: Logging immediately after the scaleFactor is set from effect, ability, or default source.
+2. **Pre-Calculation Check**: Logging the inputs (attackerStat and scaleFactor) right before the statScaling calculation occurs.
+3. **Calculation Verification**: Logging the actual result of the statScaling calculation and its rounded value.
+4. **Scaling Text Verification**: Logging the final values used to generate the scaling text in the battle log.
+
+All debugging logs use a consistent `[DEBUG-SCALING]` prefix for easy filtering in the console.
+
+## Implementation Details
+
+### 1. Verifying scaleFactor Assignment
+
+Added console logging to confirm the scaleFactor value immediately after it's assigned:
+
+```javascript
+// Check effect for scale factor first (higher priority)
+if (effect && effect.scaleFactor !== undefined) {
+    console.log(`[DamageCalculator] Using effect-specific scaleFactor: ${effect.scaleFactor} (from effect)`);
+    scaleFactor = effect.scaleFactor;
+    // TEMPORARY DEBUG: Verify scaleFactor was correctly set after assignment
+    console.log(`[DEBUG-SCALING] After effect assignment, scaleFactor = ${scaleFactor}`);
+}
+```
+
+Similar logging was added for ability-level and default scaleFactor values.
+
+### 2. Pre-Calculation Verification
+
+Added logging right before the stat scaling calculation to verify the inputs:
+
+```javascript
+// TEMPORARY DEBUG: Log values right before calculation to verify inputs
+console.log(`[DEBUG-SCALING] PRE-CALCULATION - attackerStat: ${attackerStat}, scaleFactor: ${scaleFactor}, ability: ${ability?.name}, character: ${attacker?.name}`);
+
+// Apply stat scaling to base damage
+const statScaling = attackerStat * scaleFactor;
+```
+
+### 3. Calculation Result Verification
+
+Added logging right after the calculation to confirm the actual result:
+
+```javascript
+// Apply stat scaling to base damage
+const statScaling = attackerStat * scaleFactor;
+
+// TEMPORARY DEBUG: Log the actual calculation result
+console.log(`[DEBUG-SCALING] CALCULATION RESULT - statScaling: ${statScaling}, rounded: ${Math.round(statScaling)}`);
+```
+
+### 4. Scaling Text Verification
+
+Added logging when generating the final text that appears in the battle log:
+
+```javascript
+// TEMPORARY DEBUG: Verify the final scaling text values
+console.log(`[DEBUG-SCALING] SCALING TEXT - using roundedScaling: ${roundedScaling} for ${scalingStatName} with ability: ${ability?.name}`);
+
+scalingText = `(+${roundedScaling} from ${scalingStatName})`;
+```
+
+## Expected Debug Output Pattern
+
+For Aqualia's "Frost Chain" ability with Intellect 146, we should see the following pattern:
+
+1. `[DEBUG-SCALING] After effect assignment, scaleFactor = 0.4`
+2. `[DEBUG-SCALING] PRE-CALCULATION - attackerStat: 146, scaleFactor: 0.4, ability: Frost Chain, character: Aqualia`
+3. `[DEBUG-SCALING] CALCULATION RESULT - statScaling: 58.4, rounded: 58`
+4. `[DEBUG-SCALING] SCALING TEXT - using roundedScaling: 58 for Intellect with ability: Frost Chain`
+
+If we see 0.4 in steps 1-2 but then observe inconsistent values in steps 3-4, we'll know exactly where the issue is occurring.
+
+## Testing Instructions
+
+1. Start a battle with Aqualia in the player team
+2. Wait for Aqualia to use Frost Chain
+3. Observe the console log for the `[DEBUG-SCALING]` prefix messages
+4. Compare the values to identify any inconsistencies in the calculation flow
+
+## Removal Plan
+
+This debugging code is clearly marked as temporary throughout the codebase. Once the issue is identified and fixed, all `[DEBUG-SCALING]` logging statements should be removed in a future update to keep the codebase clean.
+
+## Lessons Learned
+
+When debugging subtle calculation issues, having a complete trace of values through the entire process is invaluable. This approach allows us to:
+
+1. Verify that initial assignments are working correctly
+2. Confirm that values persist properly between methods
+3. Check for any unintended side effects or overrides
+4. Validate that final outputs match what we expect based on inputs
+
+By adding a clear prefix to all debug messages, we make it easier to filter and analyze the specific information we need among other console output.
+
+
+===== CHANGELOG_0.6.3.28_AbilityScalingFactorFix =====
+
+# CHANGELOG 0.6.3.28 - Ability Scaling Factor Fix
+
+## Issue Description
+
+The battle log showed AoE abilities like Frost Chain dealing more damage than intended: "Aqualia (ally) takes 91 damage (+73 from Intellect)!" 
+
+The damage scaling from Intellect was higher than it should be according to the ability's design. Specifically, the battle log showed "+73 from Intellect" when it should have shown approximately "+58 from Intellect" for Aqualia using Frost Chain.
+
+## Root Cause Analysis
+
+The issue was traced to a missing check in `DamageCalculator.calculateDamage()` for effect-specific scaling factors:
+
+1. **Nested Scaling Factors**: Abilities like Frost Chain define their scaling factor (0.4) within the `effects` array rather than directly on the ability object.
+
+2. **Missing Priority Check**: The damage calculator only checked for `ability.scaleFactor` at the top level of the ability object, not within the effects:
+
+```javascript
+// Original Code
+// Set scaling factor based on ability type
+if (damageType === "spell") {
+    scalingStat = "intellect";
+    scaleFactor = 0.5; // 50% of intellect adds to damage
+}
+
+// Only checked ability-level scaling, missed effect-level scaling
+if (ability.scaleFactor !== undefined) {
+    scaleFactor = ability.scaleFactor;
+}
+```
+
+3. **Parameter Ignored**: The function already had an `effect` parameter which was passed correctly from `AbilityProcessor.processEffect()`, but this parameter's scaling data wasn't being checked.
+
+## Technical Solution
+
+The solution was to implement a hierarchical check in `DamageCalculator.calculateDamage()` that prioritizes effect-level scaling factors before falling back to ability-level and finally to defaults:
+
+```javascript
+// Set default scaling factor based on ability type
+if (damageType === "spell") {
+    scalingStat = "intellect";
+    scaleFactor = 0.5; // 50% of intellect adds to damage
+}
+
+// NEW CODE: Check effect for scale factor first (higher priority)
+if (effect && effect.scaleFactor !== undefined) {
+    console.log(`[DamageCalculator] Using effect-specific scaleFactor: ${effect.scaleFactor} (from effect)`);
+    scaleFactor = effect.scaleFactor;
+}
+// Use ability's specific scale factor if defined and no effect override
+else if (ability.scaleFactor !== undefined) {
+    console.log(`[DamageCalculator] Using ability-level scaleFactor: ${ability.scaleFactor} (from ability)`);
+    scaleFactor = ability.scaleFactor;
+} else {
+    console.log(`[DamageCalculator] Using default scaleFactor: ${scaleFactor}`);
+}
+```
+
+The same hierarchical approach was applied to the `scalingStat` property to ensure consistent handling of all scaling properties.
+
+## Implementation Benefits
+
+1. **Correct Scaling**: Abilities now correctly use their effect-specific scaling factors, ensuring damage is in line with design intentions.
+
+2. **Proper Hierarchical Precedence**: Established a clear hierarchy (effect > ability > default) for all scaling properties.
+
+3. **Diagnostic Visibility**: Added detailed logging to show where scaling values come from, making future debugging easier.
+
+4. **Consistency**: The approach maintains the existing ability data structure while making the calculator properly check all levels.
+
+5. **Better Balance**: Frost Chain now correctly uses 0.4 scaling for Intellect, resulting in approximately 25% less damage from this stat.
+
+## Testing
+
+The changes should be tested by:
+
+1. Starting a battle with Aqualia using Frost Chain
+2. Monitoring the console for the correct scaling factor logs
+3. Verifying that the battle log shows a reduced contribution from Intellect (around "+58 from Intellect" instead of "+73 from Intellect")
+4. Testing other abilities with effect-specific scaling factors to ensure they are also correctly applied
+
+## Lessons Learned
+
+1. **Data Hierarchy Consideration**: When a system uses nested data structures, all levels of the hierarchy should be properly checked.
+
+2. **Parameter Utilization**: Function parameters should be fully utilized for their intended purpose; the `effect` parameter was being passed but not fully leveraged.
+
+3. **Diagnostic Logging**: Adding detailed logging during development helps verify the system is using the correct values.
+
+4. **Change Verification**: Watch for unexpected high/low numbers in battle logs as potential indicators of calculation issues.
+
+This fix ensures all abilities properly follow their defined scaling factors, resulting in more balanced gameplay as originally designed.
+
 
 ===== CHANGELOG_0.6.3.27_PassiveAbilityManagerErrorFix =====
 
@@ -786,434 +1240,5 @@ Additional console output cleanup opportunities exist in other files:
 3. `ActionIndicator.js` - Position tracking
 
 These will be addressed in a future update after verifying the current changes have no negative impact.
-
-
-===== CHANGELOG_0.6.3.19_DiagnosticCodeCleanup =====
-
-# Technical Changelog: Version 0.6.3.19 - Diagnostic Code Cleanup
-
-## Overview
-This release removes temporary diagnostic debugging statements that were previously added for troubleshooting specific issues. These statements were cluttering the console output and were no longer needed after the issues had been fixed.
-
-## Files Modified
-1. `C:\Personal\AutoBattler\js\phaser\bridge\BattleBridge.js`
-2. `C:\Personal\AutoBattler\js\phaser\components\battle\CharacterSprite.js`
-
-## Detailed Changes
-
-### BattleBridge.js
-
-#### Changes
-- Removed the "TEMP DIAGNOSTIC" console.log statements in the `dispatchEvent` method
-- Removed verbose listener diagnostics that were printing detailed information about each listener
-- Removed process debugging in `applyActionEffect` and `processAbility` patch methods
-- Updated version from 0.5.1.2d to 0.5.1.3d
-
-#### Before
-The `dispatchEvent` method contained multiple debugging outputs:
-```javascript
-dispatchEvent(eventType, data) {
-    // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-    console.log('[BB dispatchEvent CALLED] EventType:', eventType, 'Data Keys:', data ? Object.keys(data) : 'No data', 'Raw Data (beware circular):', data);
-    
-    console.log(`BattleBridge: Dispatching event ${eventType}`, data);
-    
-    // Log listener count for debugging
-    console.log(`BattleBridge: Found ${this.eventListeners[eventType].length} listeners for ${eventType}`);
-    
-    // TEMP DIAGNOSTIC - DELETE AFTER TROUBLESHOOTING
-    if (this.eventListeners[eventType] && this.eventListeners[eventType].length > 0) { 
-        console.log('[BB dispatchEvent] Registered callbacks for ' + eventType + ':', 
-            this.eventListeners[eventType].map(cb => cb.name || 'anonymous_handler')); 
-    }
-    
-    // More verbose diagnostic logging...
-}
-```
-
-#### After
-The `dispatchEvent` method now contains only essential logging:
-```javascript
-dispatchEvent(eventType, data) {
-    console.log(`BattleBridge: Dispatching event ${eventType}`, data);
-    
-    if (!this.eventListeners[eventType]) {
-        console.warn(`BattleBridge: No listeners for event "${eventType}"`);
-        return;
-    }
-    
-    // Continue with event dispatching without verbose diagnostics
-}
-```
-
-### CharacterSprite.js
-
-#### Changes
-- Removed the "TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG" console.log statements in the `updateHealth` and `updateHealthBar` methods
-- Removed excessive diagnostic logging in the `showAttackAnimation` method
-- Removed unnecessary position tracking and character proximity checks in attack animations
-- Improved error messages to be more consistent in formatting
-
-#### Before
-The health methods contained diagnostic statements:
-```javascript
-updateHealth(newHealth, maxHealth) {
-    // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
-    // TODO: REMOVE or MOVE after bug fix / refactoring
-    console.log(`[HEALTH DEBUG] CharacterSprite.updateHealth called for ${this.character?.name}, HP: ${newHealth}/${maxHealth}`);
-    // END TEMPORARY DIAGNOSTIC CODE
-    
-    // Regular implementation code...
-    
-    // TEMPORARY DIAGNOSTIC CODE - HEALTH BAR BUG
-    // TODO: REMOVE or MOVE after bug fix / refactoring
-    console.log(`[HEALTH DEBUG] CharacterSprite.updateHealth calling updateHealthBar for ${this.character?.name}`);
-    // END TEMPORARY DIAGNOSTIC CODE
-}
-```
-
-#### After
-The health methods now contain only essential logging:
-```javascript
-updateHealth(newHealth, maxHealth) {
-    console.log(`CharacterSprite.updateHealth: ${this.character?.name} health to ${newHealth}/${maxHealth}`);
-    
-    // Regular implementation code without diagnostic statements
-}
-```
-
-The `showAttackAnimation` method was also streamlined to remove extensive diagnostic logs about global coordinates, character proximity, and potential targeting issues, which were initially added for troubleshooting animation targeting bugs.
-
-## Rationale
-These changes were made for the following reasons:
-
-1. **Code Clarity**: Removing temporary diagnostic code improves code readability and maintainability.
-2. **Console Performance**: Reducing console output improves browser performance, especially during complex battles where these messages were appearing frequently.
-3. **Cleanup After Bug Fixes**: The diagnostic code was added to help fix specific bugs that have now been resolved, making the diagnostic code unnecessary.
-4. **Standardized Logging**: The remaining logs follow a more consistent format.
-
-## Impact
-These changes have no functional impact on the game's operation, but improve the developer experience by:
-
-1. Making the console output cleaner and easier to read
-2. Reducing client-side performance overhead from excessive logging
-3. Making the codebase easier to maintain by removing temporary code
-
-## Testing
-The game was tested with a variety of battle scenarios to ensure that removing the diagnostic code did not affect functionality:
-
-1. Multiple battle rounds with different team compositions
-2. Various ability triggers and effects
-3. Attack animations between characters
-4. Health updates and battle log display
-
-No issues were observed after removing the diagnostic code.
-
-
-===== CHANGELOG_0.6.3.18_GlobalPassiveTriggerFix =====
-
-# Technical Changelog 0.6.3.18: Global Passive Trigger Fix
-
-## Issue Description
-
-After implementing the fix for the parameter mismatch in `BattleFlowController.finishTurn()` (in v0.6.3.17), the error message "[PassiveAbilityManager] Invalid character parameter (null or undefined)" was still appearing. This error originated from `BattleFlowController.startNextTurn()` calling `processPassiveAbilities('onTurnStart', null, ...)` and similar calls with a `null` character parameter for other global triggers.
-
-While the syntax of the call was corrected in v0.6.3.17, the `PassiveAbilityManager` itself needed to be updated to properly handle these global trigger events that need to apply to all eligible characters in both teams.
-
-## Root Cause Analysis
-
-The core issue was that the `PassiveAbilityManager.processPassiveAbilities()` method was designed to process passives for a single character, and would fail validation if passed `null` as the character parameter. However, global triggers like 'onTurnStart' and 'onTurnEnd' conceptually need to be processed for all non-defeated characters on both teams.
-
-### The Code Problem:
-
-In `PassiveAbilityManager.js`, the `processPassiveAbilities()` method always tried to validate the character parameter:
-
-```javascript
-// Enhanced character validation
-if (!this.validateCharacter(character)) {
-    return [];
-}
-```
-
-But the `validateCharacter()` method would log an error for null values:
-
-```javascript
-// Basic null check
-if (!character) {
-    console.error("[PassiveAbilityManager] Invalid character parameter (null or undefined)");
-    return false;
-}
-```
-
-This caused the validation to fail and return an empty array when `null` was passed for a global trigger type, even though the intention was to apply the trigger to all eligible characters.
-
-## Technical Solution
-
-The solution was to implement a comprehensive global trigger handling system in `PassiveAbilityManager`:
-
-1. **Identify Global Triggers**: Define which trigger types should be treated as global events.
-2. **Add Global Trigger Handling Logic**: Modify `processPassiveAbilities()` to detect when a global trigger with a `null` character is being processed, and invoke a new method to handle this special case.
-3. **Create a Global Processing Method**: Implement a new `processGlobalPassiveTrigger()` method that iterates through all non-defeated characters in both teams and processes the trigger for each.
-
-### Implementation Details:
-
-1. **New Global Trigger Detection**:
-```javascript
-// Define which triggers are global and should be processed for all characters
-const globalTriggers = ['onTurnStart', 'onTurnEnd'];
-
-// Check if this is a global trigger and character is null
-if (character === null && globalTriggers.includes(trigger)) {
-    // Handle global trigger by iterating through all characters
-    return this.processGlobalPassiveTrigger(trigger, additionalData);
-}
-```
-
-2. **New `processGlobalPassiveTrigger()` Method**:
-```javascript
-/**
- * Process passive abilities for all non-defeated characters for global triggers
- * @param {string} trigger - The trigger event (e.g., 'onTurnStart', 'onTurnEnd')
- * @param {Object} additionalData - Additional context data for the passive
- * @returns {Array} Array of executed passive results from all characters
- */
-processGlobalPassiveTrigger(trigger, additionalData = {}) {
-    // Combined results from all characters
-    const allResults = [];
-    
-    // Validate battle manager and teams
-    if (!this.battleManager) {
-        console.error("[PassiveAbilityManager] Cannot process global trigger: BattleManager not available");
-        return allResults;
-    }
-    
-    // Process player team
-    if (this.battleManager.playerTeam && Array.isArray(this.battleManager.playerTeam)) {
-        // Process each non-defeated character in player team
-        this.battleManager.playerTeam.forEach(character => {
-            if (character && !character.isDead && character.currentHp > 0) {
-                // Important: This call will include character validation
-                const characterResults = this.processPassiveAbilities(trigger, character, additionalData);
-                allResults.push(...characterResults);
-            }
-        });
-    }
-    
-    // Process enemy team
-    if (this.battleManager.enemyTeam && Array.isArray(this.battleManager.enemyTeam)) {
-        // Process each non-defeated character in enemy team
-        this.battleManager.enemyTeam.forEach(character => {
-            if (character && !character.isDead && character.currentHp > 0) {
-                // Important: This call will include character validation
-                const characterResults = this.processPassiveAbilities(trigger, character, additionalData);
-                allResults.push(...characterResults);
-            }
-        });
-    }
-    
-    return allResults;
-}
-```
-
-## Implementation Benefits
-
-1. **No Architectural Changes Required**: The fix is contained entirely within `PassiveAbilityManager.js`, keeping the existing interfaces intact.
-2. **Improved Error Handling**: The validation error no longer appears when processing legitimate global triggers.
-3. **Proper Processing of Global Events**: All eligible characters now properly receive global trigger events.
-4. **Consistent Results Structure**: The method returns the combined results from all characters in the same format as the original method.
-5. **Maintainable Design**: The approach is extensible to additional global trigger types in the future if needed.
-
-## Testing
-
-Testing involved:
-1. Starting a battle and confirming that the console error "[PassiveAbilityManager] Invalid character parameter" no longer appears.
-2. Verifying that ability declarations and auto attacks are properly displayed in the Battle Log.
-3. Ensuring that turn-based passive abilities trigger correctly for all eligible characters.
-
-## Related Files
-
-- `C:\Personal\AutoBattler\js\battle_logic\passives\PassiveAbilityManager.js` - Updated to handle global triggers
-- `C:\Personal\AutoBattler\js\battle_logic\core\BattleFlowController.js` - Previous fix to call signature in v0.6.3.17
-
-## Lessons Learned
-
-1. **Design for Global Events**: When building systems that respond to events, consider that some events might have global scope requiring iteration over multiple entities.
-2. **Parameter Null Values**: Consider what null parameter values mean in your API design - they can be legitimate values indicating special handling rather than just errors.
-3. **Validation and Business Logic**: Distinguish between parameter validation errors and special cases that require different business logic paths.
-
-## Future Considerations
-
-1. **Additional Global Triggers**: The implementation allows for easy addition of more global trigger types by simply adding them to the `globalTriggers` array.
-2. **Optimization Potential**: For games with many characters, the iteration approach used might be optimized further, such as by maintaining separate collections of characters with passive abilities for each trigger type.
-3. **Formalize API**: A future enhancement could be to formally document that global triggers should be passed with a null character parameter as part of the API contract.
-
-
-===== CHANGELOG_0.6.3.17_PassiveAbilityParameterFix =====
-
-# Technical Changelog 0.6.3.17: PassiveAbility Parameter Fix
-
-## Issue Description
-
-After fixing the path in index.html to load the correct BattleFlowController.js (in v0.6.3.16), a new runtime error emerged in the console:
-
-```
-PassiveAbilityManager.js:29 [PassiveAbilityManager] Invalid character parameter (null or undefined)
-```
-
-This error prevented ability declarations and auto attacks from displaying in the Battle Log.
-
-## Root Cause Analysis
-
-The issue was traced to an incorrect parameter order in BattleFlowController.js, specifically in the `finishTurn()` method.
-
-### The Code Problem:
-
-In BattleFlowController.js, the `finishTurn()` method was calling `processPassiveAbilities()` with the wrong parameter order:
-
-```javascript
-// INCORRECT - passing an object with controller reference as the character parameter
-this.battleManager.processPassiveAbilities('onTurnEnd', { controller: this });
-```
-
-The PassiveAbilityManager expects a valid character object (or null) as the second parameter, and any additional data as the third parameter. 
-
-The `validateCharacter()` method in PassiveAbilityManager checks if the character is null or has required properties, and logs an error when receiving an object that isn't a proper character.
-
-### Technical Details:
-
-The `processPassiveAbilities()` function in BattleManager (which delegates to PassiveAbilityManager) has the following signature:
-
-```javascript
-processPassiveAbilities(triggerType, character, additionalData)
-```
-
-- `triggerType`: String indicating when the passive should trigger (e.g., 'onTurnEnd')
-- `character`: The character object that has the passive ability (or null for global events)
-- `additionalData`: Additional context data for the passive ability
-
-By passing `{ controller: this }` as the second parameter instead of the third, we were providing an invalid character object that would fail validation in PassiveAbilityManager.
-
-## Fix Implementation
-
-The fix was to correctly pass `null` as the character parameter and move the controller reference to the additionalData parameter position:
-
-```javascript
-// CORRECT - passing null as character parameter and controller as additionalData
-this.battleManager.processPassiveAbilities('onTurnEnd', null, { controller: this });
-```
-
-This matches the pattern used elsewhere in the BattleFlowController, such as in `startNextTurn()`:
-
-```javascript
-this.battleManager.processPassiveAbilities('onTurnStart', null, { turnNumber: this.battleManager.currentTurn });
-```
-
-## Testing
-
-Testing involved:
-1. Making the change to BattleFlowController.js
-2. Starting a battle and observing the console output
-3. Verifying that the "[PassiveAbilityManager] Invalid character parameter" error no longer appears
-4. Confirming that ability declarations and auto attacks now correctly display in the Battle Log
-
-## Related Files
-
-- `C:\Personal\AutoBattler\js\battle_logic\core\BattleFlowController.js` - Fixed the parameter order
-- `C:\Personal\AutoBattler\js\battle_logic\passives\PassiveAbilityManager.js` - Contains the validation logic that was generating the error
-
-## Lessons Learned
-
-1. When working with multi-parameter function calls, always verify the correct parameter order, especially when some parameters are optional
-2. Error messages from validation checks provide valuable clues about parameter mismatches
-3. Similar patterns in other function calls within the same codebase can serve as a guide for proper usage
-
-## Future Considerations
-
-1. Additional parameter validation could be added to BattleManager to catch these issues before they reach PassiveAbilityManager
-2. Consider using named parameters (objects) for functions with many parameters to avoid order-dependency
-3. Apply similar fixes to any other locations that might have similar parameter order issues
-
-
-===== CHANGELOG_0.6.3.16_BattleFlowControllerPathFix =====
-
-# Detailed Changelog: BattleFlowController Path Fix (v0.6.3.16)
-
-## Issue Background
-
-Despite implementing fixes in the BattleFlowController.js file to properly handle action declarations and adding diagnostic logging, our changes weren't taking effect in the game. The diagnostic logs we expected to see in the console (with prefixes like `[BattleFlowController.executeNextAction - Detailed Log]`) weren't appearing at all, indicating that our modified code wasn't being loaded.
-
-## Root Cause Analysis
-
-A comprehensive investigation revealed that index.html was loading the wrong BattleFlowController.js file from an outdated location. Specifically:
-
-1. Our updated BattleFlowController.js was located at:
-   ```
-   C:\Personal\AutoBattler\js\battle_logic\core\BattleFlowController.js
-   ```
-
-2. But index.html was loading an older version from:
-   ```
-   C:\Personal\AutoBattler\js\managers\BattleFlowController.js
-   ```
-
-3. The older version (v0.5.9) had a completely different implementation of the `executeNextAction()` method that:
-   - Did not have our diagnostic logging
-   - Did not properly format action declarations
-   - Did not send action declarations to the battle log with the 'action' type
-
-This explains why our changes to implement proper action declarations weren't taking effect - the game was using an entirely different file than the one we had modified.
-
-## Changes Made
-
-The fix was straightforward but critical - we updated the script reference in index.html to point to the correct file:
-
-```diff
-- <!-- BattleFlowController v0.5.9 - Must load before BattleManager -->
-- <script src="js/managers/BattleFlowController.js" defer></script>
-+ <!-- BattleFlowController - Must load before BattleManager -->
-+ <script src="js/battle_logic/core/BattleFlowController.js" defer></script>
-```
-
-This change ensures that the game loads our updated BattleFlowController.js file, which includes:
-
-1. Proper diagnostic logging for action message flow tracing
-2. Correctly formatted action declarations with team identifiers
-3. Proper logging of action declarations to the battle log with `type: 'action'`
-
-## Implementation Approach
-
-This fix followed a careful diagnostic process:
-1. First, we traced the issue to missing console logs that should have been present
-2. We located both versions of the BattleFlowController.js file
-3. We compared the two implementations and confirmed the older version lacked our changes
-4. We updated the script path in index.html to point to the correct, updated file
-
-## Testing Procedure
-
-To verify the fix, the game should be run with developer tools open to observe:
-
-1. In the browser console:
-   - Check for log entries with format: `[BattleFlowController.executeNextAction - Detailed Log] Action received: ...`
-   - Check for log entries with format: `[BattleFlowController.executeNextAction - Detailed Log] Built actionDeclaration for Battle Log: "..."`
-   - Check for log entries with format: `[BattleFlowController.executeNextAction - Detailed Log] Calling this.battleManager.logMessage for action declaration.`
-
-2. In the game UI:
-   - Verify that detailed action declarations (e.g., "Drakarion (enemy) uses [Fireball] on Target (ally)!") appear in the battle log
-   - Verify that they appear in yellow text and bold (the styling for 'action' type messages)
-
-## Lessons Learned
-
-This issue highlights several important lessons:
-
-1. **Path Management**: Maintaining consistent file paths across project components is critical
-2. **Migration Tracking**: When refactoring components to new locations, all references must be updated
-3. **Diagnostic Verification**: Always verify that diagnostic logs are actually appearing as expected
-4. **Module Tracing**: Analyzing which modules are actually being loaded is essential when debugging
-
-In future refactoring efforts, we should implement:
-
-1. A more consistent directory structure with clearly defined module locations
-2. Automated path checking to ensure all references point to valid files
-3. Consolidated script loading to reduce the chance of path errors
 
 

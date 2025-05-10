@@ -1,3 +1,14 @@
+## Version 0.6.3.31 (May 10, 2025)
+
+### Improved
+- Enhanced TeamBuilder UI layout with 2x2 grid for abilities display
+- Fixed UI scrollbar issue by optimizing screen layout
+- Implemented better positioning for abilities and battle options with grid layout
+- Adjusted UI proportions to eliminate overlap between hero details and battle options
+- Added visual separation between UI sections
+
+*Note: For detailed information on implementation, see CHANGELOG_0.6.3.31_TeamBuilderLayoutEnhancement.md*
+
 ## Version 0.6.3.30 (May 10, 2025)
 
 ### Technical

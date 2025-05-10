@@ -1,5 +1,8 @@
 .detail-abilities {
-    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Create 2 columns */
+    grid-gap: 10px; /* Add spacing between grid items */
+    margin-bottom: 15px;
 }
 
 /* Character Art Display */
@@ -306,12 +309,12 @@
 body {
     margin: 0;
     padding: 0;
-    min-height: 100vh;
+    height: 100vh; /* Fixed height instead of min-height */
     width: 100vw;
     background-color: var(--dark-bg);
     color: var(--text);
     font-family: Arial, sans-serif;
-    overflow-x: hidden;
+    overflow: hidden; /* Prevent scrolling at body level */
 }
 
 /* Screen management */
@@ -319,7 +322,7 @@ body {
     display: none;
     width: 100%;
     height: 100vh;
-    overflow: auto;
+    overflow: hidden; /* Prevent scrolling */
 }
 
 .screen.active {
@@ -356,7 +359,7 @@ body {
     max-width: 2000px;
     margin: 0 auto;
     flex: 1;
-    min-height: calc(100vh - 150px);
+    height: calc(100vh - 150px); /* Use fixed height instead of min-height */
 }
 
 .section {
@@ -383,6 +386,7 @@ body {
     width: 33%;
     overflow-y: auto;
     overflow-x: hidden;
+    max-height: 100%; /* Ensure it doesn't exceed container height */
 }
 
 #heroes-grid {
@@ -547,8 +551,10 @@ body {
 
 #detail-content {
     flex-grow: 1;
-    overflow-y: hidden;
+	 max-height: 55vh; /* Adjust this value to control detail content height */
+    overflow-y: visible;
     overflow-x: hidden;
+    margin-bottom: 15px;
 }
 
 .detail-empty {
@@ -619,53 +625,97 @@ body {
 }
 
 .detail-abilities h4, .detail-advantages h4 {
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+    font-size: 16px;
+    color: #70a1ff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 4px;
+}
+
+.detail-advantages {
+    margin-top: 5px;
+}
+
+/* Make the Abilities title span the full grid width */
+.detail-abilities h4 {
+    grid-column: 1 / -1; /* Span all columns */
 }
 
 .ability-box {
     background-color: var(--darker-bg);
-    padding: 10px;
+    padding: 8px;
     border-radius: 4px;
-    margin-bottom: 12px;
+    margin-bottom: 0; /* Remove bottom margin since grid handles spacing */
+    height: 100%; /* Ensure consistent height */
+    display: flex;
+    flex-direction: column;
 }
 
 .ability-name {
     font-weight: bold;
-    margin-bottom: 4px;
+    font-size: 14px;
+    margin-bottom: 2px;
 }
 
 .ability-desc {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
+    line-height: 1.3;
+    flex-grow: 1; /* Allow description to fill available space */
 }
 
 .advantage-list {
     font-size: 14px;
+    padding-left: 5px; /* Add a slight indent */
 }
 
 /* Battle Options */
 #battle-options {
-    margin-top: 20px;
     flex-shrink: 0;
-    border-top: 1px solid var(--border);
+    border-top: 2px solid var(--border);
     padding-top: 15px;
+    margin-top: 0;
+    background-color: rgba(15, 21, 35, 0.7);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    overflow-y: visible;
+}
+
+/* Add a visible separator between sections */
+#battle-options::before {
+    content: '';
+    display: block;
+    width: 90%;
+    height: 4px;
+    background: linear-gradient(to right, transparent, var(--highlight), transparent);
+    margin: -15px auto 15px auto;
+    border-radius: 2px;
 }
 
 #battle-modes {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Match the abilities grid */
+    grid-gap: 10px;
     margin-bottom: 16px;
 }
 
+/* Battle Options heading */
+#battle-options > h2 {
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
 .battle-mode {
-    padding: 16px;
+    padding: 10px;
     border-radius: 8px;
     background-color: var(--darker-bg);
     cursor: pointer;
     transition: all 0.3s;
     border: 2px solid transparent;
-    margin-bottom: 10px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .battle-mode:hover {
@@ -682,27 +732,28 @@ body {
 
 .battle-mode-name {
     font-weight: bold;
-    font-size: 18px;
-    margin-bottom: 6px;
+    font-size: 16px;
+    margin-bottom: 4px;
 }
 
 .battle-mode-desc {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-muted);
+    line-height: 1.2;
 }
 
 #start-battle {
     width: 100%;
-    padding: 16px;
+    padding: 12px;
     background-color: var(--success);
     color: white;
     border: none;
     border-radius: 8px;
     font-weight: bold;
-    font-size: 20px;
+    font-size: 18px;
     cursor: pointer;
     transition: all 0.3s;
-    margin-top: 20px;
+    margin-top: 12px;
     position: relative;
     overflow: hidden;
     box-shadow: 0 4px 10px rgba(46, 213, 115, 0.3);
