@@ -345,18 +345,15 @@ class TeamBuilderUI {
             typeText.style.color = this.typeColors[hero.type];
             typeText.textContent = hero.type.charAt(0).toUpperCase() + hero.type.slice(1);
             
-            const separator = document.createElement('span');
-            separator.textContent = ' • ';
-            
-            const roleText = document.createElement('span');
-            roleText.textContent = hero.role;
+            const heroRole = document.createElement('div');
+            heroRole.className = 'hero-role';
+            heroRole.textContent = hero.role;
 
             heroType.appendChild(typeText);
-            heroType.appendChild(separator);
-            heroType.appendChild(roleText);
 
             heroText.appendChild(heroName);
             heroText.appendChild(heroType);
+            heroText.appendChild(heroRole);
 
             heroContent.appendChild(heroIconContainer);
             heroContent.appendChild(heroText);
@@ -447,7 +444,12 @@ class TeamBuilderUI {
                 const heroType = document.createElement('div');
                 heroType.className = 'hero-type';
                 heroType.style.fontSize = '12px';
-                heroType.innerHTML = `<span style="color: ${this.typeColors[currentTeam[i].type]}">${currentTeam[i].type.charAt(0).toUpperCase() + currentTeam[i].type.slice(1)}</span> • ${currentTeam[i].role}`;
+                heroType.innerHTML = `<span style="color: ${this.typeColors[currentTeam[i].type]}">${currentTeam[i].type.charAt(0).toUpperCase() + currentTeam[i].type.slice(1)}</span>`;
+                
+                const heroRole = document.createElement('div');
+                heroRole.className = 'hero-role';
+                heroRole.style.fontSize = '12px';
+                heroRole.textContent = currentTeam[i].role;
 
                 // Basic stats
                 const heroStats = document.createElement('div');
@@ -470,6 +472,7 @@ class TeamBuilderUI {
 
                 heroInfo.appendChild(heroName);
                 heroInfo.appendChild(heroType);
+                heroInfo.appendChild(heroRole);
                 heroInfo.appendChild(heroStats);
 
                 heroDetails.appendChild(heroIconContainer);

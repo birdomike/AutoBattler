@@ -461,6 +461,13 @@ body {
     white-space: nowrap;
 }
 
+.hero-card-text .hero-role {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Selected Team Section */
 #selected-team {
     width: 33%;

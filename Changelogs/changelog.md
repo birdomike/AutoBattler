@@ -1,3 +1,12 @@
+### [0.6.5.0] - 2025-05-11
+#### Changed
+- Improved character card layout by separating type and role onto different lines
+- Enhanced readability of character information in hero cards and team slots
+- Maintained consistent styling while improving information hierarchy
+- Added CSS styling for the new hero-role class
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.5.0_TypeRoleSeparation.md*
+
 ### [0.6.4.20] - 2025-05-11
 #### Changed
 - Updated file-level documentation to reflect BattleScene's role as component orchestrator
