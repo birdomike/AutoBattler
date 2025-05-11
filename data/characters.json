@@ -211,7 +211,7 @@
     {
       "id": 2,
       "name": "Aqualia",
-      "type": "water",
+      "type": "water/ice",
       "role": "Mage",
       "rarity": "Rare",
       "actionDecisionLogic": "decideAction_WeightedRandomAbility",

@@ -80,24 +80,62 @@ class TypeEffectivenessCalculator {
 
     /**
      * Calculate type advantage multiplier
-     * @param {string} attackerType - Attacker's type
-     * @param {string} defenderType - Defender's type
+     * @param {string} attackerType - Attacker's type (can include "/" for multiple types)
+     * @param {string} defenderType - Defender's type (can include "/" for multiple types)
      * @returns {number} Damage multiplier
      */
     calculateTypeMultiplier(attackerType, defenderType) {
-        // Normalize types to lowercase for case-insensitive comparison
-        attackerType = attackerType?.toLowerCase();
-        defenderType = defenderType?.toLowerCase();
-        
         // Safety check for undefined or null types
         if (!attackerType || !defenderType) {
             return 1.0; // Neutral if types are missing
         }
-
+        
         // Wait for initialization if needed
         if (!this.initialized || !this.typeData) {
             console.warn('TypeEffectivenessCalculator: Type data not yet loaded. Using neutral multiplier');
             return 1.0;
+        }
+        
+        // Split types if they contain "/"
+        const attackerTypes = attackerType.includes('/') ? 
+            attackerType.split('/').map(t => t.trim().toLowerCase()) : 
+            [attackerType.toLowerCase()];
+        
+        const defenderTypes = defenderType.includes('/') ? 
+            defenderType.split('/').map(t => t.trim().toLowerCase()) : 
+            [defenderType.toLowerCase()];
+        
+        // Calculate multipliers for each combination
+        let multipliers = [];
+        
+        attackerTypes.forEach(aType => {
+            defenderTypes.forEach(dType => {
+                // Use a helper method for single-type calculation
+                const mult = this._calculateSingleTypeMultiplier(aType, dType);
+                multipliers.push(mult);
+                
+                // We'll handle logging in the specific type pairs rather than the combined calculation
+            });
+        });
+        
+        // Return the most advantageous multiplier (highest value)
+        // This ensures dual-type attacks use their best type for damage calculation
+        return Math.max(...multipliers);
+    }
+    
+    /**
+     * Helper method for calculating multiplier between single types
+     * @param {string} attackerType - Single attacker type
+     * @param {string} defenderType - Single defender type
+     * @returns {number} Damage multiplier
+     * @private
+     */
+    _calculateSingleTypeMultiplier(attackerType, defenderType) {
+        // Both types should already be lowercase at this point
+        
+        // Safety check for undefined or null types
+        if (!attackerType || !defenderType) {
+            return 1.0; // Neutral if types are missing
         }
 
         // Helper function for logging messages
@@ -163,17 +201,52 @@ class TypeEffectivenessCalculator {
 
     /**
      * Get descriptive text for a type relationship (for tooltips and UI)
-     * @param {string} attackerType - Attacker's type
-     * @param {string} defenderType - Defender's type
+     * @param {string} attackerType - Attacker's type (can include "/" for multiple types)
+     * @param {string} defenderType - Defender's type (can include "/" for multiple types)
      * @returns {string} Descriptive text about the type relationship
      */
     getTypeAdvantageText(attackerType, defenderType) {
-        // Normalize types to lowercase
-        attackerType = attackerType?.toLowerCase();
-        defenderType = defenderType?.toLowerCase();
-        
         // Safety check for undefined or null types
         if (!attackerType || !defenderType || !this.initialized) {
+            return '';
+        }
+        
+        // Split types if they contain "/"
+        const attackerTypes = attackerType.includes('/') ? 
+            attackerType.split('/').map(t => t.trim().toLowerCase()) : 
+            [attackerType.toLowerCase()];
+        
+        const defenderTypes = defenderType.includes('/') ? 
+            defenderType.split('/').map(t => t.trim().toLowerCase()) : 
+            [defenderType.toLowerCase()];
+            
+        // For multiple types, combine the descriptions
+        const relationships = [];
+        
+        attackerTypes.forEach(aType => {
+            defenderTypes.forEach(dType => {
+                const relationship = this._getSingleTypeAdvantageText(aType, dType);
+                if (relationship) {
+                    relationships.push(relationship);
+                }
+            });
+        });
+        
+        return relationships.join('. ');
+    }
+    
+    /**
+     * Helper method to get descriptive text for a single type relationship
+     * @param {string} attackerType - Single attacker type
+     * @param {string} defenderType - Single defender type
+     * @returns {string} Descriptive text about the type relationship
+     * @private
+     */
+    _getSingleTypeAdvantageText(attackerType, defenderType) {
+        // Both types should already be lowercase at this point
+        
+        // Safety check for undefined or null types
+        if (!attackerType || !defenderType) {
             return '';
         }
 

@@ -1,4 +1,12 @@
 ### [0.6.5.0] - 2025-05-11
+#### Added
+- Added support for characters with multiple types (e.g., "water/ice")
+- Implemented multi-type display in the TeamBuilder UI with separated types
+- Enhanced Type Relations section to show advantages/disadvantages for each type
+- Added TypeEffectivenessCalculator support for multiple types in combat
+- Modified filter system to include characters that match any of their types
+- Updated Aqualia to have dual Water/Ice typing to match her abilities
+
 #### Changed
 - Improved character card layout by separating type and role onto different lines
 - Enhanced readability of character information in hero cards and team slots

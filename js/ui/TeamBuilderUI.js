@@ -282,9 +282,13 @@ class TeamBuilderUI {
         
         // Apply type filters
         if (this.activeFilters.types.length > 0) {
-            filteredHeroes = filteredHeroes.filter(hero => 
-                this.activeFilters.types.includes(hero.type)
-            );
+            filteredHeroes = filteredHeroes.filter(hero => {
+                // Split the hero's type if it contains multiple types
+                const heroTypes = this.splitTypes(hero.type);
+                
+                // Check if any of the hero's types match any of the active filters
+                return heroTypes.some(type => this.activeFilters.types.includes(type));
+            });
         }
         
         // Apply role filters
@@ -306,7 +310,10 @@ class TeamBuilderUI {
         filteredHeroes.forEach(hero => {
             const heroCard = document.createElement('div');
             heroCard.className = 'hero-card';
-            heroCard.style.backgroundColor = `${this.typeColors[hero.type]}22`;
+            // For multiple types, use the first type's color for the background
+            const heroTypes = this.splitTypes(hero.type);
+            const primaryType = heroTypes[0] || hero.type; // Fallback to full type string if split fails
+            heroCard.style.backgroundColor = `${this.typeColors[primaryType]}22`;
             heroCard.dataset.heroId = hero.id;
 
             if (this.selectedHeroDetails && this.selectedHeroDetails.id === hero.id) {
@@ -341,15 +348,15 @@ class TeamBuilderUI {
             const heroType = document.createElement('div');
             heroType.className = 'hero-type';
             
-            const typeText = document.createElement('span');
-            typeText.style.color = this.typeColors[hero.type];
-            typeText.textContent = hero.type.charAt(0).toUpperCase() + hero.type.slice(1);
+            // Clear any existing content
+            heroType.innerHTML = '';
+            
+            // Render multi-type spans
+            this.renderMultiTypeSpans(hero.type, heroType);
             
             const heroRole = document.createElement('div');
             heroRole.className = 'hero-role';
             heroRole.textContent = hero.role;
-
-            heroType.appendChild(typeText);
 
             heroText.appendChild(heroName);
             heroText.appendChild(heroType);
@@ -413,7 +420,10 @@ class TeamBuilderUI {
             if (currentTeam[i]) {
                 // Slot is filled
                 slotContent.classList.add('slot-filled');
-                slotContent.style.backgroundColor = `${this.typeColors[currentTeam[i].type]}33`;
+                // For multiple types, use the first type's color for the background
+                const heroTypes = this.splitTypes(currentTeam[i].type);
+                const primaryType = heroTypes[0] || currentTeam[i].type; // Fallback to full type
+                slotContent.style.backgroundColor = `${this.typeColors[primaryType]}33`;
 
                 const heroDetails = document.createElement('div');
                 heroDetails.className = 'hero-details';
@@ -444,7 +454,9 @@ class TeamBuilderUI {
                 const heroType = document.createElement('div');
                 heroType.className = 'hero-type';
                 heroType.style.fontSize = '12px';
-                heroType.innerHTML = `<span style="color: ${this.typeColors[currentTeam[i].type]}">${currentTeam[i].type.charAt(0).toUpperCase() + currentTeam[i].type.slice(1)}</span>`;
+                
+                // Render multi-type spans
+                this.renderMultiTypeSpans(currentTeam[i].type, heroType);
                 
                 const heroRole = document.createElement('div');
                 heroRole.className = 'hero-role';
@@ -638,10 +650,19 @@ class TeamBuilderUI {
         const detailTags = document.createElement('div');
         detailTags.className = 'detail-tags';
 
-        const typeTag = document.createElement('span');
-        typeTag.className = 'detail-tag';
-        typeTag.style.backgroundColor = this.typeColors[hero.type];
-        typeTag.textContent = hero.type.charAt(0).toUpperCase() + hero.type.slice(1);
+        // Handle multiple types in the detail tags
+        const types = this.splitTypes(hero.type);
+        
+        // Create a type tag for each type
+        types.forEach(type => {
+            const typeTag = document.createElement('span');
+            typeTag.className = 'detail-tag';
+            typeTag.style.backgroundColor = this.typeColors[type];
+            typeTag.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            detailTags.appendChild(typeTag);
+        });
+        
+        // Skip the automatic append that happens below since we already appended the type tags
 
         const roleTag = document.createElement('span');
         roleTag.className = 'detail-tag';
@@ -653,7 +674,7 @@ class TeamBuilderUI {
         rarityTag.style.backgroundColor = this.rarityColors[hero.rarity];
         rarityTag.textContent = hero.rarity;
 
-        detailTags.appendChild(typeTag);
+        // Type tags already appended in the loop above
         detailTags.appendChild(roleTag);
         detailTags.appendChild(rarityTag);
 
@@ -791,145 +812,200 @@ class TeamBuilderUI {
         typeRelationsTitle.textContent = 'Type Relations';
         detailTypeRelations.appendChild(typeRelationsTitle);
 
-        // Advantages column
-        const advantagesColumn = document.createElement('div');
-        advantagesColumn.className = 'type-column';
+        // Get all hero types
+        const heroTypes = this.splitTypes(hero.type);
+        
+        // Create a container for type sections
+        const typeSectionsContainer = document.createElement('div');
+        typeSectionsContainer.className = 'type-sections-container';
+        detailTypeRelations.appendChild(typeSectionsContainer);
+        
+        // For each hero type, create a separate section
+        heroTypes.forEach(heroType => {
+            // Create a section for this type
+            const typeSection = document.createElement('div');
+            typeSection.className = 'type-section';
+            
+            // Add type header if multiple types
+            if (heroTypes.length > 1) {
+                const typeHeader = document.createElement('div');
+                typeHeader.className = 'type-section-header';
+                typeHeader.style.color = this.typeColors[heroType];
+                typeHeader.textContent = heroType.charAt(0).toUpperCase() + heroType.slice(1) + ' Type';
+                typeHeader.style.fontWeight = 'bold';
+                typeHeader.style.marginBottom = '5px';
+                typeSection.appendChild(typeHeader);
+            }
+            
+            // Create columns for this type
+            const columnsContainer = document.createElement('div');
+            columnsContainer.className = 'type-columns-container';
+            columnsContainer.style.display = 'flex';
+            columnsContainer.style.justifyContent = 'space-between';
+            typeSection.appendChild(columnsContainer);
+            
+            // Advantages column
+            const advantagesColumn = document.createElement('div');
+            advantagesColumn.className = 'type-column';
 
-        const advantagesHeading = document.createElement('h5');
-        advantagesHeading.textContent = 'Advantages';
-        advantagesColumn.appendChild(advantagesHeading);
+            const advantagesHeading = document.createElement('h5');
+            advantagesHeading.textContent = 'Advantages';
+            advantagesColumn.appendChild(advantagesHeading);
 
-        // Disadvantages column
-        const disadvantagesColumn = document.createElement('div');
-        disadvantagesColumn.className = 'type-column';
+            // Disadvantages column
+            const disadvantagesColumn = document.createElement('div');
+            disadvantagesColumn.className = 'type-column';
 
-        const disadvantagesHeading = document.createElement('h5');
-        disadvantagesHeading.textContent = 'Disadvantages';
-        disadvantagesColumn.appendChild(disadvantagesHeading);
+            const disadvantagesHeading = document.createElement('h5');
+            disadvantagesHeading.textContent = 'Disadvantages';
+            disadvantagesColumn.appendChild(disadvantagesHeading);
+            
+            // Get type relations based on current type
+            let advantageType = null;
+            let advantageColor = null;
+            let disadvantageType = null;
+            let disadvantageColor = null;
+            let advantageIcon = '';
+            let disadvantageIcon = '';
 
-        // Get type relations based on hero type
-        let advantageType = null;
-        let advantageColor = null;
-        let disadvantageType = null;
-        let disadvantageColor = null;
-        let advantageIcon = '';
-        let disadvantageIcon = '';
+            // Set relationships based on type
+            switch (heroType) {
+                case 'fire':
+                    advantageType = 'Nature';
+                    advantageColor = this.typeColors.nature;
+                    disadvantageType = 'Water';
+                    disadvantageColor = this.typeColors.water;
+                    advantageIcon = '🌿';
+                    disadvantageIcon = '💧';
+                    break;
+                case 'water':
+                    advantageType = 'Fire';
+                    advantageColor = this.typeColors.fire;
+                    disadvantageType = 'Nature';
+                    disadvantageColor = this.typeColors.nature;
+                    advantageIcon = '🔥';
+                    disadvantageIcon = '🌿';
+                    break;
+                case 'nature':
+                    advantageType = 'Water';
+                    advantageColor = this.typeColors.water;
+                    disadvantageType = 'Fire';
+                    disadvantageColor = this.typeColors.fire;
+                    advantageIcon = '💧';
+                    disadvantageIcon = '🔥';
+                    break;
+                case 'light':
+                    advantageType = 'Dark';
+                    advantageColor = this.typeColors.dark;
+                    disadvantageType = 'Dark';
+                    disadvantageColor = this.typeColors.dark;
+                    advantageIcon = '🌑';
+                    disadvantageIcon = '🌑';
+                    break;
+                case 'dark':
+                    advantageType = 'Light';
+                    advantageColor = this.typeColors.light;
+                    disadvantageType = 'Light';
+                    disadvantageColor = this.typeColors.light;
+                    advantageIcon = '✨';
+                    disadvantageIcon = '✨';
+                    break;
+                case 'air':
+                    advantageType = 'Earth';
+                    advantageColor = this.typeColors.earth || '#8B4513';
+                    disadvantageType = 'Electric';
+                    disadvantageColor = '#F7DF1E'; // Yellow for electric
+                    advantageIcon = '🌍';
+                    disadvantageIcon = '⚡';
+                    break;
+                case 'ice':
+                    advantageType = 'Nature';
+                    advantageColor = this.typeColors.nature;
+                    disadvantageType = 'Fire';
+                    disadvantageColor = this.typeColors.fire;
+                    advantageIcon = '🌿';
+                    disadvantageIcon = '🔥';
+                    break;
+            }
+            
+            // Create advantage box if applicable
+            if (advantageType) {
+                const advantageBox = document.createElement('div');
+                advantageBox.className = 'advantage-box';
 
-        // Set relationships based on type
-        switch (hero.type) {
-            case 'fire':
-                advantageType = 'Nature';
-                advantageColor = this.typeColors.nature;
-                disadvantageType = 'Water';
-                disadvantageColor = this.typeColors.water;
-                advantageIcon = '🌿';
-                disadvantageIcon = '💧';
-                break;
-            case 'water':
-                advantageType = 'Fire';
-                advantageColor = this.typeColors.fire;
-                disadvantageType = 'Nature';
-                disadvantageColor = this.typeColors.nature;
-                advantageIcon = '🔥';
-                disadvantageIcon = '🌿';
-                break;
-            case 'nature':
-                advantageType = 'Water';
-                advantageColor = this.typeColors.water;
-                disadvantageType = 'Fire';
-                disadvantageColor = this.typeColors.fire;
-                advantageIcon = '💧';
-                disadvantageIcon = '🔥';
-                break;
-            case 'light':
-                advantageType = 'Dark';
-                advantageColor = this.typeColors.dark;
-                disadvantageType = 'Dark';
-                disadvantageColor = this.typeColors.dark;
-                advantageIcon = '🌑';
-                disadvantageIcon = '🌑';
-                break;
-            case 'dark':
-                advantageType = 'Light';
-                advantageColor = this.typeColors.light;
-                disadvantageType = 'Light';
-                disadvantageColor = this.typeColors.light;
-                advantageIcon = '✨';
-                disadvantageIcon = '✨';
-                break;
-            case 'air':
-                advantageType = 'Earth';
-                advantageColor = this.typeColors.earth || '#8B4513';
-                disadvantageType = 'Electric';
-                disadvantageColor = '#F7DF1E'; // Yellow for electric
-                advantageIcon = '🌍';
-                disadvantageIcon = '⚡';
-                break;
-        }
+                const typeName = document.createElement('span');
+                typeName.className = 'type-relation-title';
+                typeName.innerHTML = `${advantageIcon} ${advantageType} ${advantageIcon}`;
+                typeName.style.color = advantageColor;
 
-        // Create advantage box if applicable
-        if (advantageType) {
-            const advantageBox = document.createElement('div');
-            advantageBox.className = 'advantage-box';
+                advantageBox.appendChild(typeName);
 
-            const typeName = document.createElement('span');
-            typeName.className = 'type-relation-title';
-            typeName.innerHTML = `${advantageIcon} ${advantageType} ${advantageIcon}`;
-            typeName.style.color = advantageColor;
+                // Add tooltip for detailed info
+                if (window.tooltipManager) {
+                    const tooltipContent = `<div class="tooltip-title">Type Advantage</div>
+                        <div class="tooltip-content">${heroType.charAt(0).toUpperCase() + heroType.slice(1)} does 50% more damage to ${advantageType} types.</div>`;
+                    window.tooltipManager.addTooltip(advantageBox, tooltipContent);
+                }
 
-            advantageBox.appendChild(typeName);
-
-            // Add tooltip for detailed info
-            if (window.tooltipManager) {
-                const tooltipContent = `<div class="tooltip-title">Type Advantage</div>
-                    <div class="tooltip-content">${hero.type.charAt(0).toUpperCase() + hero.type.slice(1)} does 50% more damage to ${advantageType} types.</div>`;
-                window.tooltipManager.addTooltip(advantageBox, tooltipContent);
+                advantagesColumn.appendChild(advantageBox);
+            } else {
+                // No advantages case
+                const noAdvantages = document.createElement('div');
+                noAdvantages.className = 'advantage-box';
+                noAdvantages.textContent = 'None';
+                noAdvantages.style.color = 'var(--text-muted)';
+                noAdvantages.style.justifyContent = 'center';
+                advantagesColumn.appendChild(noAdvantages);
             }
 
-            advantagesColumn.appendChild(advantageBox);
-        } else {
-            // No advantages case
-            const noAdvantages = document.createElement('div');
-            noAdvantages.className = 'advantage-box';
-            noAdvantages.textContent = 'None';
-            noAdvantages.style.color = 'var(--text-muted)';
-            noAdvantages.style.justifyContent = 'center';
-            advantagesColumn.appendChild(noAdvantages);
-        }
+            // Create disadvantage box if applicable
+            if (disadvantageType) {
+                const disadvantageBox = document.createElement('div');
+                disadvantageBox.className = 'disadvantage-box';
 
-        // Create disadvantage box if applicable
-        if (disadvantageType) {
-            const disadvantageBox = document.createElement('div');
-            disadvantageBox.className = 'disadvantage-box';
+                const typeName = document.createElement('span');
+                typeName.className = 'type-relation-title';
+                typeName.innerHTML = `${disadvantageIcon} ${disadvantageType} ${disadvantageIcon}`;
+                typeName.style.color = disadvantageColor;
 
-            const typeName = document.createElement('span');
-            typeName.className = 'type-relation-title';
-            typeName.innerHTML = `${disadvantageIcon} ${disadvantageType} ${disadvantageIcon}`;
-            typeName.style.color = disadvantageColor;
+                disadvantageBox.appendChild(typeName);
 
-            disadvantageBox.appendChild(typeName);
+                // Add tooltip for detailed info
+                if (window.tooltipManager) {
+                    const tooltipContent = `<div class="tooltip-title">Type Disadvantage</div>
+                        <div class="tooltip-content">${heroType.charAt(0).toUpperCase() + heroType.slice(1)} takes 50% more damage from ${disadvantageType} types.</div>`;
+                    window.tooltipManager.addTooltip(disadvantageBox, tooltipContent);
+                }
 
-            // Add tooltip for detailed info
-            if (window.tooltipManager) {
-                const tooltipContent = `<div class="tooltip-title">Type Disadvantage</div>
-                    <div class="tooltip-content">${hero.type.charAt(0).toUpperCase() + hero.type.slice(1)} takes 50% more damage from ${disadvantageType} types.</div>`;
-                window.tooltipManager.addTooltip(disadvantageBox, tooltipContent);
+                disadvantagesColumn.appendChild(disadvantageBox);
+            } else {
+                // No disadvantages case
+                const noDisadvantages = document.createElement('div');
+                noDisadvantages.className = 'disadvantage-box';
+                noDisadvantages.textContent = 'None';
+                noDisadvantages.style.color = 'var(--text-muted)';
+                noDisadvantages.style.justifyContent = 'center';
+                disadvantagesColumn.appendChild(noDisadvantages);
             }
+            
+            // Add columns to the columns container
+            columnsContainer.appendChild(advantagesColumn);
+            columnsContainer.appendChild(disadvantagesColumn);
+            
+            // Add this type section to the sections container
+            typeSectionsContainer.appendChild(typeSection);
+            
+            // Add separator if not the last type
+            if (heroTypes.indexOf(heroType) < heroTypes.length - 1) {
+                const separator = document.createElement('hr');
+                separator.style.margin = '10px 0';
+                separator.style.borderTop = '1px solid #555';
+                typeSectionsContainer.appendChild(separator);
+            }
+        });
 
-            disadvantagesColumn.appendChild(disadvantageBox);
-        } else {
-            // No disadvantages case
-            const noDisadvantages = document.createElement('div');
-            noDisadvantages.className = 'disadvantage-box';
-            noDisadvantages.textContent = 'None';
-            noDisadvantages.style.color = 'var(--text-muted)';
-            noDisadvantages.style.justifyContent = 'center';
-            disadvantagesColumn.appendChild(noDisadvantages);
-        }
-
-        // Add columns to the type relations container
-        detailTypeRelations.appendChild(advantagesColumn);
-        detailTypeRelations.appendChild(disadvantagesColumn);
+        // No need to add columns directly to detailTypeRelations anymore
+        // as they're being added to typeSectionsContainer for each type
 
         // Add all sections to the detail content
         detailHero.appendChild(detailHeader);
@@ -1081,7 +1157,10 @@ class TeamBuilderUI {
             
             // Update background color for the detail hero container
             if (detailHero) {
-                detailHero.style.backgroundColor = `${this.typeColors[hero.type]}22`;
+                // For multiple types, use the first type's color for the background
+                const heroTypes = this.splitTypes(hero.type);
+                const primaryType = heroTypes[0] || hero.type; // Fallback to full type
+                detailHero.style.backgroundColor = `${this.typeColors[primaryType]}22`;
             }
         
             // Update the hero name and tags
@@ -1812,6 +1891,41 @@ class TeamBuilderUI {
                 this.startBattleWithDelay();
             }
         }
+    }
+
+    /**
+     * Split a type string into an array of individual types
+     * @param {string} typeString - Type string with potential "/" separator
+     * @returns {string[]} Array of individual types
+     */
+    splitTypes(typeString) {
+        if (!typeString) return [];
+        return typeString.split('/').map(t => t.trim().toLowerCase());
+    }
+
+    /**
+     * Create spans for a multi-type string
+     * @param {string} typeString - Type string with potential "/" separator
+     * @param {HTMLElement} container - Container to append spans to
+     */
+    renderMultiTypeSpans(typeString, container) {
+        const types = this.splitTypes(typeString);
+        
+        types.forEach((type, index) => {
+            // Create span for this type
+            const typeSpan = document.createElement('span');
+            typeSpan.style.color = this.typeColors[type];
+            typeSpan.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            container.appendChild(typeSpan);
+            
+            // Add separator if not the last type
+            if (index < types.length - 1) {
+                const separator = document.createElement('span');
+                separator.textContent = ' / ';
+                separator.className = 'type-separator';
+                container.appendChild(separator);
+            }
+        });
     }
 
     /**
