@@ -98,6 +98,7 @@ C:\Personal\AutoBattler\
 │   │   │   └── BattleLogTester.js  # Utilities for testing log messages
 │   │   │
 │   │   ├── core/             # Core Phaser implementation components
+│   │   │   ├── BattleAssetLoader.js   # Centralizes all asset loading for battle scene
 │   │   │   └── BattleEventManager.js # Manages event listening and handling for BattleScene
 │   │   │
 │   │   ├── managers/         # Specialized Phaser managers
@@ -114,6 +115,7 @@ C:\Personal\AutoBattler\
 │   │   │   │   ├── CharacterSprite.js     # Individual character sprites
 │   │   │   │   ├── DirectBattleLog.js     # Simplified direct text battle log
 │   │   │   │   └── TeamContainer.js       # Container for team organization
+│   │   │   │   └── TurnIndicator.js       # Visual indicator for active character turns
 │   │   │   │
 │   │   │   ├── Button.js             # Reusable button component
 │   │   │   └── Panel.js              # Reusable panel component
@@ -200,7 +202,7 @@ The game uses a two-level changelog system to track version history:
 
 When implementing changes to the game:
 
-1. Update the high-level changelog with a concise summary
+1. Update the high-level changelog with a concise summary- Edit_File, do not Write file
 2. Create a detailed technical changelog file if it's a significant version update
 3. Reference the detailed changelog in the high-level entry with: `*Note: For detailed information on specific implementation steps, see CHANGELOG_X.X.X.md*`
 
@@ -215,7 +217,7 @@ This dual approach ensures both quick reference for general changes and detailed
 - Characters have: name, type, role, rarity, level, XP, and abilities
 - Characters start at level 1 and can progress to level 20
 - **Types**: Fire, Water, Nature, Electric, Ice, Rock, Metal, Air, Light, Dark, Psychic, Poison, Physical, Arcane, Mechanical, Void, Crystal, Storm, Ethereal, Blood, Plague, Gravity (with advantages/disadvantages and immunities)
-- **Roles**: Warrior, Sentinel (formerly Knight), Berserker, Ranger, Assassin, Bulwark (formerly Guardian), Mage, Invoker, Sorcerer, Summoner, Occultist (formerly Necromancer), Mystic (formerly Cleric), Champion (formerly Paladin), Wildcaller (formerly Druid), Striker (formerly Monk), Emissary (formerly Bard), Elementalist (formerly Shaman), Warden, Skirmisher, Battlemage, Venomancer, Trickster
+- **Roles**: Warrior, Sentinel, Berserker, Ranger, Assassin, Bulwark, Mage, Invoker, Sorcerer, Summoner, Occultist, Mystic, Champion , Wildcaller , Striker, Emissary, Elementalist, Warden, Skirmisher, Battlemage, Venomancer, Trickster
 - Team synergies based on having multiple characters of same type/role
 - **Stats**:
   - HP: Health points
@@ -407,90 +409,23 @@ This dual approach ensures both quick reference for general changes and detailed
 - Custom Battle mode lets players select both their team and their opponent's team
 - Enhanced to show expanded stat system (STR, INT, SPI) in detail view
 
-## Planned Systems
-
-### Character Progression System (To be implemented)
-- Characters gain XP from battles
-- Each level requires progressively more XP
-- Characters unlock additional abilities as they level up:
-  - Level 1: One default ability
-  - Level 5: Second ability unlocked
-  - Level 10: Third ability unlocked
-  - Level 15: Fourth ability unlocked
-- All characters have a default auto-attack regardless of level
-- UI will display locked abilities with level requirements
-
-### Role-Based Stat Growth (To be implemented)
-- Each role has unique stat growth multipliers applied per level
-- Stats are distributed across Attack, Health, Strength, Intellect, and Spirit
-- Each role gets a total of 5.0 stat points per level spread across all stats
-- Roles are specialized with distinct archetypes:
-  - **Physical Damage Dealers**:
-    - Warriors (Pure melee DPS-tank): High ATK/HP/STR (1.5/1.8/1.5)
-    - Berserkers (All-in bruiser): Very high ATK/STR (1.8/1.7)
-    - Rangers (Ranged glass cannon): Very high ATK/STR (1.7/1.9)
-    - Assassins (Burst finisher): Highest ATK/STR (1.9/1.9)
-  - **Tank Specialists**:
-    - Sentinels (Shielded striker): Highest HP with good STR (2.0/1.8)
-    - Bulwarks (Pure tank): Extreme HP with good STR (2.3/1.7)
-    - Wardens (Counter-tank/Disruptor): Very high HP (2.0)
-  - **Spell Casters**:
-    - Mages (Pure spell DPS): Very high INT with some SPI (2.4/0.8)
-    - Invokers (Supportive magic amplifier): Extreme INT (2.8) 
-    - Sorcerers (High-risk nuker): Extreme INT (2.8)
-  - **Healing/Support**:
-    - Mystics (Pure healer): Extreme SPI (2.5) 
-    - Champions (Tank-healer): Good HP with balanced stats (1.6 HP)
-    - Emissaries (Buffer/debuffer): High SPI (1.4)
-  - **Hybrid/Specialized**:
-    - Battlemages (Melee-caster): Balanced ATK/HP/STR/INT (1.3/1.4/1.3/1.4)
-    - Wildcallers (Nature hybrid): Balanced across all stats
-    - Venomancers (DoT specialist): High INT/SPI (1.8/1.2)
-    - Tricksters (Chaos/RNG): High SPI (1.5) with balanced other stats
-
-### Type Effectiveness System
-- **Fully implemented** data-driven type system with complete 22-type effectiveness relationships
-- Data stored in `type_effectiveness.json` with advantages, disadvantages, immunities, and special cases
-- Each type has specific strengths (does +50% damage) and weaknesses (does -50% damage)
-- Some types have immunities (e.g., Metal is immune to Poison, Physical cannot damage Ethereal)
-- Special interactions exist (e.g., Ethereal takes 3x damage from Light)
-- Enhanced battle log with descriptive type effectiveness messages
-- Example relationships:
-  - Fire is strong against Nature, Ice, and Metal but weak against Water and Rock
-  - Water is strong against Fire, Rock, and Metal but weak against Nature and Electric
-  - Light and Dark are opposing forces (strong against each other)
-  - Arcane is strong against itself and Nature
-  - Ethereal is immune to physical auto-attacks but very vulnerable to Light
-  - Mechanical types are strong against Arcane and Poison
-  - Void excels against Light and Psychic types
-
-### Arena System (Planned)
-- Multiple battle environments with distinct visual styles
-- Weather effects (rain, snow, fog) affecting battle conditions
-- Time of day variations (day, night, dusk)
-- Arena-specific bonuses for certain character types
-- Environmental hazards and obstacles
-- Arena selection interface before battles
-
-### Equipment System (Planned)
-- Characters can equip items that enhance their stats
-- Different item types (weapons, armor, accessories)
-- Item rarity system affecting bonus strength
-- Loot drops from battles
-- Inventory management interface
-
 ## Current Implementation Status
 - **Refactoring Progress**: 
   - **BattleManager Refactoring**: Completed with specialized component managers
     - All components implemented: StatusEffectManager, BattleFlowController, DamageCalculator, HealingProcessor, TypeEffectivenessCalculator, AbilityProcessor, TargetingSystem, ActionGenerator, PassiveTriggerTracker, PassiveAbilityManager, BattleEventDispatcher, BattleLogManager, BattleInitializer, BattleUtilities
     - Architecture has shifted from monolithic BattleManager to specialized component managers
     - BattleManager now serves as a thin orchestration layer that delegates to specialized components
-  - **BattleScene Refactoring**: Partially completed (3 of 7 phases)
-    - Phase 1 Complete: Extracted `BattleEventManager` for handling all event listening and handling
-    - Phase 2 Complete: Extracted `BattleUIManager` for UI creation and management
-    - Phase 3 Complete: Extracted `TeamDisplayManager` for team visual management
-    - Phase 4 (Asset Loading) temporarily paused for bug fixes
-    - Remaining phases (Visual Effects, Debug Tools, Final Cleanup) pending
+ - **BattleScene Refactoring**: In progress (Phase 4 of 7 underway)
+  - Phase 1 Complete: Extracted `BattleEventManager` for handling all event listening and handling
+  - Phase 2 Complete: Extracted `BattleUIManager` for UI creation and management
+  - Phase 3 Complete: Extracted `TeamDisplayManager` for team visual management
+  - Phase 4 In Progress: Extracting `BattleAssetLoader` for asset loading management
+    - Stage 1 Complete: Extracted UI asset loading (0.6.4.0, 0.6.4.1)
+    - Stage 2 Complete: Extracted character asset loading (0.6.4.2)
+    - Stage 3 Complete: Extracted status effect icon loading (0.6.4.3, 0.6.4.4)
+    - Stage 4 Planned: Create unified asset loading interface
+  - Remaining phases (Visual Effects, Debug Tools, Final Cleanup) pending
+
 - Team Builder UI is fully functional with hero selection, team building, and custom battles (DOM-based)
 - Phaser Battle Scene development continuing with modular component architecture
 - Previous DOM-based Battle UI is being replaced with a Phaser-based implementation
@@ -500,8 +435,7 @@ This dual approach ensures both quick reference for general changes and detailed
 - Core data structures and classes are defined and working
 - Initiative/speed system implemented for turn-based combat
 - Type advantages and status effects are functional with data-driven implementation
-- Implementation plan documented in `C:\Personal\AutoBattler\Context\Battle_Implementation_Plan.md`
-- Detailed refactoring plan in `C:\Personal\AutoBattler\Context\Planning\BattleManager_Refactoring_Plan_Big Picture.md`
+
 
 ### Defensive Programming Patterns
 - The codebase uses consistent defensive programming patterns throughout components:
@@ -512,5 +446,3 @@ This dual approach ensures both quick reference for general changes and detailed
   - Proper handling of circular references
   - Safe defaults for missing or invalid parameters
   - Early returns for invalid input states
-
----
