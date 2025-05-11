@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.4.7 (BattleFXManager implementation - Remove phase)
+ * @version 0.6.4.8 (PhaserDebugManager implementation - Extract phase)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -264,8 +264,8 @@ export default class BattleScene extends Phaser.Scene {
             this.initializeUIManager();
 
             console.log('BattleScene create: Initializing debug tools...');
-            // Initialize debug tools if available
-            this.initializeDebugTools();
+            // Initialize debug tools through PhaserDebugManager if available
+            this.initializeDebugManager();
             console.log('BattleScene create: Debug tools initialized.');
 
             console.log('BattleScene create: Initializing battle bridge...');
@@ -311,9 +311,12 @@ export default class BattleScene extends Phaser.Scene {
                 this.showErrorMessage(errorMessage);
             }
             
-            // Make test functions available globally for debugging
-            window.testHealthUpdate = this.testHealthUpdate.bind(this);
-            window.testActionIndicator = this.testActionIndicator.bind(this);
+            // Test functions are registered by PhaserDebugManager if available
+            if (!this.debugManager) {
+                // Fall back to direct registration only if debugManager not available
+                window.testHealthUpdate = this.testHealthUpdate.bind(this);
+                window.testActionIndicator = this.testActionIndicator.bind(this);
+            }
             
             // DIAGNOSTIC: Add a direct test method for the visual indicators
             window.testTurnHighlightingDirectly = () => {
@@ -678,6 +681,56 @@ export default class BattleScene extends Phaser.Scene {
             }
         } catch (error) {
             console.error('[BattleScene] Error showing floating text:', error);
+        }
+    }
+
+    /**
+     * Initialize the PhaserDebugManager
+     * @private
+     */
+    initializeDebugManager() {
+        try {
+            // Check if PhaserDebugManager is available
+            if (window.PhaserDebugManager) {
+                console.log('BattleScene: Creating PhaserDebugManager instance');
+                
+                // Create configuration from existing debug settings
+                const debugConfig = {
+                    enabled: this.debug.enabled,
+                    showCoordinates: this.debug.showCoordinates,
+                    showObjectInfo: this.debug.showObjectInfo
+                };
+                
+                // Create manager with scene and config
+                this.debugManager = new window.PhaserDebugManager(this, debugConfig);
+                
+                // Initialize debug tools
+                if (this.debugManager.initialize()) {
+                    console.log('BattleScene: PhaserDebugManager initialized successfully');
+                    return true;
+                } else {
+                    console.warn('BattleScene: PhaserDebugManager initialization returned false');
+                    
+                    // Fall back to legacy debug tools
+                    this.initializeDebugTools();
+                    
+                    return false;
+                }
+            } else {
+                console.warn('BattleScene: PhaserDebugManager not found, using legacy debug tools');
+                
+                // Fall back to legacy debug tools
+                this.initializeDebugTools();
+                
+                return false;
+            }
+        } catch (error) {
+            console.error('BattleScene: Error initializing debug manager:', error);
+            
+            // Fall back to legacy debug tools
+            this.initializeDebugTools();
+            
+            return false;
         }
     }
 
@@ -1097,8 +1150,15 @@ export default class BattleScene extends Phaser.Scene {
         console.log('BattleScene: Shutting down');
 
         try {
-            // Clean up debug tools
-            this.cleanupDebugTools();
+            // Clean up debug manager
+            if (this.debugManager && typeof this.debugManager.destroy === 'function') {
+                console.log('BattleScene: Cleaning up PhaserDebugManager');
+                this.debugManager.destroy();
+                this.debugManager = null;
+            } else {
+                // Fall back to legacy cleanup
+                this.cleanupDebugTools();
+            }
 
             // Clean up battle bridge (including event manager)
             this.cleanupBattleBridge();

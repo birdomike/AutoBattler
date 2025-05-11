@@ -1,3 +1,11 @@
+### [0.6.4.8] - 2025-05-11
+#### Added
+- Created new PhaserDebugManager component to centralize debug tools (Extract phase)
+- Added proper lifecycle and resource management for debug tools
+- Enhanced global testing functions with improved error handling
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.4.8_PhaserDebugManager_Extract.md*
+
 ### [0.6.4.7] - 2025-05-11
 #### Changed
 - Completed BattleFXManager implementation by removing legacy visual effects code from BattleScene.js
