@@ -1,8 +1,8 @@
-# CHANGELOG 0.6.4.2 - BattleAssetLoader Stage 2 Implementation (Parts 1-2)
+# CHANGELOG 0.6.4.2 - BattleAssetLoader Stage 2 Implementation
 
 ## Overview
 
-This update implements Stage 2 (Parts 1-2) of the BattleAssetLoader refactoring plan, which extracts character asset loading logic from BattleScene.js into the dedicated BattleAssetLoader component. This is part of an ongoing effort to reduce the complexity of BattleScene.js and improve the separation of concerns within the codebase.
+This update implements Stage 2 of the BattleAssetLoader refactoring plan, which extracts character asset loading logic from BattleScene.js into the dedicated BattleAssetLoader component. This completes the second major phase of refactoring in our ongoing effort to reduce the complexity of BattleScene.js and improve the separation of concerns within the codebase.
 
 ## Implementation Details
 
@@ -58,27 +58,51 @@ The method includes:
 
 ### 2. Updated BattleScene.js to Use BattleAssetLoader for Character Assets
 
-Modified BattleScene.js to use the new method while maintaining the fallback path:
+Modified BattleScene.js to use the new method:
 
 ```javascript
 // In BattleScene.js preload()
 if (window.BattleAssetLoader) {
     this.assetLoader = new window.BattleAssetLoader(this);
     this.assetLoader.loadUIAssets();
-    this.assetLoader.loadCharacterAssets(); // Add character asset loading through the loader
+    this.assetLoader.loadCharacterAssets(); // Added character asset loading through the loader
     
     // Preload status effect icons - call our dedicated method instead
     this.preloadStatusEffectIcons();
-} else {
-    // Original fallback code remains unchanged for now
-    // Will be simplified in Parts 3-4
 }
 ```
 
 These changes:
 - Remove character asset loading code from the main BattleScene.js path
 - Delegate to the BattleAssetLoader component when available
-- Maintain the existing fallback code for now (to be removed in Part 4)
+
+### 3. Simplified the Fallback Path
+
+Removed the redundant character asset loading code from the fallback path, replacing it with minimal essential code:
+
+```javascript
+// In BattleScene.js preload() - 'else' branch
+console.error("[BattleScene] BattleAssetLoader not available - falling back to minimal asset loading");
+
+// MINIMAL FALLBACK LOADING - just enough to show an error and basic functionality
+// Critical UI assets for error display
+this.load.image('return-button', 'assets/images/icons/return.png');
+
+// Minimal character assets for basic display
+this.load.image('character-circle', 'assets/images/icons/character-circle.png');
+
+// Load status effect icons
+this.preloadStatusEffectIcons();
+
+// Set a flag to show an error message to the user
+this.showAssetLoadingError = true;
+```
+
+The fallback path now:
+- Only loads the minimal assets required for basic display
+- Shows an appropriate error message to the user
+- Eliminates ~30 lines of redundant code from BattleScene.js
+- Maintains the status effect icon loading until Stage 3 is implemented
 
 ## Benefits
 
@@ -100,8 +124,10 @@ Testing should verify:
 
 ## Next Steps
 
-Once testing confirms the new implementation works correctly, we'll proceed with:
-1. Part 3: Test and verify character asset loading
-2. Part 4: Remove the redundant character asset loading code from the fallback path
+Now that Stage 2 is complete, we're ready to proceed with Stage 3: Extract Status Effect Icon Loading.
 
-This incremental approach ensures we maintain functionality while progressively improving code organization.
+Stage 3 will involve:
+1. Adding a `loadStatusEffectIcons()` method to BattleAssetLoader
+2. Moving the `initStatusIconMapping()` method to BattleAssetLoader
+3. Updating BattleScene to use these methods
+4. Removing the original status effect loading code from BattleScene.js

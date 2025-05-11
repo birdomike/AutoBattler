@@ -134,42 +134,19 @@ export default class BattleScene extends Phaser.Scene {
             // Preload status effect icons - call our dedicated method instead
             this.preloadStatusEffectIcons();
         } else {
-            console.error("[BattleScene] BattleAssetLoader not available - cannot load UI assets!");
+            console.error("[BattleScene] BattleAssetLoader not available - falling back to minimal asset loading");
             
-            // Fall back to basic loading (no UI elements)
-            try {
-                // Basic placeholder asset
-                this.load.image('character-circle', 'assets/images/icons/character-circle.png');
-                
-                // Preload all combat-optimized character art - this is the proper place to load assets
-                const characterArt = [
-                    'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
-                    'Sylvanna', 'Vaelgor', 'Seraphina' 
-                ];
-                
-                // Special case for Caste due to parentheses in filename
-                const casteKey = 'character_Caste';
-                const castePath = 'assets/images/Character Art/Combat_Version/Caste.png';
-                this.load.image(casteKey, castePath);
-                console.log(`BattleScene: Preloading combat-optimized character image ${casteKey} from ${castePath}`);
-                
-                characterArt.forEach(name => {
-                    const key = `character_${name}`;
-                    // Use the combat-optimized versions of character art
-                    const path = `assets/images/Character Art/Combat_Version/${name}.png`;
-                    this.load.image(key, path);
-                    console.log(`BattleScene: Preloading combat-optimized character image ${key} from ${path}`);
-                });
-                
-                console.log('BattleScene: Character art preload complete');
-                
-                // Preload status effect icons - call our dedicated method instead
-                this.preloadStatusEffectIcons();
-            } catch (error) {
-                console.warn('BattleScene: Could not preload character art:', error);
-            }
+            // MINIMAL FALLBACK LOADING - just enough to show an error and basic functionality
+            // Critical UI assets for error display
+            this.load.image('return-button', 'assets/images/icons/return.png');
             
-            // Set a flag to show an error message to the user during create()
+            // Minimal character assets for basic display
+            this.load.image('character-circle', 'assets/images/icons/character-circle.png');
+            
+            // Load status effect icons
+            this.preloadStatusEffectIcons();
+            
+            // Set a flag to show an error message to the user
             this.showAssetLoadingError = true;
         }
         
