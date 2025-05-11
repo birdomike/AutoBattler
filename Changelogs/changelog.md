@@ -1,3 +1,18 @@
+### [0.6.4.10] - 2025-05-11
+#### Changed
+- Changed the coordinate grid toggle hotkey from Ctrl+G to Alt+G to avoid browser conflicts
+- Added event.preventDefault() to prevent browser's default behavior when using debug hotkeys
+- Updated documentation and console logs to reflect the new hotkey
+
+### [0.6.4.9] - 2025-05-11
+#### Changed
+- Completed PhaserDebugManager refactoring (Remove phase)
+- Removed original debug code from BattleScene.js (approximately 150 lines removed)
+- Simplified debug initialization and error handling
+- Fully delegated all debugging functionality to the PhaserDebugManager component
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.4.9_PhaserDebugManager_Remove.md*
+
 ### [0.6.4.8] - 2025-05-11
 #### Added
 - Created new PhaserDebugManager component to centralize debug tools (Extract phase)

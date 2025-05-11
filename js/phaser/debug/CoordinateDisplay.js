@@ -1,6 +1,7 @@
 /**
  * CoordinateDisplay.js
  * Provides a coordinate grid overlay and mouse position tracking for debugging
+ * Toggle with Alt+G
  */
 
 class CoordinateDisplay {
@@ -74,14 +75,15 @@ class CoordinateDisplay {
         // Add mouse move listener for coordinate tracking
         this.scene.input.on('pointermove', this.updateCoordinates, this);
         
-        // Add keyboard shortcut for toggling (Ctrl+G)
+        // Add keyboard shortcut for toggling (Alt+G)
         this.scene.input.keyboard.on('keydown-G', (event) => {
-            if (this.scene.input.keyboard.checkModifierKey(event, 'ctrl')) {
+            if (event.altKey) {
+                event.preventDefault(); // Prevent browser's default behavior
                 this.toggle();
             }
         });
         
-        console.log('CoordinateDisplay: Created');
+        console.log('CoordinateDisplay: Created (toggle with Alt+G)');
     }
     
     /**
@@ -171,7 +173,7 @@ class CoordinateDisplay {
             this.drawGrid();
         }
         
-        console.log(`CoordinateDisplay: ${this.enabled ? 'Enabled' : 'Disabled'}`);
+        console.log(`CoordinateDisplay: ${this.enabled ? 'Enabled' : 'Disabled'} (toggle with Alt+G)`);
     }
     
     /**

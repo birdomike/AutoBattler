@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.4.8 (PhaserDebugManager implementation - Extract phase)
+ * @version 0.6.4.9 (PhaserDebugManager implementation - Remove phase)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -311,46 +311,17 @@ export default class BattleScene extends Phaser.Scene {
                 this.showErrorMessage(errorMessage);
             }
             
-            // Test functions are registered by PhaserDebugManager if available
-            if (!this.debugManager) {
-                // Fall back to direct registration only if debugManager not available
-                window.testHealthUpdate = this.testHealthUpdate.bind(this);
-                window.testActionIndicator = this.testActionIndicator.bind(this);
+            // Test functions are registered by PhaserDebugManager
+            if (this.debugManager) {
+                console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
+            } else {
+                console.warn('BattleScene: Debug test functions not available - PhaserDebugManager not initialized');
             }
             
-            // DIAGNOSTIC: Add a direct test method for the visual indicators
-            window.testTurnHighlightingDirectly = () => {
-                console.log('MANUAL TEST: Testing turn highlighting directly (bypassing events)');
-                
-                // Get the first character from player team as a test subject
-                const testCharacter = this.playerTeam && this.playerTeam.length > 0 ? this.playerTeam[0] : null;
-                if (!testCharacter) {
-                    console.warn('MANUAL TEST: No test character available');
-                    return;
-                }
-                
-                console.log(`MANUAL TEST: Using test character ${testCharacter.name}`);
-                
-                // Direct test: Try to highlight through TeamDisplayManager first
-                if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
-                    console.log('MANUAL TEST: Using TeamDisplayManager.updateActiveCharacterVisuals directly');
-                    this.teamManager.updateActiveCharacterVisuals(testCharacter);
-                }
-                
-                // Direct test: Find the character sprite directly and show an action text
-                if (this.teamManager && typeof this.teamManager.getCharacterSprite === 'function') {
-                    const sprite = this.teamManager.getCharacterSprite(testCharacter);
-                    if (sprite && typeof sprite.showActionText === 'function') {
-                        console.log('MANUAL TEST: Using CharacterSprite.showActionText directly');
-                        sprite.showActionText('TEST ACTION (Direct)');
-                    } else {
-                        console.warn('MANUAL TEST: Could not find sprite or sprite.showActionText method');
-                    }
-                }
-            };
+            // The testTurnHighlightingDirectly function is now provided by PhaserDebugManager
             
-            // Log the test function availability
-            console.log('DIAGNOSTIC: Test functions available in console: testHealthUpdate, testActionIndicator, testTurnHighlightingDirectly');
+            // Log that test functions are handled by PhaserDebugManager
+            console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
 
             console.log('BattleScene created successfully');
         } catch (error) {
@@ -705,80 +676,22 @@ export default class BattleScene extends Phaser.Scene {
                 this.debugManager = new window.PhaserDebugManager(this, debugConfig);
                 
                 // Initialize debug tools
-                if (this.debugManager.initialize()) {
-                    console.log('BattleScene: PhaserDebugManager initialized successfully');
-                    return true;
-                } else {
-                    console.warn('BattleScene: PhaserDebugManager initialization returned false');
-                    
-                    // Fall back to legacy debug tools
-                    this.initializeDebugTools();
-                    
-                    return false;
-                }
+                const result = this.debugManager.initialize();
+                console.log(`BattleScene: PhaserDebugManager initialization ${result ? 'successful' : 'failed'}`);
+                return result;
             } else {
-                console.warn('BattleScene: PhaserDebugManager not found, using legacy debug tools');
-                
-                // Fall back to legacy debug tools
-                this.initializeDebugTools();
-                
+                console.error('BattleScene: PhaserDebugManager not found - debug tools will not be available');
                 return false;
             }
         } catch (error) {
             console.error('BattleScene: Error initializing debug manager:', error);
-            
-            // Fall back to legacy debug tools
-            this.initializeDebugTools();
-            
             return false;
         }
     }
 
-    /**
-     * Initialize debug tools like coordinate display and object identifier
-     */
-    initializeDebugTools() {
-        if (!this.debug.enabled) return;
 
-        try {
-            if (typeof CoordinateDisplay !== 'undefined' && this.debug.showCoordinates) {
-                this.coordinateDisplay = new CoordinateDisplay(this);
-                console.log('CoordinateDisplay initialized');
-            } else if (this.debug.showCoordinates) {
-                console.warn('CoordinateDisplay class not found.');
-            }
 
-            if (typeof ObjectIdentifier !== 'undefined' && this.debug.showObjectInfo) {
-                this.objectIdentifier = new ObjectIdentifier(this);
-                console.log('ObjectIdentifier initialized');
-            } else if (this.debug.showObjectInfo) {
-                console.warn('ObjectIdentifier class not found.');
-            }
-        } catch (error) {
-            console.error('Error initializing debug tools:', error);
-            this.showErrorMessage('Failed to load debug tools');
-        }
-    }
 
-    /**
-     * Cleanup debug tools
-     */
-    cleanupDebugTools() {
-        try {
-            if (this.coordinateDisplay && typeof this.coordinateDisplay.destroy === 'function') {
-                this.coordinateDisplay.destroy();
-                this.coordinateDisplay = null;
-                console.log('CoordinateDisplay destroyed.');
-            }
-            if (this.objectIdentifier && typeof this.objectIdentifier.destroy === 'function') {
-                this.objectIdentifier.destroy();
-                this.objectIdentifier = null;
-                console.log('ObjectIdentifier destroyed.');
-            }
-        } catch(error) {
-            console.error('Error cleaning up debug tools:', error);
-        }
-    }
 
     /**
      * Initialize the bridge connection to BattleManager
@@ -937,115 +850,9 @@ export default class BattleScene extends Phaser.Scene {
         }
     }
 
-    /**
-     * Test health bar updates manually (for debugging)
-     * @param {string} teamType - 'player' or 'enemy'
-     * @param {number} characterIndex - Index of the character in the team
-     * @param {number} newHealth - New health value to set
-     */
-    testHealthUpdate(teamType = 'player', characterIndex = 0, newHealth = 50) {
-        try {
-            // Get the appropriate team container
-            const teamContainer = teamType === 'player' ? this.playerTeamContainer : this.enemyTeamContainer;
-            if (!teamContainer) {
-                console.error(`testHealthUpdate: ${teamType} team container not found`);
-                return;
-            }
-            
-            // Get the character array for reference values
-            const characterArray = teamType === 'player' ? this.playerTeam : this.enemyTeam;
-            if (!characterArray || characterArray.length === 0) {
-                console.error(`testHealthUpdate: ${teamType} team array is empty`);
-                return;
-            }
-            
-            // Validate characterIndex
-            if (characterIndex < 0 || characterIndex >= characterArray.length) {
-                console.error(`testHealthUpdate: Invalid character index ${characterIndex} for ${teamType} team`);
-                return;
-            }
-            
-            // Get character data
-            const character = characterArray[characterIndex];
-            const maxHealth = character.stats.hp || 100;
-            
-            // Update character's health in data structure
-            character.currentHp = newHealth;
-            
-            // Create mock event data
-            const mockEventData = {
-                character: character,
-                newHealth: newHealth,
-                amount: character.currentHp - newHealth // Simulated damage/healing amount
-            };
-            
-            // If we have an event manager, use it to dispatch the event
-            if (this.eventManager) {
-                const eventType = newHealth < character.currentHp ? 
-                    this.battleBridge.eventTypes.CHARACTER_DAMAGED : 
-                    this.battleBridge.eventTypes.CHARACTER_HEALED;
-                
-                this.battleBridge.dispatchEvent(eventType, mockEventData);
-                
-                console.log(`testHealthUpdate: Event dispatched for ${character.name}'s health to ${newHealth}/${maxHealth}`);
-            } else {
-                // Don't attempt to call methods that have been moved to the event manager
-                console.warn('testHealthUpdate: BattleEventManager not available, cannot update health visually');
-            }
-            
-            // Make function available in window for console testing
-            window.testHealthUpdate = this.testHealthUpdate.bind(this);
-        } catch (error) {
-            console.error(`testHealthUpdate: Error:`, error);
-        }
-    }
 
-    /**
-     * Test action indicator manually (for debugging)
-     * @param {string} teamType - 'player' or 'enemy'
-     * @param {number} characterIndex - Index of the character in the team
-     * @param {string} actionText - Action text to display
-     */
-    testActionIndicator(teamType = 'player', characterIndex = 0, actionText = 'Test Action') {
-        try {
-            // Get the appropriate team container
-            const teamContainer = teamType === 'player' ? this.playerTeamContainer : this.enemyTeamContainer;
-            if (!teamContainer) {
-                console.error(`testActionIndicator: ${teamType} team container not found`);
-                return;
-            }
-            
-            // Get the character array for reference
-            const characterArray = teamType === 'player' ? this.playerTeam : this.enemyTeam;
-            if (!characterArray || characterArray.length === 0) {
-                console.error(`testActionIndicator: ${teamType} team array is empty`);
-                return;
-            }
-            
-            // Validate characterIndex
-            if (characterIndex < 0 || characterIndex >= characterArray.length) {
-                console.error(`testActionIndicator: Invalid character index ${characterIndex} for ${teamType} team`);
-                return;
-            }
-            
-            // Get character data
-            const character = characterArray[characterIndex];
-            
-            // Get character sprite
-            const characterSprite = teamContainer.getCharacterSpriteByName(character.name);
-            if (!characterSprite) {
-                console.error(`testActionIndicator: Could not find sprite for ${character.name}`);
-                return;
-            }
-            
-            // Show action text
-            characterSprite.showActionText(actionText);
-            
-            console.log(`testActionIndicator: Showed '${actionText}' for ${character.name} (${teamType} team)`);
-        } catch (error) {
-            console.error(`testActionIndicator: Error:`, error);
-        }
-    }
+
+
 
     /**
      * Get team data from scene
@@ -1155,9 +962,6 @@ export default class BattleScene extends Phaser.Scene {
                 console.log('BattleScene: Cleaning up PhaserDebugManager');
                 this.debugManager.destroy();
                 this.debugManager = null;
-            } else {
-                // Fall back to legacy cleanup
-                this.cleanupDebugTools();
             }
 
             // Clean up battle bridge (including event manager)

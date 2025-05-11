@@ -49,7 +49,7 @@ class PhaserDebugManager {
             // Initialize CoordinateDisplay if available and configured
             if (window.CoordinateDisplay && this.config.showCoordinates) {
                 this.coordinateDisplay = new window.CoordinateDisplay(this.scene);
-                console.log("[PhaserDebugManager] CoordinateDisplay initialized");
+                console.log("[PhaserDebugManager] CoordinateDisplay initialized (toggle with Alt+G)");
             } else if (this.config.showCoordinates) {
                 console.warn("[PhaserDebugManager] CoordinateDisplay class not found");
             }
