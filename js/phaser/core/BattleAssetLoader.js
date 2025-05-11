@@ -4,7 +4,7 @@
  * Centralizes all asset loading logic for the battle scene, improving 
  * separation of concerns and reducing BattleScene complexity.
  * 
- * @version 0.6.4.0
+ * @version 0.6.4.3
  */
 
 class BattleAssetLoader {
@@ -83,9 +83,102 @@ class BattleAssetLoader {
         }
     }
     
+    /**
+     * Load status effect icons for the battle scene
+     * @returns {Object} The status icon mapping
+     */
+    loadStatusEffectIcons() {
+        console.log("[BattleAssetLoader] Loading status effect icons...");
+        
+        if (!this.scene || !this.scene.load) {
+            console.error("[BattleAssetLoader] Cannot load status effect icons - scene or loader not available");
+            return {};
+        }
+        
+        try {
+            // Get the status icon mapping
+            const iconMapping = this.initStatusIconMapping();
+            
+            // Set the base path for status icons
+            const basePath = 'assets/images/icons/status/status-icons/';
+            
+            // Status effect icons list
+            const statusIconIds = [
+                'burn', 'poison', 'regen', 'stun', 'freeze', 'shield',
+                'atk_up', 'atk_down', 'def_up', 'def_down', 'spd_up', 'spd_down',
+                'str_up', 'str_down', 'int_up', 'int_down', 'spi_up', 'spi_down',
+                'taunt', 'evade', 'bleed', 'reflect', 'vulnerable', 'immune', 'crit_up'
+            ];
+            
+            // Load each status icon with the AI version
+            statusIconIds.forEach(iconId => {
+                const key = `status_${iconId}`;
+                const iconPath = iconMapping[iconId] || `${iconId}.png`;
+                this.scene.load.image(key, `${basePath}${iconPath}`);
+                console.log(`[BattleAssetLoader] Preloading status icon ${key} from ${basePath}${iconPath}`);
+            });
+            
+            console.log('[BattleAssetLoader] Status effect icons preload complete');
+            
+            // Return the mapping for BattleScene to use
+            return iconMapping;
+        } catch (error) {
+            console.warn('[BattleAssetLoader] Could not preload status effect icons:', error);
+            return {}; // Return empty object as fallback
+        }
+    }
+    
+    /**
+     * Initialize the status icon mapping
+     * @returns {Object} The status icon mapping
+     */
+    initStatusIconMapping() {
+        console.log("[BattleAssetLoader] Initializing status icon mapping...");
+        
+        try {
+            // Try to use StatusIconMapper if available
+            if (window.StatusIconMapper && typeof window.StatusIconMapper.getMapping === 'function') {
+                console.log("[BattleAssetLoader] Using StatusIconMapper.getMapping()");
+                return window.StatusIconMapper.getMapping();
+            }
+            
+            // Fallback mapping if StatusIconMapper isn't available
+            console.log("[BattleAssetLoader] StatusIconMapper not available, using fallback mapping");
+            return {
+                'atk_down': 'AI_Icons/32px/Attack Down_AI.png',
+                'atk_up': 'AI_Icons/32px/AttackUp.png',
+                'bleed': 'AI_Icons/32px/Bleeding_AI.png',
+                'burn': 'AI_Icons/32px/Burn_AI.png',
+                'crit_up': 'AI_Icons/32px/CritChanceUp_AI.png',
+                'def_down': 'AI_Icons/32px/Defense Down_AI.png',
+                'def_up': 'AI_Icons/32px/Defense Up_AI.png',
+                'evade': 'AI_Icons/32px/Evasion_AI.png',
+                'freeze': 'AI_Icons/32px/Freeze_AI.png',
+                'immune': 'AI_Icons/32px/Immunity_AI.png',
+                'int_down': 'AI_Icons/32px/IntellectDown_AI.png',
+                'int_up': 'AI_Icons/32px/Intellect Up_AI.png',
+                'poison': 'AI_Icons/32px/Poison_AI.png',
+                'reflect': 'AI_Icons/32px/DamageReflect_AI.png',
+                'regen': 'AI_Icons/32px/Regeneration_AI.png',
+                'shield': 'AI_Icons/32px/Shield_AI.png',
+                'spd_down': 'AI_Icons/32px/Speed Down_AI.png',
+                'spd_up': 'AI_Icons/32px/Speed Up_AI.png',
+                'spi_down': 'AI_Icons/32px/SpiritDown_AI.png',
+                'spi_up': 'AI_Icons/32px/SpiritUp_AI.png',
+                'str_down': 'AI_Icons/32px/StrengthDown_AI.png',
+                'str_up': 'AI_Icons/32px/StrengthUp_AI.png',
+                'stun': 'AI_Icons/32px/Stunned_AI.png',
+                'taunt': 'AI_Icons/32px/Taunt_AI.png',
+                'vulnerable': 'AI_Icons/32px/Vulnerable_AI.png'
+            };
+        } catch (error) {
+            console.error('[BattleAssetLoader] Error initializing status icon mapping:', error);
+            // Return a minimal mapping as ultimate fallback
+            return {};
+        }
+    }
+    
     // Placeholder for future methods:
-    // loadStatusEffectIcons() - Stage 3
-    // initStatusIconMapping() - Stage 3
     // loadAssets() - Stage 4
     
     // Lifecycle methods

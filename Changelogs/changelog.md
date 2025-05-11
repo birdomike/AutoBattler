@@ -1,3 +1,12 @@
+### [0.6.4.3] - 2025-05-11
+#### Changed
+- Refactored status effect icon loading from BattleScene into BattleAssetLoader component
+- Implemented Stage 3 of the BattleAssetLoader refactoring plan (Extract phase)
+- Added loadStatusEffectIcons() and initStatusIconMapping() methods to the asset loader
+- Enhanced error handling for status effect loading with appropriate fallbacks
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.4.3_BattleAssetLoader_StatusEffectIcons.md*
+
 ### [0.6.4.2] - 2025-05-11
 #### Changed
 - Refactored character asset loading from BattleScene into BattleAssetLoader component

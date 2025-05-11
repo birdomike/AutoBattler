@@ -125,14 +125,21 @@ export default class BattleScene extends Phaser.Scene {
         // of trying to use textures.setFilter which isn't available in this version of Phaser
         console.log('BattleScene: Using config-level texture filtering instead of direct method');
 
-        // Initialize BattleAssetLoader for UI and character assets
+        // Initialize BattleAssetLoader for UI, character assets, and status icons
         if (window.BattleAssetLoader) {
             this.assetLoader = new window.BattleAssetLoader(this);
             this.assetLoader.loadUIAssets();
             this.assetLoader.loadCharacterAssets(); // Added character asset loading through the asset loader
             
-            // Preload status effect icons - call our dedicated method instead
-            this.preloadStatusEffectIcons();
+            // Add status effect icon loading through the asset loader
+            this.statusIconMapping = this.assetLoader.loadStatusEffectIcons();
+            
+            // If status icon mapping wasn't returned properly, fall back to original method
+            if (!this.statusIconMapping || Object.keys(this.statusIconMapping).length === 0) {
+                console.warn("[BattleScene] Status icon mapping not returned from asset loader, using original methods");
+                this.preloadStatusEffectIcons();
+                this.statusIconMapping = this.initStatusIconMapping();
+            }
         } else {
             console.error("[BattleScene] BattleAssetLoader not available - falling back to minimal asset loading");
             
