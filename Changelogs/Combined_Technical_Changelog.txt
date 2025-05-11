@@ -1,4 +1,4 @@
-﻿Combined Technical Changelog  (generated 2025-05-11 01:13)
+﻿Combined Technical Changelog  (generated 2025-05-11 08:30)
 
 ===== CHANGELOG_0.6.4.4_BattleAssetLoader_StatusEffectIcons_Remove =====
 
