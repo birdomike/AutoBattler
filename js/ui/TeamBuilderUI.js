@@ -284,7 +284,7 @@ class TeamBuilderUI {
         if (this.activeFilters.types.length > 0) {
             filteredHeroes = filteredHeroes.filter(hero => {
                 // Split the hero's type if it contains multiple types
-                const heroTypes = this.splitTypes(hero.type);
+                const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
                 
                 // Check if any of the hero's types match any of the active filters
                 return heroTypes.some(type => this.activeFilters.types.includes(type));
@@ -311,7 +311,7 @@ class TeamBuilderUI {
             const heroCard = document.createElement('div');
             heroCard.className = 'hero-card';
             // For multiple types, use the first type's color for the background
-            const heroTypes = this.splitTypes(hero.type);
+            const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
             const primaryType = heroTypes[0] || hero.type; // Fallback to full type string if split fails
             heroCard.style.backgroundColor = `${this.typeColors[primaryType]}22`;
             heroCard.dataset.heroId = hero.id;
@@ -352,7 +352,7 @@ class TeamBuilderUI {
             heroType.innerHTML = '';
             
             // Render multi-type spans
-            this.renderMultiTypeSpans(hero.type, heroType);
+            TeamBuilderUtils.renderMultiTypeSpans(hero.type, heroType, this.typeColors);
             
             const heroRole = document.createElement('div');
             heroRole.className = 'hero-role';
@@ -410,7 +410,7 @@ class TeamBuilderUI {
 
             const slotLabel = document.createElement('div');
             slotLabel.className = 'slot-label';
-            slotLabel.textContent = `${i + 1}${this.getOrdinalSuffix(i + 1)} Pick`;
+            slotLabel.textContent = `${i + 1}${TeamBuilderUtils.getOrdinalSuffix(i + 1)} Pick`;
 
             const slotContent = document.createElement('div');
             slotContent.className = 'slot-content';
@@ -421,7 +421,7 @@ class TeamBuilderUI {
                 // Slot is filled
                 slotContent.classList.add('slot-filled');
                 // For multiple types, use the first type's color for the background
-                const heroTypes = this.splitTypes(currentTeam[i].type);
+                const heroTypes = TeamBuilderUtils.splitTypes(currentTeam[i].type);
                 const primaryType = heroTypes[0] || currentTeam[i].type; // Fallback to full type
                 slotContent.style.backgroundColor = `${this.typeColors[primaryType]}33`;
 
@@ -456,7 +456,7 @@ class TeamBuilderUI {
                 heroType.style.fontSize = '12px';
                 
                 // Render multi-type spans
-                this.renderMultiTypeSpans(currentTeam[i].type, heroType);
+                TeamBuilderUtils.renderMultiTypeSpans(currentTeam[i].type, heroType, this.typeColors);
                 
                 const heroRole = document.createElement('div');
                 heroRole.className = 'hero-role';
@@ -651,7 +651,7 @@ class TeamBuilderUI {
         detailTags.className = 'detail-tags';
 
         // Handle multiple types in the detail tags
-        const types = this.splitTypes(hero.type);
+        const types = TeamBuilderUtils.splitTypes(hero.type);
         
         // Create a type tag for each type
         types.forEach(type => {
@@ -700,10 +700,10 @@ class TeamBuilderUI {
         statsRow1.style.justifyContent = 'space-between';
         statsRow1.style.gap = '8px';
 
-        const hpStat = this.createStatBox('HP', hero.stats.hp, 'Health Points - How much damage a character can take before being defeated');
-        const atkStat = this.createStatBox('ATK', hero.stats.attack, 'Attack Power - Determines basic attack damage');
-        const defStat = this.createStatBox('DEF', hero.stats.defense, 'Defense - Reduces damage taken from attacks');
-        const spdStat = this.createStatBox('SPD', hero.stats.speed, 'Speed - Determines turn order in battle (higher goes first)');
+        const hpStat = TeamBuilderUtils.createStatBox('HP', hero.stats.hp, 'Health Points - How much damage a character can take before being defeated');
+        const atkStat = TeamBuilderUtils.createStatBox('ATK', hero.stats.attack, 'Attack Power - Determines basic attack damage');
+        const defStat = TeamBuilderUtils.createStatBox('DEF', hero.stats.defense, 'Defense - Reduces damage taken from attacks');
+        const spdStat = TeamBuilderUtils.createStatBox('SPD', hero.stats.speed, 'Speed - Determines turn order in battle (higher goes first)');
 
         statsRow1.appendChild(hpStat);
         statsRow1.appendChild(atkStat);
@@ -719,9 +719,9 @@ class TeamBuilderUI {
             statsRow2.style.justifyContent = 'space-between';
             statsRow2.style.gap = '8px';
 
-            const strStat = this.createStatBox('STR', hero.stats.strength, 'Strength - Increases physical ability damage');
-            const intStat = this.createStatBox('INT', hero.stats.intellect, 'Intellect - Increases spell ability damage');
-            const spiStat = this.createStatBox('SPI', hero.stats.spirit, 'Spirit - Increases healing effectiveness');
+            const strStat = TeamBuilderUtils.createStatBox('STR', hero.stats.strength, 'Strength - Increases physical ability damage');
+            const intStat = TeamBuilderUtils.createStatBox('INT', hero.stats.intellect, 'Intellect - Increases spell ability damage');
+            const spiStat = TeamBuilderUtils.createStatBox('SPI', hero.stats.spirit, 'Spirit - Increases healing effectiveness');
 
             statsRow2.appendChild(strStat);
             statsRow2.appendChild(intStat);
@@ -786,7 +786,7 @@ class TeamBuilderUI {
                 const cooldownText = ability.cooldown > 0 ? `Cooldown: ${ability.cooldown} turns` : 'No cooldown';
                 
                 // Get detailed scaling information with formula
-                const detailedScaling = this.getDetailedScalingText(ability, hero);
+                const detailedScaling = TeamBuilderUtils.getDetailedScalingText(ability, hero);
                 
                 const tooltipContent = `
                     <div class="tooltip-title">${ability.name}</div>
@@ -1283,7 +1283,7 @@ class TeamBuilderUI {
                         const cooldownText = ability.cooldown > 0 ? `Cooldown: ${ability.cooldown} turns` : 'No cooldown';
                         
                         // Get detailed scaling information with formula
-                        const detailedScaling = this.getDetailedScalingText(ability, hero);
+                        const detailedScaling = TeamBuilderUtils.getDetailedScalingText(ability, hero);
                         
                         const tooltipContent = `
                             <div class="tooltip-title">${ability.name}</div>

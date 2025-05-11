@@ -1,3 +1,13 @@
+### [0.6.6.0] - 2025-05-11
+#### Changed
+- Began TeamBuilderUI refactoring with Extract-Verify-Remove methodology (Phase 1)
+- Created TeamBuilderUtils.js to centralize shared utility functions
+- Extracted and moved common utility methods to TeamBuilderUtils
+- Updated TeamBuilderUI.js to use TeamBuilderUtils while maintaining original implementations
+- Created refactoring plan for future phases with component architecture documentation
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.0_TeamBuilderUtils.md*
+
 ### [0.6.5.0] - 2025-05-11
 #### Added
 - Added support for characters with multiple types (e.g., "water/ice")
