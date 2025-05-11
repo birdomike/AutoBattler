@@ -1,4 +1,319 @@
-﻿Combined Technical Changelog  (generated 2025-05-10 21:06)
+﻿Combined Technical Changelog  (generated 2025-05-10 21:40)
+
+===== CHANGELOG_0.6.3.39_PassiveTriggerTrackerReferenceHotfix =====
+
+# CHANGELOG 0.6.3.39 - PassiveTriggerTracker Reference Hotfix
+
+## Issue Description
+
+When starting a battle, the console consistently displayed the following warning:
+```
+BattleInitializer.js:31 [BattleInitializer] PassiveTriggerTracker not available for battle reset
+```
+
+While this warning did not break functionality due to the graceful handling in the BattleInitializer, it indicated an architectural issue with dependency references that needed to be addressed.
+
+## Root Cause Analysis
+
+The issue stemmed from a timing problem in the initialization process between BattleInitializer and PassiveTriggerTracker:
+
+1. **Reference Capture During Construction**: In the BattleInitializer constructor, it stored a direct reference to `battleManager.passiveTriggerTracker`:
+   ```javascript
+   constructor(battleManager) {
+       this.battleManager = battleManager;
+       
+       // Store references to dependencies to avoid frequent property access
+       this.passiveTriggerTracker = battleManager.passiveTriggerTracker;
+   }
+   ```
+
+2. **Initialization Order in BattleManager**: BattleManager initialized its components in a specific order, creating BattleInitializer before PassiveTriggerTracker:
+   ```javascript
+   // 1a. Initialize BattleInitializer (required component)
+   if (window.BattleInitializer) {
+       this.battleInitializer = new window.BattleInitializer(this);
+       console.log('BattleManager: BattleInitializer initialized');
+   }
+   
+   // ...later...
+   
+   // 7. Initialize passive system components
+   if (window.PassiveTriggerTracker) {
+       this.passiveTriggerTracker = new window.PassiveTriggerTracker();
+       console.log('BattleManager: PassiveTriggerTracker initialized');
+   }
+   ```
+
+3. **Stale Reference**: When BattleInitializer's `initializeTeamsAndCharacters()` method was called, it tried to use its locally stored reference to `passiveTriggerTracker`, which was still null because it had captured the reference before PassiveTriggerTracker was initialized in BattleManager:
+   ```javascript
+   if (this.passiveTriggerTracker) {
+       this.passiveTriggerTracker.resetBattleTracking();
+   } else {
+       console.warn("[BattleInitializer] PassiveTriggerTracker not available for battle reset");
+   }
+   ```
+
+4. **Graceful Degradation**: While BattleInitializer properly handled the null reference with a warning message, it still indicated an architectural flaw in the initialization process.
+
+## Technical Solution
+
+The solution changed how BattleInitializer accesses the PassiveTriggerTracker, ensuring it always uses the current reference from BattleManager rather than a potentially stale local copy:
+
+```javascript
+// Modified code in initializeTeamsAndCharacters()
+if (this.battleManager.passiveTriggerTracker) {
+    this.battleManager.passiveTriggerTracker.resetBattleTracking();
+} else {
+    console.warn("[BattleInitializer] PassiveTriggerTracker not available for battle reset (accessed via battleManager)");
+}
+```
+
+This approach ensures BattleInitializer always accesses the most up-to-date reference to PassiveTriggerTracker, regardless of when it was initialized in BattleManager.
+
+## Implementation Benefits
+
+1. **Eliminated Warning**: The warning no longer appears during battle initialization.
+
+2. **Improved Reference Management**: The code now ensures that dependencies are accessed properly even if initialized after the dependent component.
+
+3. **Maintained Graceful Degradation**: The solution preserves the graceful handling of potentially missing dependencies.
+
+4. **No State Update Required**: The local `this.passiveTriggerTracker` reference can remain in the constructor as it's no longer being used in the critical path.
+
+## Testing Verification
+
+Testing should verify:
+1. The warning no longer appears in the console when starting a battle
+2. Passive abilities continue to function correctly
+3. No new errors are introduced
+
+## Lessons Learned
+
+1. **Dynamic Dependency Resolution**: When components have dependencies that might be initialized later, always access them through their source (e.g., `parentObject.dependency`) rather than storing local references at construction time.
+
+2. **Initialization Order Matters**: Component initialization order is critical when using direct references. Consider more robust patterns like:
+   - Lazy loading through getter methods
+   - Dependency injection with proper lifecycle management
+   - Event-based architecture for loosely coupled components
+
+3. **Graceful Degradation Value**: The original warning-and-continue approach allowed the system to function correctly despite the missing dependency, highlighting the value of defensive programming.
+
+4. **Spot Check Harmless Warnings**: Even warnings that don't break functionality should be addressed, as they often point to architectural issues that could cause more serious problems in the future.
+
+This fix resolves the specific warning while maintaining the existing architecture. Future refactoring could consider implementing more robust dependency management patterns.
+
+
+===== CHANGELOG_0.6.3.39_BattleEndDetectionFix =====
+
+# CHANGELOG 0.6.3.39 - Battle End Detection Fix
+
+## Issue Description
+
+When a battle was intended to finish after all enemies were defeated, it would sometimes continue indefinitely. During these "zombie battles," the console would display many error messages like:
+
+```
+[ActionGenerator] AUTO-ATTACK for Vaelgor: No valid enemy targets found!
+[TargetingSystem] No valid targets available for Vaelgor
+[ActionGenerator] No valid target found for Vaelgor
+```
+
+This occurred because enemy characters with 0 HP were not consistently marked with `isDefeated = true`, causing a mismatch between the battle end detection logic and the battle flow controller's target finding logic.
+
+## Root Cause Analysis
+
+The issue stemmed from inconsistent character defeat state management across the code:
+
+1. **Missing isDefeated Assignment**: When a character's HP reached 0, the system detected it was "killed" but didn't always set the `isDefeated` flag:
+
+   ```javascript
+   // In DamageCalculator.applyDamage()
+   const killed = oldHealth > 0 && target.currentHp <= 0;
+   // But never did: target.isDefeated = killed;
+   ```
+
+2. **HP vs isDefeated Discrepancy**: The battle end detection checked both `isDefeated` and `currentHp <= 0`:
+
+   ```javascript
+   const enemyDefeated = this.battleManager.enemyTeam.filter(char => char.isDefeated || char.currentHp <= 0).length;
+   ```
+
+   But other parts of the code would only check `isDefeated` when determining valid targets.
+
+3. **Inconsistent Setters**: There were multiple paths in the code for handling character defeat, not all of which consistently set both `currentHp = 0` and `isDefeated = true`.
+
+4. **Debugging Logs Confirmation**: Battle logs confirmed the issue showing enemies at 0 HP but battle continuing:
+   
+   ```
+   [Turn 4] Lumina (enemy) takes 11 damage! (HP: 0/117)
+   [Turn 4] Lumina (enemy) is defeated! âš°ï¸
+   ```
+   
+   Yet many turns later: 
+   ```
+   [Turn 25] Enemy Team:
+   [Turn 25]   Lumina: HP: 0/117
+   ```
+
+## Technical Solution
+
+We implemented a two-part solution:
+
+### 1. Fix in BattleFlowController.checkBattleEnd()
+
+Added a pre-check to ensure characters with 0 HP are properly marked as defeated:
+
+```javascript
+async checkBattleEnd() {
+    // Ensure all characters with 0 HP are properly marked as defeated
+    this.battleManager.playerTeam.forEach(char => {
+        if (char.currentHp <= 0 && !char.isDefeated) {
+            console.log(`[BattleFlowController.checkBattleEnd] Fixing player character ${char.name} with 0 HP but not marked as defeated`);
+            char.isDefeated = true;
+        }
+    });
+    
+    this.battleManager.enemyTeam.forEach(char => {
+        if (char.currentHp <= 0 && !char.isDefeated) {
+            console.log(`[BattleFlowController.checkBattleEnd] Fixing enemy character ${char.name} with 0 HP but not marked as defeated`);
+            char.isDefeated = true;
+        }
+    });
+    
+    // Rest of the method...
+}
+```
+
+### 2. Fix in DamageCalculator.applyDamage()
+
+Ensured the `isDefeated` flag is properly set when a character is killed:
+
+```javascript
+// Determine if character was killed by this damage and set isDefeated
+const killed = oldHealth > 0 && target.currentHp <= 0;
+
+// If killed, ensure isDefeated flag is set
+if (killed) {
+    console.log(`[DamageCalculator] Character ${target.name} is defeated, setting isDefeated to true`);
+    target.isDefeated = true;
+}
+```
+
+## Implementation Benefits
+
+1. **Consistent State Management**: Characters with 0 HP are now always properly marked as defeated, maintaining a consistent state across the system.
+
+2. **Proper Battle End Detection**: Battles now correctly end when all enemies are defeated, preventing endless battles.
+
+3. **Reduced Console Errors**: Eliminated the flood of "No valid targets" error messages that would appear when battles continued past their proper end point.
+
+4. **Preventive Approach**: The solution not only fixes the current issue but also addresses potential similar issues with player characters.
+
+5. **Defensive Programming**: Added diagnostic logging to reveal when the fix is actively working, making future issues easier to identify.
+
+## Testing Verification
+
+Test cases to verify the fix:
+
+1. **Standard Battle**: Ensure battles end properly when all enemy characters reach 0 HP.
+2. **Edge Case - 0 HP Characters**: Verify characters with exactly 0 HP are properly marked as defeated.
+3. **Mixed Team States**: Test scenarios where some enemies are defeated and others are still alive to ensure battles continue appropriately.
+4. **Console Messages**: Check that diagnostic messages appear when the fix is actively correcting defeat status.
+
+## Lessons Learned
+
+1. **State Consistency**: In systems with multiple components referencing the same state (like character defeat), ensure all components set and check that state consistently.
+
+2. **Defensive Guards**: Use defensive programming techniques like redundant state checking to catch potential inconsistencies before they become issues.
+
+3. **Logging Strategy**: Strategic diagnostic logs make it easier to identify where and when state inconsistencies occur.
+
+4. **Comprehensive Fixes**: Address issues at both the direct cause (DamageCalculator) and the detection point (BattleFlowController) for maximum reliability.
+
+5. **Battle Lifecycle Management**: Complex turn-based systems benefit from explicit state validation at key decision points to prevent zombie processes.
+
+This fix ensures battles reliably end when all enemies reach 0 HP, improving the game's stability and user experience.
+
+
+===== CHANGELOG_0.6.3.38_BattleLogManagerHealingTypeFix =====
+
+# CHANGELOG 0.6.3.38 - BattleLogManager Healing Type Fix
+
+## Issue Description
+
+The game consistently showed a console warning during healing events:
+```
+BattleLogManager.js:45 [BattleLogManager] Invalid type 'healing', defaulting to 'default'
+```
+
+This warning occurs when `BattleLogManager.logMessage()` receives 'healing' as the `type` parameter, but 'healing' is not included in the `validTypes` array defined in the BattleLogManager constructor. While this doesn't cause functional issues in the game (as the system defaults to 'default' type), it creates unnecessary console noise and indicates a mismatch between message creation and validation.
+
+## Investigation Approach
+
+To diagnose the exact source of the 'healing' message type, we added a `console.trace()` in the BattleLogManager.logMessage method:
+
+```javascript
+// Ensure type is valid
+if (!this.validTypes.includes(type)) {
+    console.warn(`[BattleLogManager] Invalid type '${type}', defaulting to 'default'`);
+    if (type === 'healing') { console.trace(`[BattleLogManager] Trace for 'healing' type`); }
+    type = 'default';
+}
+```
+
+This allowed us to capture the complete call stack when the 'healing' type was used, leading us directly to the source of the issue.
+
+## Root Cause Analysis
+
+Based on the stack trace, we identified that the root cause was in the `BattleManager.applyHealing()` method, where the code was using the `healType` parameter directly as the message type when calling `logMessage()`:
+
+```javascript
+// In BattleManager.applyHealing()
+const message = source
+    ? `${targetInfo} is healed for ${actualHealing} HP from ${sourceInfo}'s ${healType}! (HP: ${target.currentHp}/${target.stats.hp})`
+    : `${targetInfo} is healed for ${actualHealing} HP from ${healType}! (HP: ${target.currentHp}/${target.stats.hp})`;
+this.logMessage(message, healType); // Here 'healing' was used as the message type
+```
+
+Since the `healType` parameter defaults to 'healing' in `HealingProcessor.applyHealing()`, this value was being propagated all the way to the message type without validation against `validTypes`.
+
+## Technical Solution
+
+We implemented a simple solution by adding 'healing' to the valid message types in BattleLogManager:
+
+```javascript
+// In BattleLogManager.js constructor
+this.validTypes = ['default', 'info', 'success', 'action', 'error', 'player', 'enemy', 'status', 'healing'];
+```
+
+This approach was chosen over modifying all calling code because:
+1. It maintains the semantic meaning of "healing" messages
+2. It allows for future styling of healing messages differently from other types
+3. It's a smaller, less invasive change than modifying multiple call sites
+4. It's more extensible for future healing-related UI enhancements
+
+## Implementation Benefits
+
+1. **Eliminated Console Warnings**: The warning no longer appears during healing events, reducing noise in the developer console
+2. **Maintained Semantic Intent**: The original intention of having a distinct 'healing' message type is preserved
+3. **Future Styling Options**: With 'healing' as a valid type, we have the option to style healing messages differently in future UI enhancements
+4. **Documentation Improvement**: The tracing technique used has been documented for future debugging of similar issues
+
+## Testing Verification
+
+Testing should verify:
+1. No more "Invalid type 'healing'" warnings appear in the console when healing occurs
+2. Healing messages display correctly in the battle log
+3. All existing healing functionality continues to work as expected
+
+## Lessons Learned
+
+1. **Type Validation Points**: When implementing validation systems like message type checking, it's important to ensure all potential types are either included in the validation list or normalized before validation
+2. **Console.trace() Value**: Using `console.trace()` is a powerful technique for diagnosing the source of issues in event-driven systems where the call path isn't immediately obvious
+3. **Parameter Propagation**: Default parameter values (like `healType = 'healing'`) can propagate through multiple method calls, requiring careful tracking when used for validation
+4. **Semantic Message Types**: Using semantically meaningful message types (like 'healing' instead of 'success' or 'default') improves code readability and makes future UI enhancements easier
+
+This fix ensures consistency between message creation and validation, eliminating the console warnings while maintaining the semantic intent of the original code.
+
 
 ===== CHANGELOG_0.6.3.37_PassiveBehaviorsStatusEffectRoutingFix =====
 
@@ -1087,304 +1402,5 @@ When debugging subtle calculation issues, having a complete trace of values thro
 4. Validate that final outputs match what we expect based on inputs
 
 By adding a clear prefix to all debug messages, we make it easier to filter and analyze the specific information we need among other console output.
-
-
-===== CHANGELOG_0.6.3.28_AbilityScalingFactorFix =====
-
-# CHANGELOG 0.6.3.28 - Ability Scaling Factor Fix
-
-## Issue Description
-
-The battle log showed AoE abilities like Frost Chain dealing more damage than intended: "Aqualia (ally) takes 91 damage (+73 from Intellect)!" 
-
-The damage scaling from Intellect was higher than it should be according to the ability's design. Specifically, the battle log showed "+73 from Intellect" when it should have shown approximately "+58 from Intellect" for Aqualia using Frost Chain.
-
-## Root Cause Analysis
-
-The issue was traced to a missing check in `DamageCalculator.calculateDamage()` for effect-specific scaling factors:
-
-1. **Nested Scaling Factors**: Abilities like Frost Chain define their scaling factor (0.4) within the `effects` array rather than directly on the ability object.
-
-2. **Missing Priority Check**: The damage calculator only checked for `ability.scaleFactor` at the top level of the ability object, not within the effects:
-
-```javascript
-// Original Code
-// Set scaling factor based on ability type
-if (damageType === "spell") {
-    scalingStat = "intellect";
-    scaleFactor = 0.5; // 50% of intellect adds to damage
-}
-
-// Only checked ability-level scaling, missed effect-level scaling
-if (ability.scaleFactor !== undefined) {
-    scaleFactor = ability.scaleFactor;
-}
-```
-
-3. **Parameter Ignored**: The function already had an `effect` parameter which was passed correctly from `AbilityProcessor.processEffect()`, but this parameter's scaling data wasn't being checked.
-
-## Technical Solution
-
-The solution was to implement a hierarchical check in `DamageCalculator.calculateDamage()` that prioritizes effect-level scaling factors before falling back to ability-level and finally to defaults:
-
-```javascript
-// Set default scaling factor based on ability type
-if (damageType === "spell") {
-    scalingStat = "intellect";
-    scaleFactor = 0.5; // 50% of intellect adds to damage
-}
-
-// NEW CODE: Check effect for scale factor first (higher priority)
-if (effect && effect.scaleFactor !== undefined) {
-    console.log(`[DamageCalculator] Using effect-specific scaleFactor: ${effect.scaleFactor} (from effect)`);
-    scaleFactor = effect.scaleFactor;
-}
-// Use ability's specific scale factor if defined and no effect override
-else if (ability.scaleFactor !== undefined) {
-    console.log(`[DamageCalculator] Using ability-level scaleFactor: ${ability.scaleFactor} (from ability)`);
-    scaleFactor = ability.scaleFactor;
-} else {
-    console.log(`[DamageCalculator] Using default scaleFactor: ${scaleFactor}`);
-}
-```
-
-The same hierarchical approach was applied to the `scalingStat` property to ensure consistent handling of all scaling properties.
-
-## Implementation Benefits
-
-1. **Correct Scaling**: Abilities now correctly use their effect-specific scaling factors, ensuring damage is in line with design intentions.
-
-2. **Proper Hierarchical Precedence**: Established a clear hierarchy (effect > ability > default) for all scaling properties.
-
-3. **Diagnostic Visibility**: Added detailed logging to show where scaling values come from, making future debugging easier.
-
-4. **Consistency**: The approach maintains the existing ability data structure while making the calculator properly check all levels.
-
-5. **Better Balance**: Frost Chain now correctly uses 0.4 scaling for Intellect, resulting in approximately 25% less damage from this stat.
-
-## Testing
-
-The changes should be tested by:
-
-1. Starting a battle with Aqualia using Frost Chain
-2. Monitoring the console for the correct scaling factor logs
-3. Verifying that the battle log shows a reduced contribution from Intellect (around "+58 from Intellect" instead of "+73 from Intellect")
-4. Testing other abilities with effect-specific scaling factors to ensure they are also correctly applied
-
-## Lessons Learned
-
-1. **Data Hierarchy Consideration**: When a system uses nested data structures, all levels of the hierarchy should be properly checked.
-
-2. **Parameter Utilization**: Function parameters should be fully utilized for their intended purpose; the `effect` parameter was being passed but not fully leveraged.
-
-3. **Diagnostic Logging**: Adding detailed logging during development helps verify the system is using the correct values.
-
-4. **Change Verification**: Watch for unexpected high/low numbers in battle logs as potential indicators of calculation issues.
-
-This fix ensures all abilities properly follow their defined scaling factors, resulting in more balanced gameplay as originally designed.
-
-
-===== CHANGELOG_0.6.3.27_PassiveAbilityManagerErrorFix =====
-
-# CHANGELOG 0.6.3.27 - PassiveAbilityManager Error Fix
-
-## Issue Description
-
-An error was occurring at the end of battles when trying to process passive abilities:
-
-```
-PassiveAbilityManager.js:35 [PassiveAbilityManager] Invalid character: missing name property
-```
-
-The error appeared after the battle victory/defeat was declared, when the system attempted to process the 'onBattleEnd' passive trigger. The error occurred in the `validateCharacter()` method of PassiveAbilityManager, which was receiving an object that did not have a `name` property.
-
-## Root Cause Analysis
-
-The issue had two related causes:
-
-1. **Incorrect Parameter Order**: In `BattleFlowController.endBattle()`, the code was incorrectly passing an object `{ result }` as the character parameter instead of the third (additionalData) parameter:
-
-   ```javascript
-   // Incorrect code:
-   this.battleManager.processPassiveAbilities('onBattleEnd', { result });
-   ```
-
-   When this object reached `PassiveAbilityManager.validateCharacter()`, it failed validation because `{ result: 'victory' }` does not have a `name` property.
-
-2. **Missing Global Trigger**: The 'onBattleEnd' trigger was not included in the `globalTriggers` array in PassiveAbilityManager, which meant the manager wouldn't know to use the `processGlobalPassiveTrigger()` method for this trigger type.
-
-   ```javascript
-   // Global triggers list was missing 'onBattleEnd':
-   const globalTriggers = ['onTurnStart', 'onTurnEnd'];
-   ```
-
-This contrasted with the correct pattern used for other global events, such as turn start and end:
-
-```javascript
-// Correct pattern for global triggers:
-this.battleManager.processPassiveAbilities('onTurnStart', null, { turnNumber: this.battleManager.currentTurn });
-this.battleManager.processPassiveAbilities('onTurnEnd', null, { controller: this });
-```
-
-## Technical Solution
-
-The solution involved two changes:
-
-1. **Fixed Parameter Order in BattleFlowController.endBattle()**:
-   ```javascript
-   // Changed to:
-   this.battleManager.processPassiveAbilities('onBattleEnd', null, { result });
-   ```
-   
-   This passes `null` as the character parameter (indicating it's a global trigger) and moves the battle result to the additionalData parameter where it belongs.
-
-2. **Added 'onBattleEnd' to the globalTriggers Array in PassiveAbilityManager**:
-   ```javascript
-   // Added 'onBattleEnd' to the array:
-   const globalTriggers = ['onTurnStart', 'onTurnEnd', 'onBattleEnd'];
-   ```
-   
-   This ensures that when the trigger type is 'onBattleEnd' and the character is null, the manager will use the `processGlobalPassiveTrigger()` method to process the event for all eligible characters.
-
-## Implementation Benefits
-
-1. **Consistent Pattern**: This solution follows the same pattern as other global triggers like 'onTurnStart' and 'onTurnEnd'
-2. **Properly Structured Data**: The battle result is now passed in the appropriate additionalData parameter
-3. **Global Trigger Support**: The 'onBattleEnd' trigger will now be properly processed for all characters
-4. **Error Prevention**: The PassiveAbilityManager no longer tries to validate a non-character object
-
-## Testing
-
-Testing should verify:
-1. Battles complete successfully without the error in the console
-2. Passive abilities that trigger on battle end are properly executed
-3. The battle outcome (victory/defeat/draw) is correctly displayed
-
-## Lessons Learned
-
-1. **Consistent Parameter Order**: Maintain consistent parameter order in method calls to avoid validation errors
-2. **Global Trigger Registration**: When adding new global trigger types, ensure they are registered in the appropriate arrays
-3. **Pattern Matching**: Follow established patterns for similar operations (like the pattern used in turn-based events)
-
-This fix ensures proper end-of-battle passive ability processing, maintaining consistency across all global trigger events in the game.
-
-
-===== CHANGELOG_0.6.3.26_ActionIndicatorContextAwareFix =====
-
-# CHANGELOG 0.6.3.26 - ActionIndicator Context-Aware Text Fix
-
-## Issue Description
-
-Area of Effect (AoE) abilities like "Tidal Wave" or "Frost Chain" were displaying "Auto Attack" in the ActionIndicator text instead of the actual ability name due to a hardcoded text override. A temporary fix was implemented in v0.6.3.25 by commenting out the problematic line, but a more robust, context-aware solution was needed.
-
-## Root Cause Recap
-
-The root cause identified in v0.6.3.25 was a hardcoded line in `CharacterSprite.showAttackAnimation()` that explicitly set the action text to "Auto Attack" regardless of the actual action being performed:
-
-```javascript
-// This line was causing AoE abilities to display 'Auto Attack' instead of their actual name
-this.showActionText('Auto Attack');
-```
-
-This line unconditionally overwrote the action text that had been properly set by the CHARACTER_ACTION event in BattleEventManager.onCharacterAction, causing all actions to display as "Auto Attack" during animations.
-
-## Technical Solution
-
-A comprehensive solution was implemented with the following improvements:
-
-1. **Action Context Parameter**: Added an `actionContext` parameter to `CharacterSprite.showAttackAnimation()` to provide explicit information about the action being animated:
-   ```javascript
-   showAttackAnimation(targetSprite, onComplete, actionContext)
-   ```
-
-2. **Conditional Text Display**: Implemented context-aware logic to only set the action text when appropriate:
-   ```javascript
-   if (actionContext) {
-       if (actionContext.actionType === 'autoAttack') {
-           this.showActionText('Auto Attack');
-       } else if (actionContext.actionType === 'ability') {
-           // For abilities, BattleEventManager should have already set the text
-           // via the CHARACTER_ACTION event, so we don't override it here
-       }
-   }
-   ```
-
-3. **Parameter Propagation**: Modified the call chain to pass the appropriate action context:
-   - `BattleEventManager.onCharacterDamaged` â†’ Creates actionContext based on ability data
-   - `BattleScene.showAttackAnimation` â†’ Passes actionContext to CharacterSprite
-   - `CharacterSprite.showAttackAnimation` â†’ Uses actionContext to make decisions
-
-4. **Fallback Inference**: Added fallback logic in BattleScene to infer the action type when context isn't provided:
-   ```javascript
-   if (!actionContext) {
-       // Try to infer the action type
-       const inferredActionType = attacker.lastUsedAbility ? 'ability' : 'autoAttack';
-       const inferredAbilityName = attacker.lastUsedAbility?.name || 'Unknown Ability';
-       
-       actionContext = {
-           actionType: inferredActionType,
-           abilityName: inferredAbilityName
-       };
-   }
-   ```
-
-## Implementation Details
-
-### 1. CharacterSprite.js Changes
-
-- Modified signature of `showAttackAnimation` to accept actionContext parameter
-- Replaced commented-out line with intelligent context-aware logic
-- Added detailed logging for action text decisions
-- Implemented warnings for missing context
-
-### 2. BattleScene.js Changes
-
-- Updated `showAttackAnimation` method to accept and propagate the actionContext
-- Implemented fallback context generation when not provided
-- Added logging for context inference
-
-### 3. BattleEventManager.js Changes
-
-- Enhanced `onCharacterDamaged` to create and pass actionContext
-- Added different contexts for abilities vs. auto-attacks
-- Improved logging for debugging
-
-## Rationale for this Approach
-
-This solution offers several advantages over the previous fix:
-
-1. **Intentionality**: Makes decisions explicitly based on action type rather than silently omitting code
-2. **Correctness**: Ensures "Auto Attack" appears for actual auto-attacks, while preserving ability names
-3. **Defensive Programming**: Includes multiple fallback mechanisms and detailed logging
-4. **Future Compatibility**: Creates a extensible framework for handling different action types
-5. **Architecture Alignment**: Respects the event-driven design where CHARACTER_ACTION events set initial text
-
-## Testing Points
-
-The changes should be tested with:
-
-1. **Auto-Attacks**: Verify "Auto Attack" appears correctly
-2. **Single-Target Abilities**: Verify the ability name appears correctly
-3. **AoE Abilities**: Verify the ability name appears correctly for all targets
-4. **Mixed Scenarios**: Verify correct behavior in sequences of different action types
-5. **Edge Cases**: Test behavior when context is missing or incomplete
-
-## Future Improvements
-
-While this implementation resolves the current issue, further enhancements could include:
-
-1. Standardizing the actionContext structure across the entire battle system
-2. Adding more action types beyond 'ability' and 'autoAttack' (e.g., 'passive', 'counterattack')
-3. Creating a unified ActionContext class with validation and helper methods
-4. Adding visual differentiation between different action types
-
-## Lessons Learned
-
-1. **Parameter Enrichment**: Adding context parameters to methods enables more intelligent decisions
-2. **Event-Driven Coordination**: The character of an action should be driven by events, not hardcoded
-3. **Defensive Fallbacks**: Multiple layers of fallback logic provide resilience
-4. **Explicit over Implicit**: Making decisions based on explicit context improves maintainability
-
-This fix addresses a specific issue while laying groundwork for more robust action indication in future development.
 
 

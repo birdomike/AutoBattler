@@ -1,3 +1,17 @@
+## Version 0.6.3.40 (May 10, 2025)
+
+### Fixed
+- Resolved warning "[BattleInitializer] PassiveTriggerTracker not available for battle reset" by ensuring proper reference to PassiveTriggerTracker through BattleManager
+- Fixed component initialization order issue affecting passive ability tracking system
+- Eliminated unnecessary console warnings during battle initialization
+
+### Technical
+- Modified BattleInitializer to access PassiveTriggerTracker directly from BattleManager instead of using a stored reference
+- Implemented a more robust dependency access pattern that's resilient to initialization order changes
+- Maintained graceful degradation for fault tolerance while fixing the underlying issue
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.3.39_PassiveTriggerTrackerReferenceHotfix.md*
+
 ## Version 0.6.3.39 (May 10, 2025)
 
 ### Fixed

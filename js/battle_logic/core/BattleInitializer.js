@@ -25,10 +25,10 @@ class BattleInitializer {
         console.log(`[BattleInitializer] Initializing teams for battle`);
         
         // Reset passive tracking for the new battle if available
-        if (this.passiveTriggerTracker) {
-            this.passiveTriggerTracker.resetBattleTracking();
+        if (this.battleManager.passiveTriggerTracker) {
+            this.battleManager.passiveTriggerTracker.resetBattleTracking();
         } else {
-            console.warn("[BattleInitializer] PassiveTriggerTracker not available for battle reset");
+            console.warn("[BattleInitializer] PassiveTriggerTracker not available for battle reset (accessed via battleManager)");
         }
         
         // Process teams with JSON.parse/stringify to ensure independence
