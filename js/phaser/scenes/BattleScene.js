@@ -256,81 +256,84 @@ export default class BattleScene extends Phaser.Scene {
     /**
      * Initialize the BattleUIManager
      * @private
+     * @returns {boolean} Success state
      */
     initializeUIManager() {
         try {
-            // Check if BattleUIManager is available
-            if (window.BattleUIManager) {
-                console.log('BattleScene: Creating BattleUIManager instance');
-                this.uiManager = new window.BattleUIManager(this);
-                
-                // Initialize all UI components
-                if (this.uiManager.initializeUI()) {
-                    console.log('BattleScene: BattleUIManager initialized successfully');
-                } else {
-                    console.error('BattleScene: BattleUIManager initialization failed');
-                    this.showErrorMessage('Failed to initialize UI components');
-                }
-            } else {
+            if (!window.BattleUIManager) {
                 console.error('BattleScene: BattleUIManager not found - UI components will not be available');
                 this.showErrorMessage('UI Manager not available');
+                return false;
             }
+            
+            // Instantiate the manager
+            this.uiManager = new window.BattleUIManager(this);
+            
+            // Initialize UI components
+            const success = this.uiManager.initializeUI();
+            if (!success) {
+                console.error('BattleScene: BattleUIManager initialization failed');
+                this.showErrorMessage('Failed to initialize UI components');
+                return false;
+            }
+            
+            console.log('BattleScene: BattleUIManager initialized successfully');
+            return true;
         } catch (error) {
             console.error('BattleScene: Error initializing UI manager:', error);
             this.showErrorMessage('Failed to initialize UI: ' + error.message);
+            return false;
         }
     }
 
     /**
      * Initialize the TeamDisplayManager
      * @private
+     * @returns {boolean} Success state
      */
     initializeTeamManager() {
         try {
-            // Check if TeamDisplayManager is available
-            if (window.TeamDisplayManager) {
-                console.log('BattleScene: Creating TeamDisplayManager instance');
-                
-                // Create team data object with player and enemy teams
-                const teamData = {
-                    playerTeam: this.playerTeam || [],
-                    enemyTeam: this.enemyTeam || []
-                };
-                
-                // Create manager with scene and team data
-                this.teamManager = new window.TeamDisplayManager(this, teamData);
-                
-                // Initialize teams and indicator
-                if (this.teamManager.initialize()) {
-                    console.log('BattleScene: TeamDisplayManager initialized successfully');
-                    
-                    // Store references to team containers for backward compatibility
-                    this.playerTeamContainer = this.teamManager.playerTeamContainer;
-                    this.enemyTeamContainer = this.teamManager.enemyTeamContainer;
-                    
-                    // Update event manager to use team manager if needed
-                    if (this.eventManager && typeof this.eventManager.setTeamManager === 'function') {
-                        this.eventManager.setTeamManager(this.teamManager);
-                    }
-                    
-                    // Hide test pattern after teams are created (if UI manager exists)
-                    if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
-                        this.uiManager.hideTestPattern();
-                    } else if (!this.uiManager) {
-                        console.warn('BattleScene: Cannot hide test pattern - UIManager not available');
-                    }
-                    
-                    return true;
-                } else {
-                    console.error('BattleScene: TeamDisplayManager initialization failed');
-                    this.showErrorMessage('Failed to initialize team display');
-                    return false;
-                }
-            } else {
+            if (!window.TeamDisplayManager) {
                 console.error('BattleScene: TeamDisplayManager not found - team display will not be available');
                 this.showErrorMessage('Team display manager not available');
                 return false;
             }
+            
+            // Create team data object
+            const teamData = {
+                playerTeam: this.playerTeam || [],
+                enemyTeam: this.enemyTeam || []
+            };
+            
+            // Instantiate the manager
+            this.teamManager = new window.TeamDisplayManager(this, teamData);
+            
+            // Initialize teams and indicators
+            const success = this.teamManager.initialize();
+            if (!success) {
+                console.error('BattleScene: TeamDisplayManager initialization failed');
+                this.showErrorMessage('Failed to initialize team display');
+                return false;
+            }
+            
+            // Store references to team containers for backward compatibility
+            this.playerTeamContainer = this.teamManager.playerTeamContainer;
+            this.enemyTeamContainer = this.teamManager.enemyTeamContainer;
+            
+            // Update event manager to use team manager if available
+            if (this.eventManager && typeof this.eventManager.setTeamManager === 'function') {
+                this.eventManager.setTeamManager(this.teamManager);
+            }
+            
+            // Hide test pattern after teams are created
+            if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
+                this.uiManager.hideTestPattern();
+            } else if (!this.uiManager) {
+                console.warn('BattleScene: Cannot hide test pattern - UIManager not available');
+            }
+            
+            console.log('BattleScene: TeamDisplayManager initialized successfully');
+            return true;
         } catch (error) {
             console.error('BattleScene: Error initializing team manager:', error);
             this.showErrorMessage('Failed to initialize team display: ' + error.message);
@@ -378,32 +381,26 @@ export default class BattleScene extends Phaser.Scene {
     /**
      * Initialize the BattleFXManager
      * @private
+     * @returns {boolean} Success state
      */
     initializeFXManager() {
         try {
-            // Check if BattleFXManager is available
-            if (window.BattleFXManager) {
-                console.log('BattleScene: Creating BattleFXManager instance');
-                
-                // Create manager with scene and TeamDisplayManager reference if available
-                this.fxManager = new window.BattleFXManager(
-                    this, 
-                    this.teamManager || null
-                );
-                
-                // Set reference in BattleEventManager if available
-                if (this.eventManager && typeof this.eventManager.setFXManager === 'function') {
-                    this.eventManager.setFXManager(this.fxManager);
-                    console.log('BattleScene: Set BattleFXManager reference in BattleEventManager');
-                }
-                
-                console.log('BattleScene: BattleFXManager initialized successfully');
-                return true;
-            } else {
+            if (!window.BattleFXManager) {
                 console.error('BattleScene: BattleFXManager not found - visual effects will not be available');
                 this.showErrorMessage('Visual effects manager not available');
                 return false;
             }
+            
+            // Instantiate the manager
+            this.fxManager = new window.BattleFXManager(this, this.teamManager || null);
+            
+            // Set reference in BattleEventManager if available
+            if (this.eventManager && typeof this.eventManager.setFXManager === 'function') {
+                this.eventManager.setFXManager(this.fxManager);
+            }
+            
+            console.log('BattleScene: BattleFXManager initialized successfully');
+            return true;
         } catch (error) {
             console.error('BattleScene: Error initializing FX manager:', error);
             this.showErrorMessage('Failed to initialize visual effects: ' + error.message);
@@ -433,41 +430,37 @@ export default class BattleScene extends Phaser.Scene {
     /**
      * Initialize the PhaserDebugManager
      * @private
+     * @returns {boolean} Success state
      */
     initializeDebugManager() {
         try {
-            // Check if PhaserDebugManager is available
-            if (window.PhaserDebugManager) {
-                console.log('BattleScene: Creating PhaserDebugManager instance');
-                
-                // Create configuration from existing debug settings
-                const debugConfig = {
-                    enabled: this.debug.enabled,
-                    showCoordinates: this.debug.showCoordinates,
-                    showObjectInfo: this.debug.showObjectInfo
-                };
-                
-                // Create manager with scene and config
-                this.debugManager = new window.PhaserDebugManager(this, debugConfig);
-                
-                // Initialize debug tools
-                const result = this.debugManager.initialize();
-                console.log(`BattleScene: PhaserDebugManager initialization ${result ? 'successful' : 'failed'}`);
-                
-                // Log debug function registration status
-                if (this.debugManager) {
-                    console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
-                } else {
-                    console.warn('BattleScene: Debug test functions not available - PhaserDebugManager not initialized');
-                }
-                
-                console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
-                
-                return result;
-            } else {
+            if (!window.PhaserDebugManager) {
                 console.error('BattleScene: PhaserDebugManager not found - debug tools will not be available');
                 return false;
             }
+            
+            // Create debug configuration
+            const debugConfig = {
+                enabled: this.debug.enabled,
+                showCoordinates: this.debug.showCoordinates,
+                showObjectInfo: this.debug.showObjectInfo
+            };
+            
+            // Instantiate the manager
+            this.debugManager = new window.PhaserDebugManager(this, debugConfig);
+            
+            // Initialize debug tools
+            const success = this.debugManager.initialize();
+            if (!success) {
+                console.error('BattleScene: PhaserDebugManager initialization failed');
+                return false;
+            }
+            
+            // Log debug function registration status
+            console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
+            console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
+            
+            return true;
         } catch (error) {
             console.error('BattleScene: Error initializing debug manager:', error);
             return false;
@@ -480,123 +473,119 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Initialize the bridge connection to BattleManager
+     * @private
+     * @returns {boolean} Success state
      */
     initializeBattleBridge() {
         try {
-            // Primary approach: Call the dedicated initialization function
-            if (typeof window.initializeBattleBridge === 'function' && window.battleManager) {
-                console.log('BattleScene: Calling initializeBattleBridge with BattleManager and BattleScene');
+            // Primary approach: Use the centralized initialization function
+            if (window.initializeBattleBridge && window.battleManager) {
+                console.log('BattleScene: Using initializeBattleBridge function');
                 const success = window.initializeBattleBridge(window.battleManager, this);
+                
                 if (success) {
-                    console.log('BattleScene: Successfully initialized battle bridge');
                     // Get the bridge instance after initialization
                     this.battleBridge = window.getBattleBridge ? window.getBattleBridge() : window.battleBridge;
                     
-                    // Initialize the BattleEventManager
+                    // Initialize the event manager now that we have battleBridge
                     this.initializeEventManager();
+                    
+                    console.log('BattleScene: Battle bridge initialized successfully');
+                    return true;
                 } else {
-                    console.warn('BattleScene: initializeBattleBridge reported failure');
+                    console.error('BattleScene: initializeBattleBridge reported failure');
+                    this.showErrorMessage('Failed to initialize battle connection');
+                    return false;
                 }
             }
-            // Fallback #1: Use getBattleBridge accessor if available
-            else if (typeof window.getBattleBridge === 'function') {
-                console.log('BattleScene: Getting battleBridge through getBattleBridge()');
+            
+            // Fallback approach: Try to get or create battleBridge directly
+            console.warn('BattleScene: initializeBattleBridge function not available, trying fallback approaches');
+            
+            // Fallback 1: Use getBattleBridge accessor
+            if (window.getBattleBridge && window.battleManager) {
+                console.log('BattleScene: Using getBattleBridge accessor');
                 this.battleBridge = window.getBattleBridge();
                 
-                // Initialize manually if needed
-                if (this.battleBridge && window.battleManager && typeof this.battleBridge.initialize === 'function') {
-                    console.log('BattleScene: Initializing battleBridge manually');
-                    this.battleBridge.initialize(window.battleManager, this);
-                    
-                    // Initialize the BattleEventManager
-                    this.initializeEventManager();
-                }
-            }
-            // Fallback #2: Direct access as last resort
-            else if (window.battleBridge && window.battleManager) {
-                console.log('BattleScene: Using legacy direct access to battleBridge');
-                this.battleBridge = window.battleBridge; // Use existing global INSTANCE
-                this.battleBridge.initialize(window.battleManager, this); // Pass references
-                
-                // Initialize the BattleEventManager
-                this.initializeEventManager();
-
-                console.log('BattleBridge initialized and listeners set up.');
-            } else {
-                console.warn('battleBridge instance or BattleManager not found. Bridge not initialized.');
-                // Add fallback to create instance if only the class exists
-                if (window.BattleBridge && typeof window.BattleBridge === 'function' && window.battleManager) {
-                    try {
-                        console.log('Attempting to create battleBridge instance on-demand...');
-                        this.battleBridge = new window.BattleBridge();
-                        window.battleBridge = this.battleBridge; // Also make globally available
+                if (this.battleBridge) {
+                    // Initialize manually if needed
+                    if (typeof this.battleBridge.initialize === 'function') {
                         this.battleBridge.initialize(window.battleManager, this);
-                        
-                        // Initialize the BattleEventManager
-                        this.initializeEventManager();
-                        
-                        console.log('Created battleBridge instance on-demand successfully');
-                    } catch (instanceError) {
-                        console.error('Failed to create battleBridge instance on-demand:', instanceError);
                     }
+                    
+                    this.initializeEventManager();
+                    return true;
                 }
             }
-        } catch(error) {
-            console.error('Error initializing BattleBridge:', error);
-            this.showErrorMessage('Failed to connect to battle logic.');
+            
+            // Fallback 2: Use direct access to global instance
+            if (window.battleBridge && window.battleManager) {
+                console.log('BattleScene: Using direct access to global battleBridge');
+                this.battleBridge = window.battleBridge;
+                
+                if (typeof this.battleBridge.initialize === 'function') {
+                    this.battleBridge.initialize(window.battleManager, this);
+                }
+                
+                this.initializeEventManager();
+                return true;
+            }
+            
+            // Fallback 3: Create new instance if only class is available
+            if (window.BattleBridge && typeof window.BattleBridge === 'function' && window.battleManager) {
+                console.log('BattleScene: Creating new battleBridge instance');
+                this.battleBridge = new window.BattleBridge();
+                window.battleBridge = this.battleBridge; // Make globally available
+                
+                if (typeof this.battleBridge.initialize === 'function') {
+                    this.battleBridge.initialize(window.battleManager, this);
+                }
+                
+                this.initializeEventManager();
+                return true;
+            }
+            
+            // All approaches failed
+            console.error('BattleScene: Could not initialize battle bridge - no valid approach found');
+            this.showErrorMessage('Failed to connect to battle logic');
+            return false;
+        } catch (error) {
+            console.error('BattleScene: Error initializing BattleBridge:', error);
+            this.showErrorMessage('Failed to connect to battle logic: ' + error.message);
+            return false;
         }
     }
 
     /**
      * Initialize the BattleEventManager
      * @private
+     * @returns {boolean} Success state
      */
     initializeEventManager() {
-        console.log('BattleScene.initializeEventManager: Starting with diagnostics:', {
-            battleBridgeAvailable: !!this.battleBridge,
-            battleEventManagerClassAvailable: typeof window.BattleEventManager === 'function',
-            teamManagerAvailable: !!this.teamManager
-        });
-        
         try {
-            if (this.battleBridge) {
-                // DIAGNOSTIC: Check battleBridge's event type structure
-                console.log('BattleScene.initializeEventManager: BattleBridge event types check:', {
-                    hasEventTypes: !!this.battleBridge.eventTypes,
-                    eventTypesList: this.battleBridge.eventTypes ? Object.keys(this.battleBridge.eventTypes) : 'none',
-                    CHARACTER_ACTION: this.battleBridge.eventTypes?.CHARACTER_ACTION || 'undefined',
-                    ABILITY_USED: this.battleBridge.eventTypes?.ABILITY_USED || 'undefined'
-                });
-                
-                // Check if BattleEventManager is available
-                if (window.BattleEventManager) {
-                    console.log('[BattleScene.initializeEventManager] >>> About to create BattleEventManager instance.');
-                    this.eventManager = new window.BattleEventManager(this, this.battleBridge);
-                    console.log('[BattleScene.initializeEventManager] <<< BattleEventManager instance supposedly created. this.eventManager is:', this.eventManager);
-                    
-                    // DIAGNOSTIC: Verify the event manager was created properly
-                    console.log('BattleScene.initializeEventManager: BattleEventManager created:', {
-                        instanceCreated: !!this.eventManager,
-                        hasOnCharacterAction: typeof this.eventManager?.onCharacterAction === 'function',
-                        hasOnAbilityUsed: typeof this.eventManager?.onAbilityUsed === 'function'
-                    });
-                    
-                    // Set TeamDisplayManager reference if available
-                    if (this.teamManager && typeof this.eventManager.setTeamManager === 'function') {
-                        this.eventManager.setTeamManager(this.teamManager);
-                        console.log('BattleScene: Set TeamDisplayManager reference in BattleEventManager');
-                    }
-                    
-                    console.log('BattleScene: BattleEventManager initialized successfully');
-                } else {
-                    console.warn('BattleScene: BattleEventManager not found, battle events will not be handled.');
-                }
-            } else {
-                console.warn('BattleScene: Cannot initialize event manager - battleBridge not available');
+            if (!this.battleBridge) {
+                console.error('BattleScene: Cannot initialize event manager - battleBridge not available');
+                return false;
             }
+            
+            if (!window.BattleEventManager) {
+                console.error('BattleScene: BattleEventManager not found - battle events will not be handled');
+                return false;
+            }
+            
+            // Instantiate the manager
+            this.eventManager = new window.BattleEventManager(this, this.battleBridge);
+            
+            // Set TeamDisplayManager reference if available
+            if (this.teamManager && typeof this.eventManager.setTeamManager === 'function') {
+                this.eventManager.setTeamManager(this.teamManager);
+            }
+            
+            console.log('BattleScene: BattleEventManager initialized successfully');
+            return true;
         } catch (error) {
             console.error('BattleScene: Error initializing event manager:', error);
-            console.error('BattleScene: Error initializing event manager - battle events will not be handled.');
+            return false;
         }
     }
 

@@ -1,3 +1,11 @@
+### [0.6.4.15] - 2025-05-11
+#### Changed
+- Refactored all `initializeXYZ()` manager methods to follow a consistent, concise pattern
+- Simplified `initializeBattleBridge()` while maintaining fallback approaches
+- Removed verbose diagnostics logging from `initializeEventManager()`
+- Added consistent return values and error handling across all initialization methods
+- Continued Phase 7 (Final Cleanup) refactoring with Stage 5 completion
+
 ### [0.6.4.14] - 2025-05-11
 #### Changed
 - Simplified BattleScene.create() method to focus on manager initialization
