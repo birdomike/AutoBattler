@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.4.17 (Final Cleanup Stage 7: Console Log Cleanup)
+ * @version 0.6.4.19 (Final Cleanup Stage 7: Console Log Standardization - Completed)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -75,7 +75,7 @@ export default class BattleScene extends Phaser.Scene {
                 });
             } else {
                 this.playerTeam = [];
-                console.warn('BattleScene: No player team provided');
+                console.warn('[BattleScene] No player team provided');
             }
         
             if (this.battleConfig.enemyTeam) {
@@ -92,7 +92,7 @@ export default class BattleScene extends Phaser.Scene {
                 });
             } else {
                 this.enemyTeam = [];
-                console.warn('BattleScene: No enemy team provided');
+                console.warn('[BattleScene] No enemy team provided');
             }
         } catch (error) {
             console.error('[BattleScene] Error processing team data:', error);
@@ -205,7 +205,7 @@ export default class BattleScene extends Phaser.Scene {
                 this.showErrorMessage(errorMessage);
             }
 
-            console.log('BattleScene created successfully');
+            console.log('[BattleScene] Created successfully');
         } catch (error) {
             // This outer catch handles errors in the main create flow
             console.error('FATAL Error in BattleScene create method:', error);
@@ -238,7 +238,7 @@ export default class BattleScene extends Phaser.Scene {
     initializeUIManager() {
         try {
             if (!window.BattleUIManager) {
-                console.error('BattleScene: BattleUIManager not found - UI components will not be available');
+                console.error('[BattleScene] BattleUIManager not found - UI components will not be available');
                 this.showErrorMessage('UI Manager not available');
                 return false;
             }
@@ -249,15 +249,15 @@ export default class BattleScene extends Phaser.Scene {
             // Initialize UI components
             const success = this.uiManager.initializeUI();
             if (!success) {
-                console.error('BattleScene: BattleUIManager initialization failed');
+                console.error('[BattleScene] BattleUIManager initialization failed');
                 this.showErrorMessage('Failed to initialize UI components');
                 return false;
             }
             
-            console.log('BattleScene: BattleUIManager initialized successfully');
+            console.log('[BattleScene] BattleUIManager initialized successfully');
             return true;
         } catch (error) {
-            console.error('BattleScene: Error initializing UI manager:', error);
+            console.error('[BattleScene] Error initializing UI manager:', error);
             this.showErrorMessage('Failed to initialize UI: ' + error.message);
             return false;
         }
@@ -271,7 +271,7 @@ export default class BattleScene extends Phaser.Scene {
     initializeTeamManager() {
         try {
             if (!window.TeamDisplayManager) {
-                console.error('BattleScene: TeamDisplayManager not found - team display will not be available');
+                console.error('[BattleScene] TeamDisplayManager not found - team display will not be available');
                 this.showErrorMessage('Team display manager not available');
                 return false;
             }
@@ -288,7 +288,7 @@ export default class BattleScene extends Phaser.Scene {
             // Initialize teams and indicators
             const success = this.teamManager.initialize();
             if (!success) {
-                console.error('BattleScene: TeamDisplayManager initialization failed');
+                console.error('[BattleScene] TeamDisplayManager initialization failed');
                 this.showErrorMessage('Failed to initialize team display');
                 return false;
             }
@@ -306,13 +306,13 @@ export default class BattleScene extends Phaser.Scene {
             if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
                 this.uiManager.hideTestPattern();
             } else if (!this.uiManager) {
-                console.warn('BattleScene: Cannot hide test pattern - UIManager not available');
+                console.warn('[BattleScene] Cannot hide test pattern - UIManager not available');
             }
             
-            console.log('BattleScene: TeamDisplayManager initialized successfully');
+            console.log('[BattleScene] TeamDisplayManager initialized successfully');
             return true;
         } catch (error) {
-            console.error('BattleScene: Error initializing team manager:', error);
+            console.error('[BattleScene] Error initializing team manager:', error);
             this.showErrorMessage('Failed to initialize team display: ' + error.message);
             return false;
         }
@@ -363,7 +363,7 @@ export default class BattleScene extends Phaser.Scene {
     initializeFXManager() {
         try {
             if (!window.BattleFXManager) {
-                console.error('BattleScene: BattleFXManager not found - visual effects will not be available');
+                console.error('[BattleScene] BattleFXManager not found - visual effects will not be available');
                 this.showErrorMessage('Visual effects manager not available');
                 return false;
             }
@@ -376,10 +376,10 @@ export default class BattleScene extends Phaser.Scene {
                 this.eventManager.setFXManager(this.fxManager);
             }
             
-            console.log('BattleScene: BattleFXManager initialized successfully');
+            console.log('[BattleScene] BattleFXManager initialized successfully');
             return true;
         } catch (error) {
-            console.error('BattleScene: Error initializing FX manager:', error);
+            console.error('[BattleScene] Error initializing FX manager:', error);
             this.showErrorMessage('Failed to initialize visual effects: ' + error.message);
             return false;
         }
@@ -412,7 +412,7 @@ export default class BattleScene extends Phaser.Scene {
     initializeDebugManager() {
         try {
             if (!window.PhaserDebugManager) {
-                console.error('BattleScene: PhaserDebugManager not found - debug tools will not be available');
+                console.error('[BattleScene] PhaserDebugManager not found - debug tools will not be available');
                 // Debug tools are not critical to gameplay, so no user-facing error message
                 return false;
             }
@@ -430,16 +430,16 @@ export default class BattleScene extends Phaser.Scene {
             // Initialize debug tools
             const success = this.debugManager.initialize();
             if (!success) {
-                console.error('BattleScene: PhaserDebugManager initialization failed');
+                console.error('[BattleScene] PhaserDebugManager initialization failed');
                 this.showErrorMessage('Debug tools failed to initialize');
                 return false;
             }
             
             // Log debug function registration status
-            console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
+            console.log('[BattleScene] Debug test functions registered through PhaserDebugManager');
             return true;
         } catch (error) {
-            console.error('BattleScene: Error initializing debug manager:', error);
+            console.error('[BattleScene] Error initializing debug manager:', error);
             this.showErrorMessage('Debug tools initialization error: ' + error.message);
             return false;
         }
@@ -467,17 +467,17 @@ export default class BattleScene extends Phaser.Scene {
                     // Initialize the event manager now that we have battleBridge
                     this.initializeEventManager();
                     
-                    console.log('BattleScene: Battle bridge initialized successfully');
+                    console.log('[BattleScene] Battle bridge initialized successfully');
                     return true;
                 } else {
-                    console.error('BattleScene: initializeBattleBridge reported failure');
+                    console.error('[BattleScene] initializeBattleBridge reported failure');
                     this.showErrorMessage('Failed to initialize battle connection');
                     return false;
                 }
             }
             
             // Fallback approach: Try to get or create battleBridge directly
-            console.warn('BattleScene: initializeBattleBridge function not available, trying fallback approaches');
+            console.warn('[BattleScene] initializeBattleBridge function not available, trying fallback approaches');
             
             // Fallback 1: Use getBattleBridge accessor
             if (window.getBattleBridge && window.battleManager) {
@@ -520,11 +520,11 @@ export default class BattleScene extends Phaser.Scene {
             }
             
             // All approaches failed
-            console.error('BattleScene: Could not initialize battle bridge - no valid approach found');
+            console.error('[BattleScene] Could not initialize battle bridge - no valid approach found');
             this.showErrorMessage('Failed to connect to battle logic');
             return false;
         } catch (error) {
-            console.error('BattleScene: Error initializing BattleBridge:', error);
+            console.error('[BattleScene] Error initializing BattleBridge:', error);
             this.showErrorMessage('Failed to connect to battle logic: ' + error.message);
             return false;
         }
@@ -538,13 +538,13 @@ export default class BattleScene extends Phaser.Scene {
     initializeEventManager() {
         try {
             if (!this.battleBridge) {
-                console.error('BattleScene: Cannot initialize event manager - battleBridge not available');
+                console.error('[BattleScene] Cannot initialize event manager - battleBridge not available');
                 this.showErrorMessage('Battle event system not available - connect to battle logic first');
                 return false;
             }
             
             if (!window.BattleEventManager) {
-                console.error('BattleScene: BattleEventManager not found - battle events will not be handled');
+                console.error('[BattleScene] BattleEventManager not found - battle events will not be handled');
                 this.showErrorMessage('Battle event system not available');
                 return false;
             }
@@ -557,10 +557,10 @@ export default class BattleScene extends Phaser.Scene {
                 this.eventManager.setTeamManager(this.teamManager);
             }
             
-            console.log('BattleScene: BattleEventManager initialized successfully');
+            console.log('[BattleScene] BattleEventManager initialized successfully');
             return true;
         } catch (error) {
-            console.error('BattleScene: Error initializing event manager:', error);
+            console.error('[BattleScene] Error initializing event manager:', error);
             this.showErrorMessage('Failed to initialize battle events: ' + error.message);
             return false;
         }
@@ -573,12 +573,12 @@ export default class BattleScene extends Phaser.Scene {
         try {
             // Clean up the event manager
             if (this.eventManager && typeof this.eventManager.destroy === 'function') {
-                console.log('BattleScene: Cleaning up BattleEventManager');
+                console.log('[BattleScene] Cleaning up BattleEventManager');
                 this.eventManager.destroy();
                 this.eventManager = null;
             }
             
-            console.log('BattleScene: BattleBridge cleanup complete');
+            console.log('[BattleScene] BattleBridge cleanup complete');
         } catch(error) {
             console.error('Error cleaning up BattleBridge:', error);
         }
@@ -609,12 +609,12 @@ export default class BattleScene extends Phaser.Scene {
      */
     showBattleOutcome(winner) {
         try {
-            console.log(`BattleScene: Showing battle outcome - Winner: ${winner}`);
+            console.log(`[BattleScene] Showing battle outcome - Winner: ${winner}`);
             
             if (this.uiManager) {
                 this.uiManager.showBattleOutcome(winner);
             } else {
-                console.error('BattleScene: BattleUIManager not available, cannot show battle outcome');
+                console.error('[BattleScene] BattleUIManager not available, cannot show battle outcome');
             }
         } catch (error) {
             console.error('Error showing battle outcome:', error);
@@ -627,12 +627,12 @@ export default class BattleScene extends Phaser.Scene {
      * @param {string} message - The error message to show
      */
     showErrorMessage(message) {
-        console.error('UI Error Message:', message); // Log to console
+        console.error('[BattleScene] UI Error Message:', message); // Log to console
 
         if (this.uiManager) {
             this.uiManager.showErrorMessage(message);
         } else {
-            console.error('BattleScene: BattleUIManager not available, cannot show error message');
+            console.error('[BattleScene] BattleUIManager not available, cannot show error message');
         }
     }
 
@@ -661,7 +661,7 @@ export default class BattleScene extends Phaser.Scene {
                 this.enemyTeamContainer.update();
             }
         } catch (error) {
-            console.error('Error in update loop:', error);
+            console.error('[BattleScene] Error in update loop:', error);
             // Don't show error messages here to avoid spamming the user
             // since this method is called many times per second
         }
@@ -672,12 +672,12 @@ export default class BattleScene extends Phaser.Scene {
      * Clean up resources and listeners when the scene is stopped
      */
     shutdown() {
-        console.log('BattleScene: Shutting down');
+        console.log('[BattleScene] Shutting down');
 
         try {
             // Clean up debug manager
             if (this.debugManager && typeof this.debugManager.destroy === 'function') {
-                console.log('BattleScene: Cleaning up PhaserDebugManager');
+                console.log('[BattleScene] Cleaning up PhaserDebugManager');
                 this.debugManager.destroy();
                 this.debugManager = null;
             }
@@ -687,12 +687,12 @@ export default class BattleScene extends Phaser.Scene {
 
             // Clean up TeamDisplayManager
             if (this.teamManager && typeof this.teamManager.destroy === 'function') {
-                console.log('BattleScene: Cleaning up TeamDisplayManager');
+                console.log('[BattleScene] Cleaning up TeamDisplayManager');
                 this.teamManager.destroy();
                 this.teamManager = null;
             } else if (this.playerTeamContainer || this.enemyTeamContainer) {
                 // Direct cleanup of any remaining team containers
-                console.warn('BattleScene: TeamDisplayManager not available - cleaning up containers directly');
+                console.warn('[BattleScene] TeamDisplayManager not available - cleaning up containers directly');
                 
                 if (this.playerTeamContainer) {
                     this.playerTeamContainer.destroy();
@@ -707,7 +707,7 @@ export default class BattleScene extends Phaser.Scene {
 
             // Clean up UI manager
             if (this.uiManager && typeof this.uiManager.destroy === 'function') {
-                console.log('BattleScene: Cleaning up BattleUIManager');
+                console.log('[BattleScene] Cleaning up BattleUIManager');
                 this.uiManager.destroy();
                 this.uiManager = null;
             }
@@ -722,14 +722,14 @@ export default class BattleScene extends Phaser.Scene {
         
             // Clean up asset loader
             if (this.assetLoader && typeof this.assetLoader.destroy === 'function') {
-                console.log('BattleScene: Cleaning up BattleAssetLoader');
+                console.log('[BattleScene] Cleaning up BattleAssetLoader');
                 this.assetLoader.destroy();
                 this.assetLoader = null;
             }
             
             // Clean up FX manager
             if (this.fxManager && typeof this.fxManager.destroy === 'function') {
-                console.log('BattleScene: Cleaning up BattleFXManager');
+                console.log('[BattleScene] Cleaning up BattleFXManager');
                 this.fxManager.destroy();
                 this.fxManager = null;
             }
@@ -746,9 +746,9 @@ export default class BattleScene extends Phaser.Scene {
             this.turnIndicator = null; 
         }
 
-            console.log('BattleScene: Shut down successfully');
+            console.log('[BattleScene] Shut down successfully');
         } catch (error) {
-            console.error('Error during scene shutdown:', error);
+            console.error('[BattleScene] Error during scene shutdown:', error);
         }
     }
 }
