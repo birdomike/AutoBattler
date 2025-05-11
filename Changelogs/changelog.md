@@ -1,3 +1,26 @@
+### [0.6.4.13] - 2025-05-11
+#### Changed
+- Removed legacy fallback code throughout BattleScene.js
+- Removed fallback TurnIndicator creation, requiring proper TurnIndicator component
+- Enhanced error messages for component failures to clearly indicate requirements
+- Removed legacy event listener cleanup in favor of component-based cleanup
+- Continued Phase 7 (Final Cleanup) refactoring with Stage 3 completion
+
+### [0.6.4.12] - 2025-05-11
+#### Changed
+- Removed legacy implementations from `updateActiveCharacterVisuals()` method in BattleScene.js
+- Removed legacy implementations from `getTeamData()` method in BattleScene.js
+- Changed both methods to exclusively delegate to TeamDisplayManager
+- Added proper error handling when TeamDisplayManager is unavailable
+- Continued Phase 7 (Final Cleanup) refactoring with Stage 2 completion
+
+### [0.6.4.11] - 2025-05-11
+#### Changed
+- Removed legacy createCharacterTeams() and cleanupCharacterTeams() methods from BattleScene.js
+- Updated references to use TeamDisplayManager exclusively for team handling
+- Improved error handling when TeamDisplayManager initialization fails
+- Started Phase 7 (Final Cleanup) of the BattleScene refactoring plan
+
 ### [0.6.4.10] - 2025-05-11
 #### Changed
 - Changed the coordinate grid toggle hotkey from Ctrl+G to Alt+G to avoid browser conflicts

@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.4.9 (PhaserDebugManager implementation - Remove phase)
+ * @version 0.6.4.13 (Final Cleanup Stage 3: Removed legacy fallback code blocks)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -197,52 +197,23 @@ export default class BattleScene extends Phaser.Scene {
         
         // Create turn indicator (using global window.TurnIndicator)
         try {
-            // Use the globally registered TurnIndicator class
             if (window.TurnIndicator) {
                 this.turnIndicator = new window.TurnIndicator(this);
                 this.turnIndicator.setDepth(1); // Set depth to render below sprites but above background
-                console.log('Turn indicator created successfully:', this.turnIndicator);
+                console.log('Turn indicator created successfully');
+                
                 // Verify the turnIndicator has the showAt method
                 if (typeof this.turnIndicator.showAt !== 'function') {
-                    console.error('WARNING: Created TurnIndicator but showAt method is missing!');
+                    console.error('ERROR: Created TurnIndicator missing showAt method');
+                    this.showErrorMessage('Turn indicator creation incomplete');
                 }
             } else {
-                console.error('ERROR: TurnIndicator class not found in window global scope');
-                // Fallback: create a simple Graphics object if class not available
-                this.turnIndicator = this.add.graphics();
-                this.turnIndicator.setAlpha(0);
-                // Add a basic showAt method to the graphics object for compatibility
-                this.turnIndicator.showAt = (x, y, color, duration) => {
-                    console.log('Using fallback showAt method');
-                    this.turnIndicator.clear();
-                    this.turnIndicator.setPosition(x, y);
-                    this.turnIndicator.fillStyle(color, 0.7);
-                    this.turnIndicator.fillCircle(0, 0, 30);
-                    this.turnIndicator.setAlpha(0.7);
-                };
-                // Add hide method for compatibility
-                this.turnIndicator.hide = (duration) => {
-                    this.turnIndicator.clear();
-                    this.turnIndicator.setAlpha(0);
-                };
+                console.error('ERROR: TurnIndicator class not found');
+                this.showErrorMessage('Turn indicator not available');
             }
         } catch (err) {
             console.error('Error creating TurnIndicator:', err);
-            // Create fallback if error occurs
-            this.turnIndicator = this.add.graphics();
-            this.turnIndicator.setAlpha(0);
-            this.turnIndicator.showAt = (x, y, color, duration) => {
-                console.log('Using fallback showAt method after error');
-                this.turnIndicator.clear();
-                this.turnIndicator.setPosition(x, y);
-                this.turnIndicator.fillStyle(color, 0.7);
-                this.turnIndicator.fillCircle(0, 0, 30);
-                this.turnIndicator.setAlpha(0.7);
-            };
-            this.turnIndicator.hide = (duration) => {
-                this.turnIndicator.clear();
-                this.turnIndicator.setAlpha(0);
-            };
+            this.showErrorMessage('Failed to create turn indicator: ' + err.message);
         }
 
         // Force Canvas smoothing specifically for this scene
@@ -283,12 +254,10 @@ export default class BattleScene extends Phaser.Scene {
             this.initializeFXManager();
             console.log('BattleScene create: BattleFXManager initialized.');
 
-            // If TeamDisplayManager is not available or failed, fall back to legacy method
+            // TeamDisplayManager is required - if not available, show error
             if (!this.teamManager || !this.playerTeamContainer) {
-                console.log('BattleScene create: Falling back to legacy team creation...');
-                // Create character teams for visualization
-                this.createCharacterTeams(); // This now has internal try-catch blocks
-                console.log('BattleScene create: Legacy character teams creation attempted.');
+                console.error('BattleScene create: TeamDisplayManager failed to initialize or create team containers');
+                this.showErrorMessage('Failed to initialize team display - battle cannot continue');
             }
 
             // Hide test pattern after teams are created (if UI manager exists)
@@ -346,11 +315,12 @@ export default class BattleScene extends Phaser.Scene {
                 if (this.uiManager.initializeUI()) {
                     console.log('BattleScene: BattleUIManager initialized successfully');
                 } else {
-                    console.warn('BattleScene: BattleUIManager initialization returned false');
+                    console.error('BattleScene: BattleUIManager initialization failed');
+                    this.showErrorMessage('Failed to initialize UI components');
                 }
             } else {
-                console.warn('BattleScene: BattleUIManager not found, using legacy UI creation');
-                this.showErrorMessage('UI Manager not available - using legacy UI');
+                console.error('BattleScene: BattleUIManager not found - UI components will not be available');
+                this.showErrorMessage('UI Manager not available');
             }
         } catch (error) {
             console.error('BattleScene: Error initializing UI manager:', error);
@@ -392,11 +362,13 @@ export default class BattleScene extends Phaser.Scene {
                     
                     return true;
                 } else {
-                    console.warn('BattleScene: TeamDisplayManager initialization returned false');
+                    console.error('BattleScene: TeamDisplayManager initialization failed');
+                    this.showErrorMessage('Failed to initialize team display');
                     return false;
                 }
             } else {
-                console.warn('BattleScene: TeamDisplayManager not found, using legacy team creation');
+                console.error('BattleScene: TeamDisplayManager not found - team display will not be available');
+                this.showErrorMessage('Team display manager not available');
                 return false;
             }
         } catch (error) {
@@ -405,177 +377,19 @@ export default class BattleScene extends Phaser.Scene {
         }
     }
 
-    /**
-     * Create character teams for visualization
-     * Sets up player and enemy teams with CharacterSprite components
-     */
-    createCharacterTeams() {
-        console.log('Attempting to create character teams...'); // Log start
 
-        // --- Player Team Creation ---
-        try {
-            console.log(`Creating player team container with ${this.playerTeam?.length || 0} characters.`);
-            if (!this.playerTeam || this.playerTeam.length === 0) {
-                 console.warn('Player team data is empty or missing!');
-                 // Optionally create a placeholder if needed for testing, or just proceed
-                 this.playerTeam = []; // Ensure it's an array
-            }
-            this.playerTeamContainer = new TeamContainer(
-                this,
-                this.playerTeam,
-                true, // isPlayerTeam
-                { x: 800, y: 600 }  // Correct position to match original implementation
-            );
-            console.log('Player team container created successfully.');
-        } catch (error) {
-            console.error('ERROR creating PLAYER TeamContainer:', error);
-            this.showErrorMessage('Failed to create player team container: ' + error.message);
-            // Optionally set playerTeamContainer to null or handle fallback
-            this.playerTeamContainer = null;
-        }
-
-        // --- Enemy Team Creation ---
-        try {
-             console.log(`Checking enemy team with ${this.enemyTeam?.length || 0} characters.`);
-            if (this.enemyTeam && this.enemyTeam.length > 0) {
-                console.log('Creating enemy team container from provided data.');
-                this.enemyTeamContainer = new TeamContainer(
-                this,
-                this.enemyTeam,
-                false, // isPlayerTeam
-                { x: 1200, y: 600 }  // Correct position to match original implementation
-                );
-                console.log('Enemy team container created successfully from data.');
-            } else {
-                console.warn('No enemy team provided or team is empty. Creating placeholder enemy.');
-                const placeholderEnemyTeam = [
-                    { name: 'Placeholder Enemy', type: 'neutral', team: 'enemy', stats: { hp: 50 }, id: 'placeholder_0' } // Added an ID
-                ];
-                this.enemyTeamContainer = new TeamContainer(
-                    this,
-                    placeholderEnemyTeam,
-                    false, // isPlayerTeam
-                    { x: 1150, y: 350 }
-                );
-                console.log('Placeholder enemy team container created successfully.');
-                // Optionally update this.enemyTeam if needed elsewhere
-                // this.enemyTeam = placeholderEnemyTeam;
-            }
-        } catch (error) {
-            console.error('ERROR creating ENEMY TeamContainer (or placeholder):', error);
-            this.showErrorMessage('Failed to create enemy team container: ' + error.message);
-            // Optionally set enemyTeamContainer to null or handle fallback
-            this.enemyTeamContainer = null;
-        }
-
-        console.log('Character teams creation process finished.');
-    }
-
-
-    
-    /**
-     * Clean up character teams
-     */
-    cleanupCharacterTeams() {
-        try {
-            if (this.playerTeamContainer) {
-                this.playerTeamContainer.destroy();
-                this.playerTeamContainer = null;
-            }
-
-            if (this.enemyTeamContainer) {
-                this.enemyTeamContainer.destroy();
-                this.enemyTeamContainer = null;
-            }
-
-            console.log('Character teams cleaned up');
-        } catch (error) {
-            console.error('Error cleaning up character teams:', error);
-        }
-    }
 
     /**
      * Update all active character visual indicators
-     * Delegates to TeamDisplayManager if available
+     * Delegates to TeamDisplayManager
      * @param {Object} characterData - Character currently taking action
      */
     updateActiveCharacterVisuals(characterData) {
-        // REFACTORING: Use TeamDisplayManager if available
-        if (this.teamManager) {
-            return this.teamManager.updateActiveCharacterVisuals(characterData);
+        if (!this.teamManager) {
+            console.error('Cannot update active character visuals - TeamDisplayManager not available');
+            return;
         }
-        
-        // Original implementation follows
-        try {
-            if (!characterData) {
-                console.warn('updateActiveCharacterVisuals: Missing character data');
-                return;
-            }
-            
-            console.log(`Updating active character visuals for ${characterData.name} (${characterData.team})`);
-            
-            // Clear turn indicators from all teams
-            if (this.playerTeamContainer) this.playerTeamContainer.clearTurnIndicators();
-            if (this.enemyTeamContainer) this.enemyTeamContainer.clearTurnIndicators();
-            
-            // Find the correct team container based on the character's team
-            const teamContainer = characterData.team === 'player' 
-                ? this.playerTeamContainer 
-                : this.enemyTeamContainer;
-                
-            if (!teamContainer) {
-                console.warn(`Could not find team container for team: ${characterData.team}`);
-                return;
-            }
-            
-            // Find the character sprite
-            const characterSprite = teamContainer.getCharacterSpriteByName(characterData.name);
-            
-            if (characterSprite) {
-                // Show the turn indicator for this character
-                teamContainer.showTurnIndicator(characterData.name);
-                
-                // Update the UI text for current character's action using the UI manager
-                if (this.uiManager) {
-                    this.uiManager.updateActionTextDisplay(this.battleState.currentTurn, characterData);
-                } else {
-                    console.warn('Cannot update action text display - UIManager not available');
-                }
-                
-                // Determine marker color based on team (blue for player, red for enemy)
-                const markerColor = characterData.team === 'player' ? 0x4488ff : 0xff4444;
-                
-                // Calculate position (under the character)
-                const targetX = characterSprite.container.x;
-                const targetY = characterSprite.container.y + 40; // Adjust this offset for best visual placement
-                
-                // Get battle speed multiplier
-                const speedMultiplier = this.battleManager?.speedMultiplier || 1;
-                
-                // Define base animation duration and adjust for battle speed
-                const baseFadeDuration = 250;
-                const fadeDuration = baseFadeDuration / speedMultiplier;
-                
-                // Show the floor indicator at the calculated position
-                if (this.turnIndicator) {
-                    this.turnIndicator.showAt(targetX, targetY, markerColor, fadeDuration);
-                }
-                
-                console.log(`Turn indicator updated for ${characterData.name} at position: ${targetX},${targetY}`);
-            } else {
-                console.warn(`Could not find character sprite for: ${characterData.name}`);
-                
-                // Hide the floor indicator if we can't find the character
-                if (this.turnIndicator) {
-                    const baseFadeDuration = 250;
-                    const speedMultiplier = this.battleManager?.speedMultiplier || 1;
-                    const fadeDuration = baseFadeDuration / speedMultiplier;
-                    this.turnIndicator.hide(fadeDuration);
-                }
-            }
-        } catch (error) {
-            console.error('Error updating active character visuals:', error);
-        }
+        return this.teamManager.updateActiveCharacterVisuals(characterData);
     }
 
     /**
@@ -698,15 +512,12 @@ export default class BattleScene extends Phaser.Scene {
      */
     initializeBattleBridge() {
         try {
-            // Ensure turn indicator exists
-            if (!this.turnIndicator) {
+            // Ensure turn indicator exists - no fallback
+            if (!this.turnIndicator && window.TurnIndicator) {
                 try {
-                    if (window.TurnIndicator) {
-                        this.turnIndicator = new window.TurnIndicator(this);
-                        this.turnIndicator.setDepth(1);
-                    } else {
-                        console.error('TurnIndicator class not found during bridge init');
-                    }
+                    this.turnIndicator = new window.TurnIndicator(this);
+                    this.turnIndicator.setDepth(1);
+                    console.log('Created TurnIndicator during bridge initialization');
                 } catch (err) {
                     console.error('Error creating TurnIndicator during bridge init:', err);
                 }
@@ -833,15 +644,11 @@ export default class BattleScene extends Phaser.Scene {
      */
     cleanupBattleBridge() {
         try {
-            // Clean up the event manager first
+            // Clean up the event manager
             if (this.eventManager && typeof this.eventManager.destroy === 'function') {
                 console.log('BattleScene: Cleaning up BattleEventManager');
                 this.eventManager.destroy();
                 this.eventManager = null;
-            } else if (this.battleBridge) {
-                // Legacy cleanup if no event manager is available
-                this.battleBridge.removeEventListener(this.battleBridge.eventTypes.TURN_STARTED, this.handleTurnStarted.bind(this));
-                console.log('BattleScene: Legacy event listener cleanup performed');
             }
             
             console.log('BattleScene: BattleBridge cleanup complete');
@@ -856,32 +663,16 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Get team data from scene
-     * Delegates to TeamDisplayManager if available
+     * Delegates to TeamDisplayManager
      * @param {string} teamType - 'player' or 'enemy'
-     * @returns {Array} - Deep copy of requested team data
+     * @returns {Array} - Team data
      */
     getTeamData(teamType) {
-        // REFACTORING: Use TeamDisplayManager if available
-        if (this.teamManager) {
-            return this.teamManager.getTeamData(teamType);
-        }
-        
-        // Original implementation follows
-        try {
-            if (teamType === 'player' && this.playerTeam) {
-                console.log(`BattleScene: Providing player team data with ${this.playerTeam.length} heroes`);
-                return JSON.parse(JSON.stringify(this.playerTeam));
-            } else if (teamType === 'enemy' && this.enemyTeam) {
-                console.log(`BattleScene: Providing enemy team data with ${this.enemyTeam.length} heroes`);
-                return JSON.parse(JSON.stringify(this.enemyTeam));
-            } else {
-                console.warn(`BattleScene: Unable to provide ${teamType} team data`);
-                return [];
-            }
-        } catch (error) {
-            console.error(`BattleScene: Error getting ${teamType} team data:`, error);
+        if (!this.teamManager) {
+            console.error(`Cannot get ${teamType} team data - TeamDisplayManager not available`);
             return [];
         }
+        return this.teamManager.getTeamData(teamType);
     }
     
     /**
@@ -972,9 +763,19 @@ export default class BattleScene extends Phaser.Scene {
                 console.log('BattleScene: Cleaning up TeamDisplayManager');
                 this.teamManager.destroy();
                 this.teamManager = null;
-            } else {
-                // If TeamDisplayManager doesn't exist, use legacy cleanup
-                this.cleanupCharacterTeams();
+            } else if (this.playerTeamContainer || this.enemyTeamContainer) {
+                // Direct cleanup of any remaining team containers
+                console.warn('BattleScene: TeamDisplayManager not available - cleaning up containers directly');
+                
+                if (this.playerTeamContainer) {
+                    this.playerTeamContainer.destroy();
+                    this.playerTeamContainer = null;
+                }
+                
+                if (this.enemyTeamContainer) {
+                    this.enemyTeamContainer.destroy();
+                    this.enemyTeamContainer = null;
+                }
             }
 
             // Clean up UI manager
