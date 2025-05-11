@@ -1,3 +1,12 @@
+## [0.6.3.42] - 2025-05-10
+
+### Improved
+- Enhanced ability display in hero details to color each ability based on its elemental type
+- Added subtle left border with higher opacity for better visual distinction between ability types
+- Abilities without a specific type now default to the character's type for visual consistency
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.3.42_AbilityTypeVisualization.md*
+
 ## Version 0.6.3.41 (May 10, 2025)
 
 ### Added

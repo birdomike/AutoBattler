@@ -698,6 +698,27 @@ class TeamBuilderUI {
         hero.abilities.forEach(ability => {
             const abilityBox = document.createElement('div');
             abilityBox.className = 'ability-box';
+            
+            // Determine ability's elemental type from effects for styling
+            let abilityType = hero.type; // Default to character's type
+            
+            // If this is an active ability with effects, try to find a damage type
+            if (ability.effects && Array.isArray(ability.effects)) {
+                // Look for the first damage effect with a damageType
+                const damageEffect = ability.effects.find(effect => 
+                    effect.type === 'Damage' && effect.damageType);
+                
+                if (damageEffect && damageEffect.damageType) {
+                    abilityType = damageEffect.damageType;
+                }
+            }
+            
+            // Apply the type color with reduced opacity (22 = 13% opacity in hex)
+            if (this.typeColors[abilityType]) {
+                abilityBox.style.backgroundColor = `${this.typeColors[abilityType]}22`;
+                // Add a subtle left border with higher opacity for visual distinction
+                abilityBox.style.borderLeft = `3px solid ${this.typeColors[abilityType]}66`;
+            }
 
             const abilityName = document.createElement('div');
             abilityName.className = 'ability-name';
@@ -1114,20 +1135,41 @@ class TeamBuilderUI {
                 
                 // Re-add all abilities
                 hero.abilities.forEach(ability => {
-                    const abilityBox = document.createElement('div');
-                    abilityBox.className = 'ability-box';
+                const abilityBox = document.createElement('div');
+                abilityBox.className = 'ability-box';
+            
+                // Determine ability's elemental type from effects for styling
+                let abilityType = hero.type; // Default to character's type
+                
+            // If this is an active ability with effects, try to find a damage type
+                if (ability.effects && Array.isArray(ability.effects)) {
+                    // Look for the first damage effect with a damageType
+                    const damageEffect = ability.effects.find(effect => 
+                    effect.type === 'Damage' && effect.damageType);
+                    
+                    if (damageEffect && damageEffect.damageType) {
+                        abilityType = damageEffect.damageType;
+                }
+            }
+            
+            // Apply the type color with reduced opacity (22 = 13% opacity in hex)
+            if (this.typeColors[abilityType]) {
+                abilityBox.style.backgroundColor = `${this.typeColors[abilityType]}22`;
+                // Add a subtle left border with higher opacity for visual distinction
+                abilityBox.style.borderLeft = `3px solid ${this.typeColors[abilityType]}66`;
+            }
 
-                    const abilityName = document.createElement('div');
-                    abilityName.className = 'ability-name';
-                    abilityName.textContent = ability.name;
+            const abilityName = document.createElement('div');
+            abilityName.className = 'ability-name';
+            abilityName.textContent = ability.name;
 
-                    const abilityDesc = document.createElement('div');
-                    abilityDesc.className = 'ability-desc';
-                    abilityDesc.textContent = ability.description;
+            const abilityDesc = document.createElement('div');
+            abilityDesc.className = 'ability-desc';
+            abilityDesc.textContent = ability.description;
 
-                    abilityBox.appendChild(abilityName);
-                    abilityBox.appendChild(abilityDesc);
-                    abilitiesContainer.appendChild(abilityBox);
+            abilityBox.appendChild(abilityName);
+            abilityBox.appendChild(abilityDesc);
+            abilitiesContainer.appendChild(abilityBox);
                     
                     // Re-add tooltips
                     if (window.tooltipManager) {
