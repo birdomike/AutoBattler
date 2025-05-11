@@ -1,3 +1,22 @@
+### [0.6.6.7] - 2025-05-11
+#### Changed
+- Completed Phase 4 of TeamBuilderUI refactoring with Remove stage of HeroGridManager component
+- Removed original hero grid rendering implementation from TeamBuilderUI.js
+- Replaced with minimal delegation method and proper error handling
+- Reduced TeamBuilderUI.js by approximately 100 lines of code
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.7_HeroGridManager_Remove.md*
+
+### [0.6.6.6] - 2025-05-11
+#### Changed
+- Implemented Phase 4 of TeamBuilderUI refactoring with Extract stage of HeroGridManager component
+- Created new HeroGridManager.js component to handle hero grid rendering and selection
+- Added initialization and delegation methods to TeamBuilderUI.js
+- Integrated with existing FilterManager for filter state management
+- Updated TeamBuilderUI.js to delegate to HeroGridManager when available
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.6_HeroGridManager_Extract.md*
+
 ### [0.6.6.5] - 2025-05-11
 #### Changed
 - Completed Remove stage of FilterManager refactoring (Phase 3 complete)

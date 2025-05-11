@@ -24,6 +24,7 @@ class TeamBuilderUI {
         this.isSelectingEnemyTeam = false; // Flag to track if we're selecting enemy team
         this.imageLoader = null; // Will hold the TeamBuilderImageLoader
         this.heroDetailManager = null; // Will hold the HeroDetailPanelManager
+        this.heroGridManager = null; // Will hold the HeroGridManager
         this.typeColors = {
             fire: '#ff4757',
             water: '#1e90ff',
@@ -85,6 +86,9 @@ class TeamBuilderUI {
             // Initialize the filter manager
             await this.initializeFilterManager();
             
+            // Initialize the hero grid manager
+            await this.initializeHeroGridManager();
+            
             this.renderFilters();
             this.renderHeroGrid();
             this.renderTeamSlots();
@@ -134,112 +138,19 @@ class TeamBuilderUI {
 
     /**
      * Render the available heroes grid
+     * Delegated to HeroGridManager
      */
     renderHeroGrid() {
-        const heroesGrid = document.getElementById('heroes-grid');
-        heroesGrid.innerHTML = '';
-
-        // Filter heroes based on active filters
-        let filteredHeroes = [...this.availableHeroes];
-        
-        // Get active filters from FilterManager if available
-        const activeFilters = this.filterManager ? this.filterManager.getActiveFilters() : this.activeFilters;
-        
-        // Apply type filters
-        if (activeFilters.types.length > 0) {
-            filteredHeroes = filteredHeroes.filter(hero => {
-                // Split the hero's type if it contains multiple types
-                const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
-                
-                // Check if any of the hero's types match any of the active filters
-                return heroTypes.some(type => activeFilters.types.includes(type));
-            });
-        }
-        
-        // Apply role filters
-        if (activeFilters.roles.length > 0) {
-            filteredHeroes = filteredHeroes.filter(hero => 
-                activeFilters.roles.includes(hero.role)
-            );
-        }
-
-        // Display message if no heroes match filters
-        if (filteredHeroes.length === 0) {
-            const noHeroes = document.createElement('div');
-            noHeroes.className = 'no-heroes-message';
-            noHeroes.textContent = 'No heroes match your filters';
-            heroesGrid.appendChild(noHeroes);
+        if (this.heroGridManager) {
+            this.heroGridManager.renderHeroGrid();
             return;
         }
-
-        filteredHeroes.forEach(hero => {
-            const heroCard = document.createElement('div');
-            heroCard.className = 'hero-card';
-            // For multiple types, use the first type's color for the background
-            const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
-            const primaryType = heroTypes[0] || hero.type; // Fallback to full type string if split fails
-            heroCard.style.backgroundColor = `${this.typeColors[primaryType]}22`;
-            heroCard.dataset.heroId = hero.id;
-
-            if (this.selectedHeroDetails && this.selectedHeroDetails.id === hero.id) {
-                heroCard.classList.add('selected');
-            }
-
-            const heroContent = document.createElement('div');
-            heroContent.className = 'hero-card-content';
-
-            // Create avatar container structure for character art - NO VISIBLE BACKGROUNDS
-            const heroIconContainer = document.createElement('div');
-            heroIconContainer.className = 'hero-avatar-container';
-            heroIconContainer.dataset.characterId = hero.id;
-            heroIconContainer.dataset.characterName = hero.name;
-            heroIconContainer.dataset.artSynced = '0';
-            // No background color set - will only be visible if character art exists
-            
-            // Create art wrapper for character images - this is all we need now
-            const artWrapper = document.createElement('div');
-            artWrapper.className = 'hero-art-wrapper';
-            
-            // Assemble the icon structure
-            heroIconContainer.appendChild(artWrapper);
-
-            const heroText = document.createElement('div');
-            heroText.className = 'hero-card-text';
-
-            const heroName = document.createElement('div');
-            heroName.className = 'hero-name';
-            heroName.textContent = hero.name;
-
-            const heroType = document.createElement('div');
-            heroType.className = 'hero-type';
-            
-            // Clear any existing content
-            heroType.innerHTML = '';
-            
-            // Render multi-type spans
-            TeamBuilderUtils.renderMultiTypeSpans(hero.type, heroType, this.typeColors);
-            
-            const heroRole = document.createElement('div');
-            heroRole.className = 'hero-role';
-            heroRole.textContent = hero.role;
-
-            heroText.appendChild(heroName);
-            heroText.appendChild(heroType);
-            heroText.appendChild(heroRole);
-
-            heroContent.appendChild(heroIconContainer);
-            heroContent.appendChild(heroText);
-
-            heroCard.appendChild(heroContent);
-            heroesGrid.appendChild(heroCard);
-
-            // Add event listener
-            heroCard.addEventListener('click', () => this.selectHeroDetails(hero));
-        });
         
-        // Force image loader to check for new images
-        if (this.imageLoader) {
-            this.imageLoader.forceCheck();
+        // Minimal fallback for error handling
+        console.error('Cannot render hero grid - HeroGridManager not available');
+        const heroesGrid = document.getElementById('heroes-grid');
+        if (heroesGrid) {
+            heroesGrid.innerHTML = '<div class="grid-error">Hero grid system unavailable</div>';
         }
     }
 
@@ -846,6 +757,45 @@ class TeamBuilderUI {
             return false;
         }
     }
+    
+    /**
+     * Initialize the hero grid manager
+     */
+    async initializeHeroGridManager() {
+        try {
+            // Check if HeroGridManager is available
+            if (typeof window.HeroGridManager === 'undefined') {
+                console.warn('HeroGridManager not found, will use original implementation');
+                return false;
+            }
+            
+            // Create the hero grid manager
+            this.heroGridManager = new window.HeroGridManager(this);
+            
+            // Verify required methods exist
+            const methodCheck = {
+                renderHeroGrid: typeof this.heroGridManager.renderHeroGrid === 'function',
+                selectHero: typeof this.heroGridManager.selectHero === 'function',
+                updateFilters: typeof this.heroGridManager.updateFilters === 'function',
+                updateSelectedHero: typeof this.heroGridManager.updateSelectedHero === 'function'
+            };
+            
+            console.log('TeamBuilderUI: HeroGridManager initialized with methods:', methodCheck);
+            
+            if (!methodCheck.renderHeroGrid || !methodCheck.selectHero) {
+                console.error('HeroGridManager missing required methods!');
+                this.heroGridManager = null;
+                return false;
+            }
+            
+            console.log('TeamBuilderUI: Hero grid manager initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('Error initializing hero grid manager:', error);
+            this.heroGridManager = null;
+            return false;
+        }
+    }
 
     /**
      * Callback for filter changes
@@ -856,7 +806,19 @@ class TeamBuilderUI {
         this.activeFilters = filters;
         
         // Update the hero grid based on new filters
-        this.renderHeroGrid();
+        if (this.heroGridManager) {
+            this.heroGridManager.updateFilters(filters);
+        } else {
+            this.renderHeroGrid();
+        }
+    }
+    
+    /**
+     * Callback for hero selection
+     * @param {Object} hero - The selected hero
+     */
+    onHeroSelected(hero) {
+        this.selectHeroDetails(hero);
     }
 
     /**
