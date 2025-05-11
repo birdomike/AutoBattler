@@ -10,6 +10,21 @@
 - Grid will now be hidden by default until toggled with Alt+G
 - Improved debugging experience by reducing initial visual clutter
 
+### [0.6.7.3] - 2025-05-11
+#### Changed
+- Updated collapsible filter sections to be collapsed by default for better initial space efficiency
+- Maintained all animation and functionality of the collapsible filter system
+
+### [0.6.7.2] - 2025-05-11
+#### Added
+- Implemented collapsible filter sections in TeamBuilder UI
+- Added animated expand/collapse functionality for Type and Role filters
+- Improved filter UI with active filter count badges
+- Enhanced user interface to show more heroes on screen at once
+- Added toggle indicators (▲/▼) for filter section state
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.2_CollapsibleFilterUI.md*
+
 ### [0.6.6.11] - 2025-05-11
 #### Changed
 - Completed final phase (Phase 6) of TeamBuilderUI refactoring with Remove stage
