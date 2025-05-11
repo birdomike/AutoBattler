@@ -74,7 +74,7 @@ class BattleAssetLoader {
             // Preload all combat-optimized character art
             const characterArt = [
                 'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
-                'Sylvanna', 'Vaelgor', 'Seraphina' 
+                'Sylvanna', 'Vaelgor', 'Seraphina', 'Nyria'
             ];
             
             // Special case for Caste due to parentheses in filename

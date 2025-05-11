@@ -15,6 +15,12 @@
 
 *Note: For detailed information on implementation approach, see CHANGELOG_0.6.5.0_TypeRoleSeparation.md*
 
+### [0.6.4.21] - 2025-05-11
+#### Added
+- Added new character: Nyria (Storm Elementalist)
+- Added character art assets for Nyria in both TeamBuilder and Battle UIs
+- Integrated Nyria into all image loader systems (TeamBuilder, DOM Battle, and Phaser Battle)
+
 ### [0.6.4.20] - 2025-05-11
 #### Changed
 - Updated file-level documentation to reflect BattleScene's role as component orchestrator

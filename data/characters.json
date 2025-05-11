@@ -1,6 +1,42 @@
 {
   "characters": [
     {
+      "id": 8,
+      "name": "Nyria",
+      "type": "storm",
+      "role": "Elementalist",
+      "rarity": "Rare",
+      "actionDecisionLogic": "decideAction_WeightedRandomAbility",
+      "stats": {
+        "hp": 114,
+        "attack": 25,
+        "defense": 21,
+        "speed": 11,
+        "strength": 38,
+        "intellect": 57,
+        "spirit": 59
+      },
+      "art": {
+        "left": "-5px",
+        "top": "-50px",
+        "width": "80px",
+        "height": "120px"
+      },
+      "teamBuilderArt": {
+        "left": "0px",
+        "top": "-40px",
+        "width": "100px",
+        "height": "180px"
+      },
+      "detailArt": {
+        "left": "0px",
+        "top": "-45px",
+        "width": "150px",
+        "height": "150px"
+      },
+      "abilities": []
+    },
+    {
       "id": 7,
       "name": "Caste",
       "type": "metal",

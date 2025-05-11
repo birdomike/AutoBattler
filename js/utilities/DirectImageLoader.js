@@ -22,7 +22,8 @@ window.DirectImageLoader = {
         'Lumina': 'assets/images/Character Art/Lumina.png',
         'Sylvanna': 'assets/images/Character Art/Sylvanna.png',
         'Vaelgor': 'assets/images/Character Art/Vaelgor.png',
-        'Caste': 'assets/images/Character Art/Caste.png'
+        'Caste': 'assets/images/Character Art/Caste.png',
+        'Nyria': 'assets/images/Character Art/Nyria.PNG'
     },
     
     // Store characters data globally
