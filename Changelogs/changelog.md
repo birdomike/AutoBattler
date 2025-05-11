@@ -1,3 +1,12 @@
+### [0.6.4.7] - 2025-05-11
+#### Changed
+- Completed BattleFXManager implementation by removing legacy visual effects code from BattleScene.js
+- Simplified visual effects methods to fully delegate to BattleFXManager
+- Improved error handling when BattleFXManager is unavailable
+- Added clear user feedback when visual effects manager cannot be initialized
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.4.7_BattleFXManager_RemovePhase.md*
+
 ### [0.6.4.6] - 2025-05-11
 #### Changed
 - Implemented BattleFXManager component to centralize visual effects management

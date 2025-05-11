@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.4.6 (BattleFXManager implementation - Extract phase)
+ * @version 0.6.4.7 (BattleFXManager implementation - Remove phase)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -606,7 +606,7 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Show attack animation between characters
-     * Uses BattleFXManager when available, falls back to legacy implementation
+     * Delegates to BattleFXManager
      * @param {Object} attacker - Attacking character
      * @param {Object} target - Target character
      * @param {Function} onComplete - Callback when animation completes
@@ -614,70 +614,12 @@ export default class BattleScene extends Phaser.Scene {
      */
     showAttackAnimation(attacker, target, onComplete, actionContext) {
         try {
-            // Use BattleFXManager if available
             if (this.fxManager) {
-                const success = this.fxManager.showAttackAnimation(attacker, target, onComplete, actionContext);
-                if (success) return; // Exit if successful
-                
-                // Otherwise fall through to original implementation
-                console.warn('[BattleScene] BattleFXManager.showAttackAnimation failed, using legacy implementation');
+                this.fxManager.showAttackAnimation(attacker, target, onComplete, actionContext);
+            } else {
+                console.error('[BattleScene] Cannot show attack animation - BattleFXManager not available');
+                if (onComplete) onComplete(); // Ensure callback is called even if animation fails
             }
-            
-            // Original implementation as fallback
-            if (!attacker || !target) {
-                if (onComplete) onComplete();
-                return;
-            }
-            
-            console.log(`[BattleScene] Legacy showAttackAnimation: ${attacker.name} (${attacker.team}) attacking ${target.name} (${target.team})`);
-
-            // Validate that attacker and target are from different teams
-            if (attacker.team === target.team) {
-                console.warn(`[BattleScene] Legacy showAttackAnimation: Attempted attack on same team! Attacker and target both on team ${attacker.team}`);
-                // Don't show animation for same-team attacks
-                if (onComplete) onComplete();
-                return;
-            }
-
-            // Find sprites
-            const attackerTeamContainer = attacker.team === 'player'
-                ? this.playerTeamContainer
-                : this.enemyTeamContainer;
-
-            const targetTeamContainer = target.team === 'player'
-                ? this.playerTeamContainer
-                : this.enemyTeamContainer;
-
-            if (!attackerTeamContainer || !targetTeamContainer) {
-                console.warn(`[BattleScene] Legacy showAttackAnimation: Missing team container(s)`);
-                if (onComplete) onComplete();
-                return;
-            }
-
-            const attackerSprite = attackerTeamContainer.getCharacterSpriteByName(attacker.name);
-            const targetSprite = targetTeamContainer.getCharacterSpriteByName(target.name);
-
-            if (!attackerSprite || !targetSprite) {
-                console.warn(`[BattleScene] Legacy showAttackAnimation: Could not find sprites for ${!attackerSprite ? 'attacker' : 'target'}`);
-                if (onComplete) onComplete();
-                return;
-            }
-
-            // Create default actionContext if none is provided
-            if (!actionContext) {
-                // Try to infer the action type
-                const inferredActionType = attacker.lastUsedAbility ? 'ability' : 'autoAttack';
-                const inferredAbilityName = attacker.lastUsedAbility?.name || 'Unknown Ability';
-                
-                actionContext = {
-                    actionType: inferredActionType,
-                    abilityName: inferredAbilityName
-                };
-                
-                console.log(`[BattleScene] Legacy showAttackAnimation: Created inferred actionContext:`, actionContext);
-            }
-
-            attackerSprite.showAttackAnimation(targetSprite, onComplete, actionContext);
         } catch (error) {
             console.error('[BattleScene] Error showing attack animation:', error);
             if (onComplete) onComplete();
@@ -709,46 +651,31 @@ export default class BattleScene extends Phaser.Scene {
                 console.log('BattleScene: BattleFXManager initialized successfully');
                 return true;
             } else {
-                console.warn('BattleScene: BattleFXManager not found, using legacy visual effects methods');
+                console.error('BattleScene: BattleFXManager not found - visual effects will not be available');
+                this.showErrorMessage('Visual effects manager not available');
                 return false;
             }
         } catch (error) {
             console.error('BattleScene: Error initializing FX manager:', error);
+            this.showErrorMessage('Failed to initialize visual effects: ' + error.message);
             return false;
         }
     }
 
     /**
      * Show floating text above a character
+     * Delegates to BattleFXManager
      * @param {Object} character - Character to show text above
      * @param {string} text - Text to display
      * @param {Object} style - Text style options
      */
     showFloatingText(character, text, style = {}) {
         try {
-            // Use BattleFXManager if available
             if (this.fxManager) {
-                const success = this.fxManager.showFloatingText(character, text, style);
-                if (success) return; // Exit if successful
-                
-                // Otherwise fall through to original implementation
-                console.warn('[BattleScene] BattleFXManager.showFloatingText failed, using legacy implementation');
+                this.fxManager.showFloatingText(character, text, style);
+            } else {
+                console.error('[BattleScene] Cannot show floating text - BattleFXManager not available');
             }
-            
-            // Original implementation as fallback
-            if (!character) return;
-
-            const teamContainer = character.team === 'player'
-                ? this.playerTeamContainer
-                : this.enemyTeamContainer;
-
-            if (!teamContainer) return;
-
-            const sprite = teamContainer.getCharacterSpriteByName(character.name);
-
-            if (!sprite) return;
-
-            sprite.showFloatingText(text, style);
         } catch (error) {
             console.error('[BattleScene] Error showing floating text:', error);
         }

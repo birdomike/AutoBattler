@@ -1,4 +1,603 @@
-﻿Combined Technical Changelog  (generated 2025-05-11 08:30)
+﻿Combined Technical Changelog  (generated 2025-05-11 09:20)
+
+===== CHANGELOG_0.6.4.7_BattleFXManager_RemovePhase =====
+
+# CHANGELOG 0.6.4.7 - BattleFXManager Implementation (Remove Phase)
+
+## Overview
+
+This update completes Phase 5 of the BattleScene refactoring plan by removing the original visual effects implementations from BattleScene.js after successfully verifying the functionality of the BattleFXManager component. This follows the Extract-Verify-Remove pattern, with this update representing the final "Remove" step.
+
+## Implementation Details
+
+### 1. Removed Original Implementations from BattleScene.js
+
+The original implementations of the visual effects methods have been completely removed and replaced with simple delegator methods:
+
+#### showFloatingText() Before:
+```javascript
+showFloatingText(character, text, style = {}) {
+    try {
+        // Use BattleFXManager if available
+        if (this.fxManager) {
+            const success = this.fxManager.showFloatingText(character, text, style);
+            if (success) return; // Exit if successful
+            
+            // Otherwise fall through to original implementation
+            console.warn('[BattleScene] BattleFXManager.showFloatingText failed, using legacy implementation');
+        }
+        
+        // Original implementation as fallback
+        if (!character) return;
+
+        const teamContainer = character.team === 'player'
+            ? this.playerTeamContainer
+            : this.enemyTeamContainer;
+
+        if (!teamContainer) return;
+
+        const sprite = teamContainer.getCharacterSpriteByName(character.name);
+
+        if (!sprite) return;
+
+        sprite.showFloatingText(text, style);
+    } catch (error) {
+        console.error('[BattleScene] Error showing floating text:', error);
+    }
+}
+```
+
+#### showFloatingText() After:
+```javascript
+showFloatingText(character, text, style = {}) {
+    try {
+        if (this.fxManager) {
+            this.fxManager.showFloatingText(character, text, style);
+        } else {
+            console.error('[BattleScene] Cannot show floating text - BattleFXManager not available');
+        }
+    } catch (error) {
+        console.error('[BattleScene] Error showing floating text:', error);
+    }
+}
+```
+
+#### showAttackAnimation() Before:
+```javascript
+showAttackAnimation(attacker, target, onComplete, actionContext) {
+    try {
+        // Use BattleFXManager if available
+        if (this.fxManager) {
+            const success = this.fxManager.showAttackAnimation(attacker, target, onComplete, actionContext);
+            if (success) return; // Exit if successful
+            
+            // Otherwise fall through to original implementation
+            console.warn('[BattleScene] BattleFXManager.showAttackAnimation failed, using legacy implementation');
+        }
+        
+        // Original implementation as fallback (70+ lines of code)
+        // ...
+    } catch (error) {
+        console.error('[BattleScene] Error showing attack animation:', error);
+        if (onComplete) onComplete();
+    }
+}
+```
+
+#### showAttackAnimation() After:
+```javascript
+showAttackAnimation(attacker, target, onComplete, actionContext) {
+    try {
+        if (this.fxManager) {
+            this.fxManager.showAttackAnimation(attacker, target, onComplete, actionContext);
+        } else {
+            console.error('[BattleScene] Cannot show attack animation - BattleFXManager not available');
+            if (onComplete) onComplete(); // Ensure callback is called even if animation fails
+        }
+    } catch (error) {
+        console.error('[BattleScene] Error showing attack animation:', error);
+        if (onComplete) onComplete();
+    }
+}
+```
+
+### 2. Enhanced Error Handling
+
+Updated the `initializeFXManager()` method to provide better error reporting when BattleFXManager is unavailable:
+
+#### Before:
+```javascript
+if (window.BattleFXManager) {
+    // Create and initialize BattleFXManager
+    // ...
+} else {
+    console.warn('BattleScene: BattleFXManager not found, using legacy visual effects methods');
+    return false;
+}
+```
+
+#### After:
+```javascript
+if (window.BattleFXManager) {
+    // Create and initialize BattleFXManager
+    // ...
+} else {
+    console.error('BattleScene: BattleFXManager not found - visual effects will not be available');
+    this.showErrorMessage('Visual effects manager not available');
+    return false;
+}
+```
+
+Also added error message display for initialization errors:
+```javascript
+} catch (error) {
+    console.error('BattleScene: Error initializing FX manager:', error);
+    this.showErrorMessage('Failed to initialize visual effects: ' + error.message);
+    return false;
+}
+```
+
+### 3. Simplified Version Tagging
+
+Updated the version tag in the file header:
+```javascript
+* @version 0.6.4.7 (BattleFXManager implementation - Remove phase)
+```
+
+## Benefits
+
+1. **Reduced Code Duplication**: Removed redundant visual effects code from BattleScene.js, eliminating duplicate implementations.
+
+2. **Cleaner BattleScene.js**: Further simplified BattleScene.js by removing ~80 lines of visual effects code.
+
+3. **Single Responsibility**: Visual effects are now fully managed by the dedicated BattleFXManager component.
+
+4. **Improved Error Handling**: Enhanced error reporting with clear user feedback when visual effects are unavailable.
+
+5. **Better Design Pattern Application**: Completed the Extract-Verify-Remove pattern, preserving the principles of component-based architecture.
+
+## Testing Verification
+
+Testing should verify:
+
+1. **All Visual Effects Work Through BattleFXManager**:
+   - Floating text (damage, healing, status effects, etc.) appears correctly
+   - Attack animations function properly
+   - No visual regressions compared to the previous implementation
+
+2. **Error Handling**:
+   - Appropriate error messages display when visual effects fail
+   - The game continues to function even if visual effects are unavailable
+
+3. **Edge Cases**:
+   - System handles null/undefined parameters gracefully
+   - Callbacks are properly invoked even when animations fail
+
+## Future Work
+
+With the completion of Phase 5, the next steps in the BattleScene refactoring plan are:
+
+1. Phase 6: Extract Debug Tools (PhaserDebugManager) - Optional phase to move debug-specific code to its own component
+2. Phase 7: Final BattleScene.js Cleanup - Review remaining code and ensure all logic is properly delegated
+
+## Lessons Learned
+
+1. **Extract-Verify-Remove Effectiveness**: The three-step refactoring pattern allowed for safe, incremental changes with fallback mechanisms during verification.
+
+2. **Component-Based Architecture Benefits**: The refactoring demonstrates the benefits of a component-based approach, with clear separation of concerns and specialized components.
+
+3. **Importance of Error Handling**: Robust error handling with user feedback ensures that components can fail gracefully without breaking the entire application.
+
+4. **Code Removal Satisfaction**: Removing larger blocks of redundant code is satisfying and measurably improves code quality and maintainability.
+
+This update completes Phase 5 of the BattleScene refactoring plan, continuing our progress toward a cleaner, more modular architecture.
+
+
+===== CHANGELOG_0.6.4.6_BattleFXManager_Implementation =====
+
+## Script Loading Fix
+
+In the initial implementation, the BattleFXManager component was created but not properly integrated into the HTML file. We've updated the solution by:
+
+1. Adding a script tag for BattleFXManager.js to index.html:
+```html
+<!-- BattleFXManager - Must load after TeamDisplayManager and before BattleScene -->
+<script src="js/phaser/managers/BattleFXManager.js"></script>
+```
+
+2. Placing the script tag in the correct position in the loading order - after TeamDisplayManager.js but before BattleScene.js to ensure proper dependency initialization
+
+This change ensures that when BattleScene tries to access `window.BattleFXManager`, the component will be available in the global scope.
+
+# CHANGELOG 0.6.4.6 - BattleFXManager Implementation (Extract & Verify Phase)
+
+## Overview
+
+This update implements Phase 5 of the BattleScene refactoring plan, which extracts visual effects logic from BattleScene.js into a dedicated BattleFXManager component. This follows the Extract-Verify-Remove pattern used in previous phases, with this update representing the "Extract" phase where the new component is created and used with fallbacks maintained.
+
+## Implementation Details
+
+### 1. Created BattleFXManager Component
+
+Created a new component in `js/phaser/managers/BattleFXManager.js` that centralizes non-sprite-specific visual effects:
+
+```javascript
+class BattleFXManager {
+    constructor(scene, teamManager = null) {
+        // Initialize with scene and optional TeamDisplayManager reference
+    }
+    
+    setTeamManager(teamManager) {
+        // Update TeamDisplayManager reference
+    }
+    
+    showFloatingText(character, text, style = {}) {
+        // Show floating text above a character
+    }
+    
+    showAttackAnimation(attacker, target, onComplete, actionContext) {
+        // Show attack animation between characters
+    }
+    
+    destroy() {
+        // Clean up resources
+    }
+}
+```
+
+The component implements:
+
+- **Primary Visual Effect Methods**:
+  - `showFloatingText()`: Displays floating text above characters (damage numbers, healing, etc.)
+  - `showAttackAnimation()`: Handles animations between attacking and target characters
+
+- **Team Integration**:
+  - Integration with TeamDisplayManager when available
+  - Fallback to direct team container access when needed
+
+- **Enhanced Error Handling**:
+  - Comprehensive parameter validation with detailed error messages
+  - Return values to indicate success/failure for operations
+  - Graceful degradation when dependencies are unavailable
+
+### 2. Updated BattleScene.js to Use BattleFXManager
+
+Modified BattleScene.js to:
+
+- Initialize BattleFXManager in a new `initializeFXManager()` method
+- Updated `showFloatingText()` to use the BattleFXManager when available but maintain fallbacks
+- Updated `showAttackAnimation()` to use the BattleFXManager when available but maintain fallbacks
+- Added cleanup code in `shutdown()` to properly release BattleFXManager resources
+
+```javascript
+// In BattleScene.create()
+console.log('BattleScene create: Initializing BattleFXManager...');
+this.initializeFXManager();
+console.log('BattleScene create: BattleFXManager initialized.');
+
+// New initialization method
+initializeFXManager() {
+    try {
+        // Check if BattleFXManager is available
+        if (window.BattleFXManager) {
+            // Create manager with scene and TeamDisplayManager reference if available
+            this.fxManager = new window.BattleFXManager(this, this.teamManager || null);
+            
+            // Set reference in BattleEventManager if available
+            if (this.eventManager && typeof this.eventManager.setFXManager === 'function') {
+                this.eventManager.setFXManager(this.fxManager);
+            }
+            
+            return true;
+        } else {
+            console.warn('BattleScene: BattleFXManager not found, using legacy visual effects methods');
+            return false;
+        }
+    } catch (error) {
+        console.error('BattleScene: Error initializing FX manager:', error);
+        return false;
+    }
+}
+```
+
+The implementation:
+- Initializes BattleFXManager after TeamDisplayManager to ensure it's available during construction
+- Uses TeamDisplayManager if available for more optimized sprite reference access
+- Keeps fallbacks for each method to maintain backward compatibility during testing
+- Adds diagnostic logging to track the flow of visual effect operations
+
+### 3. Enhanced BattleEventManager for BattleFXManager Integration
+
+Modified BattleEventManager.js to:
+
+- Add a `fxManager` property to store a reference to the BattleFXManager
+- Implement a `setFXManager()` method to update the reference
+- Update visual effect methods to use the BattleFXManager when available
+
+```javascript
+// New method to set FXManager reference
+setFXManager(fxManager) {
+    if (!fxManager) {
+        console.warn("[BattleEventManager] setFXManager: Missing FXManager reference");
+        return;
+    }
+    
+    console.log("[BattleEventManager] Setting BattleFXManager reference");
+    this.fxManager = fxManager;
+}
+```
+
+Updated event handlers:
+```javascript
+// Use FXManager if available, otherwise fall back to scene method
+if (this.fxManager && typeof this.fxManager.showFloatingText === 'function') {
+    this.fxManager.showFloatingText(data.character, floatingTextConfig.text, floatingTextConfig.style);
+} else if (this.scene.showFloatingText) {
+    this.scene.showFloatingText(data.character, floatingTextConfig.text, floatingTextConfig.style);
+}
+```
+
+This implementation ensures:
+- Visual effects can be triggered through the event system using the BattleFXManager
+- Backward compatibility with existing code paths is maintained
+- Clear hierarchy of component preferences is established
+
+## Benefits
+
+1. **Improved Separation of Concerns**: Visual effects logic is now centralized in a dedicated component rather than mixed into BattleScene code.
+
+2. **Enhanced Team Integration**: BattleFXManager integrates directly with TeamDisplayManager for optimized sprite lookup and manipulation.
+
+3. **Better Component Architecture**: The implementation further refines the component-based architecture by extracting specialized functionality.
+
+4. **Robust Error Handling**: Comprehensive parameter validation and error handling make the system more resilient.
+
+5. **Clear Integration Points**: The implementation provides clear integration points for BattleEventManager and future components.
+
+## Testing Verification
+
+Testing should verify that:
+
+1. **Visual Effects Functionality**:
+   - Floating text appears correctly above characters (damage numbers, healing, etc.)
+   - Attack animations work properly with correct character movement
+   - Both methods work through the BattleFXManager without functional regressions
+
+2. **Fallback Mechanisms**:
+   - If BattleFXManager is unavailable, the original BattleScene methods still work
+   - Error handling properly catches and reports issues
+
+3. **Integration Testing**:
+   - BattleEventManager correctly triggers visual effects through BattleFXManager
+   - TeamDisplayManager properly integrates with BattleFXManager
+   - No regression in existing functionality
+
+## Next Steps
+
+This implementation represents the "Extract" phase of the Extract-Verify-Remove pattern. After verification that all functionality works correctly through BattleFXManager, the next update (0.6.4.7) will implement the "Remove" phase by:
+
+1. Removing the fallback implementations from BattleScene.js
+2. Making the methods delegate directly to BattleFXManager
+3. Enhancing error reporting when BattleFXManager is unavailable
+
+This will complete Phase 5 of the BattleScene refactoring plan, allowing us to proceed to Phase 6 (Extract Debug Tools) or Phase 7 (Final Cleanup).
+
+## Lessons Learned
+
+1. **Optional Parameter Pattern**: Using optional parameters with setters provides flexibility in component initialization order.
+
+2. **Successful Refactoring Strategy**: The Extract-Verify-Remove pattern continues to prove effective for safe, incremental refactoring.
+
+3. **Component Integration**: The component-based architecture makes it easier to integrate new components with existing ones.
+
+4. **Importance of Fallbacks**: Maintaining fallbacks during the Extract phase enables thorough testing before removing legacy code.
+
+5. **Handling Component Dependencies**: Properly managing component dependencies and initialization order is crucial for a robust system.
+
+This implementation brings the BattleScene.js refactoring closer to completion, with a cleaner, more modular, and more maintainable architecture.
+
+
+===== CHANGELOG_0.6.4.5_BattleAssetLoader_UnifiedInterface =====
+
+# CHANGELOG 0.6.4.5 - BattleAssetLoader Unified Interface
+
+## Overview
+
+This update completes Stage 4 of the BattleAssetLoader refactoring plan, implementing a unified asset loading interface. This is the final stage of Phase 4 in the broader BattleScene refactoring effort. By creating a single, comprehensive method for loading all battle-related assets, we've further simplified BattleScene.js and improved error handling and reporting.
+
+## Implementation Details
+
+### 1. Added Unified `loadAssets()` Method to BattleAssetLoader
+
+Created a comprehensive method that:
+- Calls all individual loading methods (UI, character, status effect icons)
+- Performs detailed error tracking for each asset category
+- Returns a consolidated object with all asset data and status information
+
+```javascript
+loadAssets() {
+    console.log("[BattleAssetLoader] Loading all battle assets...");
+    
+    // Check for scene availability
+    if (!this.scene || !this.scene.load) {
+        // Return error object with consistent structure
+        return {
+            success: false,
+            uiAssetsLoaded: false,
+            characterAssetsLoaded: false,
+            statusIconsLoaded: false,
+            statusIconMapping: {},
+            errors: ["Scene or loader not available"]
+        };
+    }
+    
+    // Initialize tracking object
+    const assetData = {
+        success: true,
+        uiAssetsLoaded: false,
+        characterAssetsLoaded: false,
+        statusIconsLoaded: false,
+        statusIconMapping: {},
+        errors: []
+    };
+    
+    // Load each asset category with independent error handling
+    try {
+        this.loadUIAssets();
+        assetData.uiAssetsLoaded = true;
+    } catch (error) {
+        assetData.errors.push("UI assets: " + error.message);
+        assetData.success = false;
+    }
+    
+    try {
+        this.loadCharacterAssets();
+        assetData.characterAssetsLoaded = true;
+    } catch (error) {
+        assetData.errors.push("Character assets: " + error.message);
+        assetData.success = false;
+    }
+    
+    try {
+        assetData.statusIconMapping = this.loadStatusEffectIcons();
+        
+        // Validate status icon mapping
+        if (assetData.statusIconMapping && Object.keys(assetData.statusIconMapping).length > 0) {
+            assetData.statusIconsLoaded = true;
+        } else {
+            assetData.errors.push("Status icons: Mapping was empty or invalid");
+            assetData.success = false;
+        }
+    } catch (error) {
+        assetData.errors.push("Status icons: " + error.message);
+        assetData.success = false;
+    }
+    
+    // Log summary of results
+    if (assetData.success) {
+        console.log("[BattleAssetLoader] All assets loaded successfully");
+    } else {
+        console.warn("[BattleAssetLoader] Some assets failed to load:", assetData.errors);
+    }
+    
+    return assetData;
+}
+```
+
+Key features of this implementation:
+- Maintains individual try/catch blocks for each asset category, allowing partial success
+- Returns a consistent object format regardless of success or failure
+- Tracks the success status of each individual loading operation
+- Includes comprehensive error details for debugging
+- Validates the status icon mapping to ensure it's usable
+
+### 2. Updated BattleScene.js to Use the Unified Interface
+
+Modified BattleScene.js to use the new unified method instead of individual loading calls:
+
+```javascript
+// Use unified asset loading method
+const assetData = this.assetLoader.loadAssets();
+
+// Process the asset loading results
+if (assetData.success) {
+    console.log("[BattleScene] Asset loading completed successfully");
+    this.statusIconMapping = assetData.statusIconMapping;
+} else {
+    console.error("[BattleScene] Asset loading encountered issues:", assetData.errors);
+    
+    // Store status icon mapping if available, even with partial success
+    this.statusIconMapping = assetData.statusIconMapping || {};
+    
+    // If status icon mapping is empty or invalid, use a minimal fallback
+    if (!this.statusIconMapping || Object.keys(this.statusIconMapping).length === 0) {
+        console.warn("[BattleScene] Using minimal fallback for status icon mapping");
+        this.statusIconMapping = {
+            'default': 'AI_Icons/32px/Placeholder_AI.png'
+        };
+    }
+    
+    // Set flag to show error message to the user
+    this.showAssetLoadingError = true;
+    
+    // Generate more specific error message based on what failed
+    let errorComponents = [];
+    if (!assetData.uiAssetsLoaded) errorComponents.push("UI");
+    if (!assetData.characterAssetsLoaded) errorComponents.push("Characters");
+    if (!assetData.statusIconsLoaded) errorComponents.push("Status Effects");
+    
+    this.assetLoadingErrorDetails = errorComponents.length > 0 ?
+        `Failed to load: ${errorComponents.join(", ")}` : 
+        "Some assets failed to load";
+}
+```
+
+Key improvements:
+- Simplified asset loading with a single method call
+- Enhanced error handling with detailed error reporting
+- Graceful degradation with fallback mappings
+- Component-specific error messaging for user feedback
+
+### 3. Enhanced Error Message Display
+
+Improved the error message shown to users to provide more specific information:
+
+```javascript
+// Show more specific error message if available
+const errorMessage = this.assetLoadingErrorDetails ?
+    `Asset loading incomplete. ${this.assetLoadingErrorDetails}` :
+    "Asset loading incomplete. UI elements may be missing.";
+
+this.showErrorMessage(errorMessage);
+```
+
+This change provides users with clearer information about which components failed to load, improving the debugging experience.
+
+## Benefits
+
+1. **Simplified API**: BattleScene now needs only a single method call to load all assets, making the code cleaner and more maintainable.
+
+2. **Comprehensive Error Handling**: The implementation includes detailed error tracking and reporting, allowing for targeted debugging and improved user feedback.
+
+3. **Consistent Return Structure**: The `loadAssets()` method always returns a consistent object structure, making it easier to work with in BattleScene.
+
+4. **Independent Asset Category Loading**: Each asset category (UI, characters, status effects) is loaded independently, allowing partial success if one category fails.
+
+5. **Improved User Feedback**: Error messages now specify which asset categories failed to load, giving users more actionable information.
+
+6. **Future Extensibility**: The design can easily accommodate additional asset types in the future without changing the core API.
+
+## Testing Verification
+
+When testing this change, verify:
+
+1. **Normal Operation**:
+   - All assets load correctly through the unified interface
+   - Characters and UI elements display properly
+   - Status effects show with correct icons and tooltips
+
+2. **Error Handling**:
+   - Artificially block access to certain asset folders to test partial failures
+   - Verify that fallback mechanisms work when individual asset types fail
+   - Check that user-facing error messages accurately reflect what failed
+
+3. **Performance**:
+   - Ensure loading times remain consistent with the previous implementation
+
+## Lessons Learned
+
+1. **Comprehensive Error Objects**: Returning a detailed status object rather than simple success/failure booleans provides much more actionable information.
+
+2. **Independent Try/Catch Blocks**: Using separate error handling for each asset category enables partial success, which is better than all-or-nothing loading.
+
+3. **Defensive Programming Value**: The implementation demonstrates how robust error handling and fallbacks create a more resilient system.
+
+4. **User-Facing Error Details**: Converting internal error states into specific user-facing messages improves the debugging experience for both developers and players.
+
+## Conclusion
+
+This implementation successfully completes Stage 4 of the BattleAssetLoader refactoring, providing a unified asset loading interface that simplifies BattleScene while improving error handling and reporting. This represents the completion of Phase 4 in the broader BattleScene refactoring plan, allowing the project to move forward to Phase 5 (BattleFXManager extraction).
+
 
 ===== CHANGELOG_0.6.4.4_BattleAssetLoader_StatusEffectIcons_Remove =====
 
@@ -1058,303 +1657,5 @@ Test cases to verify the fix:
 5. **Battle Lifecycle Management**: Complex turn-based systems benefit from explicit state validation at key decision points to prevent zombie processes.
 
 This fix ensures battles reliably end when all enemies reach 0 HP, improving the game's stability and user experience.
-
-
-===== CHANGELOG_0.6.3.38_BattleLogManagerHealingTypeFix =====
-
-# CHANGELOG 0.6.3.38 - BattleLogManager Healing Type Fix
-
-## Issue Description
-
-The game consistently showed a console warning during healing events:
-```
-BattleLogManager.js:45 [BattleLogManager] Invalid type 'healing', defaulting to 'default'
-```
-
-This warning occurs when `BattleLogManager.logMessage()` receives 'healing' as the `type` parameter, but 'healing' is not included in the `validTypes` array defined in the BattleLogManager constructor. While this doesn't cause functional issues in the game (as the system defaults to 'default' type), it creates unnecessary console noise and indicates a mismatch between message creation and validation.
-
-## Investigation Approach
-
-To diagnose the exact source of the 'healing' message type, we added a `console.trace()` in the BattleLogManager.logMessage method:
-
-```javascript
-// Ensure type is valid
-if (!this.validTypes.includes(type)) {
-    console.warn(`[BattleLogManager] Invalid type '${type}', defaulting to 'default'`);
-    if (type === 'healing') { console.trace(`[BattleLogManager] Trace for 'healing' type`); }
-    type = 'default';
-}
-```
-
-This allowed us to capture the complete call stack when the 'healing' type was used, leading us directly to the source of the issue.
-
-## Root Cause Analysis
-
-Based on the stack trace, we identified that the root cause was in the `BattleManager.applyHealing()` method, where the code was using the `healType` parameter directly as the message type when calling `logMessage()`:
-
-```javascript
-// In BattleManager.applyHealing()
-const message = source
-    ? `${targetInfo} is healed for ${actualHealing} HP from ${sourceInfo}'s ${healType}! (HP: ${target.currentHp}/${target.stats.hp})`
-    : `${targetInfo} is healed for ${actualHealing} HP from ${healType}! (HP: ${target.currentHp}/${target.stats.hp})`;
-this.logMessage(message, healType); // Here 'healing' was used as the message type
-```
-
-Since the `healType` parameter defaults to 'healing' in `HealingProcessor.applyHealing()`, this value was being propagated all the way to the message type without validation against `validTypes`.
-
-## Technical Solution
-
-We implemented a simple solution by adding 'healing' to the valid message types in BattleLogManager:
-
-```javascript
-// In BattleLogManager.js constructor
-this.validTypes = ['default', 'info', 'success', 'action', 'error', 'player', 'enemy', 'status', 'healing'];
-```
-
-This approach was chosen over modifying all calling code because:
-1. It maintains the semantic meaning of "healing" messages
-2. It allows for future styling of healing messages differently from other types
-3. It's a smaller, less invasive change than modifying multiple call sites
-4. It's more extensible for future healing-related UI enhancements
-
-## Implementation Benefits
-
-1. **Eliminated Console Warnings**: The warning no longer appears during healing events, reducing noise in the developer console
-2. **Maintained Semantic Intent**: The original intention of having a distinct 'healing' message type is preserved
-3. **Future Styling Options**: With 'healing' as a valid type, we have the option to style healing messages differently in future UI enhancements
-4. **Documentation Improvement**: The tracing technique used has been documented for future debugging of similar issues
-
-## Testing Verification
-
-Testing should verify:
-1. No more "Invalid type 'healing'" warnings appear in the console when healing occurs
-2. Healing messages display correctly in the battle log
-3. All existing healing functionality continues to work as expected
-
-## Lessons Learned
-
-1. **Type Validation Points**: When implementing validation systems like message type checking, it's important to ensure all potential types are either included in the validation list or normalized before validation
-2. **Console.trace() Value**: Using `console.trace()` is a powerful technique for diagnosing the source of issues in event-driven systems where the call path isn't immediately obvious
-3. **Parameter Propagation**: Default parameter values (like `healType = 'healing'`) can propagate through multiple method calls, requiring careful tracking when used for validation
-4. **Semantic Message Types**: Using semantically meaningful message types (like 'healing' instead of 'success' or 'default') improves code readability and makes future UI enhancements easier
-
-This fix ensures consistency between message creation and validation, eliminating the console warnings while maintaining the semantic intent of the original code.
-
-
-===== CHANGELOG_0.6.3.37_PassiveBehaviorsStatusEffectRoutingFix =====
-
-# CHANGELOG 0.6.3.37 - PassiveBehaviors Status Effect Routing Fix
-
-## Issue Description
-
-When passive abilities applied status effects, BattleBridge.js displayed console warnings: "BattleBridge: Creating minimal fallback for status effect [status_id]". This indicated that while the effects were being applied, their full definitions weren't being properly propagated to the UI, resulting in potential visual issues with tooltips and icons.
-
-The issue primarily manifested with Lumina's team buff passive at the start of battle (passive_TeamBuffOnBattleStart) and affected all 11 passive behaviors that directly called battleManager.addStatusEffect().
-
-## Root Cause Analysis
-
-The root cause was identified as a disconnect between the v0.6.3.35 fix in StatusEffectManager.js and the way passive abilities applied status effects:
-
-1. **Direct BattleManager Calls**: PassiveBehaviors.js was making direct calls to battleManager.addStatusEffect() instead of routing through StatusEffectManager:
-   ```javascript
-   // Example from passive_TeamBuffOnBattleStart
-   battleManager.addStatusEffect(ally, statusId, actor, effectDuration, 1);
-   ```
-
-2. **Architectural Gap**: While the StatusEffectManager had been enhanced in v0.6.3.35 to include full definitions in events (via the dispatchStatusEffectApplied method), this improvement only worked when StatusEffectManager.addStatusEffect() was called directly. The BattleManager.addStatusEffect() method didn't have the same enhancement.
-
-3. **Different Event Paths**: This created two separate event paths:
-   - **Proper Path**: Game logic â†’ StatusEffectManager.addStatusEffect â†’ StatusEffectManager.dispatchStatusEffectApplied â†’ BattleBridge (with full definition)
-   - **Incomplete Path**: PassiveBehaviors â†’ BattleManager.addStatusEffect â†’ BattleBridge (without definition, requiring fallback)
-
-## Technical Solution
-
-The solution implemented follows the architectural principle that StatusEffectManager should be the consistent point of entry for applying status effects:
-
-1. **Helper Function Creation**: Created a central helper function in PassiveBehaviors.js that routes all status effect applications through StatusEffectManager when available:
-
-```javascript
-/**
- * Helper function to apply status effects through StatusEffectManager
- * Falls back to BattleManager.addStatusEffect if StatusEffectManager isn't accessible
- */
-function applyStatusEffect(battleManager, character, effectId, source, duration, stacks = 1) {
-    // Parameter validation
-    if (!battleManager || !character || !effectId) {
-        console.warn('[PassiveBehaviors.applyStatusEffect] Missing required parameters', { 
-            hasBattleManager: !!battleManager, 
-            hasCharacter: !!character, 
-            effectId 
-        });
-        return false;
-    }
-    
-    // Ensure duration is a number
-    if (typeof duration !== 'number') {
-        console.warn(`[PassiveBehaviors.applyStatusEffect] Invalid duration (${typeof duration}) for ${effectId} - using default 3`);
-        duration = 3;
-    }
-    
-    // Try to use StatusEffectManager first
-    if (battleManager.statusEffectManager) {
-        console.log(`[PassiveBehaviors] Using StatusEffectManager.addStatusEffect for ${effectId}`);
-        return battleManager.statusEffectManager.addStatusEffect(character, effectId, source, duration, stacks);
-    } else if (typeof battleManager.getStatusEffectManager === 'function') {
-        const statusEffectManager = battleManager.getStatusEffectManager();
-        if (statusEffectManager) {
-            console.log(`[PassiveBehaviors] Using getStatusEffectManager().addStatusEffect for ${effectId}`);
-            return statusEffectManager.addStatusEffect(character, effectId, source, duration, stacks);
-        }
-    }
-    
-    // Fall back to BattleManager.addStatusEffect
-    console.log(`[PassiveBehaviors] StatusEffectManager not accessible, falling back to BattleManager.addStatusEffect for ${effectId}`);
-    return battleManager.addStatusEffect(character, effectId, source, duration, stacks);
-}
-```
-
-2. **Modifying All Direct Calls**: Updated all 11 instances of direct battleManager.addStatusEffect calls in PassiveBehaviors.js to use the new helper function:
-
-```javascript
-// Before:
-battleManager.addStatusEffect(actor, 'status_crit_up', actor, 2, 1);
-
-// After:
-applyStatusEffect(battleManager, actor, 'status_crit_up', actor, 2, 1);
-```
-
-3. **Multiple Access Methods**: Implemented fallback mechanisms to handle different ways BattleManager might expose its StatusEffectManager:
-   - Direct property access: `battleManager.statusEffectManager`
-   - Getter method: `battleManager.getStatusEffectManager()`
-   - Fallback to original method if StatusEffectManager isn't accessible
-
-4. **Parameter Validation**: Added comprehensive parameter validation to catch potential issues early and provide helpful error messages.
-
-## Implementation Benefits
-
-1. **Architectural Alignment**: Solution follows the principle that StatusEffectManager should be the single point of entry for status effect management, aligning with the component-based architecture.
-
-2. **Elimination of Warnings**: The "Creating minimal fallback for status effect" warnings no longer appear since all status effects now flow through the proper channel that includes their definitions.
-
-3. **Improved Tooltip Display**: Status effects applied by passive abilities now display proper tooltips with accurate information when hovered over.
-
-4. **Robust Error Handling**: The helper function includes comprehensive parameter validation and fallbacks to prevent errors.
-
-5. **Defensive Programming**: The implementation follows defensive programming patterns with proper validation and graceful degradation.
-
-6. **Backward Compatibility**: The solution maintains backward compatibility through its fallback mechanisms.
-
-## Testing Verification
-
-Testing should verify:
-1. No "Creating minimal fallback" warnings appear in the console during battles
-2. Status effect tooltips display properly for effects applied by passive abilities
-3. Passive abilities that apply status effects continue to function correctly
-4. Existing battle mechanics and interactions remain unchanged
-
-## Lessons Learned
-
-1. **Centralized Control Points**: Components like StatusEffectManager should be the sole gateway for their respective domain operations to ensure consistent behavior.
-
-2. **Facade Pattern Value**: The helper function demonstrates the value of facade patterns in ensuring consistent access to subsystems.
-
-3. **Defensive Programming**: Comprehensive validation and fallbacks protect against architectural changes and ensure robust operation.
-
-4. **Event Payload Enrichment**: Components should enrich event payloads with all necessary data before dispatching to avoid downstream workarounds.
-
-5. **Breaking Change Awareness**: The v0.6.3.35 fix created an implicit requirement that StatusEffectManager be used directly, which this change addresses explicitly.
-
-This fix ensures all status effects, regardless of their source, are properly processed and have complete definitions available throughout the system.
-
-
-===== CHANGELOG_0.6.3.36_DebuggingCleanup =====
-
-# CHANGELOG 0.6.3.36 - Debugging Cleanup
-
-## Issue Description
-
-The game was displaying numerous verbose debugging messages in the console that were tagged as `[DETAILED DEBUG]`. These messages were not causing any functional issues but created unnecessary console spam and potentially impacted performance during battle animations. The debugging outputs were remnants from an unauthorized debugging session (v0.6.3.24) that helped identify and fix the AoE ability text bug, but they were never removed after the fix was implemented.
-
-## Root Cause Analysis
-
-These debug statements were added in v0.6.3.24 as part of an investigation into the AoE ability text display bug, where abilities like "Tidal Wave" or "Frost Chain" were incorrectly showing "Auto Attack" instead of their proper names. While the issue was successfully diagnosed and fixed in v0.6.3.25 and further improved in v0.6.3.26, the debugging code was inadvertently left in the codebase.
-
-The specific debugging statements in question:
-
-1. In `CharacterSprite.js`:
-   - Call stack logging in `showActionText()`
-   - Detailed ability information logging in `showAttackAnimation()`
-
-2. In `ActionIndicator.js`:
-   - Call stack logging in `showAction()`
-   - Debug messages in `showAutoAttack()` and `showAbility()`
-
-These statements were marked for removal in the v0.6.3.24 changelog, which stated: "All unauthorized debugging changes should be removed after the investigation is complete."
-
-## Technical Solution
-
-All identified debugging statements were removed from both files:
-
-1. From `CharacterSprite.js`:
-   ```javascript
-   // Removed from showActionText()
-   console.log(`[DETAILED DEBUG] CharacterSprite.showActionText called for ${this.character?.name} with text '${actionText}'`);
-   console.log(`[DETAILED DEBUG] Call stack:`, new Error().stack);
-   
-   // Removed from showAttackAnimation()
-   console.log(`[DETAILED DEBUG] CharacterSprite.showAttackAnimation called for ${this.character?.name} targeting ${targetSprite?.character?.name}`);
-   console.log(`[DETAILED DEBUG] Character ability info:`, {
-       lastUsedAbility: this.character?.lastUsedAbility || 'unknown',
-       isAoE: this.character?.lastUsedAbility?.isAoE || false,
-       targetType: this.character?.lastUsedAbility?.targetType || 'unknown',
-       abilityName: this.character?.lastUsedAbility?.name || 'unknown'
-   });
-   ```
-
-2. From `ActionIndicator.js`:
-   ```javascript
-   // Removed from showAction()
-   console.log(`[DETAILED DEBUG] ActionIndicator.showAction called with text '${actionText}' for ${this.parent?.character?.name}`);
-   console.log(`[DETAILED DEBUG] Call stack:`, new Error().stack);
-   
-   // Removed from showAutoAttack()
-   console.log(`[DETAILED DEBUG] ActionIndicator.showAutoAttack called for ${this.parent?.character?.name}`);
-   
-   // Removed from showAbility()
-   console.log(`[DETAILED DEBUG] ActionIndicator.showAbility called with name '${abilityName}' for ${this.parent?.character?.name}`);
-   ```
-
-We kept the normal logging statements (e.g., those prefixed with `CS.showActionText` or controlled by the `window.VERBOSE_LOGGING` flag) as these are part of the standard logging infrastructure.
-
-## Implementation Benefits
-
-1. **Cleaner Console Output**: Removed verbose and redundant debugging messages that were cluttering the console.
-
-2. **Potential Performance Improvement**: Eliminated unnecessary string concatenation and Error stack trace generation that could impact performance during battle animations.
-
-3. **Code Clarity**: Removed code that was specifically marked for removal, bringing the codebase in line with its intended state.
-
-4. **Reduced Network Traffic**: For deployments using remote logging or telemetry, this reduces unnecessary data transmission.
-
-## Testing
-
-Testing should focus on verifying that:
-
-1. The game functions normally after the change
-2. The previously noisy `[DETAILED DEBUG]` messages no longer appear in the console
-3. Battle animations and action indicators continue to work as expected
-4. Standard logging (non-debug) still works correctly
-
-## Lessons Learned
-
-1. **Complete Post-Debugging Cleanup**: After using temporary debugging, ensure all debugging code is removed once the issue is resolved.
-
-2. **Code Review Importance**: Having a code review process that specifically looks for debugging artifacts can prevent them from persisting.
-
-3. **Consistent Logging Strategy**: A well-defined logging strategy with different levels (debug, info, warn, error) can help manage console output more effectively.
-
-4. **Consider Debug Flags**: For future intensive debugging, consider using feature flags (e.g., `window.DEBUG_ACTION_INDICATORS = false`) that can easily disable all related debugging at once.
-
-This cleanup helps maintain code quality and ensures the console remains useful for detecting actual issues rather than being overwhelmed with debugging information from previously resolved issues.
 
 
