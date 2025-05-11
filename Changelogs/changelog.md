@@ -32,6 +32,14 @@
 
 *Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.0_HeroDetailPanelManager.md*
 
+### [0.6.6.3a] - 2025-05-11
+#### Fixed
+- Fixed a JavaScript error in HeroDetailPanelManager that was preventing hero details from displaying properly
+- Resolved variable redeclaration issue for heroes with multiple types
+- Improved code consistency in the type relations section
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.3a_HeroDetailManagerHotfix.md*
+
 ### [0.6.5.0] - 2025-05-11
 #### Added
 - Added support for characters with multiple types (e.g., "water/ice")

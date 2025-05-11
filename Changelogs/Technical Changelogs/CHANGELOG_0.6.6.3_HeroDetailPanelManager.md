@@ -1,4 +1,4 @@
-# CHANGELOG 0.6.6.0 - HeroDetailPanelManager Implementation
+# CHANGELOG 0.6.6.3 - HeroDetailPanelManager Implementation
 
 ## Overview
 

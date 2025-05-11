@@ -277,7 +277,7 @@ class HeroDetailPanelManager {
       detailTypeRelations.appendChild(typeRelationsTitle);
 
       // Get all hero types
-      const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
+      const typeArray = TeamBuilderUtils.splitTypes(hero.type);
       
       // Create a container for type sections
       const typeSectionsContainer = document.createElement('div');
@@ -285,13 +285,13 @@ class HeroDetailPanelManager {
       detailTypeRelations.appendChild(typeSectionsContainer);
       
       // For each hero type, create a separate section
-      heroTypes.forEach(heroType => {
+      typeArray.forEach(heroType => {
         // Create a section for this type
         const typeSection = document.createElement('div');
         typeSection.className = 'type-section';
         
         // Add type header if multiple types
-        if (heroTypes.length > 1) {
+        if (typeArray.length > 1) {
           const typeHeader = document.createElement('div');
           typeHeader.className = 'type-section-header';
           typeHeader.style.color = this.typeColors[heroType];
@@ -460,7 +460,7 @@ class HeroDetailPanelManager {
         typeSectionsContainer.appendChild(typeSection);
         
         // Add separator if not the last type
-        if (heroTypes.indexOf(heroType) < heroTypes.length - 1) {
+        if (typeArray.indexOf(heroType) < typeArray.length - 1) {
           const separator = document.createElement('hr');
           separator.style.margin = '10px 0';
           separator.style.borderTop = '1px solid #555';
