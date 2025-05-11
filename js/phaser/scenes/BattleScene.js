@@ -125,20 +125,20 @@ export default class BattleScene extends Phaser.Scene {
         // of trying to use textures.setFilter which isn't available in this version of Phaser
         console.log('BattleScene: Using config-level texture filtering instead of direct method');
 
-        // Initialize BattleAssetLoader for UI, character assets, and status icons
+        // Initialize BattleAssetLoader for all assets using a single component
         if (window.BattleAssetLoader) {
             this.assetLoader = new window.BattleAssetLoader(this);
-            this.assetLoader.loadUIAssets();
-            this.assetLoader.loadCharacterAssets(); // Added character asset loading through the asset loader
             
-            // Add status effect icon loading through the asset loader
+            // Load all assets through BattleAssetLoader
+            this.assetLoader.loadUIAssets();
+            this.assetLoader.loadCharacterAssets();
             this.statusIconMapping = this.assetLoader.loadStatusEffectIcons();
             
-            // If status icon mapping wasn't returned properly, fall back to original method
+            // Verify status icon mapping was returned successfully
             if (!this.statusIconMapping || Object.keys(this.statusIconMapping).length === 0) {
-                console.warn("[BattleScene] Status icon mapping not returned from asset loader, using original methods");
-                this.preloadStatusEffectIcons();
-                this.statusIconMapping = this.initStatusIconMapping();
+                console.error("[BattleScene] Failed to get status icon mapping from BattleAssetLoader");
+                this.statusIconMapping = {}; // Use empty object as fallback
+                this.showAssetLoadingError = true;
             }
         } else {
             console.error("[BattleScene] BattleAssetLoader not available - falling back to minimal asset loading");
@@ -150,8 +150,13 @@ export default class BattleScene extends Phaser.Scene {
             // Minimal character assets for basic display
             this.load.image('character-circle', 'assets/images/icons/character-circle.png');
             
-            // Load status effect icons
-            this.preloadStatusEffectIcons();
+            // Minimal status effect placeholder
+            this.load.image('status_placeholder', 'assets/images/icons/status/status-icons/AI_Icons/32px/Placeholder_AI.png');
+            
+            // Create minimal status mapping
+            this.statusIconMapping = {
+                'default': 'AI_Icons/32px/Placeholder_AI.png'
+            };
             
             // Set a flag to show an error message to the user
             this.showAssetLoadingError = true;
@@ -459,79 +464,7 @@ export default class BattleScene extends Phaser.Scene {
         console.log('Character teams creation process finished.');
     }
 
-    /**
-     * Preload status effect icons with AI-generated versions
-     */
-    preloadStatusEffectIcons() {
-        try {
-            console.log('BattleScene: Preloading status effect icons...');
-            
-            // Initialize status icon mapping
-            this.initStatusIconMapping();
-            
-            // Set the base path for status icons
-            this.load.path = 'assets/images/icons/status/status-icons/';
-            
-            // Status effect icons list
-            const statusIconIds = [
-                'burn', 'poison', 'regen', 'stun', 'freeze', 'shield',
-                'atk_up', 'atk_down', 'def_up', 'def_down', 'spd_up', 'spd_down',
-                'str_up', 'str_down', 'int_up', 'int_down', 'spi_up', 'spi_down',
-                'taunt', 'evade', 'bleed', 'reflect', 'vulnerable', 'immune', 'crit_up'
-            ];
-            
-            // Load each status icon with the AI version
-            statusIconIds.forEach(iconId => {
-                const key = `status_${iconId}`;
-                const iconPath = this.statusIconMapping[iconId] || `${iconId}.png`;
-                this.load.image(key, iconPath);
-                console.log(`BattleScene: Preloading status icon ${key} from ${iconPath}`);
-            });
-            
-            // Reset the path after loading status icons
-            this.load.path = '';
-            
-            console.log('BattleScene: Status effect icons preload complete');
-        } catch (error) {
-            console.warn('BattleScene: Could not preload status effect icons:', error);
-        }
-    }
-    
-    /**
-     * Initialize the status icon mapping
-     */
-    initStatusIconMapping() {
-        this.statusIconMapping = window.StatusIconMapper ? 
-            window.StatusIconMapper.getMapping() : 
-            {
-                // Fallback mapping if StatusIconMapper isn't available
-                'atk_down': 'AI_Icons/32px/Attack Down_AI.png',
-                'atk_up': 'AI_Icons/32px/AttackUp.png',
-                'bleed': 'AI_Icons/32px/Bleeding_AI.png',
-                'burn': 'AI_Icons/32px/Burn_AI.png',
-                'crit_up': 'AI_Icons/32px/CritChanceUp_AI.png',
-                'def_down': 'AI_Icons/32px/Defense Down_AI.png',
-                'def_up': 'AI_Icons/32px/Defense Up_AI.png',
-                'evade': 'AI_Icons/32px/Evasion_AI.png',
-                'freeze': 'AI_Icons/32px/Freeze_AI.png',
-                'immune': 'AI_Icons/32px/Immunity_AI.png',
-                'int_down': 'AI_Icons/32px/IntellectDown_AI.png',
-                'int_up': 'AI_Icons/32px/Intellect Up_AI.png',
-                'poison': 'AI_Icons/32px/Poison_AI.png',
-                'reflect': 'AI_Icons/32px/DamageReflect_AI.png',
-                'regen': 'AI_Icons/32px/Regeneration_AI.png',
-                'shield': 'AI_Icons/32px/Shield_AI.png',
-                'spd_down': 'AI_Icons/32px/Speed Down_AI.png',
-                'spd_up': 'AI_Icons/32px/Speed Up_AI.png',
-                'spi_down': 'AI_Icons/32px/SpiritDown_AI.png',
-                'spi_up': 'AI_Icons/32px/SpiritUp_AI.png',
-                'str_down': 'AI_Icons/32px/StrengthDown_AI.png',
-                'str_up': 'AI_Icons/32px/StrengthUp_AI.png',
-                'stun': 'AI_Icons/32px/Stunned_AI.png',
-                'taunt': 'AI_Icons/32px/Taunt_AI.png',
-                'vulnerable': 'AI_Icons/32px/Vulnerable_AI.png'
-            };
-    }
+
     
     /**
      * Clean up character teams

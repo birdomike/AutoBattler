@@ -4,7 +4,7 @@
  * Centralizes all asset loading logic for the battle scene, improving 
  * separation of concerns and reducing BattleScene complexity.
  * 
- * @version 0.6.4.3
+ * @version 0.6.4.4
  */
 
 class BattleAssetLoader {

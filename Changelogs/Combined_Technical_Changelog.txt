@@ -1,4 +1,340 @@
-﻿Combined Technical Changelog  (generated 2025-05-11 00:38)
+﻿Combined Technical Changelog  (generated 2025-05-11 01:13)
+
+===== CHANGELOG_0.6.4.4_BattleAssetLoader_StatusEffectIcons_Remove =====
+
+# CHANGELOG 0.6.4.4 - BattleAssetLoader Status Effect Icons (Remove Phase)
+
+## Overview
+
+This update completes Stage 3 of the BattleAssetLoader refactoring plan by removing the original status effect icon loading methods from BattleScene.js. This follows the Extract-Verify-Remove pattern outlined in the refactoring plan, with this update representing the final "Remove" step after successful verification of the functionality implemented in 0.6.4.3.
+
+## Implementation Details
+
+### 1. Removed Original Methods from BattleScene.js
+
+Two methods were completely removed from BattleScene.js:
+
+- **preloadStatusEffectIcons()**: Previously handled loading status effect icons
+- **initStatusIconMapping()**: Previously initialized the status icon mapping
+
+This removal represents approximately 80 lines of code eliminated from BattleScene.js, further reducing its complexity and improving separation of concerns.
+
+### 2. Updated BattleScene.preload() Method
+
+Modified the preload method to fully rely on BattleAssetLoader for status effect icons:
+
+```javascript
+// Initialize BattleAssetLoader for all assets using a single component
+if (window.BattleAssetLoader) {
+    this.assetLoader = new window.BattleAssetLoader(this);
+    
+    // Load all assets through BattleAssetLoader
+    this.assetLoader.loadUIAssets();
+    this.assetLoader.loadCharacterAssets();
+    this.statusIconMapping = this.assetLoader.loadStatusEffectIcons();
+    
+    // Verify status icon mapping was returned successfully
+    if (!this.statusIconMapping || Object.keys(this.statusIconMapping).length === 0) {
+        console.error("[BattleScene] Failed to get status icon mapping from BattleAssetLoader");
+        this.statusIconMapping = {}; // Use empty object as fallback
+        this.showAssetLoadingError = true;
+    }
+}
+```
+
+Key changes:
+- No longer calls the original methods as fallbacks
+- Improved error handling with clear console messages
+- Added empty object fallback for statusIconMapping if loading fails
+- Sets showAssetLoadingError flag to trigger visual feedback to the user
+
+### 3. Enhanced Fallback Mechanism
+
+Implemented a more robust fallback mechanism for when BattleAssetLoader is unavailable:
+
+```javascript
+// Minimal status effect placeholder
+this.load.image('status_placeholder', 'assets/images/icons/status/status-icons/AI_Icons/32px/Placeholder_AI.png');
+
+// Create minimal status mapping
+this.statusIconMapping = {
+    'default': 'AI_Icons/32px/Placeholder_AI.png'
+};
+```
+
+This ensures that even in failure cases:
+- A basic placeholder icon is loaded
+- A minimal mapping is created to prevent undefined references
+- The UI can still function with basic status effect visualization
+
+## Benefits
+
+1. **Reduced Code Duplication**: Eliminated redundant code by removing the original methods.
+
+2. **Cleaner BattleScene.js**: Further reduced the size and complexity of BattleScene.js.
+
+3. **Single Responsibility**: BattleAssetLoader now has sole responsibility for asset loading.
+
+4. **Improved Error Handling**: Added better error reporting and fallbacks for failure cases.
+
+5. **Simplified Code Paths**: Streamlined the preload logic with fewer branching paths.
+
+## Testing Verification
+
+Testing should verify:
+
+1. Status effect icons continue to load correctly through BattleAssetLoader
+2. Tooltips still display with proper icons and information
+3. The simplified fallback mechanism works if BattleAssetLoader is unavailable
+4. No errors appear in the console related to missing methods
+
+## Future Work
+
+This completes Phase 4, Stage 3 of the BattleScene refactoring plan. The next steps would be:
+
+- Stage 4 (Final Phase): Implement a unified loadAssets() method in BattleAssetLoader that handles all asset types
+
+## Lessons Learned
+
+1. **Incremental Refactoring Value**: The Extract-Verify-Remove pattern allowed for safe, incremental refactoring with minimal risk.
+
+2. **Graceful Degradation**: Ensuring proper fallback mechanisms maintains system stability even when components fail.
+
+3. **Error Feedback**: Providing visual feedback to users when assets fail to load improves the user experience.
+
+4. **Refactoring Benefits**: The BattleScene.js file is now significantly cleaner and more focused on its core responsibilities.
+
+This update completes the status effect icon loading refactoring, continuing the progressive improvement of the codebase's architecture and maintainability.
+
+
+===== CHANGELOG_0.6.4.3_BattleAssetLoader_StatusEffectIcons =====
+
+# CHANGELOG 0.6.4.3 - BattleAssetLoader Status Effect Icons Integration
+
+## Overview
+
+This update implements Stage 3 (Extract phase) of the BattleAssetLoader refactoring plan. It adds status effect icon loading functionality to the BattleAssetLoader component while maintaining backward compatibility with the original methods in BattleScene.js. This follows the Extract-Verify-Remove pattern outlined in the refactoring plan, with this update representing the "Extract" step.
+
+## Implementation Details
+
+### 1. Added Status Effect Icon Loading to BattleAssetLoader
+
+Added two new methods to BattleAssetLoader.js:
+
+- **loadStatusEffectIcons()**: Loads status effect icons with appropriate error handling
+  - Gets the mapping from initStatusIconMapping()
+  - Loads each icon using the scene's loader
+  - Returns the mapping for BattleScene to use
+  - Includes comprehensive error handling and fallbacks
+
+- **initStatusIconMapping()**: Initializes the status icon mapping
+  - Uses window.StatusIconMapper when available
+  - Provides a complete fallback mapping when StatusIconMapper isn't available
+  - Returns the mapping instead of setting it on the instance
+  - Includes robust error handling
+
+Key improvements over the original implementation:
+- Better error handling with clear fallback strategies
+- Explicit return values to provide mapping data to the caller
+- More detailed logging for debugging and monitoring
+- Consistent code style with the existing methods
+
+### 2. Updated BattleScene.js to Use BattleAssetLoader
+
+Modified the preload method to use the new BattleAssetLoader functionality:
+
+```javascript
+// Add status effect icon loading through the asset loader
+this.statusIconMapping = this.assetLoader.loadStatusEffectIcons();
+
+// If status icon mapping wasn't returned properly, fall back to original method
+if (!this.statusIconMapping || Object.keys(this.statusIconMapping).length === 0) {
+    console.warn("[BattleScene] Status icon mapping not returned from asset loader, using original methods");
+    this.preloadStatusEffectIcons();
+    this.statusIconMapping = this.initStatusIconMapping();
+}
+```
+
+This change:
+- Uses the BattleAssetLoader for status effect icon loading
+- Verifies that the mapping was returned successfully
+- Falls back to the original methods if needed
+- Maintains backward compatibility during this transitional phase
+
+## Benefits
+
+1. **Improved Separation of Concerns**: Status effect icon loading is now handled by the dedicated BattleAssetLoader component.
+
+2. **Better Error Handling**: The implementation includes comprehensive error handling with appropriate fallbacks.
+
+3. **Reduced Coupling**: BattleScene.js no longer contains the details of status effect icon loading.
+
+4. **Incremental Refactoring**: The Extract-Verify-Remove pattern allows for safe transition without breaking existing functionality.
+
+## Testing Verification
+
+Testing should verify:
+
+1. Status effect icons load correctly through BattleAssetLoader
+2. Tooltips display with proper icons and information
+3. The fallback mechanism works if the BattleAssetLoader fails
+4. No errors appear in the console related to status effect icons
+
+## Future Work
+
+This change is part of the ongoing BattleScene refactoring plan:
+
+- Version 0.6.4.3 (Current): Extract status effect icon loading into BattleAssetLoader
+- Version 0.6.4.4 (Next): Remove original status effect icon loading methods from BattleScene
+- Future versions: Complete Stage 4 to provide a unified asset loading interface
+
+## Lessons Learned
+
+1. **Return Values vs. Properties**: Using return values from methods is often clearer than setting properties on the instance, especially when there might be multiple callers.
+
+2. **Comprehensive Error Handling**: Including proper error handling in each refactored component ensures the system degrades gracefully when issues occur.
+
+3. **Testing Fallbacks**: Ensuring fallback mechanisms work properly is as important as testing the primary code path.
+
+4. **Incremental Approach Benefits**: The Extract-Verify-Remove pattern allows for safer refactoring by maintaining backward compatibility at each step.
+
+
+===== CHANGELOG_0.6.4.2_BattleAssetLoader_Stage2 =====
+
+# CHANGELOG 0.6.4.2 - BattleAssetLoader Stage 2 Implementation
+
+## Overview
+
+This update implements Stage 2 of the BattleAssetLoader refactoring plan, which extracts character asset loading logic from BattleScene.js into the dedicated BattleAssetLoader component. This completes the second major phase of refactoring in our ongoing effort to reduce the complexity of BattleScene.js and improve the separation of concerns within the codebase.
+
+## Implementation Details
+
+### 1. Added `loadCharacterAssets()` Method to BattleAssetLoader
+
+Created a new method in BattleAssetLoader.js that encapsulates all character asset loading logic:
+
+```javascript
+loadCharacterAssets() {
+    console.log("[BattleAssetLoader] Loading character assets...");
+    
+    if (!this.scene || !this.scene.load) {
+        console.error("[BattleAssetLoader] Cannot load character assets - scene or loader not available");
+        return;
+    }
+    
+    try {
+        // Basic placeholder asset
+        this.scene.load.image('character-circle', 'assets/images/icons/character-circle.png');
+        
+        // Preload all combat-optimized character art
+        const characterArt = [
+            'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
+            'Sylvanna', 'Vaelgor', 'Seraphina' 
+        ];
+        
+        // Special case for Caste due to parentheses in filename
+        const casteKey = 'character_Caste';
+        const castePath = 'assets/images/Character Art/Combat_Version/Caste.png';
+        this.scene.load.image(casteKey, castePath);
+        console.log(`[BattleAssetLoader] Preloading combat-optimized character image ${casteKey} from ${castePath}`);
+        
+        characterArt.forEach(name => {
+            const key = `character_${name}`;
+            // Use the combat-optimized versions of character art
+            const path = `assets/images/Character Art/Combat_Version/${name}.png`;
+            this.scene.load.image(key, path);
+            console.log(`[BattleAssetLoader] Preloading combat-optimized character image ${key} from ${path}`);
+        });
+        
+        console.log('[BattleAssetLoader] Character art preload complete');
+    } catch (error) {
+        console.warn('[BattleAssetLoader] Could not preload character art:', error);
+    }
+}
+```
+
+The method includes:
+- Proper validation of scene and loader availability
+- Full error handling with try/catch
+- Consistent logging with the BattleAssetLoader prefix
+- Loading of all character assets that were previously in BattleScene.js
+
+### 2. Updated BattleScene.js to Use BattleAssetLoader for Character Assets
+
+Modified BattleScene.js to use the new method:
+
+```javascript
+// In BattleScene.js preload()
+if (window.BattleAssetLoader) {
+    this.assetLoader = new window.BattleAssetLoader(this);
+    this.assetLoader.loadUIAssets();
+    this.assetLoader.loadCharacterAssets(); // Added character asset loading through the loader
+    
+    // Preload status effect icons - call our dedicated method instead
+    this.preloadStatusEffectIcons();
+}
+```
+
+These changes:
+- Remove character asset loading code from the main BattleScene.js path
+- Delegate to the BattleAssetLoader component when available
+
+### 3. Simplified the Fallback Path
+
+Removed the redundant character asset loading code from the fallback path, replacing it with minimal essential code:
+
+```javascript
+// In BattleScene.js preload() - 'else' branch
+console.error("[BattleScene] BattleAssetLoader not available - falling back to minimal asset loading");
+
+// MINIMAL FALLBACK LOADING - just enough to show an error and basic functionality
+// Critical UI assets for error display
+this.load.image('return-button', 'assets/images/icons/return.png');
+
+// Minimal character assets for basic display
+this.load.image('character-circle', 'assets/images/icons/character-circle.png');
+
+// Load status effect icons
+this.preloadStatusEffectIcons();
+
+// Set a flag to show an error message to the user
+this.showAssetLoadingError = true;
+```
+
+The fallback path now:
+- Only loads the minimal assets required for basic display
+- Shows an appropriate error message to the user
+- Eliminates ~30 lines of redundant code from BattleScene.js
+- Maintains the status effect icon loading until Stage 3 is implemented
+
+## Benefits
+
+1. **Improved Separation of Concerns**: Character asset loading logic is now handled by a dedicated component rather than mixed into BattleScene's preload method.
+
+2. **Better Maintainability**: Changing the character asset loading process (e.g., adding new characters or tweaking paths) can now be done in a single, focused component.
+
+3. **Code Organization**: The BattleAssetLoader provides a central place for all battle-related asset loading, making the code easier to understand and navigate.
+
+4. **Defensive Programming**: The implementation includes comprehensive parameter validation and error handling at all levels.
+
+## Testing Verification
+
+Testing should verify:
+1. All character assets load correctly when using BattleAssetLoader
+2. Character sprites display properly during battles
+3. Console logs show the proper loading messages from BattleAssetLoader
+4. No error messages appear related to missing character assets
+
+## Next Steps
+
+Now that Stage 2 is complete, we're ready to proceed with Stage 3: Extract Status Effect Icon Loading.
+
+Stage 3 will involve:
+1. Adding a `loadStatusEffectIcons()` method to BattleAssetLoader
+2. Moving the `initStatusIconMapping()` method to BattleAssetLoader
+3. Updating BattleScene to use these methods
+4. Removing the original status effect loading code from BattleScene.js
+
 
 ===== CHANGELOG_0.6.4.1_BattleAssetLoader_Phase1_Complete =====
 
@@ -1020,421 +1356,5 @@ Testing should focus on verifying that:
 4. **Consider Debug Flags**: For future intensive debugging, consider using feature flags (e.g., `window.DEBUG_ACTION_INDICATORS = false`) that can easily disable all related debugging at once.
 
 This cleanup helps maintain code quality and ensures the console remains useful for detecting actual issues rather than being overwhelmed with debugging information from previously resolved issues.
-
-
-===== CHANGELOG_0.6.3.35_StatusDefinitionPropagationFix =====
-
-# CHANGELOG 0.6.3.35 - Status Effect Definition Propagation Fix
-
-## Issue Description
-
-When passive abilities apply status effects, BattleBridge.js displays console warnings: "BattleBridge: Creating minimal fallback for status effect [status_id]". This indicates that full status effect definitions aren't being propagated properly through the event chain.
-
-## Root Cause Analysis
-
-The issue was identified in how status effect data flows through the component chain:
-
-1. **Data Loss at Source**:
-   - Passive behaviors in `PassiveBehaviors.js` call `battleManager.addStatusEffect(ally, statusId, actor, duration, stacks)` with just a status ID but no definition.
-   - `StatusEffectManager.addStatusEffect()` correctly retrieves the full definition using `this.definitionLoader.getDefinition(effectId)`.
-   - However, it never includes this full definition when dispatching status effect events, causing the definition to be lost in the event flow.
-
-2. **Event Communication Gap**:
-   - Events pass through `BattleManager â†’ StatusEffectManager â†’ BattleEventDispatcher â†’ BattleBridge`.
-   - While the `BattleEventDispatcher.dispatchStatusEffectAppliedEvent()` method has a parameter for the status definition, it's rarely populated since StatusEffectManager doesn't pass it along.
-
-3. **Fallback Creation in BattleBridge**:
-   - When BattleBridge receives a STATUS_EFFECT_APPLIED event without a definition, it attempts multiple fallbacks.
-   - When all fallbacks fail, it creates a minimal definition, resulting in the warning messages.
-
-## Technical Solution
-
-The solution directly addresses the root cause by modifying `StatusEffectManager.js` to properly propagate the full status definition it already retrieves:
-
-1. **Added a New Method**: `dispatchStatusEffectApplied(character, statusId, duration, definition, stacks, source)`
-   - Specifically designed to dispatch STATUS_EFFECT_APPLIED events with complete status definition data
-   - Includes multiple dispatch strategies for maximum compatibility:
-     - Direct BattleBridge dispatching
-     - BattleManager.dispatchUIEvent fallback
-     - BattleEventDispatcher fallback if available
-
-2. **Modified StatusEffectManager.addStatusEffect()**:
-   - After successfully creating or updating a status effect, it now calls the new dispatch method
-   - Passes the full status definition that was already retrieved earlier in the method
-   - Uses appropriate context data (character, stacks, duration, source) for complete event information
-   - **Bug Fix**: Fixed variable scope issue for new effects by using conditional dispatch to handle different code paths correctly
-
-## Implementation Details
-
-Added to StatusEffectManager.js:
-
-```javascript
-dispatchStatusEffectApplied(character, statusId, duration, definition, stacks = 1, source = null) {
-    if (!character || !statusId || !definition) {
-        console.warn('[StatusEffectManager] Cannot dispatch STATUS_EFFECT_APPLIED: missing required parameters');
-        return;
-    }
-    
-    try {
-        // Get bridge instance using correct accessor pattern
-        const battleBridge = window.getBattleBridge ? window.getBattleBridge() : window.battleBridge;
-        
-        if (battleBridge && typeof battleBridge.dispatchEvent === 'function') {
-            // Use STATUS_EFFECT_APPLIED event type
-            const eventType = battleBridge.eventTypes.STATUS_EFFECT_APPLIED || 'status_effect_applied';
-            
-            // Dispatch event with full definition included
-            battleBridge.dispatchEvent(eventType, {
-                character: character,
-                statusId: statusId,
-                duration: duration,
-                stacks: stacks,
-                source: source,
-                statusDefinition: definition // Include the full definition
-            });
-            console.log(`[StatusEffectManager] Dispatched STATUS_EFFECT_APPLIED for ${statusId} with full definition`); 
-        } else {
-            // Fallbacks for other architectural patterns...
-        }
-    } catch (err) {
-        console.error('[StatusEffectManager] Error dispatching STATUS_EFFECT_APPLIED event:', err);
-    }
-}
-```
-
-Modified the existing `addStatusEffect` method to properly handle both existing and new effect code paths:
-
-```javascript
-// MODIFIED v0.6.3.35_StatusDefinitionPropagationFix: Dispatch STATUS_EFFECT_APPLIED event with full definition
-// Use the appropriate effect object based on which code path was taken
-if (existingEffect) {
-    // For existing effects, use existingEffect with updated properties
-    this.dispatchStatusEffectApplied(character, effectId, existingEffect.duration, definition, existingEffect.stacks || 1, source);
-} else {
-    // For new effects, we can use duration and stacks directly since we just created it
-    // The newEffect variable is scoped inside the else block above and not accessible here
-    this.dispatchStatusEffectApplied(character, effectId, duration, definition, stacks, source);
-}
-```
-
-## Implementation Benefits
-
-1. **Follows Component Responsibility Principle**: The StatusEffectManager, which owns and understands status effects, now properly enriches its events with complete definition data.
-
-2. **No Changes to Callers Required**: Passive behaviors and other code that calls addStatusEffect can continue with their existing parameter pattern - enrichment happens automatically.
-
-3. **Maintains Architectural Integrity**: The fix aligns with the project's event-driven architecture pattern and separation of concerns.
-
-4. **Provides Compatibility**: The implementation includes multiple fallback mechanisms to accommodate different architectural patterns.
-
-5. **Improves UI Integrity**: UI components like tooltips now receive complete status effect data, improving visual feedback.
-
-6. **Eliminates Console Warnings**: The fix removes the "Creating minimal fallback" console warnings by providing proper definitions.
-
-7. **Addresses Variable Scope**: The final implementation correctly handles code path differences without causing variable scope issues.
-
-## Testing Verification
-
-Testing involved:
-
-1. Starting a battle with characters that have passive abilities applying status effects
-2. Verifying that no "Creating minimal fallback for status effect" warnings appear in the console
-3. Checking that status effect tooltips display properly with complete information
-4. Validating that this fix doesn't break existing status effect application logic
-5. Testing with different status effect code paths (existing effects vs. new effects)
-
-## Lessons Learned
-
-1. **Component Data Enrichment**: Components should fully enrich data they own before dispatching events.
-
-2. **Event Data Completeness**: Events should include all necessary context data to prevent downstream components from needing to re-acquire information.
-
-3. **Architectural Clarity**: Component responsibilities should be clearly defined - StatusEffectManager should handle all aspects of status effect data, including event payload preparation.
-
-4. **Defensive Coding**: Including thorough validation and multiple fallback mechanisms creates more resilient event-driven systems.
-
-5. **Variable Scope Management**: When working with conditionally created variables in complex methods, always ensure references are valid in all code paths.
-
-6. **Separate Code Paths**: Handle each code path independently to avoid assuming variables defined in one path are available in another.
-
-This fix demonstrates how respecting the architectural principle that "components should enrich data they own before propagating it" leads to more robust and maintainable code.
-
-
-===== CHANGELOG_0.6.3.34_StatusEffectTooltipFix =====
-
-# CHANGELOG 0.6.3.34 - StatusEffectTooltip Error Fix
-
-## Issue Description
-
-The game was experiencing an intermittent runtime error in the Phaser UI: 
-```
-Uncaught TypeError: Cannot read properties of null (reading 'cut')
-```
-
-The error originated within Phaser's text rendering system but was triggered by our StatusEffectTooltip component when attempting to set text on potentially null text objects. This occurred most frequently during:
-- Rapid mouse movements over status effect icons
-- Scene transitions or changes that invalidated Phaser text objects
-- Status effect application/removal while tooltips were being shown/hidden
-
-## Root Cause Analysis
-
-1. **Missing Null Checks**: The `clearContent()` and `createTooltipContent()` methods were directly operating on Phaser text objects without validating their existence first.
-
-2. **Singleton Pattern Concerns**: As a singleton, the StatusEffectTooltip persisted across operations, but its internal references to scene-specific objects became invalid in certain scenarios.
-
-3. **Invalid Text Objects**: When Phaser tried to access properties (like 'cut' in the minified code) on null text objects, the error occurred.
-
-4. **Scene Transition Vulnerability**: The component had no validation to ensure the scene was still active before attempting operations.
-
-## Technical Solution
-
-### 1. Scene Validity Check in showTooltip()
-
-Added a check at the beginning of the method to verify the scene is valid and active:
-
-```javascript
-showTooltip(statusId, definition, position, duration, stacks) {
-    // Check if scene is still valid
-    if (!this.scene || !this.scene.sys || !this.scene.sys.isActive()) {
-        console.warn('[StatusEffectTooltip] Cannot show tooltip, scene is invalid or inactive.');
-        return;
-    }
-    // Rest of method...
-}
-```
-
-### 2. Robust Null Checks in clearContent()
-
-Added null checks for all object references before attempting operations:
-
-```javascript
-clearContent() {
-    if (this.titleText) {
-        this.titleText.setText('');
-    }
-    if (this.descText) {
-        this.descText.setText('');
-    }
-    if (this.infoText) {
-        this.infoText.setText('');
-    }
-    if (this.graphics) {
-        this.graphics.clear();
-    }
-}
-```
-
-### 3. Defensive Programming in createTooltipContent()
-
-Added comprehensive null checks and fallbacks throughout the method:
-
-```javascript
-// Before: this.titleText.setText(formattedTitle);
-// After:
-if (this.titleText) {
-    this.titleText.setText(formattedTitle);
-} else {
-    console.warn(`[StatusEffectTooltip] Attempted to set text on a null titleText object for statusId: ${title}`);
-}
-```
-
-Similar checks were added for all text objects and graphics operations.
-
-### 4. Enhanced Lifecycle Management in destroy()
-
-Explicitly nullified references to prevent operations on stale objects:
-
-```javascript
-destroy() {
-    if (this.currentTween) {
-        this.scene.tweens.remove(this.currentTween);
-        this.currentTween = null;
-    }
-    
-    if (this.container) {
-        this.container.destroy();
-        this.container = null;
-    }
-    
-    // Explicitly null out references to child objects
-    this.titleText = null;
-    this.descText = null;
-    this.infoText = null;
-    this.graphics = null;
-    
-    // Remove singleton reference
-    if (window.statusEffectTooltip === this) {
-        window.statusEffectTooltip = null;
-    }
-}
-```
-
-## Implementation Benefits
-
-1. **Error Prevention**: The code now gracefully handles cases where text objects become null or invalid.
-
-2. **Improved Stability**: Players will no longer encounter the disruptive "Cannot read properties of null" error.
-
-3. **Better Error Diagnostics**: The code now logs specific warnings when it encounters null objects, making debugging easier.
-
-4. **Scene Awareness**: The tooltip now verifies scene validity before attempting operations.
-
-5. **Cleaner Resource Management**: Explicit nullification in destroy() prevents stale references.
-
-## Testing
-
-Testing should focus on scenarios that previously triggered the error:
-
-1. Rapidly moving the mouse over multiple status icons
-2. Performing battle actions while hovering over status icons
-3. Status effect applications during tooltip display
-
-## Lessons Learned
-
-1. **Defensive Programming is Critical in UI**: User interactions can create unpredictable timing issues, making defensive null checks essential.
-
-2. **Singletons Require Special Care**: When using the singleton pattern, extra attention must be paid to object lifecycle and scene transitions.
-
-3. **Minification Complicates Debugging**: The error referenced 'cut', a minified property name in Phaser, highlighting how minification can obscure the actual issue.
-
-4. **Expect the Unexpected**: Even carefully designed components need to handle edge cases like rapidly triggered events or scene transitions.
-
-5. **Error Logs Provide Clues**: The stack trace revealing StatusEffectTooltip.clearContent was crucial in identifying the source of the issue.
-
-## Future Improvements
-
-Later enhancements could include:
-
-1. A proactive tooltip recreation system that detects and rebuilds missing text objects
-2. A formal scene transition handling mechanism for the singleton pattern
-3. Event debouncing to prevent rapid tooltip show/hide cycles
-4. A more robust approach to singleton management across different scenes
-
-
-===== CHANGELOG_0.6.3.33_AoEStatResolutionDebugging =====
-
-# CHANGELOG 0.6.3.33 - AoE Stat Resolution Debugging
-
-## Issue Description
-
-After implementing the fix in ActionGenerator.js (v0.6.3.32) to correctly pass damage effects to DamageCalculator, a new issue was revealed: when processing individual targets of AoE abilities like Tidal Wave, the attacker's stats (e.g., Intellect) are resolving to 0 inside DamageCalculator.calculateDamage. This results in the battle log showing correct damage without any stat scaling contribution.
-
-Specifically:
-
-- When DamageCalculator.calculateDamage is called for individual AoE targets, the debug logs show:
-  - `[DEBUG-SCALING] PRE-CALCULATION - attackerStat: 0, scaleFactor: 0.5, ability: Tidal Wave, character: Aqualia`
-  - `[DEBUG-SCALING] CALCULATION RESULT - statScaling: 0, rounded: 0`
-
-- Despite having the correct:
-  - scaling factor (0.5 for Tidal Wave)
-  - scaling stat name ("Intellect")
-  - character name (Aqualia)
-
-The stat value itself (attackerStat) is 0, which means no additional damage is being added from Aqualia's Intellect.
-
-## Investigation Approach
-
-To diagnose this issue, we've implemented comprehensive debugging in three key areas:
-
-### 1. DamageCalculator.calculateDamage
-
-Enhanced the stat resolution logic with detailed debugging to:
-- Log the full attacker object structure
-- Check for stat property existence with direct property access
-- Try both exact case and case-insensitive matching
-- Add detailed warnings when a stat resolves to 0
-
-```javascript
-// ADDED DEBUG: Examine attacker object to diagnose stat resolution issues
-console.log(`[DamageCalculator DEBUG] Attacker object received:`, JSON.parse(JSON.stringify(attacker)));
-console.log(`[DamageCalculator DEBUG] Attacker stats:`, attacker.stats);
-console.log(`[DamageCalculator DEBUG] Looking for ${scalingStat} (exact case), and lowercase: ${scalingStat.toLowerCase()}`);
-
-// Check if stat name case sensitivity is causing issues
-if (attacker.stats) {
-    console.log(`[DamageCalculator DEBUG] Direct property check - attacker.stats.intellect: ${attacker.stats.intellect}`);
-    console.log(`[DamageCalculator DEBUG] Direct property check - attacker.stats.strength: ${attacker.stats.strength}`);
-    console.log(`[DamageCalculator DEBUG] Direct property check - attacker.stats.spirit: ${attacker.stats.spirit}`);
-}
-```
-
-### 2. AbilityProcessor.processEffect
-
-Added detailed inspection of the actor object before passing it to DamageCalculator:
-
-```javascript
-// Add detailed logging of actor object to diagnose stats issue
-console.log(`[AbilityProcessor.processEffect DEBUG] Actor object details:`);
-if (actor.stats) {
-    console.log(`  - Stats available: true`);
-    console.log(`  - Actor.stats.intellect: ${actor.stats.intellect}`);
-    console.log(`  - Actor.stats.strength: ${actor.stats.strength}`);
-    console.log(`  - Actor.stats.spirit: ${actor.stats.spirit}`);
-} else {
-    console.log(`  - Stats available: false`);
-}
-// Check for any team or uniqueId issues
-console.log(`  - Actor.team: ${actor.team}`);
-console.log(`  - Actor.uniqueId: ${actor.uniqueId}`);
-```
-
-### 3. AbilityProcessor.applyActionEffect - AoE Target Processing
-
-Added inspection of the singleAction objects created for individual AoE targets:
-
-```javascript
-// DEBUG: Check the actor object in singleAction to diagnose why stats might be missing
-console.log(`[AbilityProcessor.applyActionEffect DEBUG] AoE singleAction created:`);
-console.log(`  - Actor: ${singleAction.actor?.name}`);
-console.log(`  - Actor has stats object: ${!!singleAction.actor?.stats}`);
-if (singleAction.actor?.stats) {
-    console.log(`  - Actor.stats.intellect: ${singleAction.actor.stats.intellect}`);
-    console.log(`  - Actor.stats.strength: ${singleAction.actor.stats.strength}`);
-}
-console.log(`  - Ability: ${singleAction.ability?.name}`);
-console.log(`  - Ability has effects: ${!!singleAction.ability?.effects}`);
-```
-
-## Key Improvements
-
-1. **Case-Insensitive Stat Resolution**: 
-   - Added case-insensitive matching for stat names
-   - Now handles both "Intellect" and "intellect" consistently
-
-2. **Enhanced Object Inspection**:
-   - Added full attacker object debugging
-   - Explicit property checks rather than just dynamic lookups
-   - Chain of verification to pinpoint where data is lost
-
-3. **Clear Warning Messages**:
-   - Added explicit warnings when stat resolution fails
-   - Shows both the stat name being looked for and the attacker name
-
-4. **AoE Action Object Verification**:
-   - Added detailed logging of singleAction objects for AoE targets
-   - Verifies both actor stats and ability effects are properly preserved
-
-## Expected Findings
-
-This enhanced debugging should reveal:
-
-1. Whether the actor object passed to DamageCalculator is missing its stats property
-2. If there's a case sensitivity issue (e.g., looking for "Intellect" but property is "intellect")
-3. If the actor object is somehow different between:
-   - Initial action creation in ActionGenerator
-   - Individual target processing in AbilityProcessor.applyActionEffect
-   - Effect processing in AbilityProcessor.processEffect
-
-Once we identify exactly where and why the attacker's stat information is lost, we can implement a targeted fix to ensure proper stat resolution for all AoE abilities.
-
-## Next Steps After Diagnosis
-
-Based on the debugging results, potential fixes may include:
-
-1. Ensuring proper deep copying of the actor object and its stats when creating singleAction objects
-2. Adding normalization of stat names to handle case sensitivity consistently
-3. Modifying how actor objects are passed through the ability processing chain
-
-This debugging release is focused on gathering precise diagnostic information to guide the implementation of a permanent fix in the next version.
 
 

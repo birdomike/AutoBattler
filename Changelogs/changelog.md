@@ -1,3 +1,12 @@
+### [0.6.4.4] - 2025-05-11
+#### Changed
+- Completed status effect icon refactoring by removing original methods from BattleScene
+- Implemented the Remove phase of Extract-Verify-Remove pattern for Stage 3
+- Enhanced error handling and fallback mechanisms for status effect icons
+- Further reduced BattleScene.js complexity by ~80 lines
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.4.4_BattleAssetLoader_StatusEffectIcons_Remove.md*
+
 ### [0.6.4.3] - 2025-05-11
 #### Changed
 - Refactored status effect icon loading from BattleScene into BattleAssetLoader component
