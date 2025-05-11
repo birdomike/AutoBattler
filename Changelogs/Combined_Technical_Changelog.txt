@@ -1,4 +1,474 @@
-﻿Combined Technical Changelog  (generated 2025-05-11 09:20)
+﻿Combined Technical Changelog  (generated 2025-05-11 09:54)
+
+===== CHANGELOG_0.6.4.10_CoordinateDisplayHotkeyFix =====
+
+# CHANGELOG 0.6.4.10 - Coordinate Display Hotkey Fix
+
+## Overview
+
+This update addresses issues with the coordinate grid toggle hotkey in CoordinateDisplay.js. The original Ctrl+G hotkey was conflicting with browser shortcuts, and the initial attempt to use Ctrl+Shift+G had similar issues. Additionally, the code was using a method not available in our version of Phaser. This update resolves both issues.
+
+## Implementation Details
+
+### 1. Changed Hotkey to Alt+G
+
+Changed the hotkey from Ctrl+G to Alt+G to avoid conflicts with browser shortcuts:
+
+**Before (0.6.4.8):**
+```javascript
+// Add keyboard shortcut for toggling (Ctrl+G)
+this.scene.input.keyboard.on('keydown-G', (event) => {
+    if (this.scene.input.keyboard.checkModifierKey(event, 'ctrl')) {
+        this.toggle();
+    }
+});
+```
+
+**After (0.6.4.10):**
+```javascript
+// Add keyboard shortcut for toggling (Alt+G)
+this.scene.input.keyboard.on('keydown-G', (event) => {
+    if (event.altKey) {
+        event.preventDefault(); // Prevent browser's default behavior
+        this.toggle();
+    }
+});
+```
+
+### 2. Fixed Compatibility Issue with Phaser
+
+Replaced the `checkModifierKey` method (which was causing a TypeError) with the direct `event.altKey` property check:
+
+**Error encountered:**
+```
+CoordinateDisplay.js:80 Uncaught TypeError: this.scene.input.keyboard.checkModifierKey is not a function
+```
+
+**Solution:**
+Replaced `this.scene.input.keyboard.checkModifierKey(event, 'alt')` with `event.altKey` which is supported across all Phaser versions and browsers.
+
+### 3. Added Browser Event Prevention
+
+Added `event.preventDefault()` to stop the browser from handling the keypress:
+```javascript
+event.preventDefault(); // Prevent browser's default behavior
+```
+
+This ensures the browser doesn't process the key combination if it has its own shortcut for it.
+
+### 4. Updated Documentation and Logging
+
+Updated all references to the keyboard shortcut throughout the codebase:
+
+1. File header documentation in CoordinateDisplay.js:
+```javascript
+/**
+ * CoordinateDisplay.js
+ * Provides a coordinate grid overlay and mouse position tracking for debugging
+ * Toggle with Alt+G
+ */
+```
+
+2. Console log messages in CoordinateDisplay.js:
+```javascript
+console.log('CoordinateDisplay: Created (toggle with Alt+G)');
+```
+```javascript
+console.log(`CoordinateDisplay: ${this.enabled ? 'Enabled' : 'Disabled'} (toggle with Alt+G)`);
+```
+
+3. Console log messages in PhaserDebugManager.js:
+```javascript
+console.log("[PhaserDebugManager] CoordinateDisplay initialized (toggle with Alt+G)");
+```
+
+## Implementation Benefits
+
+1. **Browser Compatibility**: Avoids conflicts with built-in browser shortcuts like Ctrl+G (Find/Search)
+
+2. **Improved User Experience**: Grid can now be toggled without triggering browser functionality
+
+3. **Cross-Browser/Version Support**: Using direct event properties instead of Phaser-specific methods ensures wider compatibility
+
+4. **Clear Communication**: Updated documentation and log messages provide clear information about the available hotkey
+
+## Testing Verification
+
+Testing has verified:
+
+1. **Functionality**: Alt+G now toggles the coordinate grid without triggering browser shortcuts
+2. **Error Resolution**: The TypeError related to `checkModifierKey` has been resolved
+3. **Documentation**: All references to keyboard shortcuts have been consistently updated
+
+## Lessons Learned
+
+1. **Browser Shortcut Awareness**: When implementing keyboard shortcuts in web-based games, being mindful of browser-reserved shortcuts is crucial
+
+2. **API Version Compatibility**: Direct DOM event properties (like `event.altKey`) are more reliable across different Phaser versions than framework-specific methods like `checkModifierKey`
+
+3. **Defensive Programming**: Adding `event.preventDefault()` helps ensure that our shortcuts don't conflict with browser behavior
+
+4. **Documentation Consistency**: Updating all references to a feature when it changes helps maintain clear and consistent communication
+
+This update ensures that the coordinate grid display can be properly toggled with Alt+G, providing developers with a reliable debugging tool without browser shortcut conflicts.
+
+
+===== CHANGELOG_0.6.4.9_PhaserDebugManager_Remove =====
+
+# CHANGELOG 0.6.4.9 - PhaserDebugManager Implementation (Remove Phase)
+
+## Overview
+
+This update completes Phase 6 of the BattleScene refactoring plan by removing the original debug implementations from BattleScene.js and fully delegating to the PhaserDebugManager component. This follows the Extract-Verify-Remove pattern established in previous phases, with this update representing the final "Remove" step after successfully verifying the functionality implemented in 0.6.4.8.
+
+## Implementation Details
+
+### 1. Removed Original Debug Methods
+
+Four methods were completely removed from BattleScene.js:
+
+1. `initializeDebugTools()` - Original method for initializing debug components
+2. `cleanupDebugTools()` - Original method for cleaning up debug resources
+3. `testHealthUpdate()` - Debug method for testing health updates
+4. `testActionIndicator()` - Debug method for testing action indicators
+
+Additionally, the global `testTurnHighlightingDirectly` function was removed from the create method.
+
+This resulted in approximately 150 lines of code being eliminated from BattleScene.js, further reducing its complexity and improving its organization.
+
+### 2. Simplified initializeDebugManager Method
+
+The `initializeDebugManager` method was simplified to focus solely on initializing the PhaserDebugManager without any fallbacks to the original methods:
+
+**Before (0.6.4.8):**
+```javascript
+initializeDebugManager() {
+    try {
+        if (window.PhaserDebugManager) {
+            // ... initialization code ...
+            if (this.debugManager.initialize()) {
+                console.log('BattleScene: PhaserDebugManager initialized successfully');
+                return true;
+            } else {
+                console.warn('BattleScene: PhaserDebugManager initialization returned false');
+                
+                // Fall back to legacy debug tools
+                this.initializeDebugTools();
+                
+                return false;
+            }
+        } else {
+            console.warn('BattleScene: PhaserDebugManager not found, using legacy debug tools');
+            
+            // Fall back to legacy debug tools
+            this.initializeDebugTools();
+            
+            return false;
+        }
+    } catch (error) {
+        console.error('BattleScene: Error initializing debug manager:', error);
+        
+        // Fall back to legacy debug tools
+        this.initializeDebugTools();
+        
+        return false;
+    }
+}
+```
+
+**After (0.6.4.9):**
+```javascript
+initializeDebugManager() {
+    try {
+        if (window.PhaserDebugManager) {
+            // ... initialization code ...
+            const result = this.debugManager.initialize();
+            console.log(`BattleScene: PhaserDebugManager initialization ${result ? 'successful' : 'failed'}`);
+            return result;
+        } else {
+            console.error('BattleScene: PhaserDebugManager not found - debug tools will not be available');
+            return false;
+        }
+    } catch (error) {
+        console.error('BattleScene: Error initializing debug manager:', error);
+        return false;
+    }
+}
+```
+
+### 3. Updated Global Function Assignments
+
+The create method was modified to fully rely on PhaserDebugManager for test function registration:
+
+**Before (0.6.4.8):**
+```javascript
+// Test functions are registered by PhaserDebugManager if available
+if (!this.debugManager) {
+    // Fall back to direct registration only if debugManager not available
+    window.testHealthUpdate = this.testHealthUpdate.bind(this);
+    window.testActionIndicator = this.testActionIndicator.bind(this);
+}
+
+// DIAGNOSTIC: Add a direct test method for the visual indicators
+window.testTurnHighlightingDirectly = () => {
+    // ... implementation ...
+};
+```
+
+**After (0.6.4.9):**
+```javascript
+// Test functions are registered by PhaserDebugManager
+if (this.debugManager) {
+    console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
+} else {
+    console.warn('BattleScene: Debug test functions not available - PhaserDebugManager not initialized');
+}
+
+// The testTurnHighlightingDirectly function is now provided by PhaserDebugManager
+
+// Log that test functions are handled by PhaserDebugManager
+console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
+```
+
+### 4. Simplified Shutdown Method
+
+The shutdown method was updated to rely exclusively on PhaserDebugManager for cleanup:
+
+**Before (0.6.4.8):**
+```javascript
+// Clean up debug manager
+if (this.debugManager && typeof this.debugManager.destroy === 'function') {
+    console.log('BattleScene: Cleaning up PhaserDebugManager');
+    this.debugManager.destroy();
+    this.debugManager = null;
+} else {
+    // Fall back to legacy cleanup
+    this.cleanupDebugTools();
+}
+```
+
+**After (0.6.4.9):**
+```javascript
+// Clean up debug manager
+if (this.debugManager && typeof this.debugManager.destroy === 'function') {
+    console.log('BattleScene: Cleaning up PhaserDebugManager');
+    this.debugManager.destroy();
+    this.debugManager = null;
+}
+```
+
+## Implementation Benefits
+
+1. **Reduced Code Size**: Removed approximately 150 lines of code from BattleScene.js, making it more maintainable.
+
+2. **Improved Separation of Concerns**: Debug functionality is now fully encapsulated in the dedicated PhaserDebugManager component.
+
+3. **Cleaner Error Handling**: Simplified error paths with more descriptive error messages.
+
+4. **Clear Dependency Requirements**: Made it explicit that PhaserDebugManager is now required for debug functionality.
+
+5. **Simplified Testing**: Consolidated all test functions into a single component with a consistent interface.
+
+## Testing Verification
+
+Testing confirmed that all debug functionality continues to work through the PhaserDebugManager:
+
+1. **Coordinate Display**: Toggle with Ctrl+G works correctly
+2. **Test Functions**: testHealthUpdate, testActionIndicator, testTurnHighlightingDirectly all function as expected
+3. **Resource Cleanup**: All debug resources are properly cleaned up during scene transitions
+4. **Error Handling**: Appropriate error messages are displayed when the debug manager is unavailable
+
+## Next Steps
+
+With the completion of Phase 6, we can now proceed to the final phase of the BattleScene refactoring plan:
+
+**Phase 7: Final BattleScene.js Cleanup**
+- Review remaining code for any redundant or commented-out sections
+- Ensure all logic is properly delegated to specialized components
+- Update file-level documentation and organization
+
+## Lessons Learned
+
+1. **Extract-Verify-Remove Pattern Success**: The pattern proves effective again for safe, incremental refactoring.
+
+2. **Centralized Debug Tools**: Centralizing debug functionality in a dedicated component makes it easier to manage and extend.
+
+3. **Error Message Clarity**: Improved error messages make it clearer what's happening when components fail to initialize.
+
+4. **Consistent Interface Design**: Providing a consistent interface across components improves code predictability and maintainability.
+
+This update completes Phase 6 of the BattleScene refactoring project, bringing us one step closer to a fully modular, maintainable architecture.
+
+
+===== CHANGELOG_0.6.4.8_PhaserDebugManager_Extract =====
+
+# CHANGELOG 0.6.4.8 - PhaserDebugManager Implementation (Extract Phase)
+
+## Overview
+
+This update implements Phase 6 of the BattleScene refactoring plan, which extracts debug-related functionality from BattleScene.js into a dedicated PhaserDebugManager component. This follows the established Extract-Verify-Remove pattern used in previous phases, with this update representing the "Extract" phase where the new component is created and used with fallbacks maintained.
+
+## Implementation Details
+
+### 1. Created PhaserDebugManager Component
+
+Created a new component in `js/phaser/debug/PhaserDebugManager.js` that centralizes all debug functionality:
+
+```javascript
+class PhaserDebugManager {
+    constructor(scene, config = {}) {
+        // Initialize with scene and configuration options
+    }
+    
+    initialize() {
+        // Initialize debug tools (CoordinateDisplay, ObjectIdentifier)
+    }
+    
+    testHealthUpdate(teamType, characterIndex, newHealth) {
+        // Test health updates
+    }
+    
+    testActionIndicator(teamType, characterIndex, actionText) {
+        // Test action indicators
+    }
+    
+    testTurnHighlightingDirectly() {
+        // Test turn highlighting
+    }
+    
+    cleanup() {
+        // Clean up resources
+    }
+    
+    toggleDebug() {
+        // Toggle debug mode
+    }
+    
+    destroy() {
+        // Clean up all resources
+    }
+}
+```
+
+The component implements:
+
+- **Core Initialization Logic**: Managing the initialization of CoordinateDisplay and ObjectIdentifier based on configuration
+- **Test Methods**: Functionality for testing health updates, action indicators, and turn highlighting
+- **Global Registration**: Registering test functions in the global window object for console debugging
+- **Lifecycle Management**: Proper cleanup and resource management
+
+### 2. Updated BattleScene.js to Use PhaserDebugManager
+
+Modified BattleScene.js to initialize and use the PhaserDebugManager while maintaining fallbacks:
+
+```javascript
+// Added new initialization method
+initializeDebugManager() {
+    try {
+        // Check if PhaserDebugManager is available
+        if (window.PhaserDebugManager) {
+            console.log('BattleScene: Creating PhaserDebugManager instance');
+            
+            // Create configuration from existing debug settings
+            const debugConfig = {
+                enabled: this.debug.enabled,
+                showCoordinates: this.debug.showCoordinates,
+                showObjectInfo: this.debug.showObjectInfo
+            };
+            
+            // Create manager with scene and config
+            this.debugManager = new window.PhaserDebugManager(this, debugConfig);
+            
+            // Initialize debug tools
+            if (this.debugManager.initialize()) {
+                console.log('BattleScene: PhaserDebugManager initialized successfully');
+                return true;
+            } else {
+                console.warn('BattleScene: PhaserDebugManager initialization returned false');
+                
+                // Fall back to legacy debug tools
+                this.initializeDebugTools();
+                
+                return false;
+            }
+        } else {
+            console.warn('BattleScene: PhaserDebugManager not found, using legacy debug tools');
+            
+            // Fall back to legacy debug tools
+            this.initializeDebugTools();
+            
+            return false;
+        }
+    } catch (error) {
+        console.error('BattleScene: Error initializing debug manager:', error);
+        
+        // Fall back to legacy debug tools
+        this.initializeDebugTools();
+        
+        return false;
+    }
+}
+```
+
+Updated `create()` and `shutdown()` methods:
+- Call `initializeDebugManager()` instead of `initializeDebugTools()`
+- Use PhaserDebugManager's `destroy()` method if available, with fallback to original `cleanupDebugTools()`
+
+### 3. Added HTML Integration
+
+Added a script tag for PhaserDebugManager.js in index.html:
+
+```html
+<!-- PhaserDebugManager - Must load after debug tools and before BattleScene -->
+<script src="js/phaser/debug/PhaserDebugManager.js"></script>
+```
+
+Place the script tag before BattleScene.js to ensure proper loading order.
+
+### 4. Enhanced Error Handling and Fallbacks
+
+The implementation includes comprehensive error handling and fallback mechanisms:
+
+- Validation of `scene` reference in the constructor
+- Try/catch blocks around all major operations
+- Fallback to original BattleScene methods if PhaserDebugManager is unavailable or initialization fails
+- Detailed logging for debugging and tracing
+
+## Implementation Benefits
+
+1. **Centralized Debug Management**: Debug tools and testing functionality are now managed through a single, focused component.
+
+2. **Consistent Interface**: Provides a standard API for accessing and controlling debug features.
+
+3. **Improved Separation of Concerns**: Debug functionality is now properly separated from core BattleScene code.
+
+4. **Better Initialization Control**: Configuration options allow for more granular control over which debug tools are enabled.
+
+5. **Enhanced Test Functions**: Test functions are now better organized and more robust with improved error handling.
+
+## Next Steps
+
+This implementation represents the "Extract" phase of the Extract-Verify-Remove pattern. After verification that all functionality works correctly through PhaserDebugManager, the next update (0.6.4.9) will implement the "Remove" phase by:
+
+1. Removing the fallback implementations from BattleScene.js (initializeDebugTools, cleanupDebugTools, testHealthUpdate, testActionIndicator)
+2. Simplifying the initializeDebugManager method
+3. Removing the fallback paths from the shutdown method
+4. Updating global function assignments to fully rely on PhaserDebugManager
+
+This will complete Phase 6 of the BattleScene refactoring plan, allowing us to proceed to Phase 7 (Final Cleanup).
+
+## Lessons Learned
+
+1. **Component-Based Architecture Works**: The Extract-Verify-Remove pattern continues to be effective for incrementally refactoring complex code.
+
+2. **Debug Tools Benefit from Centralization**: Centralizing debug functionality makes it easier to extend, modify, and manage.
+
+3. **Graceful Degradation**: Providing fallback mechanisms ensures functionality remains available even during transitional phases.
+
+4. **Separation of Core vs. Debug**: Separating debug tools from core functionality improves maintainability and clarity of both systems.
+
+5. **Configuration Flexibility**: Making debug tools configurable enhances their usefulness across different development scenarios.
+
 
 ===== CHANGELOG_0.6.4.7_BattleFXManager_RemovePhase =====
 
@@ -1240,422 +1710,5 @@ These would build upon the current implementation without requiring significant 
 4. **CSS Opacity Notation**: Hexadecimal opacity notation (e.g., `22` for 13% opacity) is more concise than rgba notation in this context
 
 This enhancement provides a foundation for further visual refinements to the ability system while maintaining a clean, readable interface.
-
-
-===== CHANGELOG_0.6.3.41_TypeColorSystemExpansion =====
-
-# CHANGELOG 0.6.3.41 - Type Color System Expansion
-
-## Issue Description
-
-The game's elemental type system is designed to support 22 distinct element types as defined in the Version 1.0 Vision document. However, the type colors system in the UI code only included a limited set of colors for the initially implemented types (fire, water, nature, dark, light, and air). As we prepare to add new characters with the remaining elemental types, we needed to expand the color system to include all 22 types with consistent colors across all UI components.
-
-## Implementation Approach
-
-We implemented a comprehensive update to standardize type colors across three key files:
-
-1. **TeamBuilderUI.js** - DOM-based team selection screen
-2. **BattleUI.js** - DOM-based battle interface
-3. **CharacterSprite.js** - Phaser-based character visualization component
-
-The approach focused on maintaining consistency while ensuring each UI system received the appropriate color format for its rendering needs.
-
-## Technical Details
-
-### 1. TeamBuilderUI.js Changes
-
-Added the full set of type colors to the `typeColors` object in the constructor:
-
-```javascript
-this.typeColors = {
-    fire: '#ff4757',
-    water: '#1e90ff',
-    nature: '#2ed573',
-    electric: '#F7DF1E',
-    ice: '#ADD8E6',
-    rock: '#8B4513',
-    metal: '#C0C0C0',
-    air: '#70a1ff',
-    light: '#ffd700',
-    dark: '#9900cc',
-    psychic: '#DA70D6',
-    poison: '#8A2BE2',
-    physical: '#CD5C5C',
-    arcane: '#7B68EE',
-    mechanical: '#778899',
-    void: '#2F4F4F',
-    crystal: '#AFEEEE',
-    storm: '#4682B4',
-    ethereal: '#E6E6FA',
-    blood: '#8B0000',
-    plague: '#556B2F',
-    gravity: '#36454F'
-};
-```
-
-These colors are already used by existing code to:
-- Color type filter buttons in the hero selection UI
-- Color hero card backgrounds with varying opacity
-- Style type text in hero cards and detail views
-- Color type tags in the hero details panel
-
-### 2. BattleUI.js Changes
-
-Made two key changes to BattleUI.js:
-
-1. Updated the `typeColors` object in the constructor to match TeamBuilderUI.js:
-
-```javascript
-this.typeColors = {
-    fire: '#ff4757',
-    water: '#1e90ff',
-    nature: '#2ed573',
-    electric: '#F7DF1E',
-    ice: '#ADD8E6',
-    rock: '#8B4513',
-    metal: '#C0C0C0',
-    air: '#70a1ff',
-    light: '#ffd700',
-    dark: '#9900cc',
-    psychic: '#DA70D6',
-    poison: '#8A2BE2',
-    physical: '#CD5C5C',
-    arcane: '#7B68EE',
-    mechanical: '#778899',
-    void: '#2F4F4F',
-    crystal: '#AFEEEE',
-    storm: '#4682B4',
-    ethereal: '#E6E6FA',
-    blood: '#8B0000',
-    plague: '#556B2F',
-    gravity: '#36454F'
-};
-```
-
-2. Enhanced the CSS classes for type backgrounds in the `addCustomStyles()` method:
-
-```javascript
-/* Type colors for backgrounds */
-.bg-fire { background-color: #ff4757; }
-.bg-water { background-color: #1e90ff; }
-.bg-nature { background-color: #2ed573; }
-.bg-electric { background-color: #F7DF1E; }
-.bg-ice { background-color: #ADD8E6; }
-.bg-rock { background-color: #8B4513; }
-.bg-metal { background-color: #C0C0C0; }
-.bg-air { background-color: #70a1ff; }
-.bg-light { background-color: #ffd700; }
-.bg-dark { background-color: #9900cc; }
-.bg-psychic { background-color: #DA70D6; }
-.bg-poison { background-color: #8A2BE2; }
-.bg-physical { background-color: #CD5C5C; }
-.bg-arcane { background-color: #7B68EE; }
-.bg-mechanical { background-color: #778899; }
-.bg-void { background-color: #2F4F4F; }
-.bg-crystal { background-color: #AFEEEE; }
-.bg-storm { background-color: #4682B4; }
-.bg-ethereal { background-color: #E6E6FA; }
-.bg-blood { background-color: #8B0000; }
-.bg-plague { background-color: #556B2F; }
-.bg-gravity { background-color: #36454F; }
-```
-
-### 3. CharacterSprite.js Changes
-
-Updated the `getTypeColor()` method to use the exact same colors as the DOM-based UI components, but converted to the Phaser-compatible hexadecimal format:
-
-```javascript
-getTypeColor(type) {
-    const typeColors = {
-        fire: 0xFF4757, water: 0x1E90FF, nature: 0x2ED573,
-        electric: 0xF7DF1E, ice: 0xADD8E6, rock: 0x8B4513,
-        air: 0x70A1FF, light: 0xFFD700, dark: 0x9900CC,
-        metal: 0xC0C0C0, psychic: 0xDA70D6, poison: 0x8A2BE2,
-        physical: 0xCD5C5C, arcane: 0x7B68EE, mechanical: 0x778899,
-        void: 0x2F4F4F, crystal: 0xAFEEEE, storm: 0x4682B4,
-        ethereal: 0xE6E6FA, blood: 0x8B0000, plague: 0x556B2F,
-        gravity: 0x36454F, neutral: 0xAAAAAA // Added neutral for placeholder
-    };
-    // Fallback for undefined or null type
-    const safeType = typeof type === 'string' ? type.toLowerCase() : 'neutral';
-    return typeColors[safeType] || 0xCCCCCC; // Gray fallback
-}
-```
-
-## Implementation Benefits
-
-1. **Consistency Across UI Systems**: The same colors are now used consistently across all UI components, ensuring a cohesive visual experience.
-
-2. **Framework-Specific Format Handling**: 
-   - DOM-based UIs (TeamBuilderUI.js, BattleUI.js) use CSS hex format with # prefix
-   - Phaser components (CharacterSprite.js) use the 0x prefix format that Phaser requires
-
-3. **Future-Proofing**: All 22 element types now have defined colors, allowing new characters of any type to be added without further UI updates.
-
-4. **Reduced Technical Debt**: By implementing all colors now, we avoid creating a backlog of UI updates for each new character type introduction.
-
-5. **Design Consistency**: The type colors are now standardized across the codebase, ensuring that each type has one definitive color.
-
-## Testing Considerations
-
-When testing this change, verify:
-
-1. **Existing Character Display**: Ensure existing character types (fire, water, nature, dark, light, air) continue to display correctly with their original colors in both TeamBuilder and Battle UI.
-
-2. **New Type Support**: Confirm that adding new characters with any of the expanded types (electric, ice, rock, etc.) will automatically use the correct type color.
-
-3. **Visual Consistency**: Verify that the same color values are used consistently across all UI components for each type.
-
-4. **CSS Class Functionality**: Test that the CSS classes (e.g., `.bg-electric`) correctly apply the expected background colors.
-
-## Future Enhancements
-
-While this change provides the necessary foundation for all 22 element types, potential future enhancements could include:
-
-1. **Type Icon System**: Add visual icons for each type to complement the color system.
-
-2. **Type Background Patterns**: Implement subtle background patterns specific to each element type.
-
-3. **Type-Based Animations**: Create type-specific particle effects and animations for abilities.
-
-4. **Color Theme Configuration**: Move type colors to a central configuration file that can be imported by all components, further improving maintainability.
-
-## Conclusion
-
-This update successfully implements the full type color system across all UI components, providing a solid foundation for introducing characters with the remaining element types. The consistent color scheme enhances the visual cohesion of the game while supporting the planned 22-type system defined in the Version 1.0 Vision document.
-
-
-===== CHANGELOG_0.6.3.39_PassiveTriggerTrackerReferenceHotfix =====
-
-# CHANGELOG 0.6.3.39 - PassiveTriggerTracker Reference Hotfix
-
-## Issue Description
-
-When starting a battle, the console consistently displayed the following warning:
-```
-BattleInitializer.js:31 [BattleInitializer] PassiveTriggerTracker not available for battle reset
-```
-
-While this warning did not break functionality due to the graceful handling in the BattleInitializer, it indicated an architectural issue with dependency references that needed to be addressed.
-
-## Root Cause Analysis
-
-The issue stemmed from a timing problem in the initialization process between BattleInitializer and PassiveTriggerTracker:
-
-1. **Reference Capture During Construction**: In the BattleInitializer constructor, it stored a direct reference to `battleManager.passiveTriggerTracker`:
-   ```javascript
-   constructor(battleManager) {
-       this.battleManager = battleManager;
-       
-       // Store references to dependencies to avoid frequent property access
-       this.passiveTriggerTracker = battleManager.passiveTriggerTracker;
-   }
-   ```
-
-2. **Initialization Order in BattleManager**: BattleManager initialized its components in a specific order, creating BattleInitializer before PassiveTriggerTracker:
-   ```javascript
-   // 1a. Initialize BattleInitializer (required component)
-   if (window.BattleInitializer) {
-       this.battleInitializer = new window.BattleInitializer(this);
-       console.log('BattleManager: BattleInitializer initialized');
-   }
-   
-   // ...later...
-   
-   // 7. Initialize passive system components
-   if (window.PassiveTriggerTracker) {
-       this.passiveTriggerTracker = new window.PassiveTriggerTracker();
-       console.log('BattleManager: PassiveTriggerTracker initialized');
-   }
-   ```
-
-3. **Stale Reference**: When BattleInitializer's `initializeTeamsAndCharacters()` method was called, it tried to use its locally stored reference to `passiveTriggerTracker`, which was still null because it had captured the reference before PassiveTriggerTracker was initialized in BattleManager:
-   ```javascript
-   if (this.passiveTriggerTracker) {
-       this.passiveTriggerTracker.resetBattleTracking();
-   } else {
-       console.warn("[BattleInitializer] PassiveTriggerTracker not available for battle reset");
-   }
-   ```
-
-4. **Graceful Degradation**: While BattleInitializer properly handled the null reference with a warning message, it still indicated an architectural flaw in the initialization process.
-
-## Technical Solution
-
-The solution changed how BattleInitializer accesses the PassiveTriggerTracker, ensuring it always uses the current reference from BattleManager rather than a potentially stale local copy:
-
-```javascript
-// Modified code in initializeTeamsAndCharacters()
-if (this.battleManager.passiveTriggerTracker) {
-    this.battleManager.passiveTriggerTracker.resetBattleTracking();
-} else {
-    console.warn("[BattleInitializer] PassiveTriggerTracker not available for battle reset (accessed via battleManager)");
-}
-```
-
-This approach ensures BattleInitializer always accesses the most up-to-date reference to PassiveTriggerTracker, regardless of when it was initialized in BattleManager.
-
-## Implementation Benefits
-
-1. **Eliminated Warning**: The warning no longer appears during battle initialization.
-
-2. **Improved Reference Management**: The code now ensures that dependencies are accessed properly even if initialized after the dependent component.
-
-3. **Maintained Graceful Degradation**: The solution preserves the graceful handling of potentially missing dependencies.
-
-4. **No State Update Required**: The local `this.passiveTriggerTracker` reference can remain in the constructor as it's no longer being used in the critical path.
-
-## Testing Verification
-
-Testing should verify:
-1. The warning no longer appears in the console when starting a battle
-2. Passive abilities continue to function correctly
-3. No new errors are introduced
-
-## Lessons Learned
-
-1. **Dynamic Dependency Resolution**: When components have dependencies that might be initialized later, always access them through their source (e.g., `parentObject.dependency`) rather than storing local references at construction time.
-
-2. **Initialization Order Matters**: Component initialization order is critical when using direct references. Consider more robust patterns like:
-   - Lazy loading through getter methods
-   - Dependency injection with proper lifecycle management
-   - Event-based architecture for loosely coupled components
-
-3. **Graceful Degradation Value**: The original warning-and-continue approach allowed the system to function correctly despite the missing dependency, highlighting the value of defensive programming.
-
-4. **Spot Check Harmless Warnings**: Even warnings that don't break functionality should be addressed, as they often point to architectural issues that could cause more serious problems in the future.
-
-This fix resolves the specific warning while maintaining the existing architecture. Future refactoring could consider implementing more robust dependency management patterns.
-
-
-===== CHANGELOG_0.6.3.39_BattleEndDetectionFix =====
-
-# CHANGELOG 0.6.3.39 - Battle End Detection Fix
-
-## Issue Description
-
-When a battle was intended to finish after all enemies were defeated, it would sometimes continue indefinitely. During these "zombie battles," the console would display many error messages like:
-
-```
-[ActionGenerator] AUTO-ATTACK for Vaelgor: No valid enemy targets found!
-[TargetingSystem] No valid targets available for Vaelgor
-[ActionGenerator] No valid target found for Vaelgor
-```
-
-This occurred because enemy characters with 0 HP were not consistently marked with `isDefeated = true`, causing a mismatch between the battle end detection logic and the battle flow controller's target finding logic.
-
-## Root Cause Analysis
-
-The issue stemmed from inconsistent character defeat state management across the code:
-
-1. **Missing isDefeated Assignment**: When a character's HP reached 0, the system detected it was "killed" but didn't always set the `isDefeated` flag:
-
-   ```javascript
-   // In DamageCalculator.applyDamage()
-   const killed = oldHealth > 0 && target.currentHp <= 0;
-   // But never did: target.isDefeated = killed;
-   ```
-
-2. **HP vs isDefeated Discrepancy**: The battle end detection checked both `isDefeated` and `currentHp <= 0`:
-
-   ```javascript
-   const enemyDefeated = this.battleManager.enemyTeam.filter(char => char.isDefeated || char.currentHp <= 0).length;
-   ```
-
-   But other parts of the code would only check `isDefeated` when determining valid targets.
-
-3. **Inconsistent Setters**: There were multiple paths in the code for handling character defeat, not all of which consistently set both `currentHp = 0` and `isDefeated = true`.
-
-4. **Debugging Logs Confirmation**: Battle logs confirmed the issue showing enemies at 0 HP but battle continuing:
-   
-   ```
-   [Turn 4] Lumina (enemy) takes 11 damage! (HP: 0/117)
-   [Turn 4] Lumina (enemy) is defeated! âš°ï¸
-   ```
-   
-   Yet many turns later: 
-   ```
-   [Turn 25] Enemy Team:
-   [Turn 25]   Lumina: HP: 0/117
-   ```
-
-## Technical Solution
-
-We implemented a two-part solution:
-
-### 1. Fix in BattleFlowController.checkBattleEnd()
-
-Added a pre-check to ensure characters with 0 HP are properly marked as defeated:
-
-```javascript
-async checkBattleEnd() {
-    // Ensure all characters with 0 HP are properly marked as defeated
-    this.battleManager.playerTeam.forEach(char => {
-        if (char.currentHp <= 0 && !char.isDefeated) {
-            console.log(`[BattleFlowController.checkBattleEnd] Fixing player character ${char.name} with 0 HP but not marked as defeated`);
-            char.isDefeated = true;
-        }
-    });
-    
-    this.battleManager.enemyTeam.forEach(char => {
-        if (char.currentHp <= 0 && !char.isDefeated) {
-            console.log(`[BattleFlowController.checkBattleEnd] Fixing enemy character ${char.name} with 0 HP but not marked as defeated`);
-            char.isDefeated = true;
-        }
-    });
-    
-    // Rest of the method...
-}
-```
-
-### 2. Fix in DamageCalculator.applyDamage()
-
-Ensured the `isDefeated` flag is properly set when a character is killed:
-
-```javascript
-// Determine if character was killed by this damage and set isDefeated
-const killed = oldHealth > 0 && target.currentHp <= 0;
-
-// If killed, ensure isDefeated flag is set
-if (killed) {
-    console.log(`[DamageCalculator] Character ${target.name} is defeated, setting isDefeated to true`);
-    target.isDefeated = true;
-}
-```
-
-## Implementation Benefits
-
-1. **Consistent State Management**: Characters with 0 HP are now always properly marked as defeated, maintaining a consistent state across the system.
-
-2. **Proper Battle End Detection**: Battles now correctly end when all enemies are defeated, preventing endless battles.
-
-3. **Reduced Console Errors**: Eliminated the flood of "No valid targets" error messages that would appear when battles continued past their proper end point.
-
-4. **Preventive Approach**: The solution not only fixes the current issue but also addresses potential similar issues with player characters.
-
-5. **Defensive Programming**: Added diagnostic logging to reveal when the fix is actively working, making future issues easier to identify.
-
-## Testing Verification
-
-Test cases to verify the fix:
-
-1. **Standard Battle**: Ensure battles end properly when all enemy characters reach 0 HP.
-2. **Edge Case - 0 HP Characters**: Verify characters with exactly 0 HP are properly marked as defeated.
-3. **Mixed Team States**: Test scenarios where some enemies are defeated and others are still alive to ensure battles continue appropriately.
-4. **Console Messages**: Check that diagnostic messages appear when the fix is actively correcting defeat status.
-
-## Lessons Learned
-
-1. **State Consistency**: In systems with multiple components referencing the same state (like character defeat), ensure all components set and check that state consistently.
-
-2. **Defensive Guards**: Use defensive programming techniques like redundant state checking to catch potential inconsistencies before they become issues.
-
-3. **Logging Strategy**: Strategic diagnostic logs make it easier to identify where and when state inconsistencies occur.
-
-4. **Comprehensive Fixes**: Address issues at both the direct cause (DamageCalculator) and the detection point (BattleFlowController) for maximum reliability.
-
-5. **Battle Lifecycle Management**: Complex turn-based systems benefit from explicit state validation at key decision points to prevent zombie processes.
-
-This fix ensures battles reliably end when all enemies reach 0 HP, improving the game's stability and user experience.
 
 
