@@ -125,59 +125,18 @@ export default class BattleScene extends Phaser.Scene {
         // of trying to use textures.setFilter which isn't available in this version of Phaser
         console.log('BattleScene: Using config-level texture filtering instead of direct method');
 
-        // Initialize BattleAssetLoader for UI assets
+        // Initialize BattleAssetLoader for UI and character assets
         if (window.BattleAssetLoader) {
             this.assetLoader = new window.BattleAssetLoader(this);
             this.assetLoader.loadUIAssets();
+            this.assetLoader.loadCharacterAssets(); // Added character asset loading through the asset loader
             
-            // Preload all character images in a centralized location
-            try {
-                // Basic placeholder asset
-                this.load.image('character-circle', 'assets/images/icons/character-circle.png');
-                
-                // Preload all combat-optimized character art - this is the proper place to load assets
-                const characterArt = [
-                    'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
-                    'Sylvanna', 'Vaelgor', 'Seraphina' 
-                ];
-                
-                // Special case for Caste due to parentheses in filename
-                const casteKey = 'character_Caste';
-                const castePath = 'assets/images/Character Art/Combat_Version/Caste.png';
-                this.load.image(casteKey, castePath);
-                console.log(`BattleScene: Preloading combat-optimized character image ${casteKey} from ${castePath}`);
-                
-                characterArt.forEach(name => {
-                    const key = `character_${name}`;
-                    // Use the combat-optimized versions of character art
-                    const path = `assets/images/Character Art/Combat_Version/${name}.png`;
-                    this.load.image(key, path);
-                    console.log(`BattleScene: Preloading combat-optimized character image ${key} from ${path}`);
-                });
-                
-                console.log('BattleScene: Character art preload complete');
-                
-                // Preload status effect icons - call our dedicated method instead
-                this.preloadStatusEffectIcons();
-            } catch (error) {
-                console.warn('BattleScene: Could not preload character art:', error);
-            }
+            // Preload status effect icons - call our dedicated method instead
+            this.preloadStatusEffectIcons();
         } else {
-            console.warn("[BattleScene] BattleAssetLoader not available, using original loading code");
+            console.error("[BattleScene] BattleAssetLoader not available - cannot load UI assets!");
             
-            // Original UI asset loading code as fallback
-            this.load.image('return-button', 'assets/images/icons/return.png');
-            this.load.image('next-turn', 'assets/images/icons/next-turn.png');
-            this.load.image('play', 'assets/images/icons/play.png');
-            this.load.image('pause', 'assets/images/icons/pause.png');
-            this.load.image('speed-1', 'assets/images/icons/speed-1.png');
-            this.load.image('speed-2', 'assets/images/icons/speed-2.png');
-            this.load.image('speed-3', 'assets/images/icons/speed-3.png');
-            this.load.image('health-bar-bg', 'assets/images/ui/health-bar-bg.png');
-            this.load.image('health-bar', 'assets/images/ui/health-bar.png');
-            this.load.image('turn-indicator', 'assets/images/ui/turn-indicator.png');
-            
-            // Preload all character images in a centralized location
+            // Fall back to basic loading (no UI elements)
             try {
                 // Basic placeholder asset
                 this.load.image('character-circle', 'assets/images/icons/character-circle.png');
@@ -209,6 +168,9 @@ export default class BattleScene extends Phaser.Scene {
             } catch (error) {
                 console.warn('BattleScene: Could not preload character art:', error);
             }
+            
+            // Set a flag to show an error message to the user during create()
+            this.showAssetLoadingError = true;
         }
         
         console.log('BattleScene preload finished.');
@@ -321,6 +283,11 @@ export default class BattleScene extends Phaser.Scene {
 
             // Mark as initialized
             this.isInitialized = true;
+            
+            // Display error message if asset loading failed
+            if (this.showAssetLoadingError) {
+                this.showErrorMessage("Asset loading incomplete. UI elements may be missing.");
+            }
             
             // Make test functions available globally for debugging
             window.testHealthUpdate = this.testHealthUpdate.bind(this);

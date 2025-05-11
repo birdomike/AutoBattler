@@ -65,6 +65,17 @@ The implementation has been verified by:
 3. Verifying console logs show proper BattleAssetLoader initialization and UI asset loading
 4. Ensuring no errors appear related to missing UI assets
 
+### Observed Unrelated Warnings
+
+During testing, two warnings were observed in the console that are unrelated to this BattleAssetLoader implementation:
+
+```
+[BattleUIManager] BattleEventManager not available or missing setBattleLog method
+[BattleLogManager] Invalid type 'battle-result', defaulting to 'default'
+```
+
+These warnings appear to be pre-existing issues with the BattleEventManager and BattleLogManager components. They should be investigated in a future update when time permits, but they do not affect the functionality of the BattleAssetLoader implementation.
+
 ## Lessons Learned
 
 1. **Component Initialization Order**: Ensuring components are initialized in the right order is critical for proper dependency management.

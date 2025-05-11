@@ -1,3 +1,15 @@
+### [0.6.4.2] - 2025-05-11
+#### Changed
+- Refactored character asset loading from BattleScene into BattleAssetLoader component
+- Implemented Stage 2 (Parts 1-2) of the BattleAssetLoader refactoring plan
+- Added loadCharacterAssets() method to centralize character art loading
+
+### [0.6.4.1] - 2025-05-11
+#### Changed
+- Completed BattleAssetLoader implementation Stage 1 by removing original UI asset loading code
+- Improved error handling when BattleAssetLoader is unavailable
+- Added visual feedback to notify the user when UI assets fail to load
+
 ### [0.6.4.0] - 2025-05-11
 #### Changed
 - Refactored asset loading from BattleScene into dedicated BattleAssetLoader component (Phase 1: UI assets)

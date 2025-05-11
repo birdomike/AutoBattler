@@ -1,4 +1,191 @@
-﻿Combined Technical Changelog  (generated 2025-05-10 23:43)
+﻿Combined Technical Changelog  (generated 2025-05-11 00:38)
+
+===== CHANGELOG_0.6.4.1_BattleAssetLoader_Phase1_Complete =====
+
+# CHANGELOG 0.6.4.1 - BattleAssetLoader Phase 1 Completion
+
+## Overview
+
+This update completes Stage 1 of the BattleAssetLoader refactoring by fully removing the original UI asset loading code from BattleScene.js. This follows the Extract-Verify-Remove pattern outlined in the refactoring plan, with this update representing the final "Remove" step.
+
+## Implementation Details
+
+### 1. Complete Removal of Original UI Asset Loading Code
+
+In our previous implementation (0.6.4.0), we kept the original UI asset loading code as a fallback in the `else` branch when BattleAssetLoader wasn't available. This update fully removes that code:
+
+```javascript
+// Before (0.6.4.0)
+if (window.BattleAssetLoader) {
+    this.assetLoader = new window.BattleAssetLoader(this);
+    this.assetLoader.loadUIAssets();
+    // ... character assets loading ...
+} else {
+    console.warn("[BattleScene] BattleAssetLoader not available, using original loading code");
+    
+    // Original UI asset loading code retained as fallback
+    this.load.image('return-button', 'assets/images/icons/return.png');
+    this.load.image('next-turn', 'assets/images/icons/next-turn.png');
+    // ... other UI asset loading ...
+    
+    // ... character assets loading ...
+}
+
+// After (0.6.4.1)
+if (window.BattleAssetLoader) {
+    this.assetLoader = new window.BattleAssetLoader(this);
+    this.assetLoader.loadUIAssets();
+    // ... character assets loading ...
+} else {
+    console.error("[BattleScene] BattleAssetLoader not available - cannot load UI assets!");
+    
+    // Fall back to basic loading (no UI elements)
+    // ... character assets loading only ...
+    
+    // Set a flag to show an error message to the user
+    this.showAssetLoadingError = true;
+}
+```
+
+### 2. Enhanced Error Handling
+
+Added a more robust error handling mechanism:
+
+1. Changed console message from `warn` to `error` to better indicate severity
+2. Added `showAssetLoadingError` flag to track loading failures
+3. Updated the create() method to check this flag and display a user-facing error message
+
+```javascript
+// In create() method
+// Display error message if asset loading failed
+if (this.showAssetLoadingError) {
+    this.showErrorMessage("Asset loading incomplete. UI elements may be missing.");
+}
+```
+
+### 3. Complete the Extract-Verify-Remove Pattern
+
+This update completes all parts of the Stage 1 implementation plan:
+
+- âœ… Part 1: Create BattleAssetLoader with UI asset loading functionality (0.6.4.0)
+- âœ… Part 2: Update BattleScene.preload() to use BattleAssetLoader (0.6.4.0)
+- âœ… Part 3: Test and verify UI asset loading (0.6.4.0)
+- âœ… Part 4: Remove original UI asset loading code (0.6.4.1)
+
+## Benefits
+
+1. **Full Separation of Concerns**: UI asset loading is now entirely handled by the BattleAssetLoader component, with no redundant code in BattleScene.
+
+2. **Cleaner Error Paths**: Instead of keeping duplicated asset loading code, we now have a clear path for error handling with appropriate user feedback.
+
+3. **Reduced BattleScene Complexity**: Further reduces code in BattleScene.js, focusing it on scene management rather than asset loading details.
+
+4. **Better User Experience**: Error conditions now properly notify the user with a visual message rather than just a console error.
+
+## Testing Verification
+
+Testing should verify that:
+
+1. Normal operation: UI assets load correctly when BattleAssetLoader is working properly
+2. Error handling: When BattleAssetLoader is unavailable, an error message is displayed to the user
+3. Character assets: Character sprites continue to load correctly regardless of UI asset status
+4. Battle functionality: Game remains playable with UI elements potentially missing
+
+## Next Steps
+
+With Stage 1 now complete, we can proceed to Stage 2: Extract Character Asset Loading. This will follow the same Extract-Verify-Remove pattern to gradually refactor the BattleScene.js file.
+
+
+===== CHANGELOG_0.6.4.0_BattleAssetLoader_Phase1 =====
+
+# CHANGELOG 0.6.4.0 - BattleAssetLoader Implementation (Phase 1: UI Assets)
+
+## Overview
+
+This update implements Phase 1 of the BattleAssetLoader refactoring plan, which extracts UI asset loading logic from BattleScene.js into a dedicated component. This is part of an ongoing effort to reduce the complexity of BattleScene.js and improve the separation of concerns within the codebase.
+
+## Implementation Details
+
+### New Component: BattleAssetLoader
+
+Created a new component in `js/phaser/core/BattleAssetLoader.js` that centralizes asset loading logic:
+
+```javascript
+class BattleAssetLoader {
+    constructor(scene) { ... }
+    
+    loadUIAssets() { ... }
+    
+    destroy() { ... }
+}
+```
+
+The component provides:
+- Proper validation of dependencies (scene and loader)
+- Clear error handling and logging
+- A clean interface for loading different asset types
+- Lifecycle management with destroy() method
+
+### BattleScene.js Changes
+
+Modified BattleScene.js to:
+- Initialize BattleAssetLoader in preload()
+- Use assetLoader.loadUIAssets() for UI assets
+- Maintain a fallback path if BattleAssetLoader isn't available
+- Clean up the assetLoader reference in shutdown()
+
+This change:
+- Removes approximately 10 lines of asset loading code from BattleScene.preload()
+- Maintains backward compatibility through fallback mechanisms
+- Follows the Extract-Verify-Remove pattern from the refactoring plan
+
+## Benefits
+
+1. **Improved Separation of Concerns**: Asset loading is now handled by a dedicated component rather than mixed into BattleScene's preload method.
+
+2. **Better Maintainability**: Asset loading can now be extended or modified without touching BattleScene code.
+
+3. **Code Organization**: The BattleAssetLoader provides a central place for all battle-related asset loading, which will be expanded in future phases.
+
+4. **Defensive Programming**: The implementation includes proper validation and error handling at all levels.
+
+## Future Work
+
+This change represents Phase 1 (UI Asset Loading) of the 4-phase BattleAssetLoader implementation plan. Future phases will:
+
+- Phase 2: Extract character asset loading
+- Phase 3: Extract status effect icon loading and mapping
+- Phase 4: Combine all asset loading into a unified interface
+
+## Testing Verification
+
+The implementation has been verified by:
+1. Starting a battle and confirming all UI elements display correctly
+2. Checking that UI buttons, health bars, and turn indicators load and function properly
+3. Verifying console logs show proper BattleAssetLoader initialization and UI asset loading
+4. Ensuring no errors appear related to missing UI assets
+
+### Observed Unrelated Warnings
+
+During testing, two warnings were observed in the console that are unrelated to this BattleAssetLoader implementation:
+
+```
+[BattleUIManager] BattleEventManager not available or missing setBattleLog method
+[BattleLogManager] Invalid type 'battle-result', defaulting to 'default'
+```
+
+These warnings appear to be pre-existing issues with the BattleEventManager and BattleLogManager components. They should be investigated in a future update when time permits, but they do not affect the functionality of the BattleAssetLoader implementation.
+
+## Lessons Learned
+
+1. **Component Initialization Order**: Ensuring components are initialized in the right order is critical for proper dependency management.
+
+2. **Fallback Mechanisms**: Implementing graceful fallbacks ensures the game can still function even if component initialization fails.
+
+3. **Logging Strategy**: Strategic logging at key points makes it easier to verify component behavior and diagnose issues.
+
+4. **Incremental Refactoring**: The phased approach allows for safe extraction of functionality without risking destabilization of the entire system.
+
 
 ===== CHANGELOG_0.6.3.42_AbilityTypeVisualization =====
 
@@ -1249,295 +1436,5 @@ Based on the debugging results, potential fixes may include:
 3. Modifying how actor objects are passed through the ability processing chain
 
 This debugging release is focused on gathering precise diagnostic information to guide the implementation of a permanent fix in the next version.
-
-
-===== CHANGELOG_0.6.3.32_ActionGeneratorScalingFactorFix =====
-
-# CHANGELOG 0.6.3.32 - ActionGenerator Scaling Factor Fix
-
-## Issue Description
-
-Despite previous fixes to the `DamageCalculator` (v0.6.3.28) to properly handle effect-specific scaling factors, Area of Effect (AoE) abilities like Aqualia's "Frost Chain" were still showing incorrect damage scaling in the battle log. Specifically:
-
-- Frost Chain (which should scale at 40% of Intellect, i.e., `effect.scaleFactor: 0.4`) was showing "(+73 from Intellect)" in the battle log.
-- For Aqualia with Intellect 146, this indicated that a 0.5 scaling factor was being used (146 Ã— 0.5 = 73) instead of the intended 0.4 factor (146 Ã— 0.4 = 58.4, rounded to 58).
-
-Despite implementing a proper hierarchical check in DamageCalculator for effect-specific scaling factors, the battle log continued to show incorrect scaling text for AoE abilities.
-
-## Root Cause Analysis
-
-After extensive investigation, the root cause was identified in the `ActionGenerator.js` file:
-
-1. When `ActionGenerator.calculateDamageForAction()` calls `DamageCalculator.calculateDamage()`, it was **only passing three parameters** (attacker, target, ability) and **omitting the crucial fourth parameter** (`effect`):
-
-```javascript
-// Before fix - ActionGenerator.calculateDamageForAction()
-if (this.damageCalculator) {
-    return this.damageCalculator.calculateDamage(attacker, target, ability);
-    // Missing fourth 'effect' parameter!
-}
-```
-
-2. This meant that when initial damage was calculated for an action, the DamageCalculator had no access to the effect-specific scaling factor information and fell back to the default 0.5 scaling factor for spell abilities.
-
-3. The resulting `action.scalingText` property (e.g., "+73 from Intellect") was then propagated throughout the action execution process and ultimately displayed in the battle log, even when processing individual targets of AoE abilities.
-
-4. This issue was particularly problematic for AoE abilities since the initial action's pre-calculated values were being reused for each individual target, causing all targets to display the incorrect scaling factor results.
-
-## Technical Solution
-
-The solution was to modify `ActionGenerator.calculateDamageForAction()` to extract the relevant damage effect from the ability's effects array and pass it as the fourth parameter to DamageCalculator:
-
-```javascript
-// Added damage effect extraction
-let damageEffect = null;
-if (ability && ability.effects && Array.isArray(ability.effects)) {
-    // Find the first damage effect in the array
-    damageEffect = ability.effects.find(effect => 
-        (effect.type === 'Damage' || effect.type === 'damage'));
-        
-    if (damageEffect) {
-        console.log(`[ActionGenerator] Found damage effect for ${ability.name} with scaleFactor: ${damageEffect.scaleFactor}`);
-    }
-}
-
-// Modified DamageCalculator call to pass the damage effect
-if (this.damageCalculator) {
-    return this.damageCalculator.calculateDamage(attacker, target, ability, damageEffect);
-}
-```
-
-This change:
-1. Extracts the specific damage effect from the ability's effects array
-2. Adds logging to verify the correct scaling factor is found
-3. Passes this damage effect to DamageCalculator, allowing it to access the effect-specific scaling factor
-
-## Implementation Benefits
-
-1. **Correct Ability Scaling**: Abilities now use their intended effect-specific scaling factors for damage calculation, ensuring proper balance.
-
-2. **Accurate Battle Log**: The battle log now correctly displays stat contributions (e.g., "+58 from Intellect" for Frost Chain instead of "+73").
-
-3. **Consistent Damage Calculation**: The damage calculation is now consistent with the ability definitions in the character data files.
-
-4. **Maintains Backward Compatibility**: The solution maintains backward compatibility, as the `damageEffect` parameter defaults to `null` in DamageCalculator if no damage effect is found.
-
-5. **Enhanced Debugging Information**: Added helpful logs to verify that damage effects are correctly identified and their scaling factors are properly applied.
-
-## Testing
-
-The changes should be tested by:
-
-1. Starting a battle with Aqualia using "Frost Chain" and "Tidal Wave"
-2. Verifying that the battle log shows the correct scaling text:
-   - For Frost Chain (with Aqualia's Intellect 146): "+58 from Intellect" instead of "+73"
-   - For Tidal Wave (with the same Intellect): "+73 from Intellect" (unchanged, as it should use 0.5 scaling)
-3. Confirming that the damage values are calculated accordingly, affecting game balance
-4. Testing other AoE abilities to ensure similar accurate scaling
-
-## Lessons Learned
-
-1. **Complete Parameter Chain**: When extracting components and refactoring, ensure all parameters are properly passed through the full call chain.
-
-2. **Effect-Specific Data Propagation**: The AoE ability issue revealed how important it is for effect-specific data to be preserved at each stage of the ability processing pipeline.
-
-3. **Initial Action Creation Impact**: In event-driven systems, data calculated during initial action creation can propagate through the entire system, making upstream errors particularly impactful.
-
-4. **Debugging Technique Value**: The strategic placement of debug logs in earlier versions (0.6.3.29-30) was crucial in identifying this root cause by revealing what was missing from the damage calculation function call.
-
-This fix ensures AoE abilities like Frost Chain now properly respect their defined scaling factors both in actual damage calculation and in the battle log display, improving gameplay balance as originally designed.
-
-
-===== CHANGELOG_0.6.3.31_TeamBuilderLayoutEnhancement =====
-
-# CHANGELOG 0.6.3.31 - TeamBuilder Layout Enhancement
-
-## Issue Description
-
-The TeamBuilder UI had two significant layout issues:
-
-1. **Overlap between Hero Details and Battle Options**:
-   - The hero details section (specifically the abilities display) would overlap with the battle options section when a hero had more than 2 abilities
-   - This created a poor visual experience and made it difficult to view all ability information
-
-2. **Unwanted Vertical Scrollbar**:
-   - The main UI had a small vertical scrollbar appearing on the right side of the screen
-   - This was visually distracting and indicated layout issues in the core UI structure
-
-## Root Cause Analysis
-
-### Overlap Issue Root Causes:
-1. **Vertical Layout**: Abilities were being displayed in a single vertical column, consuming too much vertical space
-2. **No Defined Boundaries**: There was no clear separation between the hero details and battle options sections
-3. **Overflow Handling**: The `#detail-content` div had `overflow-y: hidden` which caused content to be clipped rather than properly accommodated
-
-### Scrollbar Issue Root Causes:
-1. **Overflow Settings**: The `.screen` class had `overflow: auto` which allowed scrolling
-2. **Height Calculations**: Using `min-height` instead of fixed heights on key containers
-3. **Content Overflow**: Content slightly exceeding the viewport height in some cases
-
-## Technical Solution
-
-The solution was implemented in multiple phases:
-
-### Phase 1: Implement 2x2 Grid Layout for Abilities
-
-```css
-.detail-abilities {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Create 2 columns */
-    grid-gap: 10px; /* Add spacing between grid items */
-    margin-bottom: 15px;
-}
-
-/* Make the Abilities title span the full grid width */
-.detail-abilities h4 {
-    grid-column: 1 / -1; /* Span all columns */
-}
-
-.ability-box {
-    background-color: var(--darker-bg);
-    padding: 8px;
-    border-radius: 4px;
-    margin-bottom: 0; /* Remove bottom margin since grid handles spacing */
-    height: 100%; /* Ensure consistent height */
-    display: flex;
-    flex-direction: column;
-}
-```
-
-This transformed the abilities display from a single column to a 2x2 grid, significantly reducing the vertical space required.
-
-### Phase 2: Visual Separation Between Sections
-
-```css
-#battle-options {
-    flex-shrink: 0;
-    border-top: 2px solid var(--border);
-    padding-top: 15px;
-    margin-top: 0;
-    background-color: rgba(15, 21, 35, 0.7);
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-    overflow-y: visible;
-}
-
-/* Add a visible separator between sections */
-#battle-options::before {
-    content: '';
-    display: block;
-    width: 90%;
-    height: 4px;
-    background: linear-gradient(to right, transparent, var(--highlight), transparent);
-    margin: -15px auto 15px auto;
-    border-radius: 2px;
-}
-```
-
-These changes added a visual gradient separator and slight background color difference to clearly distinguish the battle options section.
-
-### Phase 3: Battle Options Grid Layout
-
-```css
-#battle-modes {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Match the abilities grid */
-    grid-gap: 10px;
-    margin-bottom: 16px;
-}
-
-.battle-mode {
-    padding: 10px;
-    border-radius: 8px;
-    background-color: var(--darker-bg);
-    cursor: pointer;
-    transition: all 0.3s;
-    border: 2px solid transparent;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-```
-
-This made the battle options section use the same grid layout for visual consistency.
-
-### Phase 4: Fix Scrollbar Issue
-
-```css
-body {
-    margin: 0;
-    padding: 0;
-    height: 100vh; /* Fixed height instead of min-height */
-    width: 100vw;
-    background-color: var(--dark-bg);
-    color: var(--text);
-    font-family: Arial, sans-serif;
-    overflow: hidden; /* Prevent scrolling at body level */
-}
-
-.screen {
-    display: none;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden; /* Prevent scrolling */
-}
-
-.main-content {
-    display: flex;
-    gap: 20px;
-    width: 98%;
-    max-width: 2000px;
-    margin: 0 auto;
-    flex: 1;
-    height: calc(100vh - 150px); /* Use fixed height instead of min-height */
-}
-```
-
-These changes fixed the scrollbar by:
-1. Using fixed heights instead of minimum heights
-2. Setting `overflow: hidden` on key containers
-3. Ensuring the layout stays within viewport dimensions
-
-### Phase 5: Add Height Constraint for Detail Content
-
-```css
-#detail-content {
-    flex-grow: 1;
-    max-height: 55vh; /* Constraint for detail content height */
-    overflow-y: visible;
-    overflow-x: hidden;
-    margin-bottom: 15px;
-}
-```
-
-This final adjustment added a maximum height constraint to the detail content section to ensure it doesn't push the battle options too far down, allowing better balance between sections.
-
-## Implementation Benefits
-
-1. **Efficient Space Usage**: The 2x2 grid layout uses horizontal space more efficiently, allowing display of 4 abilities without overflow
-2. **Clear Visual Hierarchy**: The new layout provides clear visual separation between different UI sections
-3. **Consistent Design Language**: Grid layouts are used consistently for both abilities and battle options
-4. **Eliminated Scrollbar**: Fixed the unwanted scrollbar by properly managing container heights and overflow
-5. **Better Balance**: Achieved better vertical balance between hero details and battle options sections
-
-## Testing
-
-Testing the solution involved:
-1. Verifying that all 4 abilities are displayed in a 2x2 grid without overlap
-2. Confirming no scrollbar appears in the main UI
-3. Checking that all battle modes are properly displayed in a matching grid layout
-4. Ensuring tooltips and interactive elements still function correctly
-5. Testing different heroes to ensure consistent layout across all characters
-
-## Lessons Learned
-
-1. **Grid Layouts for Density**: CSS Grid is excellent for displaying dense information in limited space
-2. **Visual Separation**: Clear visual boundaries between functionally different sections improves usability
-3. **Fixed vs. Minimum Heights**: Using fixed heights instead of minimum heights provides more predictable layouts
-4. **Overflow Control**: Carefully managing overflow at all container levels is critical for preventing unwanted scrollbars
-5. **Consistent Patterns**: Using similar layout patterns (like grids) across related UI sections creates visual harmony
-
-This UI enhancement provides a more polished user experience while accommodating the game's expanding content needs, particularly the addition of up to 4 abilities per character.
 
 

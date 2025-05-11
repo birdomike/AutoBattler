@@ -42,8 +42,48 @@ class BattleAssetLoader {
         console.log("[BattleAssetLoader] UI assets loading complete");
     }
     
+    /**
+     * Load character assets for the battle scene
+     */
+    loadCharacterAssets() {
+        console.log("[BattleAssetLoader] Loading character assets...");
+        
+        if (!this.scene || !this.scene.load) {
+            console.error("[BattleAssetLoader] Cannot load character assets - scene or loader not available");
+            return;
+        }
+        
+        try {
+            // Basic placeholder asset
+            this.scene.load.image('character-circle', 'assets/images/icons/character-circle.png');
+            
+            // Preload all combat-optimized character art
+            const characterArt = [
+                'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
+                'Sylvanna', 'Vaelgor', 'Seraphina' 
+            ];
+            
+            // Special case for Caste due to parentheses in filename
+            const casteKey = 'character_Caste';
+            const castePath = 'assets/images/Character Art/Combat_Version/Caste.png';
+            this.scene.load.image(casteKey, castePath);
+            console.log(`[BattleAssetLoader] Preloading combat-optimized character image ${casteKey} from ${castePath}`);
+            
+            characterArt.forEach(name => {
+                const key = `character_${name}`;
+                // Use the combat-optimized versions of character art
+                const path = `assets/images/Character Art/Combat_Version/${name}.png`;
+                this.scene.load.image(key, path);
+                console.log(`[BattleAssetLoader] Preloading combat-optimized character image ${key} from ${path}`);
+            });
+            
+            console.log('[BattleAssetLoader] Character art preload complete');
+        } catch (error) {
+            console.warn('[BattleAssetLoader] Could not preload character art:', error);
+        }
+    }
+    
     // Placeholder for future methods:
-    // loadCharacterAssets() - Stage 2
     // loadStatusEffectIcons() - Stage 3
     // initStatusIconMapping() - Stage 3
     // loadAssets() - Stage 4
