@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.2.3 (TeamDisplayManager implementation)
+ * @version 0.6.4.5 (BattleAssetLoader unified interface implementation)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -129,16 +129,39 @@ export default class BattleScene extends Phaser.Scene {
         if (window.BattleAssetLoader) {
             this.assetLoader = new window.BattleAssetLoader(this);
             
-            // Load all assets through BattleAssetLoader
-            this.assetLoader.loadUIAssets();
-            this.assetLoader.loadCharacterAssets();
-            this.statusIconMapping = this.assetLoader.loadStatusEffectIcons();
+            // Use unified asset loading method
+            const assetData = this.assetLoader.loadAssets();
             
-            // Verify status icon mapping was returned successfully
-            if (!this.statusIconMapping || Object.keys(this.statusIconMapping).length === 0) {
-                console.error("[BattleScene] Failed to get status icon mapping from BattleAssetLoader");
-                this.statusIconMapping = {}; // Use empty object as fallback
+            // Process the asset loading results
+            if (assetData.success) {
+                console.log("[BattleScene] Asset loading completed successfully");
+                this.statusIconMapping = assetData.statusIconMapping;
+            } else {
+                console.error("[BattleScene] Asset loading encountered issues:", assetData.errors);
+                
+                // Store status icon mapping if available, even with partial success
+                this.statusIconMapping = assetData.statusIconMapping || {};
+                
+                // If status icon mapping is empty or invalid, use a minimal fallback
+                if (!this.statusIconMapping || Object.keys(this.statusIconMapping).length === 0) {
+                    console.warn("[BattleScene] Using minimal fallback for status icon mapping");
+                    this.statusIconMapping = {
+                        'default': 'AI_Icons/32px/Placeholder_AI.png'
+                    };
+                }
+                
+                // Set flag to show error message to the user
                 this.showAssetLoadingError = true;
+                
+                // Generate more specific error message based on what failed
+                let errorComponents = [];
+                if (!assetData.uiAssetsLoaded) errorComponents.push("UI");
+                if (!assetData.characterAssetsLoaded) errorComponents.push("Characters");
+                if (!assetData.statusIconsLoaded) errorComponents.push("Status Effects");
+                
+                this.assetLoadingErrorDetails = errorComponents.length > 0 ?
+                    `Failed to load: ${errorComponents.join(", ")}` : 
+                    "Some assets failed to load";
             }
         } else {
             console.error("[BattleScene] BattleAssetLoader not available - falling back to minimal asset loading");
@@ -275,7 +298,12 @@ export default class BattleScene extends Phaser.Scene {
             
             // Display error message if asset loading failed
             if (this.showAssetLoadingError) {
-                this.showErrorMessage("Asset loading incomplete. UI elements may be missing.");
+                // Show more specific error message if available
+                const errorMessage = this.assetLoadingErrorDetails ?
+                    `Asset loading incomplete. ${this.assetLoadingErrorDetails}` :
+                    "Asset loading incomplete. UI elements may be missing.";
+                
+                this.showErrorMessage(errorMessage);
             }
             
             // Make test functions available globally for debugging

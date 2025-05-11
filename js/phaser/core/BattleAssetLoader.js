@@ -4,7 +4,21 @@
  * Centralizes all asset loading logic for the battle scene, improving 
  * separation of concerns and reducing BattleScene complexity.
  * 
- * @version 0.6.4.4
+ * This component handles the loading of three main asset categories:
+ * - UI assets (buttons, panels, indicators)
+ * - Character assets (sprites, circles, placeholders)
+ * - Status effect icons and their mapping definitions
+ * 
+ * The unified loadAssets() method provides comprehensive error tracking and 
+ * aggregation, returning detailed status information while maintaining graceful
+ * degradation through fallback mechanisms. Individual asset types can also be
+ * loaded separately through specialized methods.
+ * 
+ * BattleAssetLoader is part of the BattleScene refactoring project's Phase 4,
+ * extracting asset loading from BattleScene.js to improve modularity and
+ * maintainability within the component-based architecture.
+ * 
+ * @version 0.6.4.5
  */
 
 class BattleAssetLoader {
@@ -178,8 +192,84 @@ class BattleAssetLoader {
         }
     }
     
-    // Placeholder for future methods:
-    // loadAssets() - Stage 4
+    /**
+     * Load all assets for the battle scene in a single operation
+     * @returns {Object} An object containing all asset-related mappings and statuses
+     */
+    loadAssets() {
+        console.log("[BattleAssetLoader] Loading all battle assets...");
+        
+        if (!this.scene || !this.scene.load) {
+            console.error("[BattleAssetLoader] Cannot load assets - scene or loader not available");
+            return {
+                success: false,
+                uiAssetsLoaded: false,
+                characterAssetsLoaded: false,
+                statusIconsLoaded: false,
+                statusIconMapping: {},
+                errors: ["Scene or loader not available"]
+            };
+        }
+        
+        // Track loading status and errors
+        const assetData = {
+            success: true,
+            uiAssetsLoaded: false,
+            characterAssetsLoaded: false,
+            statusIconsLoaded: false,
+            statusIconMapping: {},
+            errors: []
+        };
+        
+        // UI Assets
+        try {
+            console.log("[BattleAssetLoader] Loading UI assets...");
+            this.loadUIAssets();
+            assetData.uiAssetsLoaded = true;
+        } catch (error) {
+            console.error("[BattleAssetLoader] Error loading UI assets:", error);
+            assetData.errors.push("UI assets: " + error.message);
+            assetData.success = false;
+        }
+        
+        // Character Assets
+        try {
+            console.log("[BattleAssetLoader] Loading character assets...");
+            this.loadCharacterAssets();
+            assetData.characterAssetsLoaded = true;
+        } catch (error) {
+            console.error("[BattleAssetLoader] Error loading character assets:", error);
+            assetData.errors.push("Character assets: " + error.message);
+            assetData.success = false;
+        }
+        
+        // Status Effect Icons
+        try {
+            console.log("[BattleAssetLoader] Loading status effect icons...");
+            assetData.statusIconMapping = this.loadStatusEffectIcons();
+            
+            // Verify the mapping was returned successfully
+            if (assetData.statusIconMapping && Object.keys(assetData.statusIconMapping).length > 0) {
+                assetData.statusIconsLoaded = true;
+            } else {
+                assetData.errors.push("Status icons: Mapping was empty or invalid");
+                assetData.success = false;
+            }
+        } catch (error) {
+            console.error("[BattleAssetLoader] Error loading status effect icons:", error);
+            assetData.errors.push("Status icons: " + error.message);
+            assetData.success = false;
+        }
+        
+        // Log summary
+        if (assetData.success) {
+            console.log("[BattleAssetLoader] All assets loaded successfully");
+        } else {
+            console.warn("[BattleAssetLoader] Some assets failed to load:", assetData.errors);
+        }
+        
+        return assetData;
+    }
     
     // Lifecycle methods
     destroy() {
