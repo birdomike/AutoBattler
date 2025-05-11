@@ -718,64 +718,159 @@ class TeamBuilderUI {
             }
         });
 
-        // Advantages section
-        const detailAdvantages = document.createElement('div');
-        detailAdvantages.className = 'detail-advantages';
+        // Type Relations section
+        const detailTypeRelations = document.createElement('div');
+        detailTypeRelations.className = 'detail-type-relations';
 
-        const advantagesTitle = document.createElement('h4');
-        advantagesTitle.textContent = 'Advantages';
+        const typeRelationsTitle = document.createElement('h4');
+        typeRelationsTitle.textContent = 'Type Relations';
+        detailTypeRelations.appendChild(typeRelationsTitle);
 
-        const advantagesList = document.createElement('div');
-        advantagesList.className = 'advantage-list';
-        
-        let advantageHTML = '';
-        let tooltipContent = `<div class="tooltip-title">Type Advantages</div><div class="tooltip-content">`;
+        // Advantages column
+        const advantagesColumn = document.createElement('div');
+        advantagesColumn.className = 'type-column';
 
-        // Add type advantages based on hero type
+        const advantagesHeading = document.createElement('h5');
+        advantagesHeading.textContent = 'Advantages';
+        advantagesColumn.appendChild(advantagesHeading);
+
+        // Disadvantages column
+        const disadvantagesColumn = document.createElement('div');
+        disadvantagesColumn.className = 'type-column';
+
+        const disadvantagesHeading = document.createElement('h5');
+        disadvantagesHeading.textContent = 'Disadvantages';
+        disadvantagesColumn.appendChild(disadvantagesHeading);
+
+        // Get type relations based on hero type
+        let advantageType = null;
+        let advantageColor = null;
+        let disadvantageType = null;
+        let disadvantageColor = null;
+        let advantageIcon = '';
+        let disadvantageIcon = '';
+
+        // Set relationships based on type
         switch (hero.type) {
             case 'fire':
-                advantageHTML = `• Strong against: <span style="color: ${this.typeColors.nature}">Nature</span>`;
-                tooltipContent += 'Fire does 50% more damage to Nature types.<br>Fire takes 50% more damage from Water types.';
+                advantageType = 'Nature';
+                advantageColor = this.typeColors.nature;
+                disadvantageType = 'Water';
+                disadvantageColor = this.typeColors.water;
+                advantageIcon = '🌿';
+                disadvantageIcon = '💧';
                 break;
             case 'water':
-                advantageHTML = `• Strong against: <span style="color: ${this.typeColors.fire}">Fire</span>`;
-                tooltipContent += 'Water does 50% more damage to Fire types.<br>Water takes 50% more damage from Nature types.';
+                advantageType = 'Fire';
+                advantageColor = this.typeColors.fire;
+                disadvantageType = 'Nature';
+                disadvantageColor = this.typeColors.nature;
+                advantageIcon = '🔥';
+                disadvantageIcon = '🌿';
                 break;
             case 'nature':
-                advantageHTML = `• Strong against: <span style="color: ${this.typeColors.water}">Water</span>`;
-                tooltipContent += 'Nature does 50% more damage to Water types.<br>Nature takes 50% more damage from Fire types.';
+                advantageType = 'Water';
+                advantageColor = this.typeColors.water;
+                disadvantageType = 'Fire';
+                disadvantageColor = this.typeColors.fire;
+                advantageIcon = '💧';
+                disadvantageIcon = '🔥';
                 break;
             case 'light':
-                advantageHTML = `• Strong against: <span style="color: ${this.typeColors.dark}">Dark</span>`;
-                tooltipContent += 'Light does 50% more damage to Dark types.<br>Light takes 50% more damage from Dark types.';
+                advantageType = 'Dark';
+                advantageColor = this.typeColors.dark;
+                disadvantageType = 'Dark';
+                disadvantageColor = this.typeColors.dark;
+                advantageIcon = '🌑';
+                disadvantageIcon = '🌑';
                 break;
             case 'dark':
-                advantageHTML = `• Strong against: <span style="color: ${this.typeColors.light}">Light</span>`;
-                tooltipContent += 'Dark does 50% more damage to Light types.<br>Dark takes 50% more damage from Light types.';
+                advantageType = 'Light';
+                advantageColor = this.typeColors.light;
+                disadvantageType = 'Light';
+                disadvantageColor = this.typeColors.light;
+                advantageIcon = '✨';
+                disadvantageIcon = '✨';
                 break;
             case 'air':
-                advantageHTML = `• Strong against: <span style="color: ${this.typeColors.earth || '#8B4513'}">Earth</span>`;
-                tooltipContent += 'Air does 50% more damage to Earth types.<br>Air takes 50% more damage from Electric types.';
+                advantageType = 'Earth';
+                advantageColor = this.typeColors.earth || '#8B4513';
+                disadvantageType = 'Electric';
+                disadvantageColor = '#F7DF1E'; // Yellow for electric
+                advantageIcon = '🌍';
+                disadvantageIcon = '⚡';
                 break;
         }
-        
-        tooltipContent += '</div>';
-        advantagesList.innerHTML = advantageHTML;
-        
-        // Add tooltip to advantages section
-        if (window.tooltipManager) {
-            window.tooltipManager.addTooltip(advantagesList, tooltipContent);
-            advantagesList.classList.add('has-tooltip');
+
+        // Create advantage box if applicable
+        if (advantageType) {
+            const advantageBox = document.createElement('div');
+            advantageBox.className = 'advantage-box';
+
+            const typeName = document.createElement('span');
+            typeName.className = 'type-relation-title';
+            typeName.innerHTML = `${advantageIcon} ${advantageType} ${advantageIcon}`;
+            typeName.style.color = advantageColor;
+
+            advantageBox.appendChild(typeName);
+
+            // Add tooltip for detailed info
+            if (window.tooltipManager) {
+                const tooltipContent = `<div class="tooltip-title">Type Advantage</div>
+                    <div class="tooltip-content">${hero.type.charAt(0).toUpperCase() + hero.type.slice(1)} does 50% more damage to ${advantageType} types.</div>`;
+                window.tooltipManager.addTooltip(advantageBox, tooltipContent);
+            }
+
+            advantagesColumn.appendChild(advantageBox);
+        } else {
+            // No advantages case
+            const noAdvantages = document.createElement('div');
+            noAdvantages.className = 'advantage-box';
+            noAdvantages.textContent = 'None';
+            noAdvantages.style.color = 'var(--text-muted)';
+            noAdvantages.style.justifyContent = 'center';
+            advantagesColumn.appendChild(noAdvantages);
         }
 
-        detailAdvantages.appendChild(advantagesTitle);
-        detailAdvantages.appendChild(advantagesList);
+        // Create disadvantage box if applicable
+        if (disadvantageType) {
+            const disadvantageBox = document.createElement('div');
+            disadvantageBox.className = 'disadvantage-box';
+
+            const typeName = document.createElement('span');
+            typeName.className = 'type-relation-title';
+            typeName.innerHTML = `${disadvantageIcon} ${disadvantageType} ${disadvantageIcon}`;
+            typeName.style.color = disadvantageColor;
+
+            disadvantageBox.appendChild(typeName);
+
+            // Add tooltip for detailed info
+            if (window.tooltipManager) {
+                const tooltipContent = `<div class="tooltip-title">Type Disadvantage</div>
+                    <div class="tooltip-content">${hero.type.charAt(0).toUpperCase() + hero.type.slice(1)} takes 50% more damage from ${disadvantageType} types.</div>`;
+                window.tooltipManager.addTooltip(disadvantageBox, tooltipContent);
+            }
+
+            disadvantagesColumn.appendChild(disadvantageBox);
+        } else {
+            // No disadvantages case
+            const noDisadvantages = document.createElement('div');
+            noDisadvantages.className = 'disadvantage-box';
+            noDisadvantages.textContent = 'None';
+            noDisadvantages.style.color = 'var(--text-muted)';
+            noDisadvantages.style.justifyContent = 'center';
+            disadvantagesColumn.appendChild(noDisadvantages);
+        }
+
+        // Add columns to the type relations container
+        detailTypeRelations.appendChild(advantagesColumn);
+        detailTypeRelations.appendChild(disadvantagesColumn);
 
         // Add all sections to the detail content
         detailHero.appendChild(detailHeader);
         detailHero.appendChild(detailStats);
         detailHero.appendChild(detailAbilities);
-        detailHero.appendChild(detailAdvantages);
+        detailHero.appendChild(detailTypeRelations);
 
         detailContent.appendChild(detailHero);
         
@@ -1042,50 +1137,165 @@ class TeamBuilderUI {
                 });
             }
             
-            // Update advantages section
-            const advantagesList = detailHero.querySelector('.advantage-list');
-            if (advantagesList) {
-                let advantageHTML = '';
-                let tooltipContent = `<div class="tooltip-title">Type Advantages</div><div class="tooltip-content">`;
+            // For type relations, simply remove the old section and recreate it
+            const oldTypeRelations = detailHero.querySelector('.detail-type-relations');
+            if (oldTypeRelations) {
+                oldTypeRelations.remove();
+            }
+            
+            // Create new type relations section
+            const detailTypeRelations = document.createElement('div');
+            detailTypeRelations.className = 'detail-type-relations';
 
-                // Update type advantages based on hero type
-                switch (hero.type) {
-                    case 'fire':
-                        advantageHTML = `• Strong against: <span style="color: ${this.typeColors.nature}">Nature</span>`;
-                        tooltipContent += 'Fire does 50% more damage to Nature types.<br>Fire takes 50% more damage from Water types.';
-                        break;
-                    case 'water':
-                        advantageHTML = `• Strong against: <span style="color: ${this.typeColors.fire}">Fire</span>`;
-                        tooltipContent += 'Water does 50% more damage to Fire types.<br>Water takes 50% more damage from Nature types.';
-                        break;
-                    case 'nature':
-                        advantageHTML = `• Strong against: <span style="color: ${this.typeColors.water}">Water</span>`;
-                        tooltipContent += 'Nature does 50% more damage to Water types.<br>Nature takes 50% more damage from Fire types.';
-                        break;
-                    case 'light':
-                        advantageHTML = `• Strong against: <span style="color: ${this.typeColors.dark}">Dark</span>`;
-                        tooltipContent += 'Light does 50% more damage to Dark types.<br>Light takes 50% more damage from Dark types.';
-                        break;
-                    case 'dark':
-                        advantageHTML = `• Strong against: <span style="color: ${this.typeColors.light}">Light</span>`;
-                        tooltipContent += 'Dark does 50% more damage to Light types.<br>Dark takes 50% more damage from Light types.';
-                        break;
-                    case 'air':
-                        advantageHTML = `• Strong against: <span style="color: ${this.typeColors.earth || '#8B4513'}">Earth</span>`;
-                        tooltipContent += 'Air does 50% more damage to Earth types.<br>Air takes 50% more damage from Electric types.';
-                        break;
-                }
-                
-                tooltipContent += '</div>';
-                advantagesList.innerHTML = advantageHTML;
-                
-                // Update tooltip for advantages section
+            const typeRelationsTitle = document.createElement('h4');
+            typeRelationsTitle.textContent = 'Type Relations';
+            detailTypeRelations.appendChild(typeRelationsTitle);
+
+            // Advantages column
+            const advantagesColumn = document.createElement('div');
+            advantagesColumn.className = 'type-column';
+
+            const advantagesHeading = document.createElement('h5');
+            advantagesHeading.textContent = 'Advantages';
+            advantagesColumn.appendChild(advantagesHeading);
+
+            // Disadvantages column
+            const disadvantagesColumn = document.createElement('div');
+            disadvantagesColumn.className = 'type-column';
+
+            const disadvantagesHeading = document.createElement('h5');
+            disadvantagesHeading.textContent = 'Disadvantages';
+            disadvantagesColumn.appendChild(disadvantagesHeading);
+
+            // Get type relations based on hero type
+            let advantageType = null;
+            let advantageColor = null;
+            let disadvantageType = null;
+            let disadvantageColor = null;
+            let advantageIcon = '';
+            let disadvantageIcon = '';
+
+            switch (hero.type) {
+                case 'fire':
+                    advantageType = 'Nature';
+                    advantageColor = this.typeColors.nature;
+                    disadvantageType = 'Water';
+                    disadvantageColor = this.typeColors.water;
+                    advantageIcon = '🌿';
+                    disadvantageIcon = '💧';
+                    break;
+                case 'water':
+                    advantageType = 'Fire';
+                    advantageColor = this.typeColors.fire;
+                    disadvantageType = 'Nature';
+                    disadvantageColor = this.typeColors.nature;
+                    advantageIcon = '🔥';
+                    disadvantageIcon = '🌿';
+                    break;
+                case 'nature':
+                    advantageType = 'Water';
+                    advantageColor = this.typeColors.water;
+                    disadvantageType = 'Fire';
+                    disadvantageColor = this.typeColors.fire;
+                    advantageIcon = '💧';
+                    disadvantageIcon = '🔥';
+                    break;
+                case 'light':
+                    advantageType = 'Dark';
+                    advantageColor = this.typeColors.dark;
+                    disadvantageType = 'Dark';
+                    disadvantageColor = this.typeColors.dark;
+                    advantageIcon = '🌑';
+                    disadvantageIcon = '🌑';
+                    break;
+                case 'dark':
+                    advantageType = 'Light';
+                    advantageColor = this.typeColors.light;
+                    disadvantageType = 'Light';
+                    disadvantageColor = this.typeColors.light;
+                    advantageIcon = '✨';
+                    disadvantageIcon = '✨';
+                    break;
+                case 'air':
+                    advantageType = 'Earth';
+                    advantageColor = this.typeColors.earth || '#8B4513';
+                    disadvantageType = 'Electric';
+                    disadvantageColor = '#F7DF1E'; // Yellow for electric
+                    advantageIcon = '🌍';
+                    disadvantageIcon = '⚡';
+                    break;
+            }
+
+            // Create advantage box if applicable
+            if (advantageType) {
+                const advantageBox = document.createElement('div');
+                advantageBox.className = 'advantage-box';
+
+                const typeName = document.createElement('span');
+                typeName.className = 'type-relation-title';
+                typeName.innerHTML = `${advantageIcon} ${advantageType} ${advantageIcon}`;
+                typeName.style.color = advantageColor;
+
+                advantageBox.appendChild(typeName);
+
+                // Add tooltip for detailed info
                 if (window.tooltipManager) {
-                    window.tooltipManager.addTooltip(advantagesList, tooltipContent);
-                    if (!advantagesList.classList.contains('has-tooltip')) {
-                        advantagesList.classList.add('has-tooltip');
-                    }
+                    const tooltipContent = `<div class="tooltip-title">Type Advantage</div>
+                        <div class="tooltip-content">${hero.type.charAt(0).toUpperCase() + hero.type.slice(1)} does 50% more damage to ${advantageType} types.</div>`;
+                    window.tooltipManager.addTooltip(advantageBox, tooltipContent);
                 }
+
+                advantagesColumn.appendChild(advantageBox);
+            } else {
+                // No advantages case
+                const noAdvantages = document.createElement('div');
+                noAdvantages.className = 'advantage-box';
+                noAdvantages.textContent = 'None';
+                noAdvantages.style.color = 'var(--text-muted)';
+                noAdvantages.style.justifyContent = 'center';
+                advantagesColumn.appendChild(noAdvantages);
+            }
+
+            // Create disadvantage box if applicable
+            if (disadvantageType) {
+                const disadvantageBox = document.createElement('div');
+                disadvantageBox.className = 'disadvantage-box';
+
+                const typeName = document.createElement('span');
+                typeName.className = 'type-relation-title';
+                typeName.innerHTML = `${disadvantageIcon} ${disadvantageType} ${disadvantageIcon}`;
+                typeName.style.color = disadvantageColor;
+
+                disadvantageBox.appendChild(typeName);
+
+                // Add tooltip for detailed info
+                if (window.tooltipManager) {
+                    const tooltipContent = `<div class="tooltip-title">Type Disadvantage</div>
+                        <div class="tooltip-content">${hero.type.charAt(0).toUpperCase() + hero.type.slice(1)} takes 50% more damage from ${disadvantageType} types.</div>`;
+                    window.tooltipManager.addTooltip(disadvantageBox, tooltipContent);
+                }
+
+                disadvantagesColumn.appendChild(disadvantageBox);
+            } else {
+                // No disadvantages case
+                const noDisadvantages = document.createElement('div');
+                noDisadvantages.className = 'disadvantage-box';
+                noDisadvantages.textContent = 'None';
+                noDisadvantages.style.color = 'var(--text-muted)';
+                noDisadvantages.style.justifyContent = 'center';
+                disadvantagesColumn.appendChild(noDisadvantages);
+            }
+
+            // Add columns to the type relations container
+            detailTypeRelations.appendChild(advantagesColumn);
+            detailTypeRelations.appendChild(disadvantagesColumn);
+
+            // Find a good position to add the type relations - after abilities if it exists
+            const abilitiesSection = detailHero.querySelector('.detail-abilities');
+            if (abilitiesSection) {
+                abilitiesSection.after(detailTypeRelations);
+            } else {
+                detailHero.appendChild(detailTypeRelations);
             }
         
         } finally {

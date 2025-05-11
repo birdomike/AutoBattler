@@ -642,6 +642,65 @@ body {
     margin-top: 5px;
 }
 
+/* Type Relations Grid Layout */
+.detail-type-relations {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-gap: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+}
+
+.detail-type-relations h4 {
+    grid-column: 1 / -1; /* Span all columns like abilities heading */
+    margin-bottom: 12px;
+    font-size: 16px;
+    color: #70a1ff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 4px;
+}
+
+.type-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.type-column h5 {
+    font-size: 14px;
+    margin: 0 0 5px 0;
+    color: var(--text-muted);
+}
+
+.advantage-box, .disadvantage-box {
+    background-color: var(--darker-bg);
+    padding: 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    text-align: center;
+}
+
+.advantage-box {
+    border-left: 3px solid var(--success);
+}
+
+.disadvantage-box {
+    border-left: 3px solid var(--danger);
+}
+
+.type-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.type-relation-title {
+    font-weight: bold;
+    font-size: 14px;
+}
+
 /* Make the Abilities title span the full grid width */
 .detail-abilities h4 {
     grid-column: 1 / -1; /* Span all columns */
