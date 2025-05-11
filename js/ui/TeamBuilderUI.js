@@ -813,7 +813,7 @@ class TeamBuilderUI {
         detailTypeRelations.appendChild(typeRelationsTitle);
 
         // Get all hero types
-        const heroTypes = this.splitTypes(hero.type);
+        const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
         
         // Create a container for type sections
         const typeSectionsContainer = document.createElement('div');
@@ -1027,59 +1027,7 @@ class TeamBuilderUI {
         }
     }
     
-    /**
-     * Get detailed scaling text with formula for ability tooltips
-     * @param {Object} ability - The ability object
-     * @param {Object} hero - The hero object for stat reference
-     * @returns {Object} Object with damageText and scalingText
-     */
-    getDetailedScalingText(ability, hero) {
-        let scalingText = '';
-        let damageText = '';
-        let statValue = 0;
-        
-        if (ability.isHealing || ability.damageType === 'healing') {
-            // Healing ability scaling with Spirit
-            statValue = hero.stats.spirit || 0;
-            const scalingAmount = Math.floor(statValue * 0.5);
-            const totalHealing = ability.damage + scalingAmount;
-            
-            damageText = `<div>Healing: ${ability.damage} + (50% of Spirit) = ${totalHealing} HP</div>`;
-            scalingText = `${ability.name} restores ${ability.damage} + (50% of Spirit) health`;
-        } 
-        else if (ability.damageType === 'physical') {
-            // Physical ability scaling with Strength
-            statValue = hero.stats.strength || 0;
-            const scalingAmount = Math.floor(statValue * 0.5);
-            const totalDamage = ability.damage + scalingAmount;
-            
-            damageText = `<div>Damage: ${ability.damage} + (50% of Strength) = ${totalDamage} pre-defense</div>`;
-            scalingText = `${ability.name} deals ${ability.damage} + (50% of Strength) damage`;
-        } 
-        else if (ability.damageType === 'spell') {
-            // Spell ability scaling with Intellect
-            statValue = hero.stats.intellect || 0;
-            const scalingAmount = Math.floor(statValue * 0.5);
-            const totalDamage = ability.damage + scalingAmount;
-            
-            damageText = `<div>Damage: ${ability.damage} + (50% of Intellect) = ${totalDamage} pre-defense</div>`;
-            scalingText = `${ability.name} deals ${ability.damage} + (50% of Intellect) damage`;
-        }
-        else if (ability.damageType === 'utility') {
-            // Utility ability scaling with Spirit
-            damageText = `<div>Effect scales with Spirit</div>`;
-            scalingText = `${ability.name}'s effectiveness scales with Spirit`;
-        }
-        else {
-            // Default case (no scaling)
-            damageText = ability.isHealing ? 
-                `<div>Healing: ${ability.damage} HP</div>` : 
-                `<div>Damage: ${ability.damage} points</div>`;
-            scalingText = "No scaling";
-        }
-        
-        return { damageText, scalingText };
-    }
+    // Method getDetailedScalingText() has been moved to TeamBuilderUtils
     
     /**
      * Add character art directly to a detail panel without using the observer
@@ -1158,7 +1106,7 @@ class TeamBuilderUI {
             // Update background color for the detail hero container
             if (detailHero) {
                 // For multiple types, use the first type's color for the background
-                const heroTypes = this.splitTypes(hero.type);
+                const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
                 const primaryType = heroTypes[0] || hero.type; // Fallback to full type
                 detailHero.style.backgroundColor = `${this.typeColors[primaryType]}22`;
             }
@@ -1196,10 +1144,10 @@ class TeamBuilderUI {
                 statsRow1.style.justifyContent = 'space-between';
                 statsRow1.style.gap = '8px';
 
-                const hpStat = this.createStatBox('HP', hero.stats.hp, 'Health Points - How much damage a character can take before being defeated');
-                const atkStat = this.createStatBox('ATK', hero.stats.attack, 'Attack Power - Determines basic attack damage');
-                const defStat = this.createStatBox('DEF', hero.stats.defense, 'Defense - Reduces damage taken from attacks');
-                const spdStat = this.createStatBox('SPD', hero.stats.speed, 'Speed - Determines turn order in battle (higher goes first)');
+                const hpStat = TeamBuilderUtils.createStatBox('HP', hero.stats.hp, 'Health Points - How much damage a character can take before being defeated');
+                const atkStat = TeamBuilderUtils.createStatBox('ATK', hero.stats.attack, 'Attack Power - Determines basic attack damage');
+                const defStat = TeamBuilderUtils.createStatBox('DEF', hero.stats.defense, 'Defense - Reduces damage taken from attacks');
+                const spdStat = TeamBuilderUtils.createStatBox('SPD', hero.stats.speed, 'Speed - Determines turn order in battle (higher goes first)');
                 
                 statsRow1.appendChild(hpStat);
                 statsRow1.appendChild(atkStat);
@@ -1215,9 +1163,9 @@ class TeamBuilderUI {
                     statsRow2.style.justifyContent = 'space-between';
                     statsRow2.style.gap = '8px';
 
-                    const strStat = this.createStatBox('STR', hero.stats.strength, 'Strength - Increases physical ability damage');
-                    const intStat = this.createStatBox('INT', hero.stats.intellect, 'Intellect - Increases spell ability damage');
-                    const spiStat = this.createStatBox('SPI', hero.stats.spirit, 'Spirit - Increases healing effectiveness');
+                    const strStat = TeamBuilderUtils.createStatBox('STR', hero.stats.strength, 'Strength - Increases physical ability damage');
+                    const intStat = TeamBuilderUtils.createStatBox('INT', hero.stats.intellect, 'Intellect - Increases spell ability damage');
+                    const spiStat = TeamBuilderUtils.createStatBox('SPI', hero.stats.spirit, 'Spirit - Increases healing effectiveness');
 
                     statsRow2.appendChild(strStat);
                     statsRow2.appendChild(intStat);
@@ -1579,41 +1527,7 @@ class TeamBuilderUI {
         }
     }
 
-    /**
-     * Helper function to create a stat box
-     * @param {string} label - Stat label
-     * @param {number} value - Stat value
-     * @param {string} tooltip - Tooltip text
-     * @returns {HTMLElement} The stat box element
-     */
-    createStatBox(label, value, tooltip) {
-        const statBox = document.createElement('div');
-        statBox.className = 'stat-box';
-        statBox.style.flex = '1';
-        statBox.style.padding = '5px';
-        statBox.style.backgroundColor = '#1e272e';
-        statBox.style.borderRadius = '5px';
-        statBox.style.textAlign = 'center';
-
-        const statLabel = document.createElement('div');
-        statLabel.className = 'stat-label';
-        statLabel.textContent = label;
-
-        const statValue = document.createElement('div');
-        statValue.className = 'stat-value';
-        statValue.textContent = value;
-
-        statBox.appendChild(statLabel);
-        statBox.appendChild(statValue);
-
-        // Add tooltip if provided
-        if (tooltip && window.tooltipManager) {
-            window.tooltipManager.addTooltip(statBox, tooltip);
-            statBox.classList.add('has-tooltip');
-        }
-
-        return statBox;
-    }
+    // Method createStatBox() has been moved to TeamBuilderUtils
 
     /**
      * Calculate team synergies
@@ -1893,51 +1807,11 @@ class TeamBuilderUI {
         }
     }
 
-    /**
-     * Split a type string into an array of individual types
-     * @param {string} typeString - Type string with potential "/" separator
-     * @returns {string[]} Array of individual types
-     */
-    splitTypes(typeString) {
-        if (!typeString) return [];
-        return typeString.split('/').map(t => t.trim().toLowerCase());
-    }
+    // Method splitTypes() has been moved to TeamBuilderUtils
 
-    /**
-     * Create spans for a multi-type string
-     * @param {string} typeString - Type string with potential "/" separator
-     * @param {HTMLElement} container - Container to append spans to
-     */
-    renderMultiTypeSpans(typeString, container) {
-        const types = this.splitTypes(typeString);
-        
-        types.forEach((type, index) => {
-            // Create span for this type
-            const typeSpan = document.createElement('span');
-            typeSpan.style.color = this.typeColors[type];
-            typeSpan.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-            container.appendChild(typeSpan);
-            
-            // Add separator if not the last type
-            if (index < types.length - 1) {
-                const separator = document.createElement('span');
-                separator.textContent = ' / ';
-                separator.className = 'type-separator';
-                container.appendChild(separator);
-            }
-        });
-    }
+    // Method renderMultiTypeSpans() has been moved to TeamBuilderUtils
 
-    /**
-     * Get ordinal suffix for a number
-     * @param {number} n - The number
-     * @returns {string} The ordinal suffix (st, nd, rd, th)
-     */
-    getOrdinalSuffix(n) {
-        const s = ['th', 'st', 'nd', 'rd'];
-        const v = n % 100;
-        return (s[(v - 20) % 10] || s[v] || s[0]);
-    }
+    // Method getOrdinalSuffix() has been moved to TeamBuilderUtils
     
     /**
      * Start the battle with a delay to ensure scripts are loaded

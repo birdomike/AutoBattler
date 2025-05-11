@@ -1,3 +1,18 @@
+### [0.6.6.2] - 2025-05-11
+#### Fixed
+- Fixed "Uncaught TypeError: this.splitTypes is not a function" error in TeamBuilderUI.js
+- Updated missed references to use TeamBuilderUtils methods in renderHeroDetails and updateExistingHeroDetails
+- Completed Remove stage of TeamBuilderUI refactoring Phase 1
+
+### [0.6.6.1] - 2025-05-11
+#### Changed
+- Completed Remove stage of TeamBuilderUI refactoring Phase 1
+- Removed original utility method implementations from TeamBuilderUI.js
+- Reduced TeamBuilderUI.js by approximately 104 lines of code
+- Finished transition to using TeamBuilderUtils for all utility functions
+
+*Note: For detailed implementation details, see CHANGELOG_0.6.6.1_TeamBuilderUtils_Remove.md*
+
 ### [0.6.6.0] - 2025-05-11
 #### Changed
 - Began TeamBuilderUI refactoring with Extract-Verify-Remove methodology (Phase 1)
