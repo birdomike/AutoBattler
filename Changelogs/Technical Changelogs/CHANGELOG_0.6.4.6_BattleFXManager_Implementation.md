@@ -1,3 +1,17 @@
+## Script Loading Fix
+
+In the initial implementation, the BattleFXManager component was created but not properly integrated into the HTML file. We've updated the solution by:
+
+1. Adding a script tag for BattleFXManager.js to index.html:
+```html
+<!-- BattleFXManager - Must load after TeamDisplayManager and before BattleScene -->
+<script src="js/phaser/managers/BattleFXManager.js"></script>
+```
+
+2. Placing the script tag in the correct position in the loading order - after TeamDisplayManager.js but before BattleScene.js to ensure proper dependency initialization
+
+This change ensures that when BattleScene tries to access `window.BattleFXManager`, the component will be available in the global scope.
+
 # CHANGELOG 0.6.4.6 - BattleFXManager Implementation (Extract & Verify Phase)
 
 ## Overview

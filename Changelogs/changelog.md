@@ -5,6 +5,9 @@
 - Added fallback mechanisms for backward compatibility
 - Improved integration with TeamDisplayManager for visual effects
 - Updated BattleEventManager to support BattleFXManager integration
+- Fixed script loading for BattleFXManager in index.html
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.4.6_BattleFXManager_Implementation.md*
 
 ### [0.6.4.5] - 2025-05-11
 #### Changed
