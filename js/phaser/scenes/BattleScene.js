@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.4.16 (Final Cleanup Stage 6: Standardized error messages)
+ * @version 0.6.4.17 (Final Cleanup Stage 7: Console Log Cleanup)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -57,7 +57,6 @@ export default class BattleScene extends Phaser.Scene {
      * @param {Object} data - Battle configuration data from TeamBuilder
      */
     init(data) {
-        console.log('BattleScene init with data:', data);
         this.battleConfig = data || {};
 
         // Store references to teams (with enhanced deep copying to prevent reference issues)
@@ -66,8 +65,6 @@ export default class BattleScene extends Phaser.Scene {
                 // Use deep copy with proper serialization/deserialization
                 const serialized = JSON.stringify(this.battleConfig.playerTeam);
                 this.playerTeam = JSON.parse(serialized);
-                
-                console.log(`BattleScene: Stored player team with ${this.playerTeam.length} heroes (deep copy)`);
                 
                 // Validate team data structure
                 this.playerTeam.forEach((char, idx) => {
@@ -85,8 +82,6 @@ export default class BattleScene extends Phaser.Scene {
                 // Use deep copy with proper serialization/deserialization
                 const serialized = JSON.stringify(this.battleConfig.enemyTeam);
                 this.enemyTeam = JSON.parse(serialized);
-                
-                console.log(`BattleScene: Stored enemy team with ${this.enemyTeam.length} heroes (deep copy)`);
                 
                 // Validate team data structure
                 this.enemyTeam.forEach((char, idx) => {
@@ -111,19 +106,15 @@ export default class BattleScene extends Phaser.Scene {
         if (urlParams.has('debug')) {
             this.debug.enabled = urlParams.get('debug') !== 'false';
         }
-        console.log(`BattleScene Initializing with Player Team Count: ${this.playerTeam.length}, Enemy Team Count: ${this.enemyTeam.length}`);
     }
 
     /**
      * Preload any assets needed for the battle scene
      */
     preload() {
-        console.log('BattleScene preload starting...');
-
         // Try to set texture filtering to LINEAR (with error handling)
         // Note: Texture filtering is now handled in PhaserConfig.js via render settings instead
         // of trying to use textures.setFilter which isn't available in this version of Phaser
-        console.log('BattleScene: Using config-level texture filtering instead of direct method');
 
         // Initialize BattleAssetLoader for all assets using a single component
         if (window.BattleAssetLoader) {
@@ -184,8 +175,6 @@ export default class BattleScene extends Phaser.Scene {
             // Set a flag to show an error message to the user
             this.showAssetLoadingError = true;
         }
-        
-        console.log('BattleScene preload finished.');
     }
 
     /**
@@ -193,25 +182,14 @@ export default class BattleScene extends Phaser.Scene {
      * Sets up the basic scene elements and initializes all components
      */
     create() {
-        console.log('BattleScene create starting...');
-        
         // Force Canvas smoothing specifically for this scene
         this.configureCanvasSmoothing();
 
         try {
-            console.log('BattleScene create: Initializing BattleUIManager...');
             this.initializeUIManager();
-
-            console.log('BattleScene create: Initializing debug tools...');
             this.initializeDebugManager();
-
-            console.log('BattleScene create: Initializing battle bridge...');
             this.initializeBattleBridge();
-
-            console.log('BattleScene create: Initializing TeamDisplayManager...');
             this.initializeTeamManager();
-
-            console.log('BattleScene create: Initializing BattleFXManager...');
             this.initializeFXManager();
 
             // Mark as initialized
@@ -246,7 +224,6 @@ export default class BattleScene extends Phaser.Scene {
                 const canvasContext = this.sys.canvas.getContext('2d', { willReadFrequently: true });
                 canvasContext.imageSmoothingEnabled = true;
                 canvasContext.imageSmoothingQuality = 'high';
-                console.log('BattleScene: Canvas imageSmoothingEnabled set to true');
             }
         } catch (e) {
             console.warn('Could not configure Canvas smoothing', e);
@@ -460,8 +437,6 @@ export default class BattleScene extends Phaser.Scene {
             
             // Log debug function registration status
             console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
-            console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
-            
             return true;
         } catch (error) {
             console.error('BattleScene: Error initializing debug manager:', error);
@@ -483,7 +458,6 @@ export default class BattleScene extends Phaser.Scene {
         try {
             // Primary approach: Use the centralized initialization function
             if (window.initializeBattleBridge && window.battleManager) {
-                console.log('BattleScene: Using initializeBattleBridge function');
                 const success = window.initializeBattleBridge(window.battleManager, this);
                 
                 if (success) {
@@ -507,7 +481,6 @@ export default class BattleScene extends Phaser.Scene {
             
             // Fallback 1: Use getBattleBridge accessor
             if (window.getBattleBridge && window.battleManager) {
-                console.log('BattleScene: Using getBattleBridge accessor');
                 this.battleBridge = window.getBattleBridge();
                 
                 if (this.battleBridge) {
@@ -523,7 +496,6 @@ export default class BattleScene extends Phaser.Scene {
             
             // Fallback 2: Use direct access to global instance
             if (window.battleBridge && window.battleManager) {
-                console.log('BattleScene: Using direct access to global battleBridge');
                 this.battleBridge = window.battleBridge;
                 
                 if (typeof this.battleBridge.initialize === 'function') {
@@ -536,7 +508,6 @@ export default class BattleScene extends Phaser.Scene {
             
             // Fallback 3: Create new instance if only class is available
             if (window.BattleBridge && typeof window.BattleBridge === 'function' && window.battleManager) {
-                console.log('BattleScene: Creating new battleBridge instance');
                 this.battleBridge = new window.BattleBridge();
                 window.battleBridge = this.battleBridge; // Make globally available
                 
