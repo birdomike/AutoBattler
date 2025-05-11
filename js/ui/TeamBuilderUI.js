@@ -19,7 +19,8 @@ class TeamBuilderUI {
         this.activeFilters = {
             types: [],
             roles: []
-        };
+        }; // Maintained for backward compatibility
+        this.filterManager = null; // Will hold the FilterManager
         this.isSelectingEnemyTeam = false; // Flag to track if we're selecting enemy team
         this.imageLoader = null; // Will hold the TeamBuilderImageLoader
         this.heroDetailManager = null; // Will hold the HeroDetailPanelManager
@@ -102,7 +103,7 @@ class TeamBuilderUI {
 
     /**
      * Render filter options for types and roles
-     * Delegated to FilterManager when available
+     * Delegated to FilterManager
      */
     renderFilters() {
         if (this.filterManager) {
@@ -110,177 +111,24 @@ class TeamBuilderUI {
             return;
         }
         
-        // Original implementation follows for fallback
+        // Minimal fallback for error handling
+        console.error('Cannot render filters - FilterManager not available');
         const heroesSection = document.getElementById('available-heroes');
         
-        // Check if filter section already exists
+        // Add a simple error message
         let filterSection = document.getElementById('hero-filters');
         if (!filterSection) {
             filterSection = document.createElement('div');
             filterSection.id = 'hero-filters';
+            filterSection.innerHTML = '<div class="filter-error">Filter system unavailable</div>';
             
             // Insert filters before the heroes grid
             const heroesGrid = document.getElementById('heroes-grid');
-            heroesSection.insertBefore(filterSection, heroesGrid);
-        } else {
-            filterSection.innerHTML = '';
-        }
-
-        // Create type filters
-        const typeFilters = document.createElement('div');
-        typeFilters.className = 'filter-group';
-        
-        const typeLabel = document.createElement('div');
-        typeLabel.className = 'filter-label';
-        typeLabel.textContent = 'Filter by Type:';
-        typeFilters.appendChild(typeLabel);
-        
-        // Instead of extracting types from heroes, use all 22 types from the design
-        const allTypes = [
-            'fire', 'water', 'nature', 'electric', 'ice', 'rock', 'metal', 'air', 
-            'light', 'dark', 'psychic', 'poison', 'physical', 'arcane', 'mechanical', 
-            'void', 'crystal', 'storm', 'ethereal', 'blood', 'plague', 'gravity'
-        ];
-        
-        const typeButtonsContainer = document.createElement('div');
-        typeButtonsContainer.className = 'filter-buttons';
-        
-        allTypes.forEach(type => {
-            const typeButton = document.createElement('button');
-            typeButton.className = `filter-button ${this.activeFilters.types.includes(type) ? 'active' : ''}`;
-            typeButton.dataset.type = type;
-            
-            // Special handling for Ethereal to use higher opacity and black text
-            if (type === 'ethereal') {
-                typeButton.style.backgroundColor = `${this.typeColors[type]}EE`; // 93% opacity for Ethereal
-                typeButton.style.color = '#000000'; // Black text for Ethereal
-                typeButton.style.fontWeight = 'bold'; // Make text bolder for better contrast
+            if (heroesGrid) {
+                heroesSection.insertBefore(filterSection, heroesGrid);
             } else {
-                // Normal styling for other types
-                typeButton.style.backgroundColor = `${this.typeColors[type]}88`; // Regular opacity
+                heroesSection.appendChild(filterSection);
             }
-            
-            typeButton.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-            
-            // Add event listener
-            typeButton.addEventListener('click', () => {
-                const index = this.activeFilters.types.indexOf(type);
-                if (index === -1) {
-                    // Add filter
-                    this.activeFilters.types.push(type);
-                    typeButton.classList.add('active');
-                } else {
-                    // Remove filter
-                    this.activeFilters.types.splice(index, 1);
-                    typeButton.classList.remove('active');
-                }
-                
-                // Re-render heroes grid and update filters UI
-                this.renderHeroGrid();
-                this.renderFilters(); // Re-render to show/hide clear button
-                
-                // Play sound
-                if (window.soundManager) {
-                    window.soundManager.play('click');
-                }
-            });
-            
-            // Add hover sound
-            if (window.soundManager) {
-                window.soundManager.addHoverSound(typeButton);
-            }
-            
-            typeButtonsContainer.appendChild(typeButton);
-        });
-        
-        typeFilters.appendChild(typeButtonsContainer);
-        filterSection.appendChild(typeFilters);
-        
-        // Create role filters
-        const roleFilters = document.createElement('div');
-        roleFilters.className = 'filter-group';
-        
-        const roleLabel = document.createElement('div');
-        roleLabel.className = 'filter-label';
-        roleLabel.textContent = 'Filter by Role:';
-        roleFilters.appendChild(roleLabel);
-        
-        // Instead of extracting roles from heroes, use all 22 roles from the design
-        const allRoles = [
-            'Warrior', 'Sentinel', 'Berserker', 'Ranger', 'Assassin', 'Bulwark',
-            'Mage', 'Invoker', 'Sorcerer', 'Summoner', 'Occultist', 'Mystic',
-            'Champion', 'Wildcaller', 'Striker', 'Emissary', 'Elementalist',
-            'Warden', 'Skirmisher', 'Battlemage', 'Venomancer', 'Trickster'
-        ];
-        
-        const roleButtonsContainer = document.createElement('div');
-        roleButtonsContainer.className = 'filter-buttons';
-        
-        allRoles.forEach(role => {
-            const roleButton = document.createElement('button');
-            roleButton.className = `filter-button ${this.activeFilters.roles.includes(role) ? 'active' : ''}`;
-            roleButton.dataset.role = role;
-            roleButton.textContent = role;
-            
-            // Add event listener
-            roleButton.addEventListener('click', () => {
-                const index = this.activeFilters.roles.indexOf(role);
-                if (index === -1) {
-                    // Add filter
-                    this.activeFilters.roles.push(role);
-                    roleButton.classList.add('active');
-                } else {
-                    // Remove filter
-                    this.activeFilters.roles.splice(index, 1);
-                    roleButton.classList.remove('active');
-                }
-                
-                // Re-render heroes grid and update filters UI
-                this.renderHeroGrid();
-                this.renderFilters(); // Re-render to show/hide clear button
-                
-                // Play sound
-                if (window.soundManager) {
-                    window.soundManager.play('click');
-                }
-            });
-            
-            // Add hover sound
-            if (window.soundManager) {
-                window.soundManager.addHoverSound(roleButton);
-            }
-            
-            roleButtonsContainer.appendChild(roleButton);
-        });
-        
-        roleFilters.appendChild(roleButtonsContainer);
-        filterSection.appendChild(roleFilters);
-        
-        // Add clear filters button (only if filters are active)
-        const hasActiveFilters = this.activeFilters.types.length > 0 || this.activeFilters.roles.length > 0;
-        if (hasActiveFilters) {
-            const clearButton = document.createElement('button');
-            clearButton.className = 'clear-filters-btn';
-            clearButton.id = 'clear-filters-btn';
-            clearButton.textContent = 'Clear Filters';
-            clearButton.addEventListener('click', () => {
-                this.activeFilters.types = [];
-                this.activeFilters.roles = [];
-                this.renderFilters();
-                this.renderHeroGrid();
-                
-                // Play sound
-                if (window.soundManager) {
-                    window.soundManager.play('click');
-                }
-            });
-            
-            // Add hover sound
-            if (window.soundManager) {
-                window.soundManager.addHoverSound(clearButton);
-            }
-            
-            filterSection.appendChild(clearButton);
         }
     }
 
@@ -294,21 +142,24 @@ class TeamBuilderUI {
         // Filter heroes based on active filters
         let filteredHeroes = [...this.availableHeroes];
         
+        // Get active filters from FilterManager if available
+        const activeFilters = this.filterManager ? this.filterManager.getActiveFilters() : this.activeFilters;
+        
         // Apply type filters
-        if (this.activeFilters.types.length > 0) {
+        if (activeFilters.types.length > 0) {
             filteredHeroes = filteredHeroes.filter(hero => {
                 // Split the hero's type if it contains multiple types
                 const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
                 
                 // Check if any of the hero's types match any of the active filters
-                return heroTypes.some(type => this.activeFilters.types.includes(type));
+                return heroTypes.some(type => activeFilters.types.includes(type));
             });
         }
         
         // Apply role filters
-        if (this.activeFilters.roles.length > 0) {
+        if (activeFilters.roles.length > 0) {
             filteredHeroes = filteredHeroes.filter(hero => 
-                this.activeFilters.roles.includes(hero.role)
+                activeFilters.roles.includes(hero.role)
             );
         }
 

@@ -1,3 +1,13 @@
+### [0.6.6.5] - 2025-05-11
+#### Changed
+- Completed Remove stage of FilterManager refactoring (Phase 3 complete)
+- Removed original filter rendering implementation from TeamBuilderUI.js
+- Updated filter state references to use FilterManager when available
+- Added minimal fallback for error handling when FilterManager is unavailable
+- Reduced TeamBuilderUI.js size by removing ~180 lines of code
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.5_FilterManager_Remove.md*
+
 ### [0.6.6.2] - 2025-05-11
 #### Fixed
 - Fixed "Uncaught TypeError: this.splitTypes is not a function" error in TeamBuilderUI.js

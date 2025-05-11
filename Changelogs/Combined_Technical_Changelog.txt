@@ -1,4 +1,839 @@
-﻿Combined Technical Changelog  (generated 2025-05-11 15:02)
+﻿Combined Technical Changelog  (generated 2025-05-11 17:21)
+
+===== CHANGELOG_0.6.6.5_FilterManager_Remove =====
+
+# CHANGELOG 0.6.6.5 - FilterManager: Remove Stage
+
+## Overview
+
+This update completes Phase 3 of the TeamBuilderUI refactoring by implementing the "Remove" stage of the Extract-Verify-Remove pattern for the FilterManager component. After successfully extracting filter functionality to the FilterManager component and verifying its correct operation, we have now removed the original implementation from TeamBuilderUI.js, replacing it with a minimal delegation pattern.
+
+## Implementation Details
+
+### 1. Removed Original Implementation
+
+The original `renderFilters()` method in TeamBuilderUI.js has been replaced with a minimal version that delegates to FilterManager:
+
+**Before (0.6.6.4):**
+```javascript
+renderFilters() {
+    if (this.filterManager) {
+        this.filterManager.renderFilters();
+        return;
+    }
+    
+    // Original implementation follows for fallback
+    const heroesSection = document.getElementById('available-heroes');
+    
+    // Check if filter section already exists
+    let filterSection = document.getElementById('hero-filters');
+    // ... [approximately 180 lines of code] ...
+}
+```
+
+**After (0.6.6.5):**
+```javascript
+renderFilters() {
+    if (this.filterManager) {
+        this.filterManager.renderFilters();
+        return;
+    }
+    
+    // Minimal fallback for error handling
+    console.error('Cannot render filters - FilterManager not available');
+    const heroesSection = document.getElementById('available-heroes');
+    
+    // Add a simple error message
+    let filterSection = document.getElementById('hero-filters');
+    if (!filterSection) {
+        filterSection = document.createElement('div');
+        filterSection.id = 'hero-filters';
+        filterSection.innerHTML = '<div class="filter-error">Filter system unavailable</div>';
+        
+        // Insert filters before the heroes grid
+        const heroesGrid = document.getElementById('heroes-grid');
+        if (heroesGrid) {
+            heroesSection.insertBefore(filterSection, heroesGrid);
+        } else {
+            heroesSection.appendChild(filterSection);
+        }
+    }
+}
+```
+
+### 2. Updated Filter Usage Throughout TeamBuilderUI
+
+Modified `renderHeroGrid()` to use FilterManager for filter state:
+
+```javascript
+// Get active filters from FilterManager if available
+const activeFilters = this.filterManager ? this.filterManager.getActiveFilters() : this.activeFilters;
+
+// Apply type filters
+if (activeFilters.types.length > 0) {
+    // ... filter logic using activeFilters instead of this.activeFilters ...
+}
+
+// Apply role filters
+if (activeFilters.roles.length > 0) {
+    // ... filter logic using activeFilters instead of this.activeFilters ...
+}
+```
+
+### 3. Updated Constructor Declaration
+
+Updated the constructor to explicitly declare the FilterManager instance variable:
+
+```javascript
+constructor(teamManager) {
+    // ... existing code ...
+    this.activeFilters = {
+        types: [],
+        roles: []
+    }; // Maintained for backward compatibility
+    this.filterManager = null; // Will hold the FilterManager
+    // ... existing code ...
+}
+```
+
+## Benefits
+
+1. **Code Size Reduction**: Removed approximately 180 lines of code from TeamBuilderUI.js, further reducing its complexity and size.
+
+2. **Improved Separation of Concerns**: Filter functionality is now fully encapsulated in the FilterManager component, adhering to the single responsibility principle.
+
+3. **Better Maintainability**: Filter-related changes can now be made in a single, focused component rather than the larger TeamBuilderUI class.
+
+4. **Consistent Component Architecture**: Follows the same patterns established in previous phases, maintaining architectural consistency.
+
+## Error Handling
+
+The minimal implementation in TeamBuilderUI.js provides graceful degradation when FilterManager is unavailable:
+
+1. Logs an error to the console: `Cannot render filters - FilterManager not available`
+2. Displays a user-visible error message: `Filter system unavailable`
+3. Maintains backward compatibility by falling back to `this.activeFilters` when needed
+
+This ensures a good user experience even in the event of component failure, while still making it clear that something has gone wrong.
+
+## Testing Considerations
+
+The implementation was tested to ensure:
+
+1. **Normal Operation**: Filters render correctly and function as expected when FilterManager is available.
+2. **Error Handling**: Appropriate error messages are displayed when FilterManager is not available.
+3. **Filter State Consistency**: Filter state is properly passed between FilterManager and TeamBuilderUI.
+4. **Grid Filtering**: The hero grid updates correctly based on filter changes from FilterManager.
+
+## Metrics
+
+- **Lines Removed**: ~180 lines
+- **Lines Added**: ~25 lines
+- **Net Reduction**: ~155 lines
+
+## Next Steps
+
+With Phase 3 (FilterManager) now complete, the refactoring will proceed to Phase 4:
+
+### Phase 4: HeroGridManager
+
+Methods to extract:
+- `renderHeroGrid()`
+- Related helper methods for grid creation and filtering
+
+Following the same Extract-Verify-Remove pattern that has proven successful in the first three phases.
+
+## Lessons Learned
+
+1. **State Management**: This refactoring highlighted the importance of proper state management between components, particularly how FilterManager keeps the filter state while TeamBuilderUI needs to access it for rendering the hero grid.
+
+2. **Smooth Transition**: The Extract-Verify-Remove pattern again proved effective, allowing for a smooth transition from monolithic code to component-based architecture without breaking functionality.
+
+3. **Consistent Error Handling**: Providing clear, helpful error messages is crucial when components fail to initialize or are unavailable.
+
+4. **Defensive Programming**: Using fallbacks (like `this.filterManager ? this.filterManager.getActiveFilters() : this.activeFilters`) helps ensure the system degrades gracefully when components are unavailable.
+
+This update completes Phase 3 of the TeamBuilderUI refactoring, with three of six planned phases now complete. The component-based architecture is taking shape, with each refactoring phase further improving the separation of concerns and maintainability of the codebase.
+
+
+===== CHANGELOG_0.6.6.4_FilterManagerExtract =====
+
+# CHANGELOG 0.6.6.4 - FilterManager Component Extract Phase
+
+## Overview
+
+This update implements Phase 3 of the TeamBuilderUI refactoring plan, focusing on the Extract stage of the Extract-Verify-Remove methodology. We've extracted filter-related functionality from TeamBuilderUI.js into a dedicated FilterManager component, following the same patterns established in previous refactoring phases.
+
+## Implementation Details
+
+### 1. Created FilterManager Component
+
+Created a new component file at `js/ui/teambuilder/FilterManager.js` that encapsulates all filter-related functionality:
+
+- Rendering type and role filters
+- Tracking active filter state
+- Managing filter toggle events
+- Providing notification to parent when filters change
+
+The component follows established architecture patterns:
+- Clear constructor with parent validation
+- Explicit dependencies on parent properties
+- Well-defined public interface
+- Defensive programming throughout
+- Proper component lifecycle management
+
+Key methods include:
+- `renderFilters()`: Renders all filter UI elements
+- `toggleFilter()`: Handles filter activation/deactivation
+- `clearFilters()`: Resets all filters
+- `getActiveFilters()`: Provides filter state to parent
+- `setActiveFilters()`: Allows parent to initialize filters
+
+### 2. Enhanced Filter Implementation 
+
+The extracted implementation includes several improvements over the original:
+
+- **Modular Structure**: Split large methods into focused helper methods
+  - `createTypeButtons()`: Creates type filter buttons
+  - `createRoleButtons()`: Creates role filter buttons
+  - `addClearFiltersButton()`: Handles clear button UI
+  
+- **Improved Event Handling**: Centralized event handling for all filter buttons
+
+- **Better State Management**: Clearer flow of filter state changes with explicit notification
+
+- **Special Case Handling**: Preserved special handling for Ethereal type with improved contrast
+
+### 3. Added Delegation to TeamBuilderUI.js
+
+Modified TeamBuilderUI.js to:
+
+- Initialize the FilterManager component
+- Provide a callback for filter changes
+- Delegate filter rendering to the component when available
+- Maintain original implementation for fallback
+
+The delegation pattern follows the same approach used for HeroDetailPanelManager:
+
+```javascript
+renderFilters() {
+    if (this.filterManager) {
+        this.filterManager.renderFilters();
+        return;
+    }
+    
+    // Original implementation follows for fallback
+    ...
+}
+```
+
+### 4. Updated Script Loading
+
+Updated index.html to load FilterManager.js before TeamBuilderUI.js:
+
+```html
+<script src="js/ui/teambuilder/TeamBuilderUtils.js" defer></script>
+<script src="js/ui/teambuilder/HeroDetailPanelManager.js" defer></script>
+<script src="js/ui/teambuilder/FilterManager.js" defer></script>
+<script src="js/ui/TeamBuilderUI.js" defer></script>
+```
+
+## Benefits
+
+1. **Reduced Complexity**: The extracted component reduces the responsibility of TeamBuilderUI.js, focusing it on orchestration rather than implementation details.
+
+2. **Improved Maintainability**: Filter-related functionality is now contained in a single file, making it easier to update or debug.
+
+3. **Better Separation of Concerns**: Each component is responsible for a specific aspect of the UI.
+
+4. **Consistent Architecture**: The implementation follows the same patterns established in previous refactoring phases.
+
+## Code Metrics
+
+- **Lines Extracted**: Approximately 140 lines from TeamBuilderUI.js
+- **New Component Size**: 200 lines in FilterManager.js (including enhancements)
+- **Added Delegation Code**: 40 lines to TeamBuilderUI.js
+- **Net Reduction** in TeamBuilderUI.js: ~100 lines
+
+## Testing Considerations
+
+The Extract phase maintains backward compatibility through:
+
+1. **Feature Detection**: Checks if FilterManager exists before using it
+2. **Fallback Implementation**: Retains original code path if component initialization fails
+3. **Method Verification**: Validates required methods exist before delegating
+
+## Next Steps
+
+The Extract phase is now complete. The next phases are:
+
+1. **Verify Phase**: Run and test the implementation to ensure it works correctly, focusing on:
+   - Filter rendering and visual appearance
+   - Filter state management
+   - Filter toggle functionality
+   - Clear button functionality
+   - Hero grid updates based on filter changes
+
+2. **Remove Phase**: After successful verification, remove the original implementation from TeamBuilderUI.js, replacing it with a minimal fallback for error handling.
+
+## Lessons Learned
+
+1. **Component Structure**: Breaking functionality into focused methods provides better organization and readability than monolithic methods.
+
+2. **Delegation Pattern**: The delegation pattern with feature detection provides a safe migration path while maintaining functionality.
+
+3. **Incremental Refactoring**: The Extract-Verify-Remove methodology allows for safe, incremental improvements to the codebase.
+
+This update represents another step toward the fully component-based architecture outlined in the TeamBuilderUI refactoring plan, with three of six planned components now implemented.
+
+
+===== CHANGELOG_0.6.6.3a_HeroDetailManagerHotfix =====
+
+# CHANGELOG 0.6.6.3a - HeroDetailPanelManager Variable Redeclaration Hotfix
+
+## Overview
+
+This hotfix addresses a critical JavaScript error in the HeroDetailPanelManager component that was preventing the hero detail panel from working correctly. The error occurred because of a variable redeclaration issue in the `updateExistingDetails` method.
+
+## Issue Details
+
+When displaying hero details for characters with multiple types (like Aqualia with water/ice), users encountered the following error:
+
+```
+Uncaught SyntaxError: Identifier 'heroTypes' has already been declared (at HeroDetailPanelManager.js:280:13)
+```
+
+This error occurred because the `heroTypes` variable was declared twice within the same function scope:
+1. First declaration at the beginning of the type relations section
+2. Second declaration within the same function when creating the new type relations container
+
+Since JavaScript does not allow redeclaring variables with `const` in the same scope, this was causing the script to fail when trying to display hero details.
+
+## Implementation Details
+
+### 1. Fixed Variable Redeclaration
+
+Updated the second declaration of `heroTypes` to use a different variable name:
+
+```javascript
+// Before
+const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
+
+// After
+const typeArray = TeamBuilderUtils.splitTypes(hero.type);
+```
+
+### 2. Updated All References
+
+Updated all references to this variable throughout the code to use the new name:
+
+- Updated the forEach loop: `typeArray.forEach(heroType => {...`
+- Updated the length check: `if (typeArray.length > 1) {...`
+- Updated the index check: `if (typeArray.indexOf(heroType) < typeArray.length - 1) {...`
+
+## Testing
+
+After the fix, the hero details panel works correctly for all heroes, including those with multiple types. The error no longer appears in the console, and all type relations sections display properly.
+
+## Lessons Learned
+
+1. **Unique Variable Names**: When refactoring code that uses the same function in multiple places, be careful about variable names to avoid redeclarations in the same scope.
+
+2. **Quick Detection with Modern Browsers**: The error was fortunately easy to find because modern browsers immediately report syntax errors like variable redeclarations.
+
+3. **Fast Resolution Workflow**: The hotfix process demonstrated a streamlined approach to critical bug fixes:
+   - Specific error message led directly to the problematic line
+   - Simple renaming fix without needing complex code changes
+   - Targeted update to just the affected component
+
+## Future Considerations
+
+This is a reminder to be cautious when duplicating code sections during refactoring. The error occurred because the type relations section was implemented twice - once in the main `renderDetails` method and again in the `updateExistingDetails` method. 
+
+In the future, we should consider extracting such duplicated logic into separate helper methods to avoid similar issues and improve code maintainability.
+
+
+===== CHANGELOG_0.6.6.3_HeroDetailPanelManager =====
+
+# CHANGELOG 0.6.6.3 - HeroDetailPanelManager Implementation
+
+## Overview
+
+This update is the second phase of the TeamBuilderUI refactoring project, implementing the HeroDetailPanelManager component. Following the Extract-Verify-Remove pattern established in Phase 1, this change extracts the hero details panel functionality from TeamBuilderUI.js into a dedicated component, reducing the monolithic nature of the TeamBuilderUI class and improving separation of concerns.
+
+## Implementation Details
+
+### 1. Component Architecture
+
+The HeroDetailPanelManager was implemented as a standalone component with these key features:
+
+- **Clear responsibilities**: The component manages all aspects of the hero details panel, including rendering, updating, and art management.
+- **Complete interface**: The component provides public methods for rendering, updating, and clearing hero details.
+- **Integration with existing systems**: The component works with the existing art management system and tooltip manager.
+- **Proper error handling**: All methods include defensive checks and meaningful error messages.
+
+### 2. Extraction Process
+
+The extraction followed the planned Extract-Verify-Remove pattern:
+
+1. **Extract**: Created HeroDetailPanelManager.js with all required functionality
+   - Migrated 3 key methods from TeamBuilderUI.js to the new component:
+     - `renderHeroDetails()` â†’ `renderDetails(hero)`
+     - `updateExistingHeroDetails()` â†’ `updateExistingDetails(hero, detailHero)`
+     - `addArtToDetailPanel()` â†’ `addArtToPanel(hero, detailIconContainer)`
+   - Added a new helper method `clearDetails()` to improve the component's interface
+
+2. **Verify**: Tested the component thoroughly to ensure it works correctly
+   - Verified that hero details are displayed correctly for all heroes
+   - Verified that multi-type hero details display properly (e.g., Aqualia with water/ice types)
+   - Confirmed character art is displayed correctly in the details panel
+   - Verified ability tooltips function as expected
+
+3. **Remove**: Removed the original implementation from TeamBuilderUI.js
+   - Replaced the removed methods with thin delegation methods
+   - Added proper error handling for cases when the component is unavailable
+   - Updated selectHeroDetails() to use the new component when available
+
+### 3. Code Metrics
+
+The refactoring resulted in significant code reduction in TeamBuilderUI.js:
+
+- **Lines removed**: ~350 lines
+- **Lines added back** (delegation methods): ~25 lines
+- **Net code reduction**: ~325 lines
+- **Component size**: ~500 lines (HeroDetailPanelManager.js)
+
+This represents approximately a 17% reduction in the size of TeamBuilderUI.js, which continues the process of breaking down the monolithic class into smaller, more focused components.
+
+### 4. HTML Integration
+
+The component was integrated into the HTML structure by adding the appropriate script tag in index.html:
+
+```html
+<script src="js/ui/teambuilder/TeamBuilderUtils.js" defer></script>
+<script src="js/ui/teambuilder/HeroDetailPanelManager.js" defer></script>
+<script src="js/ui/TeamBuilderUI.js" defer></script>
+```
+
+This ensures that the component is loaded before TeamBuilderUI.js and has access to TeamBuilderUtils.js for shared functionality.
+
+### 5. Component Initialization
+
+The component is initialized in TeamBuilderUI's initialize method:
+
+```javascript
+async initializeHeroDetailManager() {
+    try {
+        // Check if HeroDetailPanelManager is available
+        if (typeof window.HeroDetailPanelManager === 'undefined') {
+            console.warn('HeroDetailPanelManager not found, will use original implementation');
+            return;
+        }
+        
+        // Create the detail panel manager
+        this.heroDetailManager = new window.HeroDetailPanelManager(this);
+        
+        // Verify required methods exist
+        const methodCheck = {
+            renderDetails: typeof this.heroDetailManager.renderDetails === 'function',
+            clearDetails: typeof this.heroDetailManager.clearDetails === 'function',
+            updateExistingDetails: typeof this.heroDetailManager.updateExistingDetails === 'function',
+            addArtToPanel: typeof this.heroDetailManager.addArtToPanel === 'function'
+        };
+        
+        console.log('TeamBuilderUI: HeroDetailPanelManager initialized with methods:', methodCheck);
+        
+        if (!methodCheck.renderDetails || !methodCheck.clearDetails) {
+            console.error('HeroDetailPanelManager missing required methods!');
+            this.heroDetailManager = null;
+            return;
+        }
+        
+        console.log('TeamBuilderUI: Hero detail manager initialized successfully');
+    } catch (error) {
+        console.error('Error initializing hero detail manager:', error);
+        this.heroDetailManager = null;
+    }
+}
+```
+
+This initialization includes comprehensive validation to ensure the component is properly configured before use.
+
+## Challenges and Solutions
+
+### 1. Art System Integration
+
+**Challenge**: The original code directly manipulated DOM elements for character art display, which was deeply integrated with the TeamBuilderUI class.
+
+**Solution**: The component maintains the same art management patterns but encapsulates them within its own methods. It also properly handles the art observer system by disabling and re-enabling it during updates.
+
+### 2. Multiple Type Support
+
+**Challenge**: The recent addition of multi-type support (0.6.5.0) required special handling in the type relations section of the hero details panel.
+
+**Solution**: The component fully supports multi-type heroes, creating separate type relation sections for each type with appropriate headers and visual separation.
+
+### 3. Tooltip System Integration
+
+**Challenge**: The tooltip system needed to be properly integrated with the new component to maintain the detailed ability tooltips.
+
+**Solution**: The component checks for window.tooltipManager before attempting to create tooltips, maintaining the same tooltip content and format as the original implementation.
+
+## Benefits
+
+1. **Improved Maintainability**: The HeroDetailPanelManager has a single, clear responsibility, making it easier to maintain and update.
+
+2. **Better Separation of Concerns**: TeamBuilderUI.js is now less concerned with the details of rendering hero information and can focus on its role as an orchestrator.
+
+3. **Cleaner TeamBuilderUI**: The TeamBuilderUI class is now significantly smaller and easier to understand, with clear delegation to specialized components.
+
+4. **Modular Design**: The component-based architecture makes it easier to modify or replace individual components without affecting the rest of the system.
+
+5. **Consistent Architecture**: The implementation follows the same patterns as established in Phase 1 (TeamBuilderUtils), creating a more consistent codebase.
+
+## Future Development
+
+This update is part of the ongoing TeamBuilderUI refactoring project. The next phases will involve:
+
+- **Phase 3**: FilterManager - Extract filtering functionality
+- **Phase 4**: HeroGridManager - Extract hero grid rendering
+- **Phase 5**: TeamSlotsManager - Extract team management
+- **Phase 6**: Battle Mode and Initiation - Extract battle flow management
+
+With each phase, TeamBuilderUI.js will continue to be transformed from a monolithic class into a clean orchestrator delegating to specialized components.
+
+## Testing Notes
+
+The implementation was thoroughly tested to ensure that all functionality works correctly:
+
+- **Hero Selection**: Selecting different heroes correctly displays their details
+- **Multi-Type Heroes**: Heroes with multiple types (e.g., Aqualia) display correctly
+- **Character Art**: Character art displays correctly in the details panel
+- **Ability Tooltips**: Tooltips show the correct information when hovering over abilities
+- **Type Relations**: Type advantages and disadvantages are displayed correctly
+
+No regressions were found during testing, and the new component maintains full compatibility with the existing TeamBuilderUI functionality.
+
+## Lessons Learned
+
+1. **Incremental Refactoring**: The Extract-Verify-Remove pattern proved highly effective for safely refactoring a large codebase.
+
+2. **Thorough Validation**: The component initialization process includes comprehensive validation to ensure it's properly configured.
+
+3. **Clean Delegation**: The delegation methods in TeamBuilderUI.js are thin but include proper error handling to maintain robustness.
+
+4. **Component Architecture**: The component-based architecture has continued to demonstrate its value in creating a more maintainable codebase.
+
+This update represents a significant step in improving the architecture of the TeamBuilder, reducing its complexity and improving the maintainability of the codebase.
+
+
+===== CHANGELOG_0.6.6.2_TeamBuilderUtils_Bugfix =====
+
+# CHANGELOG 0.6.6.2 - TeamBuilderUI Refactoring: Fixing Missed References
+
+## Overview
+
+This update fixes a critical error that occurred after completing the Remove stage of Phase 1 in the TeamBuilderUI refactoring. The error was caused by missed references to original utility methods that were removed but not properly replaced with calls to TeamBuilderUtils.
+
+## Bug Description
+
+After deploying version 0.6.6.1, users encountered the following error when attempting to view hero details:
+
+```
+Uncaught TypeError: this.splitTypes is not a function
+    at TeamBuilderUI.renderHeroDetails (TeamBuilderUI.js:816:32)
+    at TeamBuilderUI.selectHeroDetails (TeamBuilderUI.js:1586:18)
+    at HTMLDivElement.<anonymous> (TeamBuilderUI.js:372:59)
+```
+
+This error occurred because while we removed the `splitTypes` method from TeamBuilderUI.js, we missed updating two specific calls to `this.splitTypes()` in the codebase:
+
+1. In the `renderHeroDetails()` method:
+   ```javascript
+   // Get all hero types
+   const heroTypes = this.splitTypes(hero.type);
+   ```
+
+2. In the `updateExistingHeroDetails()` method:
+   ```javascript
+   // For multiple types, use the first type's color for the background
+   const heroTypes = this.splitTypes(hero.type);
+   ```
+
+Additionally, we found more missed references to `this.createStatBox()` in the `updateExistingHeroDetails()` method that also needed to be updated.
+
+## Implementation Details
+
+### 1. Fixed References to `splitTypes`
+
+Updated both missed references to use TeamBuilderUtils:
+
+```javascript
+// Before
+const heroTypes = this.splitTypes(hero.type);
+
+// After
+const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
+```
+
+### 2. Fixed References to `createStatBox`
+
+Updated all calls to `this.createStatBox()` within `updateExistingHeroDetails()`:
+
+```javascript
+// Before
+const hpStat = this.createStatBox('HP', hero.stats.hp, 'Health Points - How much damage a character can take before being defeated');
+// ... and similar calls for other stats
+
+// After
+const hpStat = TeamBuilderUtils.createStatBox('HP', hero.stats.hp, 'Health Points - How much damage a character can take before being defeated');
+// ... and similar updates for other stats
+```
+
+## Testing Verification
+
+After implementing these fixes, we verified that:
+
+1. The error "Uncaught TypeError: this.splitTypes is not a function" no longer occurs
+2. Selecting a hero correctly displays their details in the hero details panel
+3. Multi-type heroes (like Aqualia with "water/ice") display correctly with proper type separation
+4. All stat boxes are displayed with correct tooltips
+
+## Lessons Learned
+
+1. **Thorough Reference Checking**: When refactoring code using the Extract-Verify-Remove pattern, it's important to perform thorough searches for all references to the methods being removed, including those in less obvious places like nested methods.
+
+2. **Method Usage Patterns**: Methods like `splitTypes` were called in multiple contexts:
+   - Directly in UI rendering methods
+   - Within update methods for existing UI elements
+   - In utility functions that manipulate data
+
+3. **Enhanced Testing After Removal**: After removing original methods, it's critical to test all user flows again with special attention to areas that might have missed references.
+
+4. **Effective Use of Error Reports**: The specific error message and stack trace was invaluable in identifying exactly where the missed references were located.
+
+## Moving Forward
+
+With these fixes in place, the Remove stage of Phase 1 is now truly complete. This experience will inform our approach to the later phases, specifically:
+
+1. We'll perform more thorough scanning for method references before removing methods
+2. We'll implement more extensive testing for each component after removal
+3. We'll be especially careful with utility methods that might be called from multiple contexts
+
+The next phase (Phase 2: HeroDetailPanelManager) can now proceed with confidence that the foundation is solid.
+
+
+===== CHANGELOG_0.6.6.1_TeamBuilderUtils_Remove =====
+
+# CHANGELOG 0.6.6.1 - TeamBuilderUI Refactoring Phase 1: Remove Stage
+
+## Overview
+
+This update completes Phase 1 of the TeamBuilderUI refactoring by implementing the "Remove" stage of the Extract-Verify-Remove pattern. In this stage, we've removed all the original utility method implementations from TeamBuilderUI.js, now that they have been fully extracted to TeamBuilderUtils.js and verified to be working correctly.
+
+## Implementation Details
+
+### 1. Methods Removed from TeamBuilderUI.js
+
+The following methods were removed from TeamBuilderUI.js:
+
+1. **splitTypes(typeString)** - Handles multi-type string parsing
+2. **renderMultiTypeSpans(typeString, container)** - Renders type spans
+3. **getOrdinalSuffix(n)** - Gets ordinal suffixes for numbers
+4. **createStatBox(label, value, tooltip)** - Creates stat box UI elements
+5. **getDetailedScalingText(ability, hero)** - Generates ability scaling descriptions
+
+In place of each method, a comment was added indicating that the method has been moved to TeamBuilderUtils.
+
+### 2. Code Size Reduction
+
+The removal of these methods resulted in a reduction of approximately 104 lines of code from TeamBuilderUI.js:
+- `splitTypes`: 4 lines
+- `renderMultiTypeSpans`: 23 lines
+- `getOrdinalSuffix`: 5 lines 
+- `createStatBox`: 30 lines
+- `getDetailedScalingText`: 42 lines
+
+This represents a meaningful reduction in the size and complexity of TeamBuilderUI.js as we move toward a cleaner, more modular component architecture.
+
+## Technical Considerations
+
+### Code Organization
+
+The removal of these utility methods helps improve code organization by:
+
+1. **Centralization of Utilities**: All utility functions are now centralized in TeamBuilderUtils.js, making them easier to find, maintain, and reuse.
+
+2. **Reduced Duplication**: Previously, similar utility functions existed in multiple places. This centralization removes duplication.
+
+3. **Better Separation of Concerns**: TeamBuilderUI.js can now focus on its primary responsibility of orchestrating UI components, rather than implementing low-level utilities.
+
+### Testing Verification
+
+Before removing the original methods, thorough testing was performed to ensure that the TeamBuilderUtils versions functioned correctly:
+
+1. Team builder UI loaded without errors
+2. Character grid displayed correctly with multi-type characters
+3. Team slots displayed correctly with multi-type characters
+4. Hero details panel showed correct type tags, stats boxes, and ability tooltips
+5. No visual or functional differences compared to pre-refactoring version
+
+## Next Steps
+
+With Phase 1 (TeamBuilderUtils) now complete, the refactoring will proceed to Phase 2:
+
+### Phase 2: HeroDetailPanelManager
+
+Methods to extract:
+- `renderHeroDetails()`
+- `updateExistingHeroDetails(detailHero)`
+- `addArtToDetailPanel(hero, detailIconContainer)`
+
+The development of HeroDetailPanelManager will follow the same Extract-Verify-Remove pattern used in Phase 1, ensuring stability and correctness throughout the refactoring process.
+
+## Refactoring Metrics
+
+- **Lines Removed**: 104 lines
+- **Comments Added**: 5 (one for each removed method)
+- **Net LOC Reduction**: 99 lines
+
+## Lessons Learned
+
+1. **Comment Replacement**: Adding comments where methods were removed provides valuable context about where the functionality moved, making it easier to understand the code's history.
+
+2. **Completed Extract-Verify-Remove Cycle**: Successfully completing the full Extract-Verify-Remove cycle demonstrates the value of this incremental approach to refactoring.
+
+3. **Importance of Thorough Testing**: The verification stage before removal was crucial to ensure functionality was preserved between versions.
+
+4. **Preparation for Further Refactoring**: This initial phase sets a clear pattern for subsequent refactoring phases and establishes confidence in the approach.
+
+
+===== CHANGELOG_0.6.6.0_TeamBuilderUtils =====
+
+# CHANGELOG 0.6.6.0 - TeamBuilderUI Refactoring Phase 1: TeamBuilderUtils
+
+## Overview
+
+This update implements Phase 1 of a comprehensive refactoring plan for TeamBuilderUI.js. In this initial phase, we've extracted common utility functions into a new TeamBuilderUtils component, laying the foundation for our component-based architecture.
+
+The refactoring follows an Extract-Verify-Remove pattern, with this update representing the Extract and Verify stages. In this phase, we've created the TeamBuilderUtils component and updated TeamBuilderUI to use it, while maintaining the original implementations for verification before removal.
+
+## Implementation Details
+
+### 1. Created TeamBuilderUtils.js
+
+A new utility class has been created at `js/ui/teambuilder/TeamBuilderUtils.js` containing the following static methods:
+
+1. **splitTypes** - Handles multi-type string parsing (e.g., "water/ice" â†’ ["water", "ice"])
+2. **renderMultiTypeSpans** - Renders type spans with proper formatting and separators
+3. **getOrdinalSuffix** - Gets ordinal suffixes for numbers (1st, 2nd, 3rd)
+4. **createStatBox** - Creates stat box UI elements with consistent styling
+5. **getDetailedScalingText** - Generates ability scaling descriptions for tooltips
+
+These utility functions were extracted directly from TeamBuilderUI.js, maintaining their exact functionality but converting them from instance methods to static methods.
+
+### 2. Updated HTML and Script Loading
+
+Modified `index.html` to load TeamBuilderUtils.js before TeamBuilderUI.js:
+
+```html
+<script src="js/ui/teambuilder/TeamBuilderUtils.js" defer></script>
+<script src="js/ui/TeamBuilderUI.js" defer></script>
+```
+
+This ensures TeamBuilderUtils is available when TeamBuilderUI initializes.
+
+### 3. Updated TeamBuilderUI.js
+
+Modified TeamBuilderUI.js to use the TeamBuilderUtils versions of the utility functions while keeping the original implementations:
+
+```javascript
+// Before
+const types = this.splitTypes(hero.type);
+
+// After
+const types = TeamBuilderUtils.splitTypes(hero.type);
+```
+
+Key updates:
+- Updated all `this.splitTypes(...)` calls to `TeamBuilderUtils.splitTypes(...)`
+- Updated all `this.renderMultiTypeSpans(...)` calls to `TeamBuilderUtils.renderMultiTypeSpans(..., this.typeColors)`
+- Updated all `this.getOrdinalSuffix(...)` calls to `TeamBuilderUtils.getOrdinalSuffix(...)`
+- Updated all `this.createStatBox(...)` calls to `TeamBuilderUtils.createStatBox(...)`
+- Updated all `this.getDetailedScalingText(...)` calls to `TeamBuilderUtils.getDetailedScalingText(...)`
+
+### 4. Created Component Architecture Documentation
+
+Created a README.md file in the teambuilder directory that outlines:
+- The component architecture plan
+- Component responsibilities and interfaces
+- Dependencies between components
+- Planned phases for future refactoring
+
+## Technical Considerations
+
+### Parameter Adaptations
+
+Some methods required additional parameters when moved to static utils:
+
+- `renderMultiTypeSpans` now takes a `typeColors` parameter since it no longer has access to `this.typeColors`
+
+### TeamBuilderUtils Export Pattern
+
+The TeamBuilderUtils class uses a global export pattern to make it accessible to traditional script loading:
+
+```javascript
+// Make utilities available globally for traditional scripts
+if (typeof window !== 'undefined') {
+  window.TeamBuilderUtils = TeamBuilderUtils;
+  console.log("TeamBuilderUtils loaded and exported to window.TeamBuilderUtils");
+}
+```
+
+This approach maintains compatibility with the current codebase without requiring module imports.
+
+## Testing Considerations
+
+After implementing Phase 1, the following should be tested:
+1. Team builder UI loads correctly with no console errors
+2. Character grid displays correctly with multi-type characters
+3. Team slots display correctly with multi-type characters
+4. Hero details panel shows correct type tags, stats boxes, and ability tooltips
+5. No visual or functional differences compared to pre-refactoring version
+
+## Next Steps
+
+After successful verification of this phase, Phase 1 will conclude with:
+
+1. **Remove**: Removing the original method implementations from TeamBuilderUI.js:
+   - `splitTypes` method
+   - `renderMultiTypeSpans` method
+   - `getOrdinalSuffix` method
+   - `createStatBox` method
+   - `getDetailedScalingText` method
+
+This will be followed by Phase 2, which will focus on extracting the HeroDetailPanelManager component.
+
+## Refactoring Metrics
+
+- **New Files Created**: 2
+  - `js/ui/teambuilder/TeamBuilderUtils.js` (~160 lines)
+  - `js/ui/teambuilder/README.md` (~120 lines)
+- **Files Modified**: 2
+  - `index.html` (+1 line)
+  - `TeamBuilderUI.js` (no lines removed yet, references updated)
+- **Lines of Code Refactored**: 104 lines extracted (to be removed in the next stage)
+
+## Lessons Learned
+
+1. **Incremental Testing**: The Extract-Verify-Remove pattern allows for thorough testing before removing original implementations, reducing risk.
+
+2. **Utility Function Centralization**: Centralizing utility functions immediately demonstrates value by revealing duplication and establishing consistent patterns.
+
+3. **Parameter Adaptations**: When converting instance methods to static, careful attention must be paid to dependencies on instance properties like `this.typeColors`.
+
+4. **Separation of Concerns**: This initial refactoring already helps clarify the responsibilities of TeamBuilderUI vs. utility functions, guiding future component extraction.
+
 
 ===== CHANGELOG_0.6.5.0_TypeRoleSeparation =====
 
@@ -807,1494 +1642,5 @@ This update completes Category 1 of Stage 7. The next stages will:
 3. **Signal vs. Noise**: Every log message should provide meaningful information that helps diagnose issues or confirms important operations.
 
 This update represents a significant step in making the BattleScene code more maintainable and the runtime behavior more focused on essential information.
-
-
-===== CHANGELOG_0.6.4.16_BattleSceneCleanup_Stage6 =====
-
-# CHANGELOG 0.6.4.16 - BattleScene Cleanup Stage 6: Standardized Error Messages
-
-## Overview
-
-This update implements Stage 6 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan, focusing on standardizing user-facing error messages throughout BattleScene.js. The goal was to ensure that all error messages visible to users are consistently delivered through the BattleUIManager rather than directly shown by BattleScene, improving separation of concerns and creating a consistent error presentation experience.
-
-## Implementation Details
-
-### 1. Verified ShowErrorMessage Method
-
-First, we verified that the existing `showErrorMessage()` method in BattleScene.js already correctly delegated to the UIManager:
-
-```javascript
-showErrorMessage(message) {
-    console.error('UI Error Message:', message); // Log to console
-
-    if (this.uiManager) {
-        this.uiManager.showErrorMessage(message);
-    } else {
-        console.error('BattleScene: BattleUIManager not available, cannot show error message');
-    }
-}
-```
-
-This implementation already matched the requirements: it delegates to uiManager when available, and provides a console fallback when it's not.
-
-### 2. Added Error Messages to Debug Manager Initialization
-
-Enhanced the `initializeDebugManager()` method to use `showErrorMessage()` when initialization fails:
-
-```javascript
-// When PhaserDebugManager initialization fails
-if (!success) {
-    console.error('BattleScene: PhaserDebugManager initialization failed');
-    this.showErrorMessage('Debug tools failed to initialize');
-    return false;
-}
-
-// In the catch block
-} catch (error) {
-    console.error('BattleScene: Error initializing debug manager:', error);
-    this.showErrorMessage('Debug tools initialization error: ' + error.message);
-    return false;
-}
-```
-
-Note: For the case where `window.PhaserDebugManager` is not found, we decided not to show a user-facing error message since debug tools aren't critical for gameplay, and adding an error message would unnecessarily clutter the user experience.
-
-### 3. Added Error Messages to Event Manager Initialization
-
-Enhanced the `initializeEventManager()` method to use `showErrorMessage()` when initialization fails:
-
-```javascript
-// When battleBridge is not available
-if (!this.battleBridge) {
-    console.error('BattleScene: Cannot initialize event manager - battleBridge not available');
-    this.showErrorMessage('Battle event system not available - connect to battle logic first');
-    return false;
-}
-
-// When BattleEventManager is not found
-if (!window.BattleEventManager) {
-    console.error('BattleScene: BattleEventManager not found - battle events will not be handled');
-    this.showErrorMessage('Battle event system not available');
-    return false;
-}
-
-// In the catch block
-} catch (error) {
-    console.error('BattleScene: Error initializing event manager:', error);
-    this.showErrorMessage('Failed to initialize battle events: ' + error.message);
-    return false;
-}
-```
-
-### 4. Verified Other Error Message Usage
-
-During our review, we confirmed that several parts of BattleScene.js were already using `showErrorMessage()` correctly:
-
-- In `initializeUIManager()`
-- In `initializeTeamManager()`
-- In `initializeFXManager()`
-- In `initializeBattleBridge()`
-- In the main `create()` method for asset loading errors
-- In the FATAL error handler in the `create()` method
-
-No instances of direct error display (such as creating text objects or using alert()) were found, which is good practice.
-
-### 5. Updated Version Tag
-
-Updated the file header version tag to reflect this change:
-
-```javascript
-* @version 0.6.4.16 (Final Cleanup Stage 6: Standardized error messages)
-```
-
-## Benefits
-
-1. **Consistent User Experience**: All error messages are now displayed through a single channel (BattleUIManager), ensuring consistent styling and presentation.
-
-2. **Improved Separation of Concerns**: BattleScene no longer handles error display details, delegating this responsibility to the specialized UI component.
-
-3. **Better User Feedback**: Added error messages in several previously silent error cases, improving the user experience by providing more actionable information.
-
-4. **Complete Standardization**: All initialization methods now follow the same pattern for error reporting: console error + user-facing error message.
-
-5. **Centralized Error Handling**: The single `showErrorMessage()` method enforces a consistent approach to error presentation throughout the codebase.
-
-## Architectural Implications
-
-This change further reinforces the component-based architecture by:
-
-1. **Emphasizing Delegation**: Error display is delegated to the specialized UI component rather than handled directly.
-
-2. **Maintaining Consistent Interfaces**: All error messages flow through a single, consistent interface.
-
-3. **Clear Component Boundaries**: UI-related functionality (error display) is now fully contained within the UI component.
-
-4. **Proper Level of Abstraction**: BattleScene focuses on orchestration while BattleUIManager handles UI details.
-
-## Testing Considerations
-
-When testing this change, verify that:
-
-1. **Error Message Display**: All errors now appear consistently through the BattleUIManager.
-
-2. **Initialization Failures**: When component initialization fails, appropriate error messages are displayed.
-
-3. **Console Logging**: Detailed technical error information continues to be logged to the console while user-friendly messages are shown in the UI.
-
-4. **Fallback Behavior**: If BattleUIManager is unavailable, error messages are still logged to the console.
-
-## Next Steps
-
-This completes Stage 6 of the Phase 7 cleanup. The next stage is Stage 7: Clean Up and Standardize Console Logs in `BattleScene.js`. Following that, we still have several planned stages:
-
-- Stage 8 (0.6.4.18): Finalize Component Delegation (Make Managers Required)
-- Stage 9 (0.6.4.19): Update Documentation and Code Formatting
-
-After completing all stages, a final comprehensive review of the codebase will ensure it fully adheres to the architectural principles and design guidelines established throughout this refactoring process.
-
-## Lessons Learned
-
-1. **Consistent Error Handling**: Establishing a consistent pattern for error handling improves both user experience and code maintainability.
-
-2. **Appropriate Error Visibility**: Not all errors warrant user-facing messages; debug-related errors can often be limited to console logs.
-
-3. **Delegation Pattern Benefits**: The delegation pattern used for error display (BattleScene to BattleUIManager) provides clear separation of concerns.
-
-4. **Incremental Improvement**: Even in the final cleanup stages, there are still opportunities to improve the codebase.
-
-This update brings the BattleScene.js refactoring effort to near completion, with a more consistent, maintainable approach to error handling that follows established architectural patterns.
-
-
-===== CHANGELOG_0.6.4.15_BattleSceneCleanup_Stage5 =====
-
-# CHANGELOG 0.6.4.15 - BattleScene Cleanup Stage 5: Manager Initialization Method Refinement
-
-## Overview
-
-This update implements Stage 5 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to refine all the `initializeXYZ()` manager methods to follow a consistent pattern and ensure each method has a single, clear responsibility. This continues our architectural improvement efforts to make the codebase more maintainable, consistent, and focused.
-
-## Implementation Details
-
-### 1. Common Pattern for All Initialization Methods
-
-All manager initialization methods now follow a consistent pattern:
-
-1. Check if the required global class is available
-2. Instantiate the manager
-3. Call any necessary post-instantiation setup on the manager
-4. Ensure proper error handling throughout
-5. Return a boolean success state
-
-This pattern simplifies understanding of the initialization flow and provides consistency across all components.
-
-### 2. Refactored `initializeUIManager()`
-
-**Before:**
-```javascript
-initializeUIManager() {
-    try {
-        // Check if BattleUIManager is available
-        if (window.BattleUIManager) {
-            console.log('BattleScene: Creating BattleUIManager instance');
-            this.uiManager = new window.BattleUIManager(this);
-            
-            // Initialize all UI components
-            if (this.uiManager.initializeUI()) {
-                console.log('BattleScene: BattleUIManager initialized successfully');
-            } else {
-                console.error('BattleScene: BattleUIManager initialization failed');
-                this.showErrorMessage('Failed to initialize UI components');
-            }
-        } else {
-            console.error('BattleScene: BattleUIManager not found - UI components will not be available');
-            this.showErrorMessage('UI Manager not available');
-        }
-    } catch (error) {
-        console.error('BattleScene: Error initializing UI manager:', error);
-        this.showErrorMessage('Failed to initialize UI: ' + error.message);
-    }
-}
-```
-
-**After:**
-```javascript
-initializeUIManager() {
-    try {
-        if (!window.BattleUIManager) {
-            console.error('BattleScene: BattleUIManager not found - UI components will not be available');
-            this.showErrorMessage('UI Manager not available');
-            return false;
-        }
-        
-        // Instantiate the manager
-        this.uiManager = new window.BattleUIManager(this);
-        
-        // Initialize UI components
-        const success = this.uiManager.initializeUI();
-        if (!success) {
-            console.error('BattleScene: BattleUIManager initialization failed');
-            this.showErrorMessage('Failed to initialize UI components');
-            return false;
-        }
-        
-        console.log('BattleScene: BattleUIManager initialized successfully');
-        return true;
-    } catch (error) {
-        console.error('BattleScene: Error initializing UI manager:', error);
-        this.showErrorMessage('Failed to initialize UI: ' + error.message);
-        return false;
-    }
-}
-```
-
-### 3. Refactored `initializeTeamManager()`
-
-The method was restructured to follow the same pattern while maintaining the same functionality:
-- Early exit if the required global class is not available
-- Simplified instantiation logic
-- Consistent return value handling
-
-### 4. Refactored `initializeDebugManager()`
-
-**Key Changes:**
-- Simplified conditional structure
-- Added explicit failure return on initialization failure
-- Removed redundant checks for `this.debugManager` (the object would already be initialized by this point)
-- Maintained debug function registration logging
-
-### 5. Refactored `initializeFXManager()`
-
-**Key Changes:**
-- Simplified conditional structure
-- Removed redundant console logging
-- Maintained connection with the event manager
-
-### 6. Simplified `initializeBattleBridge()`
-
-This was the most complex method to refactor, as it contained multiple fallback paths:
-
-**Before:**
-```javascript
-initializeBattleBridge() {
-    try {
-        // Primary approach: Call the dedicated initialization function
-        if (typeof window.initializeBattleBridge === 'function' && window.battleManager) {
-            // ... complex logic with multiple options
-        }
-        // Fallback #1: Use getBattleBridge accessor if available
-        else if (typeof window.getBattleBridge === 'function') {
-            // ... more complex logic
-        }
-        // Fallback #2: Direct access as last resort
-        else if (window.battleBridge && window.battleManager) {
-            // ... even more complex logic
-        } else {
-            // Fallback to create instance if only the class exists
-            // ... most complex logic
-        }
-    } catch(error) {
-        console.error('Error initializing BattleBridge:', error);
-        this.showErrorMessage('Failed to connect to battle logic.');
-    }
-}
-```
-
-**After:**
-```javascript
-initializeBattleBridge() {
-    try {
-        // Primary approach: Use the centralized initialization function
-        if (window.initializeBattleBridge && window.battleManager) {
-            console.log('BattleScene: Using initializeBattleBridge function');
-            const success = window.initializeBattleBridge(window.battleManager, this);
-            
-            if (success) {
-                // Get the bridge instance after initialization
-                this.battleBridge = window.getBattleBridge ? window.getBattleBridge() : window.battleBridge;
-                
-                // Initialize the event manager now that we have battleBridge
-                this.initializeEventManager();
-                
-                console.log('BattleScene: Battle bridge initialized successfully');
-                return true;
-            } else {
-                console.error('BattleScene: initializeBattleBridge reported failure');
-                this.showErrorMessage('Failed to initialize battle connection');
-                return false;
-            }
-        }
-        
-        // Fallback approach: Try to get or create battleBridge directly
-        console.warn('BattleScene: initializeBattleBridge function not available, trying fallback approaches');
-        
-        // Three clear fallback options with consistent pattern
-        // [fallback implementations...]
-        
-        // All approaches failed
-        console.error('BattleScene: Could not initialize battle bridge - no valid approach found');
-        this.showErrorMessage('Failed to connect to battle logic');
-        return false;
-    } catch (error) {
-        console.error('BattleScene: Error initializing BattleBridge:', error);
-        this.showErrorMessage('Failed to connect to battle logic: ' + error.message);
-        return false;
-    }
-}
-```
-
-Key improvements:
-- Clear primary approach
-- Organized fallback options
-- Consistent error handling and return values
-- Better user feedback via error messages
-
-### 7. Streamlined `initializeEventManager()`
-
-This method was dramatically simplified by removing verbose diagnostic logging:
-
-**Before:**
-```javascript
-initializeEventManager() {
-    console.log('BattleScene.initializeEventManager: Starting with diagnostics:', {
-        battleBridgeAvailable: !!this.battleBridge,
-        battleEventManagerClassAvailable: typeof window.BattleEventManager === 'function',
-        teamManagerAvailable: !!this.teamManager
-    });
-    
-    // More detailed diagnostic logging...
-    console.log('BattleScene.initializeEventManager: BattleBridge event types check:', {
-        hasEventTypes: !!this.battleBridge.eventTypes,
-        eventTypesList: this.battleBridge.eventTypes ? Object.keys(this.battleBridge.eventTypes) : 'none',
-        CHARACTER_ACTION: this.battleBridge.eventTypes?.CHARACTER_ACTION || 'undefined',
-        ABILITY_USED: this.battleBridge.eventTypes?.ABILITY_USED || 'undefined'
-    });
-    
-    // Even more diagnostic logging...
-    console.log('BattleScene.initializeEventManager: BattleEventManager created:', {
-        instanceCreated: !!this.eventManager,
-        hasOnCharacterAction: typeof this.eventManager?.onCharacterAction === 'function',
-        hasOnAbilityUsed: typeof this.eventManager?.onAbilityUsed === 'function'
-    });
-    
-    // ... other functionality
-}
-```
-
-**After:**
-```javascript
-initializeEventManager() {
-    try {
-        if (!this.battleBridge) {
-            console.error('BattleScene: Cannot initialize event manager - battleBridge not available');
-            return false;
-        }
-        
-        if (!window.BattleEventManager) {
-            console.error('BattleScene: BattleEventManager not found - battle events will not be handled');
-            return false;
-        }
-        
-        // Instantiate the manager
-        this.eventManager = new window.BattleEventManager(this, this.battleBridge);
-        
-        // Set TeamDisplayManager reference if available
-        if (this.teamManager && typeof this.eventManager.setTeamManager === 'function') {
-            this.eventManager.setTeamManager(this.teamManager);
-        }
-        
-        console.log('BattleScene: BattleEventManager initialized successfully');
-        return true;
-    } catch (error) {
-        console.error('BattleScene: Error initializing event manager:', error);
-        return false;
-    }
-}
-```
-
-Key improvements:
-- Removed verbose diagnostic logging
-- Simplified dependency checks
-- Focused on core responsibilities
-- Added proper return values
-
-## Benefits
-
-1. **Consistent Pattern**: All initialization methods now follow the same clear pattern, making them easier to understand and maintain.
-
-2. **Improved Readability**: Simplified conditional structure and consistent error handling improves code readability.
-
-3. **Proper Return Values**: All methods now return a boolean success value, allowing calling code to take appropriate action.
-
-4. **Simplified Logic**: Complex nested conditionals have been flattened to improve readability and maintainability.
-
-5. **Reduced Verbosity**: Removed excessive diagnostic logging while maintaining essential error reporting.
-
-6. **Better Error Handling**: More consistent approach to error handling and user feedback.
-
-## Architectural Implications
-
-This change further reinforces our component-based architecture principles:
-
-1. **Single Responsibility**: Each initialization method now has a clear, single responsibility.
-
-2. **Consistent Interface**: All methods follow the same pattern, creating a consistent interface.
-
-3. **Clear Dependencies**: Dependencies between components are made explicit through the initialization sequence.
-
-4. **Error Handling**: Properly propagates errors up the call stack with clear return values.
-
-## Testing Considerations
-
-When testing this change, verify that:
-
-1. **Manager Initialization**: All managers initialize correctly in the expected sequence.
-
-2. **Error Handling**: Appropriate error messages are displayed when initialization fails.
-
-3. **Return Values**: The return values from initialization methods are properly handled in the create() method.
-
-4. **Battle Bridge Fallbacks**: All fallback approaches for BattleBridge initialization work as expected.
-
-5. **Event Manager Integration**: The event manager correctly integrates with other components.
-
-## Next Steps
-
-This is the fifth stage of the Phase 7 cleanup. The final stage will focus on:
-
-1. **Stage 6**: Perform a comprehensive review of BattleScene.js to identify any remaining cleanup opportunities.
-
-## Lessons Learned
-
-1. **Consistent Patterns**: Following consistent patterns across related methods improves code readability and maintainability.
-
-2. **Early Returns**: Using early returns for validation simplifies method structure and improves readability.
-
-3. **Diagnostic vs. Operation Logging**: Distinguishing between diagnostic logging (useful during development) and operational logging (useful in production) helps balance verbosity and utility.
-
-4. **Explicit Error Reporting**: Clear and consistent error reporting improves debugging and user experience.
-
-This update brings the BattleScene.js refactoring effort closer to completion, with a more consistent, maintainable approach to manager initialization that follows established architectural patterns.
-
-
-===== CHANGELOG_0.6.4.14_BattleSceneCleanup_Stage4 =====
-
-# CHANGELOG 0.6.4.14 - BattleScene Cleanup Stage 4: Simplified create() Method and Removed Direct TurnIndicator Management
-
-## Overview
-
-This update implements Stage 4 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to simplify the `create()` method and remove direct TurnIndicator management from BattleScene.js. This continues our architectural goal of improving separation of concerns and ensuring each component has clear, well-defined responsibilities.
-
-## Implementation Details
-
-### 1. Simplified the `create()` Method
-
-The `create()` method has been refactored to focus primarily on high-level initialization, removing specialized logic and delegating to component-specific initialization methods:
-
-**Before (0.6.4.13):**
-```javascript
-create() {
-    // TurnIndicator creation (approximately 20 lines of code)
-    ...
-    
-    // Canvas smoothing configuration (approximately 10 lines of code)
-    ...
-    
-    try {
-        // Initialize managers with inline comments and additional logging
-        this.initializeUIManager();
-        this.initializeDebugManager();
-        console.log('BattleScene create: Debug tools initialized.');
-        this.initializeBattleBridge();
-        console.log('BattleScene create: Battle bridge initialized.');
-        this.initializeTeamManager();
-        console.log('BattleScene create: TeamDisplayManager initialized.');
-        this.initializeFXManager();
-        console.log('BattleScene create: BattleFXManager initialized.');
-        
-        // TeamDisplayManager validation (approximately 5 lines)
-        ...
-        
-        // Hide test pattern (approximately 6 lines)
-        ...
-        
-        // Mark as initialized
-        this.isInitialized = true;
-        
-        // Display error message if asset loading failed
-        ...
-        
-        // Debug function logging (approximately 10 lines)
-        ...
-        
-        console.log('BattleScene created successfully');
-    } catch (error) {
-        // Error handling
-        ...
-    }
-}
-```
-
-**After (0.6.4.14):**
-```javascript
-create() {
-    console.log('BattleScene create starting...');
-    
-    // Force Canvas smoothing specifically for this scene
-    this.configureCanvasSmoothing();
-
-    try {
-        console.log('BattleScene create: Initializing BattleUIManager...');
-        this.initializeUIManager();
-
-        console.log('BattleScene create: Initializing debug tools...');
-        this.initializeDebugManager();
-
-        console.log('BattleScene create: Initializing battle bridge...');
-        this.initializeBattleBridge();
-
-        console.log('BattleScene create: Initializing TeamDisplayManager...');
-        this.initializeTeamManager();
-
-        console.log('BattleScene create: Initializing BattleFXManager...');
-        this.initializeFXManager();
-
-        // Mark as initialized
-        this.isInitialized = true;
-        
-        // Display error message if asset loading failed
-        if (this.showAssetLoadingError) {
-            // Show more specific error message if available
-            const errorMessage = this.assetLoadingErrorDetails ?
-                `Asset loading incomplete. ${this.assetLoadingErrorDetails}` :
-                "Asset loading incomplete. UI elements may be missing.";
-            
-            this.showErrorMessage(errorMessage);
-        }
-
-        console.log('BattleScene created successfully');
-    } catch (error) {
-        // Error handling
-        ...
-    }
-}
-```
-
-### 2. Extracted Canvas Smoothing Configuration
-
-Canvas smoothing logic was extracted to a dedicated method:
-
-```javascript
-/**
- * Configure Canvas smoothing settings for the scene
- * @private
- */
-configureCanvasSmoothing() {
-    try {
-        if (this.sys.game.renderer.type === Phaser.CANVAS) {
-            // For Canvas renderer, we need to explicitly enable image smoothing
-            const canvasContext = this.sys.canvas.getContext('2d', { willReadFrequently: true });
-            canvasContext.imageSmoothingEnabled = true;
-            canvasContext.imageSmoothingQuality = 'high';
-            console.log('BattleScene: Canvas imageSmoothingEnabled set to true');
-        }
-    } catch (e) {
-        console.warn('Could not configure Canvas smoothing', e);
-    }
-}
-```
-
-### 3. Removed Direct TurnIndicator Creation
-
-Removed two blocks of TurnIndicator creation code:
-1. Direct creation in the `create()` method (~20 lines)
-2. Fallback creation in `initializeBattleBridge()` (~10 lines)
-
-BattleScene no longer directly creates or manages `this.turnIndicator`, as this responsibility now belongs to TeamDisplayManager.
-
-### 4. Relocated Specialized Logic
-
-Several pieces of specialized logic were moved to the appropriate initialization methods:
-
-1. **Test Pattern Hiding:** Moved from `create()` to `initializeTeamManager()`:
-```javascript
-// Hide test pattern after teams are created (if UI manager exists)
-if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
-    this.uiManager.hideTestPattern();
-} else if (!this.uiManager) {
-    console.warn('BattleScene: Cannot hide test pattern - UIManager not available');
-}
-```
-
-2. **Debug Function Logging:** Moved from `create()` to `initializeDebugManager()`:
-```javascript
-// Log debug function registration status
-if (this.debugManager) {
-    console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
-} else {
-    console.warn('BattleScene: Debug test functions not available - PhaserDebugManager not initialized');
-}
-
-console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
-```
-
-3. **Error Handling in TeamDisplayManager:** Enhanced error handling in `initializeTeamManager()`:
-```javascript
-catch (error) {
-    console.error('BattleScene: Error initializing team manager:', error);
-    this.showErrorMessage('Failed to initialize team display: ' + error.message);
-    return false;
-}
-```
-
-## Benefits
-
-1. **Improved Readability**: The `create()` method is now 64% shorter, making it easier to understand at a glance.
-
-2. **Clear Division of Responsibilities**: Each initialization method now fully encapsulates its specific domain, including related UI management and error handling.
-
-3. **Reduced Duplication**: Removed redundant TurnIndicator creation code that existed in two places.
-
-4. **Better Component Architecture**: Properly respects the ownership boundaries - TeamDisplayManager now fully owns TurnIndicator management.
-
-5. **Simplified Orchestration**: The `create()` method is now a clean orchestrator that clearly shows the initialization sequence without implementation details.
-
-## Architectural Implications
-
-This change further reinforces our component-based architecture principles:
-
-1. **Single Responsibility Principle**: Each component fully handles all aspects of its domain without leaking implementation details.
-
-2. **Ownership Boundaries**: Components own their dependencies - TeamDisplayManager now exclusively manages the TurnIndicator.
-
-3. **Hierarchical Scene Structure**: The `create()` method serves as a high-level orchestrator, delegating details to specialized methods.
-
-4. **Encapsulation**: Specialized logic is encapsulated within the appropriate methods rather than spread across the scene.
-
-## Testing Considerations
-
-When testing this change, verify that:
-
-1. **TurnIndicator Functionality**: Turn highlighting still works correctly in battles despite BattleScene no longer directly creating the TurnIndicator.
-
-2. **Manager Initialization**: All managers initialize correctly in the same sequence as before.
-
-3. **Canvas Smoothing**: Canvas smoothing settings are still properly applied.
-
-4. **UI Coordination**: Test pattern hiding still occurs at the appropriate time.
-
-5. **Error Handling**: Error messages are displayed correctly for initialization failures.
-
-## Next Steps
-
-This is the fourth stage of the Phase 7 cleanup. Future stages will:
-
-1. **Stage 5**: Simplify the remaining complex methods (e.g., `initializeBattleBridge()`)
-
-2. **Stage 6**: Review for any remaining cleanup opportunities
-
-3. **Final Review**: Perform a comprehensive review of BattleScene.js to ensure it adheres to all architectural principles
-
-## Lessons Learned
-
-1. **High-Level Orchestration**: Scene initialization methods should focus on orchestration rather than implementation details.
-
-2. **Location-Based Encapsulation**: Logic related to a specific component should be located within the method that initializes that component.
-
-3. **Ownership Boundaries**: Respecting component ownership boundaries (e.g., TeamDisplayManager owns TurnIndicator) makes the code more maintainable and reduces duplication.
-
-4. **Extract Method Pattern**: The extract method pattern (used for `configureCanvasSmoothing()`) improves readability and maintains the single responsibility principle.
-
-This update brings us closer to a fully refactored BattleScene.js that follows clean architectural principles and properly delegates responsibilities to specialized components.
-
-
-===== CHANGELOG_0.6.4.13_BattleSceneCleanup_Stage3 =====
-
-# CHANGELOG 0.6.4.13 - BattleScene Cleanup Stage 3: Removing Legacy Fallback Code Blocks
-
-## Overview
-
-This update implements Stage 3 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to identify and remove legacy fallback code blocks throughout BattleScene.js. These fallback mechanisms were originally implemented to provide graceful degradation during the Extract-Verify-Remove pattern used in Phases 1-6, but are now obsolete as all manager components are considered required and fully functional.
-
-## Implementation Details
-
-### 1. Removed TurnIndicator Fallback Creation
-
-**Before:**
-```javascript
-// Create turn indicator (using global window.TurnIndicator)
-try {
-    // Use the globally registered TurnIndicator class
-    if (window.TurnIndicator) {
-        this.turnIndicator = new window.TurnIndicator(this);
-        this.turnIndicator.setDepth(1); // Set depth to render below sprites but above background
-        console.log('Turn indicator created successfully:', this.turnIndicator);
-        // Verify the turnIndicator has the showAt method
-        if (typeof this.turnIndicator.showAt !== 'function') {
-            console.error('WARNING: Created TurnIndicator but showAt method is missing!');
-        }
-    } else {
-        console.error('ERROR: TurnIndicator class not found in window global scope');
-        // Fallback: create a simple Graphics object if class not available
-        this.turnIndicator = this.add.graphics();
-        this.turnIndicator.setAlpha(0);
-        // Add a basic showAt method to the graphics object for compatibility
-        this.turnIndicator.showAt = (x, y, color, duration) => {
-            console.log('Using fallback showAt method');
-            this.turnIndicator.clear();
-            this.turnIndicator.setPosition(x, y);
-            this.turnIndicator.fillStyle(color, 0.7);
-            this.turnIndicator.fillCircle(0, 0, 30);
-            this.turnIndicator.setAlpha(0.7);
-        };
-        // Add hide method for compatibility
-        this.turnIndicator.hide = (duration) => {
-            this.turnIndicator.clear();
-            this.turnIndicator.setAlpha(0);
-        };
-    }
-} catch (err) {
-    console.error('Error creating TurnIndicator:', err);
-    // Create fallback if error occurs
-    this.turnIndicator = this.add.graphics();
-    this.turnIndicator.setAlpha(0);
-    this.turnIndicator.showAt = (x, y, color, duration) => {
-        console.log('Using fallback showAt method after error');
-        this.turnIndicator.clear();
-        this.turnIndicator.setPosition(x, y);
-        this.turnIndicator.fillStyle(color, 0.7);
-        this.turnIndicator.fillCircle(0, 0, 30);
-        this.turnIndicator.setAlpha(0.7);
-    };
-    this.turnIndicator.hide = (duration) => {
-        this.turnIndicator.clear();
-        this.turnIndicator.setAlpha(0);
-    };
-}
-```
-
-**After:**
-```javascript
-// Create turn indicator (using global window.TurnIndicator)
-try {
-    if (window.TurnIndicator) {
-        this.turnIndicator = new window.TurnIndicator(this);
-        this.turnIndicator.setDepth(1); // Set depth to render below sprites but above background
-        console.log('Turn indicator created successfully');
-        
-        // Verify the turnIndicator has the showAt method
-        if (typeof this.turnIndicator.showAt !== 'function') {
-            console.error('ERROR: Created TurnIndicator missing showAt method');
-            this.showErrorMessage('Turn indicator creation incomplete');
-        }
-    } else {
-        console.error('ERROR: TurnIndicator class not found');
-        this.showErrorMessage('Turn indicator not available');
-    }
-} catch (err) {
-    console.error('Error creating TurnIndicator:', err);
-    this.showErrorMessage('Failed to create turn indicator: ' + err.message);
-}
-```
-
-This change removes ~30 lines of fallback code that created a simplified Graphics-based version of the turn indicator when the proper component was unavailable.
-
-### 2. Improved BattleUIManager Initialization Error Handling
-
-**Before:**
-```javascript
-// Check if BattleUIManager is available
-if (window.BattleUIManager) {
-    console.log('BattleScene: Creating BattleUIManager instance');
-    this.uiManager = new window.BattleUIManager(this);
-    
-    // Initialize all UI components
-    if (this.uiManager.initializeUI()) {
-        console.log('BattleScene: BattleUIManager initialized successfully');
-    } else {
-        console.warn('BattleScene: BattleUIManager initialization returned false');
-    }
-} else {
-    console.warn('BattleScene: BattleUIManager not found, using legacy UI creation');
-    this.showErrorMessage('UI Manager not available - using legacy UI');
-}
-```
-
-**After:**
-```javascript
-// Check if BattleUIManager is available
-if (window.BattleUIManager) {
-    console.log('BattleScene: Creating BattleUIManager instance');
-    this.uiManager = new window.BattleUIManager(this);
-    
-    // Initialize all UI components
-    if (this.uiManager.initializeUI()) {
-        console.log('BattleScene: BattleUIManager initialized successfully');
-    } else {
-        console.error('BattleScene: BattleUIManager initialization failed');
-        this.showErrorMessage('Failed to initialize UI components');
-    }
-} else {
-    console.error('BattleScene: BattleUIManager not found - UI components will not be available');
-    this.showErrorMessage('UI Manager not available');
-}
-```
-
-This change:
-- Removes the reference to "using legacy UI creation" since no such fallback exists
-- Changes console.warn to console.error to better reflect severity
-- Adds a more specific error message when initialization fails
-- Makes it clear that UI components will not be available without the manager
-
-### 3. Enhanced TeamDisplayManager Initialization Error Handling
-
-**Before:**
-```javascript
-// Check if TeamDisplayManager is available
-if (window.TeamDisplayManager) {
-    // ...
-    if (this.teamManager.initialize()) {
-        // ...
-    } else {
-        console.warn('BattleScene: TeamDisplayManager initialization returned false');
-        return false;
-    }
-} else {
-    console.warn('BattleScene: TeamDisplayManager not found, using legacy team creation');
-    return false;
-}
-```
-
-**After:**
-```javascript
-// Check if TeamDisplayManager is available
-if (window.TeamDisplayManager) {
-    // ...
-    if (this.teamManager.initialize()) {
-        // ...
-    } else {
-        console.error('BattleScene: TeamDisplayManager initialization failed');
-        this.showErrorMessage('Failed to initialize team display');
-        return false;
-    }
-} else {
-    console.error('BattleScene: TeamDisplayManager not found - team display will not be available');
-    this.showErrorMessage('Team display manager not available');
-    return false;
-}
-```
-
-This change:
-- Removes the reference to "using legacy team creation" since no such fallback exists
-- Changes console.warn to console.error to better reflect severity
-- Adds a specific error message when initialization fails
-- Makes it clear that team display will not be available without the manager
-
-### 4. Removed Legacy Event Listener Cleanup
-
-**Before:**
-```javascript
-// Clean up the event manager first
-if (this.eventManager && typeof this.eventManager.destroy === 'function') {
-    console.log('BattleScene: Cleaning up BattleEventManager');
-    this.eventManager.destroy();
-    this.eventManager = null;
-} else if (this.battleBridge) {
-    // Legacy cleanup if no event manager is available
-    this.battleBridge.removeEventListener(this.battleBridge.eventTypes.TURN_STARTED, this.handleTurnStarted.bind(this));
-    console.log('BattleScene: Legacy event listener cleanup performed');
-}
-```
-
-**After:**
-```javascript
-// Clean up the event manager
-if (this.eventManager && typeof this.eventManager.destroy === 'function') {
-    console.log('BattleScene: Cleaning up BattleEventManager');
-    this.eventManager.destroy();
-    this.eventManager = null;
-}
-```
-
-This change removes the legacy event listener cleanup code that was necessary before the BattleEventManager component was fully established.
-
-### 5. Simplified TurnIndicator Creation in BattleBridge Initialization
-
-**Before:**
-```javascript
-// Ensure turn indicator exists
-if (!this.turnIndicator) {
-    try {
-        if (window.TurnIndicator) {
-            this.turnIndicator = new window.TurnIndicator(this);
-            this.turnIndicator.setDepth(1);
-        } else {
-            console.error('TurnIndicator class not found during bridge init');
-        }
-    } catch (err) {
-        console.error('Error creating TurnIndicator during bridge init:', err);
-    }
-}
-```
-
-**After:**
-```javascript
-// Ensure turn indicator exists - no fallback
-if (!this.turnIndicator && window.TurnIndicator) {
-    try {
-        this.turnIndicator = new window.TurnIndicator(this);
-        this.turnIndicator.setDepth(1);
-        console.log('Created TurnIndicator during bridge initialization');
-    } catch (err) {
-        console.error('Error creating TurnIndicator during bridge init:', err);
-    }
-}
-```
-
-This change:
-- Simplifies the condition to avoid nested conditionals
-- Makes it clear that no fallback mechanism will be provided
-- Adds success logging for better traceability
-
-## Benefits
-
-1. **Cleaner Code**: Removes approximately 50+ lines of legacy fallback code.
-
-2. **Clearer Dependencies**: Makes it explicit which components are required for proper functionality.
-
-3. **Better Error Feedback**: Provides more specific error messages to users when components are missing.
-
-4. **Reduced Complexity**: Simplifies the code paths by removing dead/unused fallback branches.
-
-5. **Consistent Error Handling**: Uses console.error consistently for missing required components.
-
-## Architectural Implications
-
-This change further reinforces the component-based architecture by:
-
-1. **Establishing Required Components**: Makes it clear that certain components (TurnIndicator, BattleUIManager, TeamDisplayManager, etc.) are required and not optional.
-
-2. **Enforcing Clean Error Handling**: Ensures proper error messages are displayed when components are missing.
-
-3. **Removing Legacy Compatibility**: Completes the Extract-Verify-Remove pattern by eliminating the "graceful degradation" fallbacks used during earlier phases.
-
-4. **Setting Clear Expectations**: Makes it explicit that the system now depends on these specialized components rather than providing internal fallbacks.
-
-## Testing Considerations
-
-When testing this change, verify:
-
-1. **Component Requirements**: A clear error message should appear if any required component is missing.
-
-2. **User Feedback**: Error messages should be displayed to the user through the UI when components are unavailable.
-
-3. **Initialization Flow**: The scene should initialize properly when all components are available.
-
-4. **Error Recovery**: The system should handle errors gracefully without crashing, even when components are missing.
-
-## Future Work
-
-This is the third stage of the Phase 7 cleanup. Future stages will focus on:
-
-1. **Standardizing Error Handling**: Creating a consistent approach to component dependency errors.
-
-2. **Streamlining Initialization**: Simplifying the component initialization process.
-
-3. **Removing Unused Properties and Methods**: Identifying and removing unused code that remains after the refactoring.
-
-## Lessons Learned
-
-1. **Graceful Transitions**: The gradual approach of Extract-Verify-Remove with temporary fallbacks allowed for a safer transition to component-based architecture.
-
-2. **Explicit Requirements**: Making component dependencies explicit improves clarity and maintainability.
-
-3. **User-Facing Error Messages**: Providing clear error messages through the UI improves the debugging experience.
-
-4. **Consistent Error Severity**: Using console.error consistently for missing required components makes issues more visible.
-
-This update completes Stage 3 of the Phase 7 cleanup, removing legacy fallback code blocks and strengthening the component-based architecture of the BattleScene.
-
-
-===== CHANGELOG_0.6.4.12_BattleSceneCleanup_Stage2 =====
-
-# CHANGELOG 0.6.4.12 - BattleScene Cleanup Stage 2: Removing Legacy Implementations from Delegated Methods
-
-## Overview
-
-This update implements Stage 2 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to remove the legacy implementations from methods that delegate to the TeamDisplayManager component. This continues the Extract-Verify-Remove pattern established throughout our refactoring process, where after extracting functionality to a specialized component and verifying it works correctly, we remove the original implementation from the source class.
-
-## Implementation Details
-
-### 1. Refactored `updateActiveCharacterVisuals()` Method
-
-**Before:**
-```javascript
-updateActiveCharacterVisuals(characterData) {
-    // REFACTORING: Use TeamDisplayManager if available
-    if (this.teamManager) {
-        return this.teamManager.updateActiveCharacterVisuals(characterData);
-    }
-    
-    // Original implementation follows
-    try {
-        if (!characterData) {
-            console.warn('updateActiveCharacterVisuals: Missing character data');
-            return;
-        }
-        
-        console.log(`Updating active character visuals for ${characterData.name} (${characterData.team})`);
-        
-        // Clear turn indicators from all teams
-        if (this.playerTeamContainer) this.playerTeamContainer.clearTurnIndicators();
-        if (this.enemyTeamContainer) this.enemyTeamContainer.clearTurnIndicators();
-        
-        // Find the correct team container based on the character's team
-        const teamContainer = characterData.team === 'player' 
-            ? this.playerTeamContainer 
-            : this.enemyTeamContainer;
-            
-        if (!teamContainer) {
-            console.warn(`Could not find team container for team: ${characterData.team}`);
-            return;
-        }
-        
-        // Find the character sprite
-        const characterSprite = teamContainer.getCharacterSpriteByName(characterData.name);
-        
-        if (characterSprite) {
-            // Show the turn indicator for this character
-            teamContainer.showTurnIndicator(characterData.name);
-            
-            // Update the UI text for current character's action using the UI manager
-            if (this.uiManager) {
-                this.uiManager.updateActionTextDisplay(this.battleState.currentTurn, characterData);
-            } else {
-                console.warn('Cannot update action text display - UIManager not available');
-            }
-            
-            // Determine marker color based on team (blue for player, red for enemy)
-            const markerColor = characterData.team === 'player' ? 0x4488ff : 0xff4444;
-            
-            // Calculate position (under the character)
-            const targetX = characterSprite.container.x;
-            const targetY = characterSprite.container.y + 40; // Adjust this offset for best visual placement
-            
-            // Get battle speed multiplier
-            const speedMultiplier = this.battleManager?.speedMultiplier || 1;
-            
-            // Define base animation duration and adjust for battle speed
-            const baseFadeDuration = 250;
-            const fadeDuration = baseFadeDuration / speedMultiplier;
-            
-            // Show the floor indicator at the calculated position
-            if (this.turnIndicator) {
-                this.turnIndicator.showAt(targetX, targetY, markerColor, fadeDuration);
-            }
-            
-            console.log(`Turn indicator updated for ${characterData.name} at position: ${targetX},${targetY}`);
-        } else {
-            console.warn(`Could not find character sprite for: ${characterData.name}`);
-            
-            // Hide the floor indicator if we can't find the character
-            if (this.turnIndicator) {
-                const baseFadeDuration = 250;
-                const speedMultiplier = this.battleManager?.speedMultiplier || 1;
-                const fadeDuration = baseFadeDuration / speedMultiplier;
-                this.turnIndicator.hide(fadeDuration);
-            }
-        }
-    } catch (error) {
-        console.error('Error updating active character visuals:', error);
-    }
-}
-```
-
-**After:**
-```javascript
-updateActiveCharacterVisuals(characterData) {
-    if (!this.teamManager) {
-        console.error('Cannot update active character visuals - TeamDisplayManager not available');
-        return;
-    }
-    return this.teamManager.updateActiveCharacterVisuals(characterData);
-}
-```
-
-This change removed approximately 72 lines of legacy code from the method, replacing it with a clean delegation to the TeamDisplayManager component.
-
-### 2. Refactored `getTeamData()` Method
-
-**Before:**
-```javascript
-getTeamData(teamType) {
-    // REFACTORING: Use TeamDisplayManager if available
-    if (this.teamManager) {
-        return this.teamManager.getTeamData(teamType);
-    }
-    
-    // Original implementation follows
-    try {
-        if (teamType === 'player' && this.playerTeam) {
-            console.log(`BattleScene: Providing player team data with ${this.playerTeam.length} heroes`);
-            return JSON.parse(JSON.stringify(this.playerTeam));
-        } else if (teamType === 'enemy' && this.enemyTeam) {
-            console.log(`BattleScene: Providing enemy team data with ${this.enemyTeam.length} heroes`);
-            return JSON.parse(JSON.stringify(this.enemyTeam));
-        } else {
-            console.warn(`BattleScene: Unable to provide ${teamType} team data`);
-            return [];
-        }
-    } catch (error) {
-        console.error(`BattleScene: Error getting ${teamType} team data:`, error);
-        return [];
-    }
-}
-```
-
-**After:**
-```javascript
-getTeamData(teamType) {
-    if (!this.teamManager) {
-        console.error(`Cannot get ${teamType} team data - TeamDisplayManager not available`);
-        return [];
-    }
-    return this.teamManager.getTeamData(teamType);
-}
-```
-
-This change removed approximately 21 lines of legacy code from the method, replacing it with a clean delegation to the TeamDisplayManager component.
-
-### 3. Improved Error Handling
-
-Both methods were updated to provide clear error messages when TeamDisplayManager is unavailable:
-
-1. Changed the console message level from `warn` to `error` to better indicate severity
-2. Added specific error messages describing which functionality is affected
-3. Maintained defensive returns to prevent cascading errors
-
-### 4. Updated Method Documentation
-
-The method JSDoc comments were updated to reflect that they now always delegate to TeamDisplayManager rather than only "if available":
-
-```javascript
-/**
- * Update all active character visual indicators
- * Delegates to TeamDisplayManager
- * @param {Object} characterData - Character currently taking action
- */
-```
-
-```javascript
-/**
- * Get team data from scene
- * Delegates to TeamDisplayManager
- * @param {string} teamType - 'player' or 'enemy'
- * @returns {Array} - Team data
- */
-```
-
-## Benefits
-
-1. **Reduced Code Size**: Removed approximately 93 lines of code from BattleScene.js.
-
-2. **Improved Clarity**: The methods now have a single responsibility - delegating to the specialized component.
-
-3. **Better Encapsulation**: All team-related functionality is now fully encapsulated in the TeamDisplayManager.
-
-4. **Reduced Maintenance Burden**: Changes to visual updates or team data handling only need to be made in one place.
-
-5. **Clearer Error Messages**: Provides more specific feedback when a required component is missing.
-
-## Architectural Implications
-
-This change reinforces our architectural principle that functionality should be fully encapsulated in specialized components:
-
-1. **Single Responsibility Principle**: BattleScene is now focused on scene coordination rather than direct team management.
-
-2. **Component-Based Architecture**: Completes the migration of team-related functionality to the TeamDisplayManager component.
-
-3. **Clean Interfaces**: Maintains clear and simple interfaces between components.
-
-4. **Dependency Requirements**: Further establishes TeamDisplayManager as a required component for battle visualization.
-
-## Testing Considerations
-
-When testing this change, verify:
-
-1. **Visual Updates**: Character highlighting and turn indicators should continue to work correctly.
-
-2. **Team Data Access**: Components that request team data through BattleScene should receive the correct data.
-
-3. **Error Handling**: When TeamDisplayManager is unavailable (simulated for testing), appropriate error messages should appear.
-
-## Future Work
-
-This is the second stage of the Phase 7 cleanup. Future stages will:
-
-1. Remove other legacy implementations in methods that have been delegated to specialized components.
-
-2. Standardize error handling and logging throughout BattleScene.js.
-
-3. Simplify remaining initialization and lifecycle methods.
-
-## Lessons Learned
-
-1. **Value of Pure Delegation**: Methods that simply delegate to a specialized component should be kept minimal and focused.
-
-2. **Clear Error Messages**: Error messages should identify both what failed and why it matters (what functionality is affected).
-
-3. **Documentation Updates**: When a method's responsibility changes, its documentation should be updated to reflect this.
-
-4. **Complete Remove Phase**: The Extract-Verify-Remove pattern is only complete when the legacy code is fully removed from the source class.
-
-This update completes Stage 2 of the Phase 7 cleanup, removing legacy implementations from delegated methods and reinforcing our component-based architecture.
-
-
-===== CHANGELOG_0.6.4.11_BattleSceneCleanup_Stage1 =====
-
-# CHANGELOG 0.6.4.11 - BattleScene Cleanup Stage 1: Removing Legacy Team Methods
-
-## Overview
-
-This update implements Stage 1 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to remove legacy team creation and cleanup methods that have been superseded by the TeamDisplayManager component implemented in Phase 3. This continues our architectural goal of moving responsibilities to specialized components and reducing the complexity of BattleScene.js.
-
-## Implementation Details
-
-### 1. Removed Legacy Methods
-
-Two methods were completely removed from BattleScene.js:
-
-- **createCharacterTeams()** (~92 lines): Previously responsible for creating player and enemy team containers and character sprites
-- **cleanupCharacterTeams()** (~20 lines): Previously responsible for destroying team containers during scene shutdown
-
-This removal represents approximately 112 lines of code eliminated from BattleScene.js, further reducing its complexity and improving separation of concerns.
-
-### 2. Updated References to These Methods
-
-#### In create() method:
-
-**Before:**
-```javascript
-// If TeamDisplayManager is not available or failed, fall back to legacy method
-if (!this.teamManager || !this.playerTeamContainer) {
-    console.log('BattleScene create: Falling back to legacy team creation...');
-    // Create character teams for visualization
-    this.createCharacterTeams(); // This now has internal try-catch blocks
-    console.log('BattleScene create: Legacy character teams creation attempted.');
-}
-```
-
-**After:**
-```javascript
-// TeamDisplayManager is required - if not available, show error
-if (!this.teamManager || !this.playerTeamContainer) {
-    console.error('BattleScene create: TeamDisplayManager failed to initialize or create team containers');
-    this.showErrorMessage('Failed to initialize team display - battle cannot continue');
-}
-```
-
-#### In shutdown() method:
-
-**Before:**
-```javascript
-// Clean up TeamDisplayManager
-if (this.teamManager && typeof this.teamManager.destroy === 'function') {
-    console.log('BattleScene: Cleaning up TeamDisplayManager');
-    this.teamManager.destroy();
-    this.teamManager = null;
-} else {
-    // If TeamDisplayManager doesn't exist, use legacy cleanup
-    this.cleanupCharacterTeams();
-}
-```
-
-**After:**
-```javascript
-// Clean up TeamDisplayManager
-if (this.teamManager && typeof this.teamManager.destroy === 'function') {
-    console.log('BattleScene: Cleaning up TeamDisplayManager');
-    this.teamManager.destroy();
-    this.teamManager = null;
-} else if (this.playerTeamContainer || this.enemyTeamContainer) {
-    // Direct cleanup of any remaining team containers
-    console.warn('BattleScene: TeamDisplayManager not available - cleaning up containers directly');
-    
-    if (this.playerTeamContainer) {
-        this.playerTeamContainer.destroy();
-        this.playerTeamContainer = null;
-    }
-    
-    if (this.enemyTeamContainer) {
-        this.enemyTeamContainer.destroy();
-        this.enemyTeamContainer = null;
-    }
-}
-```
-
-### 3. Improved Error Handling
-
-The fallback code has been replaced with proper error handling that:
-- Makes it clear TeamDisplayManager is now a required component, not optional
-- Provides a user-visible error message through showErrorMessage()
-- Uses appropriate logging levels (console.error instead of console.log)
-
-## Benefits
-
-1. **Enforces Component Architecture**: By removing fallback code, we enforce the architectural principle that responsibilities should belong to specialized components.
-
-2. **Reduces Duplication**: Eliminates redundant code that performed the same function as TeamDisplayManager.
-
-3. **Clearer Dependency Requirements**: Makes it explicit that TeamDisplayManager is now required for battle visualization.
-
-4. **Improved Code Size**: Reduces BattleScene.js by approximately 112 lines of code.
-
-5. **Better Error Messaging**: Provides clearer feedback when components fail to initialize properly.
-
-## Architectural Implications
-
-This change represents a philosophical shift in how we handle component dependencies:
-
-- **Before**: Graceful degradation with fallbacks to legacy methods
-- **After**: Required components with clear error messages when they're unavailable
-
-This shift aligns with the maturity of our component architecture. In early phases, fallbacks were important for incremental testing, but now that components are stable, we can enforce their use as requirements.
-
-## Testing Considerations
-
-When testing this change, verify:
-
-1. **Normal Operation**: Battles should continue to function correctly with TeamDisplayManager.
-2. **Error Handling**: If TeamDisplayManager fails to initialize, an appropriate error message should be displayed.
-3. **Resource Cleanup**: Team containers should be properly destroyed during scene shutdown, whether through TeamDisplayManager or direct cleanup.
-
-## Future Work
-
-This is the first stage of the Phase 7 cleanup. Future stages will:
-
-1. Remove legacy implementations of other methods that have been fully delegated to components.
-2. Standardize error handling and logging throughout BattleScene.js.
-3. Further organize and simplify the remaining code.
-
-## Lessons Learned
-
-1. **Clean Transition to Required Dependencies**: This change demonstrates how to transition from optional components with fallbacks to required components with clear error handling.
-
-2. **Direct vs. Delegated Cleanup**: For resource cleanup during shutdown, it's still valuable to have direct cleanup as a final fallback even when primarily relying on component-based cleanup.
-
-3. **Value of Incremental Component Adoption**: The Extract-Verify-Remove pattern allowed us to safely transition to component-based architecture over multiple versions.
-
-This update completes Stage 1 of the Phase 7 cleanup, continuing our progress toward a cleaner, more modular, and more maintainable architecture.
-
-
-===== CHANGELOG_0.6.4.10_CoordinateDisplayHotkeyFix =====
-
-# CHANGELOG 0.6.4.10 - Coordinate Display Hotkey Fix
-
-## Overview
-
-This update addresses issues with the coordinate grid toggle hotkey in CoordinateDisplay.js. The original Ctrl+G hotkey was conflicting with browser shortcuts, and the initial attempt to use Ctrl+Shift+G had similar issues. Additionally, the code was using a method not available in our version of Phaser. This update resolves both issues.
-
-## Implementation Details
-
-### 1. Changed Hotkey to Alt+G
-
-Changed the hotkey from Ctrl+G to Alt+G to avoid conflicts with browser shortcuts:
-
-**Before (0.6.4.8):**
-```javascript
-// Add keyboard shortcut for toggling (Ctrl+G)
-this.scene.input.keyboard.on('keydown-G', (event) => {
-    if (this.scene.input.keyboard.checkModifierKey(event, 'ctrl')) {
-        this.toggle();
-    }
-});
-```
-
-**After (0.6.4.10):**
-```javascript
-// Add keyboard shortcut for toggling (Alt+G)
-this.scene.input.keyboard.on('keydown-G', (event) => {
-    if (event.altKey) {
-        event.preventDefault(); // Prevent browser's default behavior
-        this.toggle();
-    }
-});
-```
-
-### 2. Fixed Compatibility Issue with Phaser
-
-Replaced the `checkModifierKey` method (which was causing a TypeError) with the direct `event.altKey` property check:
-
-**Error encountered:**
-```
-CoordinateDisplay.js:80 Uncaught TypeError: this.scene.input.keyboard.checkModifierKey is not a function
-```
-
-**Solution:**
-Replaced `this.scene.input.keyboard.checkModifierKey(event, 'alt')` with `event.altKey` which is supported across all Phaser versions and browsers.
-
-### 3. Added Browser Event Prevention
-
-Added `event.preventDefault()` to stop the browser from handling the keypress:
-```javascript
-event.preventDefault(); // Prevent browser's default behavior
-```
-
-This ensures the browser doesn't process the key combination if it has its own shortcut for it.
-
-### 4. Updated Documentation and Logging
-
-Updated all references to the keyboard shortcut throughout the codebase:
-
-1. File header documentation in CoordinateDisplay.js:
-```javascript
-/**
- * CoordinateDisplay.js
- * Provides a coordinate grid overlay and mouse position tracking for debugging
- * Toggle with Alt+G
- */
-```
-
-2. Console log messages in CoordinateDisplay.js:
-```javascript
-console.log('CoordinateDisplay: Created (toggle with Alt+G)');
-```
-```javascript
-console.log(`CoordinateDisplay: ${this.enabled ? 'Enabled' : 'Disabled'} (toggle with Alt+G)`);
-```
-
-3. Console log messages in PhaserDebugManager.js:
-```javascript
-console.log("[PhaserDebugManager] CoordinateDisplay initialized (toggle with Alt+G)");
-```
-
-## Implementation Benefits
-
-1. **Browser Compatibility**: Avoids conflicts with built-in browser shortcuts like Ctrl+G (Find/Search)
-
-2. **Improved User Experience**: Grid can now be toggled without triggering browser functionality
-
-3. **Cross-Browser/Version Support**: Using direct event properties instead of Phaser-specific methods ensures wider compatibility
-
-4. **Clear Communication**: Updated documentation and log messages provide clear information about the available hotkey
-
-## Testing Verification
-
-Testing has verified:
-
-1. **Functionality**: Alt+G now toggles the coordinate grid without triggering browser shortcuts
-2. **Error Resolution**: The TypeError related to `checkModifierKey` has been resolved
-3. **Documentation**: All references to keyboard shortcuts have been consistently updated
-
-## Lessons Learned
-
-1. **Browser Shortcut Awareness**: When implementing keyboard shortcuts in web-based games, being mindful of browser-reserved shortcuts is crucial
-
-2. **API Version Compatibility**: Direct DOM event properties (like `event.altKey`) are more reliable across different Phaser versions than framework-specific methods like `checkModifierKey`
-
-3. **Defensive Programming**: Adding `event.preventDefault()` helps ensure that our shortcuts don't conflict with browser behavior
-
-4. **Documentation Consistency**: Updating all references to a feature when it changes helps maintain clear and consistent communication
-
-This update ensures that the coordinate grid display can be properly toggled with Alt+G, providing developers with a reliable debugging tool without browser shortcut conflicts.
 
 
