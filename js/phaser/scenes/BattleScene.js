@@ -1,10 +1,19 @@
 /**
  * BattleScene.js
- * Main scene for battle visualization in Phaser
- * This scene displays the battle between player and enemy teams.
- * It provides the visual representation layer that connects to
- * the BattleManager for game logic processing.
- * @version 0.6.4.19 (Final Cleanup Stage 7: Console Log Standardization - Completed)
+ * 
+ * High-level orchestrator for the battle visualization system in Phaser.
+ * 
+ * This scene coordinates specialized manager components:
+ * - BattleUIManager: Handles UI elements and error messages
+ * - TeamDisplayManager: Controls team visualization and active character indicators
+ * - BattleEventManager: Manages battle events and communications between systems
+ * - BattleFXManager: Handles visual effects like floating text and animations
+ * - BattleAssetLoader: Centralizes asset loading for battle elements
+ * 
+ * The scene initializes these components, manages their lifecycle, and
+ * delegates functionality to them rather than implementing it directly.
+ * 
+ * @version 0.6.4.20 (Final Cleanup Stage 9: Documentation and Formatting)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -54,7 +63,7 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Initialize the scene with battle configuration
-     * @param {Object} data - Battle configuration data from TeamBuilder
+     * Creates deep copies of team data to prevent reference issues during battle
      */
     init(data) {
         this.battleConfig = data || {};
@@ -109,7 +118,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Preload any assets needed for the battle scene
+     * Preload assets needed for the battle scene via BattleAssetLoader
+     * Returns early with minimal assets if BattleAssetLoader is unavailable
      */
     preload() {
         // Try to set texture filtering to LINEAR (with error handling)
@@ -179,7 +189,8 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Create the battle scene display
-     * Sets up the basic scene elements and initializes all components
+     * Initializes all manager components in the correct sequence
+     * Displays error message if asset loading failed
      */
     create() {
         // Force Canvas smoothing specifically for this scene
@@ -214,7 +225,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Configure Canvas smoothing settings for the scene
+     * Configures Canvas smoothing for improved visual quality
+     * Must be called during scene creation to ensure proper rendering
      * @private
      */
     configureCanvasSmoothing() {
@@ -231,7 +243,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Initialize the BattleUIManager
+     * Initializes the BattleUIManager component
+     * Handles UI creation and error message display
      * @private
      * @returns {boolean} Success state
      */
@@ -264,7 +277,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Initialize the TeamDisplayManager
+     * Initializes the TeamDisplayManager component
+     * Handles team visualization and active character indicators
      * @private
      * @returns {boolean} Success state
      */
@@ -321,9 +335,7 @@ export default class BattleScene extends Phaser.Scene {
 
 
     /**
-     * Update all active character visual indicators
-     * Delegates to TeamDisplayManager
-     * @param {Object} characterData - Character currently taking action
+     * Delegates to TeamDisplayManager to update active character indicators
      */
     updateActiveCharacterVisuals(characterData) {
         if (!this.teamManager) {
@@ -334,12 +346,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Show attack animation between characters
-     * Delegates to BattleFXManager
-     * @param {Object} attacker - Attacking character
-     * @param {Object} target - Target character
-     * @param {Function} onComplete - Callback when animation completes
-     * @param {Object} actionContext - Context about the action being animated
+     * Shows attack animation between characters via BattleFXManager
+     * Ensures callback is called even if animation fails
      */
     showAttackAnimation(attacker, target, onComplete, actionContext) {
         try {
@@ -356,7 +364,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Initialize the BattleFXManager
+     * Initializes the BattleFXManager component
+     * Handles visual effects like floating text and animations
      * @private
      * @returns {boolean} Success state
      */
@@ -386,11 +395,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Show floating text above a character
-     * Delegates to BattleFXManager
-     * @param {Object} character - Character to show text above
-     * @param {string} text - Text to display
-     * @param {Object} style - Text style options
+     * Displays floating text above characters via BattleFXManager
      */
     showFloatingText(character, text, style = {}) {
         try {
@@ -405,7 +410,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Initialize the PhaserDebugManager
+     * Initializes the PhaserDebugManager component
+     * Handles debug tools and testing functions
      * @private
      * @returns {boolean} Success state
      */
@@ -450,7 +456,8 @@ export default class BattleScene extends Phaser.Scene {
 
 
     /**
-     * Initialize the bridge connection to BattleManager
+     * Initializes the bridge connection to BattleManager
+     * Uses multiple fallback approaches if primary method fails
      * @private
      * @returns {boolean} Success state
      */
@@ -531,7 +538,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Initialize the BattleEventManager
+     * Initializes the BattleEventManager component
+     * Requires battleBridge to be initialized first
      * @private
      * @returns {boolean} Success state
      */
@@ -567,7 +575,7 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Cleanup the bridge connection
+     * Cleans up the bridge connection and event manager
      */
     cleanupBattleBridge() {
         try {
@@ -589,10 +597,8 @@ export default class BattleScene extends Phaser.Scene {
 
 
     /**
-     * Get team data from scene
-     * Delegates to TeamDisplayManager
-     * @param {string} teamType - 'player' or 'enemy'
-     * @returns {Array} - Team data
+     * Delegates to TeamDisplayManager to retrieve team data
+     * Returns empty array if TeamDisplayManager is unavailable
      */
     getTeamData(teamType) {
         if (!this.teamManager) {
@@ -603,9 +609,7 @@ export default class BattleScene extends Phaser.Scene {
     }
     
     /**
-     * Display battle outcome screen
-     * Delegates to BattleUIManager
-     * @param {string} winner - 'player', 'enemy', or 'draw'
+     * Displays battle outcome screen via BattleUIManager
      */
     showBattleOutcome(winner) {
         try {
@@ -622,9 +626,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Display error messages in the UI
-     * Delegates to BattleUIManager
-     * @param {string} message - The error message to show
+     * Displays user-facing error messages through the BattleUIManager
+     * Falls back to console error if BattleUIManager is unavailable
      */
     showErrorMessage(message) {
         console.error('[BattleScene] UI Error Message:', message); // Log to console
@@ -637,10 +640,9 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Update loop for the battle scene
-     * Called by Phaser on every frame to update game state
-     * @param {number} time - Current time in ms since game start
-     * @param {number} delta - Time in ms since last update
+     * Updates game state on every frame
+     * Handles debug tools and team container updates
+     * Contains error handling to prevent errors from breaking the game loop
      */
     update(time, delta) {
         try {
@@ -668,8 +670,8 @@ export default class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Scene shutdown handler
-     * Clean up resources and listeners when the scene is stopped
+     * Cleans up resources when scene is stopped
+     * Destroys all manager components and clears references
      */
     shutdown() {
         console.log('[BattleScene] Shutting down');
@@ -738,13 +740,13 @@ export default class BattleScene extends Phaser.Scene {
             this.battleConfig = null;
             this.playerTeam = null;
             this.enemyTeam = null;
-        this.components = {};
-        
-        // Clean up turn indicator
-        if(this.turnIndicator) { 
-            this.turnIndicator.destroy(); 
-            this.turnIndicator = null; 
-        }
+            this.components = {};
+            
+            // Clean up turn indicator
+            if(this.turnIndicator) { 
+                this.turnIndicator.destroy(); 
+                this.turnIndicator = null; 
+            }
 
             console.log('[BattleScene] Shut down successfully');
         } catch (error) {
