@@ -125,37 +125,90 @@ export default class BattleScene extends Phaser.Scene {
         // of trying to use textures.setFilter which isn't available in this version of Phaser
         console.log('BattleScene: Using config-level texture filtering instead of direct method');
 
-        // Preload all character images in a centralized location
-        try {
-            // Basic placeholder asset
-            this.load.image('character-circle', 'assets/images/icons/character-circle.png');
+        // Initialize BattleAssetLoader for UI assets
+        if (window.BattleAssetLoader) {
+            this.assetLoader = new window.BattleAssetLoader(this);
+            this.assetLoader.loadUIAssets();
             
-            // Preload all combat-optimized character art - this is the proper place to load assets
-            const characterArt = [
-                'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
-                'Sylvanna', 'Vaelgor', 'Seraphina' 
-            ];
+            // Preload all character images in a centralized location
+            try {
+                // Basic placeholder asset
+                this.load.image('character-circle', 'assets/images/icons/character-circle.png');
+                
+                // Preload all combat-optimized character art - this is the proper place to load assets
+                const characterArt = [
+                    'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
+                    'Sylvanna', 'Vaelgor', 'Seraphina' 
+                ];
+                
+                // Special case for Caste due to parentheses in filename
+                const casteKey = 'character_Caste';
+                const castePath = 'assets/images/Character Art/Combat_Version/Caste.png';
+                this.load.image(casteKey, castePath);
+                console.log(`BattleScene: Preloading combat-optimized character image ${casteKey} from ${castePath}`);
+                
+                characterArt.forEach(name => {
+                    const key = `character_${name}`;
+                    // Use the combat-optimized versions of character art
+                    const path = `assets/images/Character Art/Combat_Version/${name}.png`;
+                    this.load.image(key, path);
+                    console.log(`BattleScene: Preloading combat-optimized character image ${key} from ${path}`);
+                });
+                
+                console.log('BattleScene: Character art preload complete');
+                
+                // Preload status effect icons - call our dedicated method instead
+                this.preloadStatusEffectIcons();
+            } catch (error) {
+                console.warn('BattleScene: Could not preload character art:', error);
+            }
+        } else {
+            console.warn("[BattleScene] BattleAssetLoader not available, using original loading code");
             
-            // Special case for Caste due to parentheses in filename
-            const casteKey = 'character_Caste';
-            const castePath = 'assets/images/Character Art/Combat_Version/Caste.png';
-            this.load.image(casteKey, castePath);
-            console.log(`BattleScene: Preloading combat-optimized character image ${casteKey} from ${castePath}`);
+            // Original UI asset loading code as fallback
+            this.load.image('return-button', 'assets/images/icons/return.png');
+            this.load.image('next-turn', 'assets/images/icons/next-turn.png');
+            this.load.image('play', 'assets/images/icons/play.png');
+            this.load.image('pause', 'assets/images/icons/pause.png');
+            this.load.image('speed-1', 'assets/images/icons/speed-1.png');
+            this.load.image('speed-2', 'assets/images/icons/speed-2.png');
+            this.load.image('speed-3', 'assets/images/icons/speed-3.png');
+            this.load.image('health-bar-bg', 'assets/images/ui/health-bar-bg.png');
+            this.load.image('health-bar', 'assets/images/ui/health-bar.png');
+            this.load.image('turn-indicator', 'assets/images/ui/turn-indicator.png');
             
-            characterArt.forEach(name => {
-                const key = `character_${name}`;
-                // Use the combat-optimized versions of character art
-                const path = `assets/images/Character Art/Combat_Version/${name}.png`;
-                this.load.image(key, path);
-                console.log(`BattleScene: Preloading combat-optimized character image ${key} from ${path}`);
-            });
-            
-            console.log('BattleScene: Character art preload complete');
-            
-            // Preload status effect icons - call our dedicated method instead
-            this.preloadStatusEffectIcons();
-        } catch (error) {
-            console.warn('BattleScene: Could not preload character art:', error);
+            // Preload all character images in a centralized location
+            try {
+                // Basic placeholder asset
+                this.load.image('character-circle', 'assets/images/icons/character-circle.png');
+                
+                // Preload all combat-optimized character art - this is the proper place to load assets
+                const characterArt = [
+                    'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
+                    'Sylvanna', 'Vaelgor', 'Seraphina' 
+                ];
+                
+                // Special case for Caste due to parentheses in filename
+                const casteKey = 'character_Caste';
+                const castePath = 'assets/images/Character Art/Combat_Version/Caste.png';
+                this.load.image(casteKey, castePath);
+                console.log(`BattleScene: Preloading combat-optimized character image ${casteKey} from ${castePath}`);
+                
+                characterArt.forEach(name => {
+                    const key = `character_${name}`;
+                    // Use the combat-optimized versions of character art
+                    const path = `assets/images/Character Art/Combat_Version/${name}.png`;
+                    this.load.image(key, path);
+                    console.log(`BattleScene: Preloading combat-optimized character image ${key} from ${path}`);
+                });
+                
+                console.log('BattleScene: Character art preload complete');
+                
+                // Preload status effect icons - call our dedicated method instead
+                this.preloadStatusEffectIcons();
+            } catch (error) {
+                console.warn('BattleScene: Could not preload character art:', error);
+            }
         }
         
         console.log('BattleScene preload finished.');
@@ -1176,18 +1229,25 @@ export default class BattleScene extends Phaser.Scene {
 
             // Clean up tweens
             this.tweens.killAll();
+        
+            // Clean up asset loader
+            if (this.assetLoader && typeof this.assetLoader.destroy === 'function') {
+                console.log('BattleScene: Cleaning up BattleAssetLoader');
+                this.assetLoader.destroy();
+                this.assetLoader = null;
+            }
 
             // Clean up local references
             this.battleConfig = null;
             this.playerTeam = null;
             this.enemyTeam = null;
-            this.components = {};
-            
-            // Clean up turn indicator
-            if(this.turnIndicator) { 
-                this.turnIndicator.destroy(); 
-                this.turnIndicator = null; 
-            }
+        this.components = {};
+        
+        // Clean up turn indicator
+        if(this.turnIndicator) { 
+            this.turnIndicator.destroy(); 
+            this.turnIndicator = null; 
+        }
 
             console.log('BattleScene: Shut down successfully');
         } catch (error) {

@@ -95,7 +95,7 @@ This document outlines a phased approach to refactoring the BattleScene.js file,
 
 **Estimated LOC Removed from BattleScene.js**: ~70-100 lines
 
-## Phase 4: Extract Asset Loading (BattleAssetLoader)- Pausing until Bugs are fixed
+## Phase 4: Extract Asset Loading (BattleAssetLoader)- In Progress
 
 **Goal**: Remove asset loading logic from preload.
 

@@ -1,3 +1,9 @@
+### [0.6.4.0] - 2025-05-11
+#### Changed
+- Refactored asset loading from BattleScene into dedicated BattleAssetLoader component (Phase 1: UI assets)
+- Improved separation of concerns in BattleScene
+- Reduced BattleScene complexity by extracting asset loading logic
+
 ## [0.6.3.46] - 2025-05-10
 
 ### Fixed
