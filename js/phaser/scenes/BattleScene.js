@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.4.13 (Final Cleanup Stage 3: Removed legacy fallback code blocks)
+ * @version 0.6.4.16 (Final Cleanup Stage 6: Standardized error messages)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -436,6 +436,7 @@ export default class BattleScene extends Phaser.Scene {
         try {
             if (!window.PhaserDebugManager) {
                 console.error('BattleScene: PhaserDebugManager not found - debug tools will not be available');
+                // Debug tools are not critical to gameplay, so no user-facing error message
                 return false;
             }
             
@@ -453,6 +454,7 @@ export default class BattleScene extends Phaser.Scene {
             const success = this.debugManager.initialize();
             if (!success) {
                 console.error('BattleScene: PhaserDebugManager initialization failed');
+                this.showErrorMessage('Debug tools failed to initialize');
                 return false;
             }
             
@@ -463,6 +465,7 @@ export default class BattleScene extends Phaser.Scene {
             return true;
         } catch (error) {
             console.error('BattleScene: Error initializing debug manager:', error);
+            this.showErrorMessage('Debug tools initialization error: ' + error.message);
             return false;
         }
     }
@@ -565,11 +568,13 @@ export default class BattleScene extends Phaser.Scene {
         try {
             if (!this.battleBridge) {
                 console.error('BattleScene: Cannot initialize event manager - battleBridge not available');
+                this.showErrorMessage('Battle event system not available - connect to battle logic first');
                 return false;
             }
             
             if (!window.BattleEventManager) {
                 console.error('BattleScene: BattleEventManager not found - battle events will not be handled');
+                this.showErrorMessage('Battle event system not available');
                 return false;
             }
             
@@ -585,6 +590,7 @@ export default class BattleScene extends Phaser.Scene {
             return true;
         } catch (error) {
             console.error('BattleScene: Error initializing event manager:', error);
+            this.showErrorMessage('Failed to initialize battle events: ' + error.message);
             return false;
         }
     }

@@ -1,4 +1,546 @@
-﻿Combined Technical Changelog  (generated 2025-05-11 10:15)
+﻿Combined Technical Changelog  (generated 2025-05-11 10:33)
+
+===== CHANGELOG_0.6.4.15_BattleSceneCleanup_Stage5 =====
+
+# CHANGELOG 0.6.4.15 - BattleScene Cleanup Stage 5: Manager Initialization Method Refinement
+
+## Overview
+
+This update implements Stage 5 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to refine all the `initializeXYZ()` manager methods to follow a consistent pattern and ensure each method has a single, clear responsibility. This continues our architectural improvement efforts to make the codebase more maintainable, consistent, and focused.
+
+## Implementation Details
+
+### 1. Common Pattern for All Initialization Methods
+
+All manager initialization methods now follow a consistent pattern:
+
+1. Check if the required global class is available
+2. Instantiate the manager
+3. Call any necessary post-instantiation setup on the manager
+4. Ensure proper error handling throughout
+5. Return a boolean success state
+
+This pattern simplifies understanding of the initialization flow and provides consistency across all components.
+
+### 2. Refactored `initializeUIManager()`
+
+**Before:**
+```javascript
+initializeUIManager() {
+    try {
+        // Check if BattleUIManager is available
+        if (window.BattleUIManager) {
+            console.log('BattleScene: Creating BattleUIManager instance');
+            this.uiManager = new window.BattleUIManager(this);
+            
+            // Initialize all UI components
+            if (this.uiManager.initializeUI()) {
+                console.log('BattleScene: BattleUIManager initialized successfully');
+            } else {
+                console.error('BattleScene: BattleUIManager initialization failed');
+                this.showErrorMessage('Failed to initialize UI components');
+            }
+        } else {
+            console.error('BattleScene: BattleUIManager not found - UI components will not be available');
+            this.showErrorMessage('UI Manager not available');
+        }
+    } catch (error) {
+        console.error('BattleScene: Error initializing UI manager:', error);
+        this.showErrorMessage('Failed to initialize UI: ' + error.message);
+    }
+}
+```
+
+**After:**
+```javascript
+initializeUIManager() {
+    try {
+        if (!window.BattleUIManager) {
+            console.error('BattleScene: BattleUIManager not found - UI components will not be available');
+            this.showErrorMessage('UI Manager not available');
+            return false;
+        }
+        
+        // Instantiate the manager
+        this.uiManager = new window.BattleUIManager(this);
+        
+        // Initialize UI components
+        const success = this.uiManager.initializeUI();
+        if (!success) {
+            console.error('BattleScene: BattleUIManager initialization failed');
+            this.showErrorMessage('Failed to initialize UI components');
+            return false;
+        }
+        
+        console.log('BattleScene: BattleUIManager initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('BattleScene: Error initializing UI manager:', error);
+        this.showErrorMessage('Failed to initialize UI: ' + error.message);
+        return false;
+    }
+}
+```
+
+### 3. Refactored `initializeTeamManager()`
+
+The method was restructured to follow the same pattern while maintaining the same functionality:
+- Early exit if the required global class is not available
+- Simplified instantiation logic
+- Consistent return value handling
+
+### 4. Refactored `initializeDebugManager()`
+
+**Key Changes:**
+- Simplified conditional structure
+- Added explicit failure return on initialization failure
+- Removed redundant checks for `this.debugManager` (the object would already be initialized by this point)
+- Maintained debug function registration logging
+
+### 5. Refactored `initializeFXManager()`
+
+**Key Changes:**
+- Simplified conditional structure
+- Removed redundant console logging
+- Maintained connection with the event manager
+
+### 6. Simplified `initializeBattleBridge()`
+
+This was the most complex method to refactor, as it contained multiple fallback paths:
+
+**Before:**
+```javascript
+initializeBattleBridge() {
+    try {
+        // Primary approach: Call the dedicated initialization function
+        if (typeof window.initializeBattleBridge === 'function' && window.battleManager) {
+            // ... complex logic with multiple options
+        }
+        // Fallback #1: Use getBattleBridge accessor if available
+        else if (typeof window.getBattleBridge === 'function') {
+            // ... more complex logic
+        }
+        // Fallback #2: Direct access as last resort
+        else if (window.battleBridge && window.battleManager) {
+            // ... even more complex logic
+        } else {
+            // Fallback to create instance if only the class exists
+            // ... most complex logic
+        }
+    } catch(error) {
+        console.error('Error initializing BattleBridge:', error);
+        this.showErrorMessage('Failed to connect to battle logic.');
+    }
+}
+```
+
+**After:**
+```javascript
+initializeBattleBridge() {
+    try {
+        // Primary approach: Use the centralized initialization function
+        if (window.initializeBattleBridge && window.battleManager) {
+            console.log('BattleScene: Using initializeBattleBridge function');
+            const success = window.initializeBattleBridge(window.battleManager, this);
+            
+            if (success) {
+                // Get the bridge instance after initialization
+                this.battleBridge = window.getBattleBridge ? window.getBattleBridge() : window.battleBridge;
+                
+                // Initialize the event manager now that we have battleBridge
+                this.initializeEventManager();
+                
+                console.log('BattleScene: Battle bridge initialized successfully');
+                return true;
+            } else {
+                console.error('BattleScene: initializeBattleBridge reported failure');
+                this.showErrorMessage('Failed to initialize battle connection');
+                return false;
+            }
+        }
+        
+        // Fallback approach: Try to get or create battleBridge directly
+        console.warn('BattleScene: initializeBattleBridge function not available, trying fallback approaches');
+        
+        // Three clear fallback options with consistent pattern
+        // [fallback implementations...]
+        
+        // All approaches failed
+        console.error('BattleScene: Could not initialize battle bridge - no valid approach found');
+        this.showErrorMessage('Failed to connect to battle logic');
+        return false;
+    } catch (error) {
+        console.error('BattleScene: Error initializing BattleBridge:', error);
+        this.showErrorMessage('Failed to connect to battle logic: ' + error.message);
+        return false;
+    }
+}
+```
+
+Key improvements:
+- Clear primary approach
+- Organized fallback options
+- Consistent error handling and return values
+- Better user feedback via error messages
+
+### 7. Streamlined `initializeEventManager()`
+
+This method was dramatically simplified by removing verbose diagnostic logging:
+
+**Before:**
+```javascript
+initializeEventManager() {
+    console.log('BattleScene.initializeEventManager: Starting with diagnostics:', {
+        battleBridgeAvailable: !!this.battleBridge,
+        battleEventManagerClassAvailable: typeof window.BattleEventManager === 'function',
+        teamManagerAvailable: !!this.teamManager
+    });
+    
+    // More detailed diagnostic logging...
+    console.log('BattleScene.initializeEventManager: BattleBridge event types check:', {
+        hasEventTypes: !!this.battleBridge.eventTypes,
+        eventTypesList: this.battleBridge.eventTypes ? Object.keys(this.battleBridge.eventTypes) : 'none',
+        CHARACTER_ACTION: this.battleBridge.eventTypes?.CHARACTER_ACTION || 'undefined',
+        ABILITY_USED: this.battleBridge.eventTypes?.ABILITY_USED || 'undefined'
+    });
+    
+    // Even more diagnostic logging...
+    console.log('BattleScene.initializeEventManager: BattleEventManager created:', {
+        instanceCreated: !!this.eventManager,
+        hasOnCharacterAction: typeof this.eventManager?.onCharacterAction === 'function',
+        hasOnAbilityUsed: typeof this.eventManager?.onAbilityUsed === 'function'
+    });
+    
+    // ... other functionality
+}
+```
+
+**After:**
+```javascript
+initializeEventManager() {
+    try {
+        if (!this.battleBridge) {
+            console.error('BattleScene: Cannot initialize event manager - battleBridge not available');
+            return false;
+        }
+        
+        if (!window.BattleEventManager) {
+            console.error('BattleScene: BattleEventManager not found - battle events will not be handled');
+            return false;
+        }
+        
+        // Instantiate the manager
+        this.eventManager = new window.BattleEventManager(this, this.battleBridge);
+        
+        // Set TeamDisplayManager reference if available
+        if (this.teamManager && typeof this.eventManager.setTeamManager === 'function') {
+            this.eventManager.setTeamManager(this.teamManager);
+        }
+        
+        console.log('BattleScene: BattleEventManager initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('BattleScene: Error initializing event manager:', error);
+        return false;
+    }
+}
+```
+
+Key improvements:
+- Removed verbose diagnostic logging
+- Simplified dependency checks
+- Focused on core responsibilities
+- Added proper return values
+
+## Benefits
+
+1. **Consistent Pattern**: All initialization methods now follow the same clear pattern, making them easier to understand and maintain.
+
+2. **Improved Readability**: Simplified conditional structure and consistent error handling improves code readability.
+
+3. **Proper Return Values**: All methods now return a boolean success value, allowing calling code to take appropriate action.
+
+4. **Simplified Logic**: Complex nested conditionals have been flattened to improve readability and maintainability.
+
+5. **Reduced Verbosity**: Removed excessive diagnostic logging while maintaining essential error reporting.
+
+6. **Better Error Handling**: More consistent approach to error handling and user feedback.
+
+## Architectural Implications
+
+This change further reinforces our component-based architecture principles:
+
+1. **Single Responsibility**: Each initialization method now has a clear, single responsibility.
+
+2. **Consistent Interface**: All methods follow the same pattern, creating a consistent interface.
+
+3. **Clear Dependencies**: Dependencies between components are made explicit through the initialization sequence.
+
+4. **Error Handling**: Properly propagates errors up the call stack with clear return values.
+
+## Testing Considerations
+
+When testing this change, verify that:
+
+1. **Manager Initialization**: All managers initialize correctly in the expected sequence.
+
+2. **Error Handling**: Appropriate error messages are displayed when initialization fails.
+
+3. **Return Values**: The return values from initialization methods are properly handled in the create() method.
+
+4. **Battle Bridge Fallbacks**: All fallback approaches for BattleBridge initialization work as expected.
+
+5. **Event Manager Integration**: The event manager correctly integrates with other components.
+
+## Next Steps
+
+This is the fifth stage of the Phase 7 cleanup. The final stage will focus on:
+
+1. **Stage 6**: Perform a comprehensive review of BattleScene.js to identify any remaining cleanup opportunities.
+
+## Lessons Learned
+
+1. **Consistent Patterns**: Following consistent patterns across related methods improves code readability and maintainability.
+
+2. **Early Returns**: Using early returns for validation simplifies method structure and improves readability.
+
+3. **Diagnostic vs. Operation Logging**: Distinguishing between diagnostic logging (useful during development) and operational logging (useful in production) helps balance verbosity and utility.
+
+4. **Explicit Error Reporting**: Clear and consistent error reporting improves debugging and user experience.
+
+This update brings the BattleScene.js refactoring effort closer to completion, with a more consistent, maintainable approach to manager initialization that follows established architectural patterns.
+
+
+===== CHANGELOG_0.6.4.14_BattleSceneCleanup_Stage4 =====
+
+# CHANGELOG 0.6.4.14 - BattleScene Cleanup Stage 4: Simplified create() Method and Removed Direct TurnIndicator Management
+
+## Overview
+
+This update implements Stage 4 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to simplify the `create()` method and remove direct TurnIndicator management from BattleScene.js. This continues our architectural goal of improving separation of concerns and ensuring each component has clear, well-defined responsibilities.
+
+## Implementation Details
+
+### 1. Simplified the `create()` Method
+
+The `create()` method has been refactored to focus primarily on high-level initialization, removing specialized logic and delegating to component-specific initialization methods:
+
+**Before (0.6.4.13):**
+```javascript
+create() {
+    // TurnIndicator creation (approximately 20 lines of code)
+    ...
+    
+    // Canvas smoothing configuration (approximately 10 lines of code)
+    ...
+    
+    try {
+        // Initialize managers with inline comments and additional logging
+        this.initializeUIManager();
+        this.initializeDebugManager();
+        console.log('BattleScene create: Debug tools initialized.');
+        this.initializeBattleBridge();
+        console.log('BattleScene create: Battle bridge initialized.');
+        this.initializeTeamManager();
+        console.log('BattleScene create: TeamDisplayManager initialized.');
+        this.initializeFXManager();
+        console.log('BattleScene create: BattleFXManager initialized.');
+        
+        // TeamDisplayManager validation (approximately 5 lines)
+        ...
+        
+        // Hide test pattern (approximately 6 lines)
+        ...
+        
+        // Mark as initialized
+        this.isInitialized = true;
+        
+        // Display error message if asset loading failed
+        ...
+        
+        // Debug function logging (approximately 10 lines)
+        ...
+        
+        console.log('BattleScene created successfully');
+    } catch (error) {
+        // Error handling
+        ...
+    }
+}
+```
+
+**After (0.6.4.14):**
+```javascript
+create() {
+    console.log('BattleScene create starting...');
+    
+    // Force Canvas smoothing specifically for this scene
+    this.configureCanvasSmoothing();
+
+    try {
+        console.log('BattleScene create: Initializing BattleUIManager...');
+        this.initializeUIManager();
+
+        console.log('BattleScene create: Initializing debug tools...');
+        this.initializeDebugManager();
+
+        console.log('BattleScene create: Initializing battle bridge...');
+        this.initializeBattleBridge();
+
+        console.log('BattleScene create: Initializing TeamDisplayManager...');
+        this.initializeTeamManager();
+
+        console.log('BattleScene create: Initializing BattleFXManager...');
+        this.initializeFXManager();
+
+        // Mark as initialized
+        this.isInitialized = true;
+        
+        // Display error message if asset loading failed
+        if (this.showAssetLoadingError) {
+            // Show more specific error message if available
+            const errorMessage = this.assetLoadingErrorDetails ?
+                `Asset loading incomplete. ${this.assetLoadingErrorDetails}` :
+                "Asset loading incomplete. UI elements may be missing.";
+            
+            this.showErrorMessage(errorMessage);
+        }
+
+        console.log('BattleScene created successfully');
+    } catch (error) {
+        // Error handling
+        ...
+    }
+}
+```
+
+### 2. Extracted Canvas Smoothing Configuration
+
+Canvas smoothing logic was extracted to a dedicated method:
+
+```javascript
+/**
+ * Configure Canvas smoothing settings for the scene
+ * @private
+ */
+configureCanvasSmoothing() {
+    try {
+        if (this.sys.game.renderer.type === Phaser.CANVAS) {
+            // For Canvas renderer, we need to explicitly enable image smoothing
+            const canvasContext = this.sys.canvas.getContext('2d', { willReadFrequently: true });
+            canvasContext.imageSmoothingEnabled = true;
+            canvasContext.imageSmoothingQuality = 'high';
+            console.log('BattleScene: Canvas imageSmoothingEnabled set to true');
+        }
+    } catch (e) {
+        console.warn('Could not configure Canvas smoothing', e);
+    }
+}
+```
+
+### 3. Removed Direct TurnIndicator Creation
+
+Removed two blocks of TurnIndicator creation code:
+1. Direct creation in the `create()` method (~20 lines)
+2. Fallback creation in `initializeBattleBridge()` (~10 lines)
+
+BattleScene no longer directly creates or manages `this.turnIndicator`, as this responsibility now belongs to TeamDisplayManager.
+
+### 4. Relocated Specialized Logic
+
+Several pieces of specialized logic were moved to the appropriate initialization methods:
+
+1. **Test Pattern Hiding:** Moved from `create()` to `initializeTeamManager()`:
+```javascript
+// Hide test pattern after teams are created (if UI manager exists)
+if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
+    this.uiManager.hideTestPattern();
+} else if (!this.uiManager) {
+    console.warn('BattleScene: Cannot hide test pattern - UIManager not available');
+}
+```
+
+2. **Debug Function Logging:** Moved from `create()` to `initializeDebugManager()`:
+```javascript
+// Log debug function registration status
+if (this.debugManager) {
+    console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
+} else {
+    console.warn('BattleScene: Debug test functions not available - PhaserDebugManager not initialized');
+}
+
+console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
+```
+
+3. **Error Handling in TeamDisplayManager:** Enhanced error handling in `initializeTeamManager()`:
+```javascript
+catch (error) {
+    console.error('BattleScene: Error initializing team manager:', error);
+    this.showErrorMessage('Failed to initialize team display: ' + error.message);
+    return false;
+}
+```
+
+## Benefits
+
+1. **Improved Readability**: The `create()` method is now 64% shorter, making it easier to understand at a glance.
+
+2. **Clear Division of Responsibilities**: Each initialization method now fully encapsulates its specific domain, including related UI management and error handling.
+
+3. **Reduced Duplication**: Removed redundant TurnIndicator creation code that existed in two places.
+
+4. **Better Component Architecture**: Properly respects the ownership boundaries - TeamDisplayManager now fully owns TurnIndicator management.
+
+5. **Simplified Orchestration**: The `create()` method is now a clean orchestrator that clearly shows the initialization sequence without implementation details.
+
+## Architectural Implications
+
+This change further reinforces our component-based architecture principles:
+
+1. **Single Responsibility Principle**: Each component fully handles all aspects of its domain without leaking implementation details.
+
+2. **Ownership Boundaries**: Components own their dependencies - TeamDisplayManager now exclusively manages the TurnIndicator.
+
+3. **Hierarchical Scene Structure**: The `create()` method serves as a high-level orchestrator, delegating details to specialized methods.
+
+4. **Encapsulation**: Specialized logic is encapsulated within the appropriate methods rather than spread across the scene.
+
+## Testing Considerations
+
+When testing this change, verify that:
+
+1. **TurnIndicator Functionality**: Turn highlighting still works correctly in battles despite BattleScene no longer directly creating the TurnIndicator.
+
+2. **Manager Initialization**: All managers initialize correctly in the same sequence as before.
+
+3. **Canvas Smoothing**: Canvas smoothing settings are still properly applied.
+
+4. **UI Coordination**: Test pattern hiding still occurs at the appropriate time.
+
+5. **Error Handling**: Error messages are displayed correctly for initialization failures.
+
+## Next Steps
+
+This is the fourth stage of the Phase 7 cleanup. Future stages will:
+
+1. **Stage 5**: Simplify the remaining complex methods (e.g., `initializeBattleBridge()`)
+
+2. **Stage 6**: Review for any remaining cleanup opportunities
+
+3. **Final Review**: Perform a comprehensive review of BattleScene.js to ensure it adheres to all architectural principles
+
+## Lessons Learned
+
+1. **High-Level Orchestration**: Scene initialization methods should focus on orchestration rather than implementation details.
+
+2. **Location-Based Encapsulation**: Logic related to a specific component should be located within the method that initializes that component.
+
+3. **Ownership Boundaries**: Respecting component ownership boundaries (e.g., TeamDisplayManager owns TurnIndicator) makes the code more maintainable and reduces duplication.
+
+4. **Extract Method Pattern**: The extract method pattern (used for `configureCanvasSmoothing()`) improves readability and maintains the single responsibility principle.
+
+This update brings us closer to a fully refactored BattleScene.js that follows clean architectural principles and properly delegates responsibilities to specialized components.
+
 
 ===== CHANGELOG_0.6.4.13_BattleSceneCleanup_Stage3 =====
 
@@ -1852,234 +2394,5 @@ This completes Phase 4, Stage 3 of the BattleScene refactoring plan. The next st
 4. **Refactoring Benefits**: The BattleScene.js file is now significantly cleaner and more focused on its core responsibilities.
 
 This update completes the status effect icon loading refactoring, continuing the progressive improvement of the codebase's architecture and maintainability.
-
-
-===== CHANGELOG_0.6.4.3_BattleAssetLoader_StatusEffectIcons =====
-
-# CHANGELOG 0.6.4.3 - BattleAssetLoader Status Effect Icons Integration
-
-## Overview
-
-This update implements Stage 3 (Extract phase) of the BattleAssetLoader refactoring plan. It adds status effect icon loading functionality to the BattleAssetLoader component while maintaining backward compatibility with the original methods in BattleScene.js. This follows the Extract-Verify-Remove pattern outlined in the refactoring plan, with this update representing the "Extract" step.
-
-## Implementation Details
-
-### 1. Added Status Effect Icon Loading to BattleAssetLoader
-
-Added two new methods to BattleAssetLoader.js:
-
-- **loadStatusEffectIcons()**: Loads status effect icons with appropriate error handling
-  - Gets the mapping from initStatusIconMapping()
-  - Loads each icon using the scene's loader
-  - Returns the mapping for BattleScene to use
-  - Includes comprehensive error handling and fallbacks
-
-- **initStatusIconMapping()**: Initializes the status icon mapping
-  - Uses window.StatusIconMapper when available
-  - Provides a complete fallback mapping when StatusIconMapper isn't available
-  - Returns the mapping instead of setting it on the instance
-  - Includes robust error handling
-
-Key improvements over the original implementation:
-- Better error handling with clear fallback strategies
-- Explicit return values to provide mapping data to the caller
-- More detailed logging for debugging and monitoring
-- Consistent code style with the existing methods
-
-### 2. Updated BattleScene.js to Use BattleAssetLoader
-
-Modified the preload method to use the new BattleAssetLoader functionality:
-
-```javascript
-// Add status effect icon loading through the asset loader
-this.statusIconMapping = this.assetLoader.loadStatusEffectIcons();
-
-// If status icon mapping wasn't returned properly, fall back to original method
-if (!this.statusIconMapping || Object.keys(this.statusIconMapping).length === 0) {
-    console.warn("[BattleScene] Status icon mapping not returned from asset loader, using original methods");
-    this.preloadStatusEffectIcons();
-    this.statusIconMapping = this.initStatusIconMapping();
-}
-```
-
-This change:
-- Uses the BattleAssetLoader for status effect icon loading
-- Verifies that the mapping was returned successfully
-- Falls back to the original methods if needed
-- Maintains backward compatibility during this transitional phase
-
-## Benefits
-
-1. **Improved Separation of Concerns**: Status effect icon loading is now handled by the dedicated BattleAssetLoader component.
-
-2. **Better Error Handling**: The implementation includes comprehensive error handling with appropriate fallbacks.
-
-3. **Reduced Coupling**: BattleScene.js no longer contains the details of status effect icon loading.
-
-4. **Incremental Refactoring**: The Extract-Verify-Remove pattern allows for safe transition without breaking existing functionality.
-
-## Testing Verification
-
-Testing should verify:
-
-1. Status effect icons load correctly through BattleAssetLoader
-2. Tooltips display with proper icons and information
-3. The fallback mechanism works if the BattleAssetLoader fails
-4. No errors appear in the console related to status effect icons
-
-## Future Work
-
-This change is part of the ongoing BattleScene refactoring plan:
-
-- Version 0.6.4.3 (Current): Extract status effect icon loading into BattleAssetLoader
-- Version 0.6.4.4 (Next): Remove original status effect icon loading methods from BattleScene
-- Future versions: Complete Stage 4 to provide a unified asset loading interface
-
-## Lessons Learned
-
-1. **Return Values vs. Properties**: Using return values from methods is often clearer than setting properties on the instance, especially when there might be multiple callers.
-
-2. **Comprehensive Error Handling**: Including proper error handling in each refactored component ensures the system degrades gracefully when issues occur.
-
-3. **Testing Fallbacks**: Ensuring fallback mechanisms work properly is as important as testing the primary code path.
-
-4. **Incremental Approach Benefits**: The Extract-Verify-Remove pattern allows for safer refactoring by maintaining backward compatibility at each step.
-
-
-===== CHANGELOG_0.6.4.2_BattleAssetLoader_Stage2 =====
-
-# CHANGELOG 0.6.4.2 - BattleAssetLoader Stage 2 Implementation
-
-## Overview
-
-This update implements Stage 2 of the BattleAssetLoader refactoring plan, which extracts character asset loading logic from BattleScene.js into the dedicated BattleAssetLoader component. This completes the second major phase of refactoring in our ongoing effort to reduce the complexity of BattleScene.js and improve the separation of concerns within the codebase.
-
-## Implementation Details
-
-### 1. Added `loadCharacterAssets()` Method to BattleAssetLoader
-
-Created a new method in BattleAssetLoader.js that encapsulates all character asset loading logic:
-
-```javascript
-loadCharacterAssets() {
-    console.log("[BattleAssetLoader] Loading character assets...");
-    
-    if (!this.scene || !this.scene.load) {
-        console.error("[BattleAssetLoader] Cannot load character assets - scene or loader not available");
-        return;
-    }
-    
-    try {
-        // Basic placeholder asset
-        this.scene.load.image('character-circle', 'assets/images/icons/character-circle.png');
-        
-        // Preload all combat-optimized character art
-        const characterArt = [
-            'Aqualia', 'Drakarion', 'Zephyr', 'Lumina', 
-            'Sylvanna', 'Vaelgor', 'Seraphina' 
-        ];
-        
-        // Special case for Caste due to parentheses in filename
-        const casteKey = 'character_Caste';
-        const castePath = 'assets/images/Character Art/Combat_Version/Caste.png';
-        this.scene.load.image(casteKey, castePath);
-        console.log(`[BattleAssetLoader] Preloading combat-optimized character image ${casteKey} from ${castePath}`);
-        
-        characterArt.forEach(name => {
-            const key = `character_${name}`;
-            // Use the combat-optimized versions of character art
-            const path = `assets/images/Character Art/Combat_Version/${name}.png`;
-            this.scene.load.image(key, path);
-            console.log(`[BattleAssetLoader] Preloading combat-optimized character image ${key} from ${path}`);
-        });
-        
-        console.log('[BattleAssetLoader] Character art preload complete');
-    } catch (error) {
-        console.warn('[BattleAssetLoader] Could not preload character art:', error);
-    }
-}
-```
-
-The method includes:
-- Proper validation of scene and loader availability
-- Full error handling with try/catch
-- Consistent logging with the BattleAssetLoader prefix
-- Loading of all character assets that were previously in BattleScene.js
-
-### 2. Updated BattleScene.js to Use BattleAssetLoader for Character Assets
-
-Modified BattleScene.js to use the new method:
-
-```javascript
-// In BattleScene.js preload()
-if (window.BattleAssetLoader) {
-    this.assetLoader = new window.BattleAssetLoader(this);
-    this.assetLoader.loadUIAssets();
-    this.assetLoader.loadCharacterAssets(); // Added character asset loading through the loader
-    
-    // Preload status effect icons - call our dedicated method instead
-    this.preloadStatusEffectIcons();
-}
-```
-
-These changes:
-- Remove character asset loading code from the main BattleScene.js path
-- Delegate to the BattleAssetLoader component when available
-
-### 3. Simplified the Fallback Path
-
-Removed the redundant character asset loading code from the fallback path, replacing it with minimal essential code:
-
-```javascript
-// In BattleScene.js preload() - 'else' branch
-console.error("[BattleScene] BattleAssetLoader not available - falling back to minimal asset loading");
-
-// MINIMAL FALLBACK LOADING - just enough to show an error and basic functionality
-// Critical UI assets for error display
-this.load.image('return-button', 'assets/images/icons/return.png');
-
-// Minimal character assets for basic display
-this.load.image('character-circle', 'assets/images/icons/character-circle.png');
-
-// Load status effect icons
-this.preloadStatusEffectIcons();
-
-// Set a flag to show an error message to the user
-this.showAssetLoadingError = true;
-```
-
-The fallback path now:
-- Only loads the minimal assets required for basic display
-- Shows an appropriate error message to the user
-- Eliminates ~30 lines of redundant code from BattleScene.js
-- Maintains the status effect icon loading until Stage 3 is implemented
-
-## Benefits
-
-1. **Improved Separation of Concerns**: Character asset loading logic is now handled by a dedicated component rather than mixed into BattleScene's preload method.
-
-2. **Better Maintainability**: Changing the character asset loading process (e.g., adding new characters or tweaking paths) can now be done in a single, focused component.
-
-3. **Code Organization**: The BattleAssetLoader provides a central place for all battle-related asset loading, making the code easier to understand and navigate.
-
-4. **Defensive Programming**: The implementation includes comprehensive parameter validation and error handling at all levels.
-
-## Testing Verification
-
-Testing should verify:
-1. All character assets load correctly when using BattleAssetLoader
-2. Character sprites display properly during battles
-3. Console logs show the proper loading messages from BattleAssetLoader
-4. No error messages appear related to missing character assets
-
-## Next Steps
-
-Now that Stage 2 is complete, we're ready to proceed with Stage 3: Extract Status Effect Icon Loading.
-
-Stage 3 will involve:
-1. Adding a `loadStatusEffectIcons()` method to BattleAssetLoader
-2. Moving the `initStatusIconMapping()` method to BattleAssetLoader
-3. Updating BattleScene to use these methods
-4. Removing the original status effect loading code from BattleScene.js
 
 

@@ -1,3 +1,10 @@
+### [0.6.4.16] - 2025-05-11
+#### Changed
+- Standardized all user-facing error messages in BattleScene.js to use uiManager
+- Added user-facing error message display to event manager initialization
+- Added user-facing error message display to debug manager initialization
+- Completed Stage 6 of Phase 7 (Final Cleanup) refactoring
+
 ### [0.6.4.15] - 2025-05-11
 #### Changed
 - Refactored all `initializeXYZ()` manager methods to follow a consistent, concise pattern
