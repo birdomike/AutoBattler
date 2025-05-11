@@ -26,9 +26,25 @@ class TeamBuilderUI {
             fire: '#ff4757',
             water: '#1e90ff',
             nature: '#2ed573',
-            dark: '#9900cc',
+            electric: '#F7DF1E',
+            ice: '#ADD8E6',
+            rock: '#8B4513',
+            metal: '#C0C0C0',
+            air: '#70a1ff',
             light: '#ffd700',
-            air: '#70a1ff'
+            dark: '#9900cc',
+            psychic: '#DA70D6',
+            poison: '#8A2BE2',
+            physical: '#CD5C5C',
+            arcane: '#7B68EE',
+            mechanical: '#778899',
+            void: '#2F4F4F',
+            crystal: '#AFEEEE',
+            storm: '#4682B4',
+            ethereal: '#E6E6FA',
+            blood: '#8B0000',
+            plague: '#556B2F',
+            gravity: '#36454F'
         };
         this.rarityColors = {
             Common: '#aaaaaa',

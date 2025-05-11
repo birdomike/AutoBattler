@@ -550,14 +550,14 @@ class CharacterSprite {
      */
     getTypeColor(type) {
         const typeColors = {
-            fire: 0xFF4500, water: 0x1E90FF, nature: 0x32CD32,
-            electric: 0xFFD700, ice: 0x87CEEB, rock: 0x8B4513,
-            air: 0xF0F8FF, light: 0xFFFACD, dark: 0x483D8B,
-            metal: 0xC0C0C0, psychic: 0xDA70D6, poison: 0x9370DB,
-            physical: 0xBDB76B, arcane: 0x9932CC, mechanical: 0x708090,
-            void: 0x191970, crystal: 0xB0E0E6, storm: 0x4682B4,
+            fire: 0xFF4757, water: 0x1E90FF, nature: 0x2ED573,
+            electric: 0xF7DF1E, ice: 0xADD8E6, rock: 0x8B4513,
+            air: 0x70A1FF, light: 0xFFD700, dark: 0x9900CC,
+            metal: 0xC0C0C0, psychic: 0xDA70D6, poison: 0x8A2BE2,
+            physical: 0xCD5C5C, arcane: 0x7B68EE, mechanical: 0x778899,
+            void: 0x2F4F4F, crystal: 0xAFEEEE, storm: 0x4682B4,
             ethereal: 0xE6E6FA, blood: 0x8B0000, plague: 0x556B2F,
-            gravity: 0x2F4F4F, neutral: 0xAAAAAA // Added neutral for placeholder
+            gravity: 0x36454F, neutral: 0xAAAAAA // Added neutral for placeholder
         };
         // Fallback for undefined or null type
         const safeType = typeof type === 'string' ? type.toLowerCase() : 'neutral';

@@ -96,9 +96,25 @@ class BattleUI {
             fire: '#ff4757',
             water: '#1e90ff',
             nature: '#2ed573',
-            dark: '#9900cc',
+            electric: '#F7DF1E',
+            ice: '#ADD8E6',
+            rock: '#8B4513',
+            metal: '#C0C0C0',
+            air: '#70a1ff',
             light: '#ffd700',
-            air: '#70a1ff'
+            dark: '#9900cc',
+            psychic: '#DA70D6',
+            poison: '#8A2BE2',
+            physical: '#CD5C5C',
+            arcane: '#7B68EE',
+            mechanical: '#778899',
+            void: '#2F4F4F',
+            crystal: '#AFEEEE',
+            storm: '#4682B4',
+            ethereal: '#E6E6FA',
+            blood: '#8B0000',
+            plague: '#556B2F',
+            gravity: '#36454F'
         };
         this.arenaBackground = 'grassyfield'; // Use Grassy Field as default background
     }
@@ -260,9 +276,25 @@ class BattleUI {
                 .bg-fire { background-color: #ff4757; }
                 .bg-water { background-color: #1e90ff; }
                 .bg-nature { background-color: #2ed573; }
-                .bg-dark { background-color: #9900cc; }
-                .bg-light { background-color: #ffd700; }
+                .bg-electric { background-color: #F7DF1E; }
+                .bg-ice { background-color: #ADD8E6; }
+                .bg-rock { background-color: #8B4513; }
+                .bg-metal { background-color: #C0C0C0; }
                 .bg-air { background-color: #70a1ff; }
+                .bg-light { background-color: #ffd700; }
+                .bg-dark { background-color: #9900cc; }
+                .bg-psychic { background-color: #DA70D6; }
+                .bg-poison { background-color: #8A2BE2; }
+                .bg-physical { background-color: #CD5C5C; }
+                .bg-arcane { background-color: #7B68EE; }
+                .bg-mechanical { background-color: #778899; }
+                .bg-void { background-color: #2F4F4F; }
+                .bg-crystal { background-color: #AFEEEE; }
+                .bg-storm { background-color: #4682B4; }
+                .bg-ethereal { background-color: #E6E6FA; }
+                .bg-blood { background-color: #8B0000; }
+                .bg-plague { background-color: #556B2F; }
+                .bg-gravity { background-color: #36454F; }
                 
                 /* Character Art Styles */
                 .character-art-container {
