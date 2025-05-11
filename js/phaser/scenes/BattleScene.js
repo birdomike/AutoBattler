@@ -190,82 +190,29 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Create the battle scene display
-     * Sets up the basic scene elements and initializes the debug tools
+     * Sets up the basic scene elements and initializes all components
      */
     create() {
         console.log('BattleScene create starting...');
         
-        // Create turn indicator (using global window.TurnIndicator)
-        try {
-            if (window.TurnIndicator) {
-                this.turnIndicator = new window.TurnIndicator(this);
-                this.turnIndicator.setDepth(1); // Set depth to render below sprites but above background
-                console.log('Turn indicator created successfully');
-                
-                // Verify the turnIndicator has the showAt method
-                if (typeof this.turnIndicator.showAt !== 'function') {
-                    console.error('ERROR: Created TurnIndicator missing showAt method');
-                    this.showErrorMessage('Turn indicator creation incomplete');
-                }
-            } else {
-                console.error('ERROR: TurnIndicator class not found');
-                this.showErrorMessage('Turn indicator not available');
-            }
-        } catch (err) {
-            console.error('Error creating TurnIndicator:', err);
-            this.showErrorMessage('Failed to create turn indicator: ' + err.message);
-        }
-
         // Force Canvas smoothing specifically for this scene
-        try {
-            if (this.sys.game.renderer.type === Phaser.CANVAS) {
-                // For Canvas renderer, we need to explicitly enable image smoothing
-                const canvasContext = this.sys.canvas.getContext('2d', { willReadFrequently: true });
-                canvasContext.imageSmoothingEnabled = true;
-                canvasContext.imageSmoothingQuality = 'high';
-                console.log('BattleScene: Canvas imageSmoothingEnabled set to true');
-            }
-        } catch (e) {
-            console.warn('Could not configure Canvas smoothing', e);
-        }
+        this.configureCanvasSmoothing();
 
         try {
             console.log('BattleScene create: Initializing BattleUIManager...');
-            // Initialize BattleUIManager for UI components
             this.initializeUIManager();
 
             console.log('BattleScene create: Initializing debug tools...');
-            // Initialize debug tools through PhaserDebugManager if available
             this.initializeDebugManager();
-            console.log('BattleScene create: Debug tools initialized.');
 
             console.log('BattleScene create: Initializing battle bridge...');
-            // Initialize battle bridge if BattleManager is available
             this.initializeBattleBridge();
-            console.log('BattleScene create: Battle bridge initialized.');
 
             console.log('BattleScene create: Initializing TeamDisplayManager...');
-            // Initialize TeamDisplayManager for team and character visualization
             this.initializeTeamManager();
-            console.log('BattleScene create: TeamDisplayManager initialized.');
 
             console.log('BattleScene create: Initializing BattleFXManager...');
-            // Initialize BattleFXManager for visual effects
             this.initializeFXManager();
-            console.log('BattleScene create: BattleFXManager initialized.');
-
-            // TeamDisplayManager is required - if not available, show error
-            if (!this.teamManager || !this.playerTeamContainer) {
-                console.error('BattleScene create: TeamDisplayManager failed to initialize or create team containers');
-                this.showErrorMessage('Failed to initialize team display - battle cannot continue');
-            }
-
-            // Hide test pattern after teams are created (if UI manager exists)
-            if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
-                this.uiManager.hideTestPattern();
-            } else if (!this.uiManager) {
-                console.warn('BattleScene: Cannot hide test pattern - UIManager not available');
-            }
 
             // Mark as initialized
             this.isInitialized = true;
@@ -279,24 +226,30 @@ export default class BattleScene extends Phaser.Scene {
                 
                 this.showErrorMessage(errorMessage);
             }
-            
-            // Test functions are registered by PhaserDebugManager
-            if (this.debugManager) {
-                console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
-            } else {
-                console.warn('BattleScene: Debug test functions not available - PhaserDebugManager not initialized');
-            }
-            
-            // The testTurnHighlightingDirectly function is now provided by PhaserDebugManager
-            
-            // Log that test functions are handled by PhaserDebugManager
-            console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
 
             console.log('BattleScene created successfully');
         } catch (error) {
             // This outer catch handles errors in the main create flow
             console.error('FATAL Error in BattleScene create method:', error);
             this.showErrorMessage('FATAL: Failed to initialize battle scene: ' + error.message);
+        }
+    }
+
+    /**
+     * Configure Canvas smoothing settings for the scene
+     * @private
+     */
+    configureCanvasSmoothing() {
+        try {
+            if (this.sys.game.renderer.type === Phaser.CANVAS) {
+                // For Canvas renderer, we need to explicitly enable image smoothing
+                const canvasContext = this.sys.canvas.getContext('2d', { willReadFrequently: true });
+                canvasContext.imageSmoothingEnabled = true;
+                canvasContext.imageSmoothingQuality = 'high';
+                console.log('BattleScene: Canvas imageSmoothingEnabled set to true');
+            }
+        } catch (e) {
+            console.warn('Could not configure Canvas smoothing', e);
         }
     }
 
@@ -360,6 +313,13 @@ export default class BattleScene extends Phaser.Scene {
                         this.eventManager.setTeamManager(this.teamManager);
                     }
                     
+                    // Hide test pattern after teams are created (if UI manager exists)
+                    if (this.uiManager && (this.playerTeamContainer || this.enemyTeamContainer)) {
+                        this.uiManager.hideTestPattern();
+                    } else if (!this.uiManager) {
+                        console.warn('BattleScene: Cannot hide test pattern - UIManager not available');
+                    }
+                    
                     return true;
                 } else {
                     console.error('BattleScene: TeamDisplayManager initialization failed');
@@ -373,6 +333,7 @@ export default class BattleScene extends Phaser.Scene {
             }
         } catch (error) {
             console.error('BattleScene: Error initializing team manager:', error);
+            this.showErrorMessage('Failed to initialize team display: ' + error.message);
             return false;
         }
     }
@@ -492,6 +453,16 @@ export default class BattleScene extends Phaser.Scene {
                 // Initialize debug tools
                 const result = this.debugManager.initialize();
                 console.log(`BattleScene: PhaserDebugManager initialization ${result ? 'successful' : 'failed'}`);
+                
+                // Log debug function registration status
+                if (this.debugManager) {
+                    console.log('BattleScene: Debug test functions registered through PhaserDebugManager');
+                } else {
+                    console.warn('BattleScene: Debug test functions not available - PhaserDebugManager not initialized');
+                }
+                
+                console.log('DIAGNOSTIC: Test functions are now managed by PhaserDebugManager');
+                
                 return result;
             } else {
                 console.error('BattleScene: PhaserDebugManager not found - debug tools will not be available');
@@ -512,16 +483,6 @@ export default class BattleScene extends Phaser.Scene {
      */
     initializeBattleBridge() {
         try {
-            // Ensure turn indicator exists - no fallback
-            if (!this.turnIndicator && window.TurnIndicator) {
-                try {
-                    this.turnIndicator = new window.TurnIndicator(this);
-                    this.turnIndicator.setDepth(1);
-                    console.log('Created TurnIndicator during bridge initialization');
-                } catch (err) {
-                    console.error('Error creating TurnIndicator during bridge init:', err);
-                }
-            }
             // Primary approach: Call the dedicated initialization function
             if (typeof window.initializeBattleBridge === 'function' && window.battleManager) {
                 console.log('BattleScene: Calling initializeBattleBridge with BattleManager and BattleScene');

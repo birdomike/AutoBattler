@@ -1,3 +1,11 @@
+### [0.6.4.14] - 2025-05-11
+#### Changed
+- Simplified BattleScene.create() method to focus on manager initialization
+- Removed direct TurnIndicator creation and management from BattleScene
+- Moved specialized logic to appropriate initialization methods
+- Extracted canvas smoothing configuration into a dedicated method
+- Continued Phase 7 (Final Cleanup) refactoring with Stage 4 completion
+
 ### [0.6.4.13] - 2025-05-11
 #### Changed
 - Removed legacy fallback code throughout BattleScene.js

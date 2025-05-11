@@ -1,4 +1,682 @@
-﻿Combined Technical Changelog  (generated 2025-05-11 09:54)
+﻿Combined Technical Changelog  (generated 2025-05-11 10:15)
+
+===== CHANGELOG_0.6.4.13_BattleSceneCleanup_Stage3 =====
+
+# CHANGELOG 0.6.4.13 - BattleScene Cleanup Stage 3: Removing Legacy Fallback Code Blocks
+
+## Overview
+
+This update implements Stage 3 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to identify and remove legacy fallback code blocks throughout BattleScene.js. These fallback mechanisms were originally implemented to provide graceful degradation during the Extract-Verify-Remove pattern used in Phases 1-6, but are now obsolete as all manager components are considered required and fully functional.
+
+## Implementation Details
+
+### 1. Removed TurnIndicator Fallback Creation
+
+**Before:**
+```javascript
+// Create turn indicator (using global window.TurnIndicator)
+try {
+    // Use the globally registered TurnIndicator class
+    if (window.TurnIndicator) {
+        this.turnIndicator = new window.TurnIndicator(this);
+        this.turnIndicator.setDepth(1); // Set depth to render below sprites but above background
+        console.log('Turn indicator created successfully:', this.turnIndicator);
+        // Verify the turnIndicator has the showAt method
+        if (typeof this.turnIndicator.showAt !== 'function') {
+            console.error('WARNING: Created TurnIndicator but showAt method is missing!');
+        }
+    } else {
+        console.error('ERROR: TurnIndicator class not found in window global scope');
+        // Fallback: create a simple Graphics object if class not available
+        this.turnIndicator = this.add.graphics();
+        this.turnIndicator.setAlpha(0);
+        // Add a basic showAt method to the graphics object for compatibility
+        this.turnIndicator.showAt = (x, y, color, duration) => {
+            console.log('Using fallback showAt method');
+            this.turnIndicator.clear();
+            this.turnIndicator.setPosition(x, y);
+            this.turnIndicator.fillStyle(color, 0.7);
+            this.turnIndicator.fillCircle(0, 0, 30);
+            this.turnIndicator.setAlpha(0.7);
+        };
+        // Add hide method for compatibility
+        this.turnIndicator.hide = (duration) => {
+            this.turnIndicator.clear();
+            this.turnIndicator.setAlpha(0);
+        };
+    }
+} catch (err) {
+    console.error('Error creating TurnIndicator:', err);
+    // Create fallback if error occurs
+    this.turnIndicator = this.add.graphics();
+    this.turnIndicator.setAlpha(0);
+    this.turnIndicator.showAt = (x, y, color, duration) => {
+        console.log('Using fallback showAt method after error');
+        this.turnIndicator.clear();
+        this.turnIndicator.setPosition(x, y);
+        this.turnIndicator.fillStyle(color, 0.7);
+        this.turnIndicator.fillCircle(0, 0, 30);
+        this.turnIndicator.setAlpha(0.7);
+    };
+    this.turnIndicator.hide = (duration) => {
+        this.turnIndicator.clear();
+        this.turnIndicator.setAlpha(0);
+    };
+}
+```
+
+**After:**
+```javascript
+// Create turn indicator (using global window.TurnIndicator)
+try {
+    if (window.TurnIndicator) {
+        this.turnIndicator = new window.TurnIndicator(this);
+        this.turnIndicator.setDepth(1); // Set depth to render below sprites but above background
+        console.log('Turn indicator created successfully');
+        
+        // Verify the turnIndicator has the showAt method
+        if (typeof this.turnIndicator.showAt !== 'function') {
+            console.error('ERROR: Created TurnIndicator missing showAt method');
+            this.showErrorMessage('Turn indicator creation incomplete');
+        }
+    } else {
+        console.error('ERROR: TurnIndicator class not found');
+        this.showErrorMessage('Turn indicator not available');
+    }
+} catch (err) {
+    console.error('Error creating TurnIndicator:', err);
+    this.showErrorMessage('Failed to create turn indicator: ' + err.message);
+}
+```
+
+This change removes ~30 lines of fallback code that created a simplified Graphics-based version of the turn indicator when the proper component was unavailable.
+
+### 2. Improved BattleUIManager Initialization Error Handling
+
+**Before:**
+```javascript
+// Check if BattleUIManager is available
+if (window.BattleUIManager) {
+    console.log('BattleScene: Creating BattleUIManager instance');
+    this.uiManager = new window.BattleUIManager(this);
+    
+    // Initialize all UI components
+    if (this.uiManager.initializeUI()) {
+        console.log('BattleScene: BattleUIManager initialized successfully');
+    } else {
+        console.warn('BattleScene: BattleUIManager initialization returned false');
+    }
+} else {
+    console.warn('BattleScene: BattleUIManager not found, using legacy UI creation');
+    this.showErrorMessage('UI Manager not available - using legacy UI');
+}
+```
+
+**After:**
+```javascript
+// Check if BattleUIManager is available
+if (window.BattleUIManager) {
+    console.log('BattleScene: Creating BattleUIManager instance');
+    this.uiManager = new window.BattleUIManager(this);
+    
+    // Initialize all UI components
+    if (this.uiManager.initializeUI()) {
+        console.log('BattleScene: BattleUIManager initialized successfully');
+    } else {
+        console.error('BattleScene: BattleUIManager initialization failed');
+        this.showErrorMessage('Failed to initialize UI components');
+    }
+} else {
+    console.error('BattleScene: BattleUIManager not found - UI components will not be available');
+    this.showErrorMessage('UI Manager not available');
+}
+```
+
+This change:
+- Removes the reference to "using legacy UI creation" since no such fallback exists
+- Changes console.warn to console.error to better reflect severity
+- Adds a more specific error message when initialization fails
+- Makes it clear that UI components will not be available without the manager
+
+### 3. Enhanced TeamDisplayManager Initialization Error Handling
+
+**Before:**
+```javascript
+// Check if TeamDisplayManager is available
+if (window.TeamDisplayManager) {
+    // ...
+    if (this.teamManager.initialize()) {
+        // ...
+    } else {
+        console.warn('BattleScene: TeamDisplayManager initialization returned false');
+        return false;
+    }
+} else {
+    console.warn('BattleScene: TeamDisplayManager not found, using legacy team creation');
+    return false;
+}
+```
+
+**After:**
+```javascript
+// Check if TeamDisplayManager is available
+if (window.TeamDisplayManager) {
+    // ...
+    if (this.teamManager.initialize()) {
+        // ...
+    } else {
+        console.error('BattleScene: TeamDisplayManager initialization failed');
+        this.showErrorMessage('Failed to initialize team display');
+        return false;
+    }
+} else {
+    console.error('BattleScene: TeamDisplayManager not found - team display will not be available');
+    this.showErrorMessage('Team display manager not available');
+    return false;
+}
+```
+
+This change:
+- Removes the reference to "using legacy team creation" since no such fallback exists
+- Changes console.warn to console.error to better reflect severity
+- Adds a specific error message when initialization fails
+- Makes it clear that team display will not be available without the manager
+
+### 4. Removed Legacy Event Listener Cleanup
+
+**Before:**
+```javascript
+// Clean up the event manager first
+if (this.eventManager && typeof this.eventManager.destroy === 'function') {
+    console.log('BattleScene: Cleaning up BattleEventManager');
+    this.eventManager.destroy();
+    this.eventManager = null;
+} else if (this.battleBridge) {
+    // Legacy cleanup if no event manager is available
+    this.battleBridge.removeEventListener(this.battleBridge.eventTypes.TURN_STARTED, this.handleTurnStarted.bind(this));
+    console.log('BattleScene: Legacy event listener cleanup performed');
+}
+```
+
+**After:**
+```javascript
+// Clean up the event manager
+if (this.eventManager && typeof this.eventManager.destroy === 'function') {
+    console.log('BattleScene: Cleaning up BattleEventManager');
+    this.eventManager.destroy();
+    this.eventManager = null;
+}
+```
+
+This change removes the legacy event listener cleanup code that was necessary before the BattleEventManager component was fully established.
+
+### 5. Simplified TurnIndicator Creation in BattleBridge Initialization
+
+**Before:**
+```javascript
+// Ensure turn indicator exists
+if (!this.turnIndicator) {
+    try {
+        if (window.TurnIndicator) {
+            this.turnIndicator = new window.TurnIndicator(this);
+            this.turnIndicator.setDepth(1);
+        } else {
+            console.error('TurnIndicator class not found during bridge init');
+        }
+    } catch (err) {
+        console.error('Error creating TurnIndicator during bridge init:', err);
+    }
+}
+```
+
+**After:**
+```javascript
+// Ensure turn indicator exists - no fallback
+if (!this.turnIndicator && window.TurnIndicator) {
+    try {
+        this.turnIndicator = new window.TurnIndicator(this);
+        this.turnIndicator.setDepth(1);
+        console.log('Created TurnIndicator during bridge initialization');
+    } catch (err) {
+        console.error('Error creating TurnIndicator during bridge init:', err);
+    }
+}
+```
+
+This change:
+- Simplifies the condition to avoid nested conditionals
+- Makes it clear that no fallback mechanism will be provided
+- Adds success logging for better traceability
+
+## Benefits
+
+1. **Cleaner Code**: Removes approximately 50+ lines of legacy fallback code.
+
+2. **Clearer Dependencies**: Makes it explicit which components are required for proper functionality.
+
+3. **Better Error Feedback**: Provides more specific error messages to users when components are missing.
+
+4. **Reduced Complexity**: Simplifies the code paths by removing dead/unused fallback branches.
+
+5. **Consistent Error Handling**: Uses console.error consistently for missing required components.
+
+## Architectural Implications
+
+This change further reinforces the component-based architecture by:
+
+1. **Establishing Required Components**: Makes it clear that certain components (TurnIndicator, BattleUIManager, TeamDisplayManager, etc.) are required and not optional.
+
+2. **Enforcing Clean Error Handling**: Ensures proper error messages are displayed when components are missing.
+
+3. **Removing Legacy Compatibility**: Completes the Extract-Verify-Remove pattern by eliminating the "graceful degradation" fallbacks used during earlier phases.
+
+4. **Setting Clear Expectations**: Makes it explicit that the system now depends on these specialized components rather than providing internal fallbacks.
+
+## Testing Considerations
+
+When testing this change, verify:
+
+1. **Component Requirements**: A clear error message should appear if any required component is missing.
+
+2. **User Feedback**: Error messages should be displayed to the user through the UI when components are unavailable.
+
+3. **Initialization Flow**: The scene should initialize properly when all components are available.
+
+4. **Error Recovery**: The system should handle errors gracefully without crashing, even when components are missing.
+
+## Future Work
+
+This is the third stage of the Phase 7 cleanup. Future stages will focus on:
+
+1. **Standardizing Error Handling**: Creating a consistent approach to component dependency errors.
+
+2. **Streamlining Initialization**: Simplifying the component initialization process.
+
+3. **Removing Unused Properties and Methods**: Identifying and removing unused code that remains after the refactoring.
+
+## Lessons Learned
+
+1. **Graceful Transitions**: The gradual approach of Extract-Verify-Remove with temporary fallbacks allowed for a safer transition to component-based architecture.
+
+2. **Explicit Requirements**: Making component dependencies explicit improves clarity and maintainability.
+
+3. **User-Facing Error Messages**: Providing clear error messages through the UI improves the debugging experience.
+
+4. **Consistent Error Severity**: Using console.error consistently for missing required components makes issues more visible.
+
+This update completes Stage 3 of the Phase 7 cleanup, removing legacy fallback code blocks and strengthening the component-based architecture of the BattleScene.
+
+
+===== CHANGELOG_0.6.4.12_BattleSceneCleanup_Stage2 =====
+
+# CHANGELOG 0.6.4.12 - BattleScene Cleanup Stage 2: Removing Legacy Implementations from Delegated Methods
+
+## Overview
+
+This update implements Stage 2 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to remove the legacy implementations from methods that delegate to the TeamDisplayManager component. This continues the Extract-Verify-Remove pattern established throughout our refactoring process, where after extracting functionality to a specialized component and verifying it works correctly, we remove the original implementation from the source class.
+
+## Implementation Details
+
+### 1. Refactored `updateActiveCharacterVisuals()` Method
+
+**Before:**
+```javascript
+updateActiveCharacterVisuals(characterData) {
+    // REFACTORING: Use TeamDisplayManager if available
+    if (this.teamManager) {
+        return this.teamManager.updateActiveCharacterVisuals(characterData);
+    }
+    
+    // Original implementation follows
+    try {
+        if (!characterData) {
+            console.warn('updateActiveCharacterVisuals: Missing character data');
+            return;
+        }
+        
+        console.log(`Updating active character visuals for ${characterData.name} (${characterData.team})`);
+        
+        // Clear turn indicators from all teams
+        if (this.playerTeamContainer) this.playerTeamContainer.clearTurnIndicators();
+        if (this.enemyTeamContainer) this.enemyTeamContainer.clearTurnIndicators();
+        
+        // Find the correct team container based on the character's team
+        const teamContainer = characterData.team === 'player' 
+            ? this.playerTeamContainer 
+            : this.enemyTeamContainer;
+            
+        if (!teamContainer) {
+            console.warn(`Could not find team container for team: ${characterData.team}`);
+            return;
+        }
+        
+        // Find the character sprite
+        const characterSprite = teamContainer.getCharacterSpriteByName(characterData.name);
+        
+        if (characterSprite) {
+            // Show the turn indicator for this character
+            teamContainer.showTurnIndicator(characterData.name);
+            
+            // Update the UI text for current character's action using the UI manager
+            if (this.uiManager) {
+                this.uiManager.updateActionTextDisplay(this.battleState.currentTurn, characterData);
+            } else {
+                console.warn('Cannot update action text display - UIManager not available');
+            }
+            
+            // Determine marker color based on team (blue for player, red for enemy)
+            const markerColor = characterData.team === 'player' ? 0x4488ff : 0xff4444;
+            
+            // Calculate position (under the character)
+            const targetX = characterSprite.container.x;
+            const targetY = characterSprite.container.y + 40; // Adjust this offset for best visual placement
+            
+            // Get battle speed multiplier
+            const speedMultiplier = this.battleManager?.speedMultiplier || 1;
+            
+            // Define base animation duration and adjust for battle speed
+            const baseFadeDuration = 250;
+            const fadeDuration = baseFadeDuration / speedMultiplier;
+            
+            // Show the floor indicator at the calculated position
+            if (this.turnIndicator) {
+                this.turnIndicator.showAt(targetX, targetY, markerColor, fadeDuration);
+            }
+            
+            console.log(`Turn indicator updated for ${characterData.name} at position: ${targetX},${targetY}`);
+        } else {
+            console.warn(`Could not find character sprite for: ${characterData.name}`);
+            
+            // Hide the floor indicator if we can't find the character
+            if (this.turnIndicator) {
+                const baseFadeDuration = 250;
+                const speedMultiplier = this.battleManager?.speedMultiplier || 1;
+                const fadeDuration = baseFadeDuration / speedMultiplier;
+                this.turnIndicator.hide(fadeDuration);
+            }
+        }
+    } catch (error) {
+        console.error('Error updating active character visuals:', error);
+    }
+}
+```
+
+**After:**
+```javascript
+updateActiveCharacterVisuals(characterData) {
+    if (!this.teamManager) {
+        console.error('Cannot update active character visuals - TeamDisplayManager not available');
+        return;
+    }
+    return this.teamManager.updateActiveCharacterVisuals(characterData);
+}
+```
+
+This change removed approximately 72 lines of legacy code from the method, replacing it with a clean delegation to the TeamDisplayManager component.
+
+### 2. Refactored `getTeamData()` Method
+
+**Before:**
+```javascript
+getTeamData(teamType) {
+    // REFACTORING: Use TeamDisplayManager if available
+    if (this.teamManager) {
+        return this.teamManager.getTeamData(teamType);
+    }
+    
+    // Original implementation follows
+    try {
+        if (teamType === 'player' && this.playerTeam) {
+            console.log(`BattleScene: Providing player team data with ${this.playerTeam.length} heroes`);
+            return JSON.parse(JSON.stringify(this.playerTeam));
+        } else if (teamType === 'enemy' && this.enemyTeam) {
+            console.log(`BattleScene: Providing enemy team data with ${this.enemyTeam.length} heroes`);
+            return JSON.parse(JSON.stringify(this.enemyTeam));
+        } else {
+            console.warn(`BattleScene: Unable to provide ${teamType} team data`);
+            return [];
+        }
+    } catch (error) {
+        console.error(`BattleScene: Error getting ${teamType} team data:`, error);
+        return [];
+    }
+}
+```
+
+**After:**
+```javascript
+getTeamData(teamType) {
+    if (!this.teamManager) {
+        console.error(`Cannot get ${teamType} team data - TeamDisplayManager not available`);
+        return [];
+    }
+    return this.teamManager.getTeamData(teamType);
+}
+```
+
+This change removed approximately 21 lines of legacy code from the method, replacing it with a clean delegation to the TeamDisplayManager component.
+
+### 3. Improved Error Handling
+
+Both methods were updated to provide clear error messages when TeamDisplayManager is unavailable:
+
+1. Changed the console message level from `warn` to `error` to better indicate severity
+2. Added specific error messages describing which functionality is affected
+3. Maintained defensive returns to prevent cascading errors
+
+### 4. Updated Method Documentation
+
+The method JSDoc comments were updated to reflect that they now always delegate to TeamDisplayManager rather than only "if available":
+
+```javascript
+/**
+ * Update all active character visual indicators
+ * Delegates to TeamDisplayManager
+ * @param {Object} characterData - Character currently taking action
+ */
+```
+
+```javascript
+/**
+ * Get team data from scene
+ * Delegates to TeamDisplayManager
+ * @param {string} teamType - 'player' or 'enemy'
+ * @returns {Array} - Team data
+ */
+```
+
+## Benefits
+
+1. **Reduced Code Size**: Removed approximately 93 lines of code from BattleScene.js.
+
+2. **Improved Clarity**: The methods now have a single responsibility - delegating to the specialized component.
+
+3. **Better Encapsulation**: All team-related functionality is now fully encapsulated in the TeamDisplayManager.
+
+4. **Reduced Maintenance Burden**: Changes to visual updates or team data handling only need to be made in one place.
+
+5. **Clearer Error Messages**: Provides more specific feedback when a required component is missing.
+
+## Architectural Implications
+
+This change reinforces our architectural principle that functionality should be fully encapsulated in specialized components:
+
+1. **Single Responsibility Principle**: BattleScene is now focused on scene coordination rather than direct team management.
+
+2. **Component-Based Architecture**: Completes the migration of team-related functionality to the TeamDisplayManager component.
+
+3. **Clean Interfaces**: Maintains clear and simple interfaces between components.
+
+4. **Dependency Requirements**: Further establishes TeamDisplayManager as a required component for battle visualization.
+
+## Testing Considerations
+
+When testing this change, verify:
+
+1. **Visual Updates**: Character highlighting and turn indicators should continue to work correctly.
+
+2. **Team Data Access**: Components that request team data through BattleScene should receive the correct data.
+
+3. **Error Handling**: When TeamDisplayManager is unavailable (simulated for testing), appropriate error messages should appear.
+
+## Future Work
+
+This is the second stage of the Phase 7 cleanup. Future stages will:
+
+1. Remove other legacy implementations in methods that have been delegated to specialized components.
+
+2. Standardize error handling and logging throughout BattleScene.js.
+
+3. Simplify remaining initialization and lifecycle methods.
+
+## Lessons Learned
+
+1. **Value of Pure Delegation**: Methods that simply delegate to a specialized component should be kept minimal and focused.
+
+2. **Clear Error Messages**: Error messages should identify both what failed and why it matters (what functionality is affected).
+
+3. **Documentation Updates**: When a method's responsibility changes, its documentation should be updated to reflect this.
+
+4. **Complete Remove Phase**: The Extract-Verify-Remove pattern is only complete when the legacy code is fully removed from the source class.
+
+This update completes Stage 2 of the Phase 7 cleanup, removing legacy implementations from delegated methods and reinforcing our component-based architecture.
+
+
+===== CHANGELOG_0.6.4.11_BattleSceneCleanup_Stage1 =====
+
+# CHANGELOG 0.6.4.11 - BattleScene Cleanup Stage 1: Removing Legacy Team Methods
+
+## Overview
+
+This update implements Stage 1 of Phase 7 (Final Cleanup) of the BattleScene refactoring plan. The focus of this stage was to remove legacy team creation and cleanup methods that have been superseded by the TeamDisplayManager component implemented in Phase 3. This continues our architectural goal of moving responsibilities to specialized components and reducing the complexity of BattleScene.js.
+
+## Implementation Details
+
+### 1. Removed Legacy Methods
+
+Two methods were completely removed from BattleScene.js:
+
+- **createCharacterTeams()** (~92 lines): Previously responsible for creating player and enemy team containers and character sprites
+- **cleanupCharacterTeams()** (~20 lines): Previously responsible for destroying team containers during scene shutdown
+
+This removal represents approximately 112 lines of code eliminated from BattleScene.js, further reducing its complexity and improving separation of concerns.
+
+### 2. Updated References to These Methods
+
+#### In create() method:
+
+**Before:**
+```javascript
+// If TeamDisplayManager is not available or failed, fall back to legacy method
+if (!this.teamManager || !this.playerTeamContainer) {
+    console.log('BattleScene create: Falling back to legacy team creation...');
+    // Create character teams for visualization
+    this.createCharacterTeams(); // This now has internal try-catch blocks
+    console.log('BattleScene create: Legacy character teams creation attempted.');
+}
+```
+
+**After:**
+```javascript
+// TeamDisplayManager is required - if not available, show error
+if (!this.teamManager || !this.playerTeamContainer) {
+    console.error('BattleScene create: TeamDisplayManager failed to initialize or create team containers');
+    this.showErrorMessage('Failed to initialize team display - battle cannot continue');
+}
+```
+
+#### In shutdown() method:
+
+**Before:**
+```javascript
+// Clean up TeamDisplayManager
+if (this.teamManager && typeof this.teamManager.destroy === 'function') {
+    console.log('BattleScene: Cleaning up TeamDisplayManager');
+    this.teamManager.destroy();
+    this.teamManager = null;
+} else {
+    // If TeamDisplayManager doesn't exist, use legacy cleanup
+    this.cleanupCharacterTeams();
+}
+```
+
+**After:**
+```javascript
+// Clean up TeamDisplayManager
+if (this.teamManager && typeof this.teamManager.destroy === 'function') {
+    console.log('BattleScene: Cleaning up TeamDisplayManager');
+    this.teamManager.destroy();
+    this.teamManager = null;
+} else if (this.playerTeamContainer || this.enemyTeamContainer) {
+    // Direct cleanup of any remaining team containers
+    console.warn('BattleScene: TeamDisplayManager not available - cleaning up containers directly');
+    
+    if (this.playerTeamContainer) {
+        this.playerTeamContainer.destroy();
+        this.playerTeamContainer = null;
+    }
+    
+    if (this.enemyTeamContainer) {
+        this.enemyTeamContainer.destroy();
+        this.enemyTeamContainer = null;
+    }
+}
+```
+
+### 3. Improved Error Handling
+
+The fallback code has been replaced with proper error handling that:
+- Makes it clear TeamDisplayManager is now a required component, not optional
+- Provides a user-visible error message through showErrorMessage()
+- Uses appropriate logging levels (console.error instead of console.log)
+
+## Benefits
+
+1. **Enforces Component Architecture**: By removing fallback code, we enforce the architectural principle that responsibilities should belong to specialized components.
+
+2. **Reduces Duplication**: Eliminates redundant code that performed the same function as TeamDisplayManager.
+
+3. **Clearer Dependency Requirements**: Makes it explicit that TeamDisplayManager is now required for battle visualization.
+
+4. **Improved Code Size**: Reduces BattleScene.js by approximately 112 lines of code.
+
+5. **Better Error Messaging**: Provides clearer feedback when components fail to initialize properly.
+
+## Architectural Implications
+
+This change represents a philosophical shift in how we handle component dependencies:
+
+- **Before**: Graceful degradation with fallbacks to legacy methods
+- **After**: Required components with clear error messages when they're unavailable
+
+This shift aligns with the maturity of our component architecture. In early phases, fallbacks were important for incremental testing, but now that components are stable, we can enforce their use as requirements.
+
+## Testing Considerations
+
+When testing this change, verify:
+
+1. **Normal Operation**: Battles should continue to function correctly with TeamDisplayManager.
+2. **Error Handling**: If TeamDisplayManager fails to initialize, an appropriate error message should be displayed.
+3. **Resource Cleanup**: Team containers should be properly destroyed during scene shutdown, whether through TeamDisplayManager or direct cleanup.
+
+## Future Work
+
+This is the first stage of the Phase 7 cleanup. Future stages will:
+
+1. Remove legacy implementations of other methods that have been fully delegated to components.
+2. Standardize error handling and logging throughout BattleScene.js.
+3. Further organize and simplify the remaining code.
+
+## Lessons Learned
+
+1. **Clean Transition to Required Dependencies**: This change demonstrates how to transition from optional components with fallbacks to required components with clear error handling.
+
+2. **Direct vs. Delegated Cleanup**: For resource cleanup during shutdown, it's still valuable to have direct cleanup as a final fallback even when primarily relying on component-based cleanup.
+
+3. **Value of Incremental Component Adoption**: The Extract-Verify-Remove pattern allowed us to safely transition to component-based architecture over multiple versions.
+
+This update completes Stage 1 of the Phase 7 cleanup, continuing our progress toward a cleaner, more modular, and more maintainable architecture.
+
 
 ===== CHANGELOG_0.6.4.10_CoordinateDisplayHotkeyFix =====
 
@@ -1403,312 +2081,5 @@ Stage 3 will involve:
 2. Moving the `initStatusIconMapping()` method to BattleAssetLoader
 3. Updating BattleScene to use these methods
 4. Removing the original status effect loading code from BattleScene.js
-
-
-===== CHANGELOG_0.6.4.1_BattleAssetLoader_Phase1_Complete =====
-
-# CHANGELOG 0.6.4.1 - BattleAssetLoader Phase 1 Completion
-
-## Overview
-
-This update completes Stage 1 of the BattleAssetLoader refactoring by fully removing the original UI asset loading code from BattleScene.js. This follows the Extract-Verify-Remove pattern outlined in the refactoring plan, with this update representing the final "Remove" step.
-
-## Implementation Details
-
-### 1. Complete Removal of Original UI Asset Loading Code
-
-In our previous implementation (0.6.4.0), we kept the original UI asset loading code as a fallback in the `else` branch when BattleAssetLoader wasn't available. This update fully removes that code:
-
-```javascript
-// Before (0.6.4.0)
-if (window.BattleAssetLoader) {
-    this.assetLoader = new window.BattleAssetLoader(this);
-    this.assetLoader.loadUIAssets();
-    // ... character assets loading ...
-} else {
-    console.warn("[BattleScene] BattleAssetLoader not available, using original loading code");
-    
-    // Original UI asset loading code retained as fallback
-    this.load.image('return-button', 'assets/images/icons/return.png');
-    this.load.image('next-turn', 'assets/images/icons/next-turn.png');
-    // ... other UI asset loading ...
-    
-    // ... character assets loading ...
-}
-
-// After (0.6.4.1)
-if (window.BattleAssetLoader) {
-    this.assetLoader = new window.BattleAssetLoader(this);
-    this.assetLoader.loadUIAssets();
-    // ... character assets loading ...
-} else {
-    console.error("[BattleScene] BattleAssetLoader not available - cannot load UI assets!");
-    
-    // Fall back to basic loading (no UI elements)
-    // ... character assets loading only ...
-    
-    // Set a flag to show an error message to the user
-    this.showAssetLoadingError = true;
-}
-```
-
-### 2. Enhanced Error Handling
-
-Added a more robust error handling mechanism:
-
-1. Changed console message from `warn` to `error` to better indicate severity
-2. Added `showAssetLoadingError` flag to track loading failures
-3. Updated the create() method to check this flag and display a user-facing error message
-
-```javascript
-// In create() method
-// Display error message if asset loading failed
-if (this.showAssetLoadingError) {
-    this.showErrorMessage("Asset loading incomplete. UI elements may be missing.");
-}
-```
-
-### 3. Complete the Extract-Verify-Remove Pattern
-
-This update completes all parts of the Stage 1 implementation plan:
-
-- âœ… Part 1: Create BattleAssetLoader with UI asset loading functionality (0.6.4.0)
-- âœ… Part 2: Update BattleScene.preload() to use BattleAssetLoader (0.6.4.0)
-- âœ… Part 3: Test and verify UI asset loading (0.6.4.0)
-- âœ… Part 4: Remove original UI asset loading code (0.6.4.1)
-
-## Benefits
-
-1. **Full Separation of Concerns**: UI asset loading is now entirely handled by the BattleAssetLoader component, with no redundant code in BattleScene.
-
-2. **Cleaner Error Paths**: Instead of keeping duplicated asset loading code, we now have a clear path for error handling with appropriate user feedback.
-
-3. **Reduced BattleScene Complexity**: Further reduces code in BattleScene.js, focusing it on scene management rather than asset loading details.
-
-4. **Better User Experience**: Error conditions now properly notify the user with a visual message rather than just a console error.
-
-## Testing Verification
-
-Testing should verify that:
-
-1. Normal operation: UI assets load correctly when BattleAssetLoader is working properly
-2. Error handling: When BattleAssetLoader is unavailable, an error message is displayed to the user
-3. Character assets: Character sprites continue to load correctly regardless of UI asset status
-4. Battle functionality: Game remains playable with UI elements potentially missing
-
-## Next Steps
-
-With Stage 1 now complete, we can proceed to Stage 2: Extract Character Asset Loading. This will follow the same Extract-Verify-Remove pattern to gradually refactor the BattleScene.js file.
-
-
-===== CHANGELOG_0.6.4.0_BattleAssetLoader_Phase1 =====
-
-# CHANGELOG 0.6.4.0 - BattleAssetLoader Implementation (Phase 1: UI Assets)
-
-## Overview
-
-This update implements Phase 1 of the BattleAssetLoader refactoring plan, which extracts UI asset loading logic from BattleScene.js into a dedicated component. This is part of an ongoing effort to reduce the complexity of BattleScene.js and improve the separation of concerns within the codebase.
-
-## Implementation Details
-
-### New Component: BattleAssetLoader
-
-Created a new component in `js/phaser/core/BattleAssetLoader.js` that centralizes asset loading logic:
-
-```javascript
-class BattleAssetLoader {
-    constructor(scene) { ... }
-    
-    loadUIAssets() { ... }
-    
-    destroy() { ... }
-}
-```
-
-The component provides:
-- Proper validation of dependencies (scene and loader)
-- Clear error handling and logging
-- A clean interface for loading different asset types
-- Lifecycle management with destroy() method
-
-### BattleScene.js Changes
-
-Modified BattleScene.js to:
-- Initialize BattleAssetLoader in preload()
-- Use assetLoader.loadUIAssets() for UI assets
-- Maintain a fallback path if BattleAssetLoader isn't available
-- Clean up the assetLoader reference in shutdown()
-
-This change:
-- Removes approximately 10 lines of asset loading code from BattleScene.preload()
-- Maintains backward compatibility through fallback mechanisms
-- Follows the Extract-Verify-Remove pattern from the refactoring plan
-
-## Benefits
-
-1. **Improved Separation of Concerns**: Asset loading is now handled by a dedicated component rather than mixed into BattleScene's preload method.
-
-2. **Better Maintainability**: Asset loading can now be extended or modified without touching BattleScene code.
-
-3. **Code Organization**: The BattleAssetLoader provides a central place for all battle-related asset loading, which will be expanded in future phases.
-
-4. **Defensive Programming**: The implementation includes proper validation and error handling at all levels.
-
-## Future Work
-
-This change represents Phase 1 (UI Asset Loading) of the 4-phase BattleAssetLoader implementation plan. Future phases will:
-
-- Phase 2: Extract character asset loading
-- Phase 3: Extract status effect icon loading and mapping
-- Phase 4: Combine all asset loading into a unified interface
-
-## Testing Verification
-
-The implementation has been verified by:
-1. Starting a battle and confirming all UI elements display correctly
-2. Checking that UI buttons, health bars, and turn indicators load and function properly
-3. Verifying console logs show proper BattleAssetLoader initialization and UI asset loading
-4. Ensuring no errors appear related to missing UI assets
-
-### Observed Unrelated Warnings
-
-During testing, two warnings were observed in the console that are unrelated to this BattleAssetLoader implementation:
-
-```
-[BattleUIManager] BattleEventManager not available or missing setBattleLog method
-[BattleLogManager] Invalid type 'battle-result', defaulting to 'default'
-```
-
-These warnings appear to be pre-existing issues with the BattleEventManager and BattleLogManager components. They should be investigated in a future update when time permits, but they do not affect the functionality of the BattleAssetLoader implementation.
-
-## Lessons Learned
-
-1. **Component Initialization Order**: Ensuring components are initialized in the right order is critical for proper dependency management.
-
-2. **Fallback Mechanisms**: Implementing graceful fallbacks ensures the game can still function even if component initialization fails.
-
-3. **Logging Strategy**: Strategic logging at key points makes it easier to verify component behavior and diagnose issues.
-
-4. **Incremental Refactoring**: The phased approach allows for safe extraction of functionality without risking destabilization of the entire system.
-
-
-===== CHANGELOG_0.6.3.42_AbilityTypeVisualization =====
-
-# CHANGELOG 0.6.3.42 - Ability Type Visualization Enhancement
-
-## Implementation Goal
-
-The goal of this enhancement was to improve the visual representation of abilities in the hero details panel by coloring each ability box based on its elemental type rather than using a uniform dark background for all abilities. This creates visual consistency between a character's type and their abilities, making it easier for players to identify ability types at a glance.
-
-## Technical Implementation
-
-### Ability Type Detection
-
-The implementation uses a two-step process to determine the appropriate type for each ability:
-
-1. **Effect-Level Type Extraction**: First, we look for a specific damage type in the ability's effects array:
-
-```javascript
-// If this is an active ability with effects, try to find a damage type
-if (ability.effects && Array.isArray(ability.effects)) {
-    // Look for the first damage effect with a damageType
-    const damageEffect = ability.effects.find(effect => 
-        effect.type === 'Damage' && effect.damageType);
-    
-    if (damageEffect && damageEffect.damageType) {
-        abilityType = damageEffect.damageType;
-    }
-}
-```
-
-2. **Fallback to Character Type**: If no specific damage type is found in the ability's effects (such as for healing or utility abilities), we default to the character's type for visual consistency:
-
-```javascript
-let abilityType = hero.type; // Default to character's type
-```
-
-### Visual Styling
-
-For each ability box, we apply:
-
-1. **Background Color**: A light tint of the appropriate type color (13% opacity) for subtle differentiation:
-
-```javascript
-abilityBox.style.backgroundColor = `${this.typeColors[abilityType]}22`;
-```
-
-2. **Left Border**: A slightly more opaque accent (40% opacity) of the same color for better visual distinction:
-
-```javascript
-abilityBox.style.borderLeft = `3px solid ${this.typeColors[abilityType]}66`;
-```
-
-### Implementation Locations
-
-The changes were made in two locations in TeamBuilderUI.js:
-
-1. The primary `renderHeroDetails()` method for initial character selection
-2. The `updateExistingHeroDetails()` method, ensuring the styling persists when switching between characters
-
-## Design Considerations
-
-### Color Intensity
-
-We chose a subtle color implementation with low opacity (13% for background, 40% for border) to:
-- Maintain readability of the ability text
-- Create visual distinction without overwhelming the UI
-- Ensure consistency with the existing UI design language
-
-### Fallback Mechanism
-
-The fallback to character type ensures:
-- All abilities have appropriate styling, even utility abilities
-- Visual consistency within a character's ability set
-- No default dark backgrounds that would disrupt the visual flow
-
-### Left Border Accent
-
-The left border was added to:
-- Provide stronger visual differentiation between adjacent abilities
-- Create a clear hierarchical structure in the ability grid
-- Maintain the established grid layout while adding visual interest
-
-## Testing Results
-
-Testing showed:
-- Clear visual distinction between different ability types
-- Improved readability of the ability grid
-- Successful application of type colors to abilities like:
-  - Drakarion's "Flame Strike" (fire type)
-  - Aqualia's "Tidal Wave" and "Frost Chain" (water type)
-  - Sylvanna's "Vine Whip" (nature type)
-
-No visual discrepancies or UI issues were observed during testing across different character selections and team compositions.
-
-## Future Enhancements
-
-This implementation lays the groundwork for potential future enhancements:
-
-1. **Type-Specific Icons**: Small type icons could be added to each ability
-2. **Color-Matched Ability Names**: The ability name could be colored to match the type for stronger visual emphasis
-3. **Type-Based Animations**: Hover effects specific to each type could be added
-
-These would build upon the current implementation without requiring significant changes to the core approach.
-
-## Implementation Benefits
-
-1. **Enhanced Visual Hierarchy**: Creates a clearer visual relationship between abilities and their types
-2. **Improved Readability**: Makes it easier to scan and identify abilities by type at a glance
-3. **Consistent Design Language**: Extends the existing type color system to ability representations
-4. **Better User Experience**: Provides additional visual information without requiring more text
-
-## Lessons Learned
-
-1. **Leveraging Existing Color Systems**: Using the already established typeColors object ensured consistency across the application
-2. **Defensive Programming**: The implementation includes checks to ensure colors exist before applying them
-3. **Visual Subtlety**: Light color tints maintain readability while adding useful information
-4. **CSS Opacity Notation**: Hexadecimal opacity notation (e.g., `22` for 13% opacity) is more concise than rgba notation in this context
-
-This enhancement provides a foundation for further visual refinements to the ability system while maintaining a clean, readable interface.
 
 
