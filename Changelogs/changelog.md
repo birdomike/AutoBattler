@@ -1,3 +1,30 @@
+## [0.6.3.46] - 2025-05-10
+
+### Fixed
+- Improved visibility of Ethereal type filter button by increasing its opacity to 93%
+- Added bold text styling to the Ethereal filter to enhance readability on the white background
+- Fixed the greyish appearance of the Ethereal button with specialized styling
+
+## [0.6.3.45] - 2025-05-10
+
+### Changed
+- Updated the Ethereal type's color to pure white (#FFFFFF) for better alignment with its theme
+- Added special handling to display Ethereal filter text in black for improved contrast and readability
+
+## [0.6.3.44] - 2025-05-10
+
+### Improved
+- Enhanced filters UI by hiding the "Clear Filters" button when no filters are applied
+- Added dynamic button display that only shows the clear button when needed
+- Updated filter handlers to properly refresh the filters UI when toggling filters
+
+## [0.6.3.43] - 2025-05-10
+
+### Improved
+- Expanded filter options in Team Builder to show all 22 types and 22 roles from the design document
+- Replaced dynamic role/type extraction with complete predefined lists
+- Maintained filter functionality while showing all possible options
+
 ## [0.6.3.42] - 2025-05-10
 
 ### Improved

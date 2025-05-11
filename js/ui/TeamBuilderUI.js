@@ -41,7 +41,7 @@ class TeamBuilderUI {
             void: '#2F4F4F',
             crystal: '#AFEEEE',
             storm: '#4682B4',
-            ethereal: '#E6E6FA',
+            ethereal: '#FFFFFF',
             blood: '#8B0000',
             plague: '#556B2F',
             gravity: '#36454F'
@@ -121,17 +121,31 @@ class TeamBuilderUI {
         typeLabel.textContent = 'Filter by Type:';
         typeFilters.appendChild(typeLabel);
         
-        // Get unique types from heroes
-        const types = [...new Set(this.availableHeroes.map(hero => hero.type))];
+        // Instead of extracting types from heroes, use all 22 types from the design
+        const allTypes = [
+            'fire', 'water', 'nature', 'electric', 'ice', 'rock', 'metal', 'air', 
+            'light', 'dark', 'psychic', 'poison', 'physical', 'arcane', 'mechanical', 
+            'void', 'crystal', 'storm', 'ethereal', 'blood', 'plague', 'gravity'
+        ];
         
         const typeButtonsContainer = document.createElement('div');
         typeButtonsContainer.className = 'filter-buttons';
         
-        types.forEach(type => {
+        allTypes.forEach(type => {
             const typeButton = document.createElement('button');
             typeButton.className = `filter-button ${this.activeFilters.types.includes(type) ? 'active' : ''}`;
             typeButton.dataset.type = type;
-            typeButton.style.backgroundColor = `${this.typeColors[type]}88`;
+            
+            // Special handling for Ethereal to use higher opacity and black text
+            if (type === 'ethereal') {
+                typeButton.style.backgroundColor = `${this.typeColors[type]}EE`; // 93% opacity for Ethereal
+                typeButton.style.color = '#000000'; // Black text for Ethereal
+                typeButton.style.fontWeight = 'bold'; // Make text bolder for better contrast
+            } else {
+                // Normal styling for other types
+                typeButton.style.backgroundColor = `${this.typeColors[type]}88`; // Regular opacity
+            }
+            
             typeButton.textContent = type.charAt(0).toUpperCase() + type.slice(1);
             
             // Add event listener
@@ -147,8 +161,9 @@ class TeamBuilderUI {
                     typeButton.classList.remove('active');
                 }
                 
-                // Re-render heroes grid
+                // Re-render heroes grid and update filters UI
                 this.renderHeroGrid();
+                this.renderFilters(); // Re-render to show/hide clear button
                 
                 // Play sound
                 if (window.soundManager) {
@@ -176,13 +191,18 @@ class TeamBuilderUI {
         roleLabel.textContent = 'Filter by Role:';
         roleFilters.appendChild(roleLabel);
         
-        // Get unique roles from heroes
-        const roles = [...new Set(this.availableHeroes.map(hero => hero.role))];
+        // Instead of extracting roles from heroes, use all 22 roles from the design
+        const allRoles = [
+            'Warrior', 'Sentinel', 'Berserker', 'Ranger', 'Assassin', 'Bulwark',
+            'Mage', 'Invoker', 'Sorcerer', 'Summoner', 'Occultist', 'Mystic',
+            'Champion', 'Wildcaller', 'Striker', 'Emissary', 'Elementalist',
+            'Warden', 'Skirmisher', 'Battlemage', 'Venomancer', 'Trickster'
+        ];
         
         const roleButtonsContainer = document.createElement('div');
         roleButtonsContainer.className = 'filter-buttons';
         
-        roles.forEach(role => {
+        allRoles.forEach(role => {
             const roleButton = document.createElement('button');
             roleButton.className = `filter-button ${this.activeFilters.roles.includes(role) ? 'active' : ''}`;
             roleButton.dataset.role = role;
@@ -201,8 +221,9 @@ class TeamBuilderUI {
                     roleButton.classList.remove('active');
                 }
                 
-                // Re-render heroes grid
+                // Re-render heroes grid and update filters UI
                 this.renderHeroGrid();
+                this.renderFilters(); // Re-render to show/hide clear button
                 
                 // Play sound
                 if (window.soundManager) {
@@ -221,28 +242,32 @@ class TeamBuilderUI {
         roleFilters.appendChild(roleButtonsContainer);
         filterSection.appendChild(roleFilters);
         
-        // Add clear filters button
-        const clearButton = document.createElement('button');
-        clearButton.className = 'clear-filters-btn';
-        clearButton.textContent = 'Clear Filters';
-        clearButton.addEventListener('click', () => {
-            this.activeFilters.types = [];
-            this.activeFilters.roles = [];
-            this.renderFilters();
-            this.renderHeroGrid();
+        // Add clear filters button (only if filters are active)
+        const hasActiveFilters = this.activeFilters.types.length > 0 || this.activeFilters.roles.length > 0;
+        if (hasActiveFilters) {
+            const clearButton = document.createElement('button');
+            clearButton.className = 'clear-filters-btn';
+            clearButton.id = 'clear-filters-btn';
+            clearButton.textContent = 'Clear Filters';
+            clearButton.addEventListener('click', () => {
+                this.activeFilters.types = [];
+                this.activeFilters.roles = [];
+                this.renderFilters();
+                this.renderHeroGrid();
+                
+                // Play sound
+                if (window.soundManager) {
+                    window.soundManager.play('click');
+                }
+            });
             
-            // Play sound
+            // Add hover sound
             if (window.soundManager) {
-                window.soundManager.play('click');
+                window.soundManager.addHoverSound(clearButton);
             }
-        });
-        
-        // Add hover sound
-        if (window.soundManager) {
-            window.soundManager.addHoverSound(clearButton);
+            
+            filterSection.appendChild(clearButton);
         }
-        
-        filterSection.appendChild(clearButton);
     }
 
     /**
