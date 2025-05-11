@@ -24,7 +24,7 @@ class CoordinateDisplay {
             fontFamily: config.fontFamily || 'Arial',
             backgroundColor: config.backgroundColor || '#000000',
             backgroundAlpha: config.backgroundAlpha || 0.7,
-            enabled: config.enabled !== undefined ? config.enabled : true
+            enabled: config.enabled !== undefined ? config.enabled : false
         };
         
         // Graphics objects

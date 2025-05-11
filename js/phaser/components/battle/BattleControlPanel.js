@@ -118,7 +118,7 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
             this.startPauseButton = this.createIconButton(
                 startX, 
                 buttonsY, 
-                '▶️⏸️', // Play/Pause icons
+                '▶️', // Play icon only for initial state
                 () => this.onStartPauseButtonClicked(),
                 'Start/Pause Battle'
             );
@@ -632,7 +632,7 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
             case 'battle_ended':
                 this.state.battleStarted = false;
                 this.state.battlePaused = false;
-                this.startPauseButton.icon.setText('▶️⏸️'); // Play/Pause icons
+                this.startPauseButton.icon.setText('▶️'); // Play icon only
                 // Reset speed to 1x
                 this.onSpeedButtonClicked(1);
                 break;

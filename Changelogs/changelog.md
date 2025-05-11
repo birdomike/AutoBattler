@@ -1,3 +1,15 @@
+### [0.6.6.13] - 2025-05-11
+#### Fixed
+- Fixed play/pause button showing both icons at once when the game is paused
+- Updated battle controls to consistently show only the play icon when paused
+- Ensured consistent icon display during entire battle lifecycle
+
+### [0.6.6.12] - 2025-05-11
+#### Changed
+- Changed CoordinateDisplay default state to OFF instead of ON when initializing
+- Grid will now be hidden by default until toggled with Alt+G
+- Improved debugging experience by reducing initial visual clutter
+
 ### [0.6.6.11] - 2025-05-11
 #### Changed
 - Completed final phase (Phase 6) of TeamBuilderUI refactoring with Remove stage

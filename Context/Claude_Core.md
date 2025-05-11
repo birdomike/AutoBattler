@@ -103,6 +103,7 @@ C:\Personal\AutoBattler\
 │   │   │
 │   │   ├── managers/         # Specialized Phaser managers
 │   │   │   ├── BattleUIManager.js    # Manages UI components and HUD elements
+│   │   │   ├── BattleFXManager.js    # Manages visual effects and animations
 │   │   │   └── TeamDisplayManager.js # Manages team visualization and active indicators
 │   │   │
 │   │   ├── audio/            # Phaser audio implementation
@@ -114,7 +115,7 @@ C:\Personal\AutoBattler\
 │   │   │   │   ├── BattleLogPanel.js      # Original panel-based battle log
 │   │   │   │   ├── CharacterSprite.js     # Individual character sprites
 │   │   │   │   ├── DirectBattleLog.js     # Simplified direct text battle log
-│   │   │   │   └── TeamContainer.js       # Container for team organization
+│   │   │   │   ├── TeamContainer.js       # Container for team organization
 │   │   │   │   └── TurnIndicator.js       # Visual indicator for active character turns
 │   │   │   │
 │   │   │   ├── Button.js             # Reusable button component
@@ -123,6 +124,7 @@ C:\Personal\AutoBattler\
 │   │   ├── debug/            # Development and debugging tools
 │   │   │   ├── CoordinateDisplay.js  # Grid and coordinate visualization
 │   │   │   ├── DebugManager.js       # Debug toolset manager
+│   │   │   ├── PhaserDebugManager.js # Centralized debug tool management
 │   │   │   └── ObjectIdentifier.js   # Object inspection utilities
 │   │   │
 │   │   ├── scenes/           # Phaser scene definitions
@@ -138,9 +140,18 @@ C:\Personal\AutoBattler\
 │   │   ├── BattleUI.js       # Original DOM-based battle interface
 │   │   ├── BattleUIDebug.js  # Debug utilities for battle UI
 │   │   ├── SoundManager.js   # Audio system management
-│   │   ├── TeamBuilderUI.js  # Team selection interface
+│   │   ├── TeamBuilderUI.js  # Team selection interface (orchestrator)
 │   │   ├── TeamBuilderUIUpdates.js  # Updates for team builder
-│   │   └── TooltipManager.js # UI tooltip system
+│   │   ├── TooltipManager.js # UI tooltip system
+│   │   └── teambuilder/      # TeamBuilder component architecture 
+│   │       ├── TeamBuilderUtils.js       # Shared utility functions
+│   │       ├── HeroDetailPanelManager.js # Hero details panel component
+│   │       ├── FilterManager.js          # Type/role filtering component
+│   │       ├── HeroGridManager.js        # Hero grid display component
+│   │       ├── TeamSlotsManager.js       # Team slot management component
+│   │       ├── BattleModeManager.js      # Battle mode selection component
+│   │       ├── BattleInitiator.js        # Battle initiation component
+│   │       └── README.md                 # Component architecture documentation
 │   │
 │   ├── utilities/            # Utility functions and helpers
 │   │   ├── DirectImageLoader.js       # Handles image loading for Battle UI
@@ -178,7 +189,6 @@ C:\Personal\AutoBattler\
 ├── test_battle_log.html      # Battle log testing page
 ├── patch_notes.md            # Simplified patch notes
 └── README.md                 # General project readme
-```
 
 ## Changelog Documentation System
 
