@@ -4,7 +4,7 @@
  * This scene displays the battle between player and enemy teams.
  * It provides the visual representation layer that connects to
  * the BattleManager for game logic processing.
- * @version 0.6.4.5 (BattleAssetLoader unified interface implementation)
+ * @version 0.6.4.6 (BattleFXManager implementation - Extract phase)
  */
 
 // TurnIndicator is loaded via traditional script in index.html
@@ -277,6 +277,11 @@ export default class BattleScene extends Phaser.Scene {
             // Initialize TeamDisplayManager for team and character visualization
             this.initializeTeamManager();
             console.log('BattleScene create: TeamDisplayManager initialized.');
+
+            console.log('BattleScene create: Initializing BattleFXManager...');
+            // Initialize BattleFXManager for visual effects
+            this.initializeFXManager();
+            console.log('BattleScene create: BattleFXManager initialized.');
 
             // If TeamDisplayManager is not available or failed, fall back to legacy method
             if (!this.teamManager || !this.playerTeamContainer) {
@@ -601,6 +606,7 @@ export default class BattleScene extends Phaser.Scene {
 
     /**
      * Show attack animation between characters
+     * Uses BattleFXManager when available, falls back to legacy implementation
      * @param {Object} attacker - Attacking character
      * @param {Object} target - Target character
      * @param {Function} onComplete - Callback when animation completes
@@ -608,16 +614,26 @@ export default class BattleScene extends Phaser.Scene {
      */
     showAttackAnimation(attacker, target, onComplete, actionContext) {
         try {
+            // Use BattleFXManager if available
+            if (this.fxManager) {
+                const success = this.fxManager.showAttackAnimation(attacker, target, onComplete, actionContext);
+                if (success) return; // Exit if successful
+                
+                // Otherwise fall through to original implementation
+                console.warn('[BattleScene] BattleFXManager.showAttackAnimation failed, using legacy implementation');
+            }
+            
+            // Original implementation as fallback
             if (!attacker || !target) {
                 if (onComplete) onComplete();
                 return;
             }
             
-            console.log(`[BattleScene] showAttackAnimation: ${attacker.name} (${attacker.team}) attacking ${target.name} (${target.team})`);
+            console.log(`[BattleScene] Legacy showAttackAnimation: ${attacker.name} (${attacker.team}) attacking ${target.name} (${target.team})`);
 
             // Validate that attacker and target are from different teams
             if (attacker.team === target.team) {
-                console.warn(`[BattleScene] showAttackAnimation: Attempted attack on same team! Attacker and target both on team ${attacker.team}`);
+                console.warn(`[BattleScene] Legacy showAttackAnimation: Attempted attack on same team! Attacker and target both on team ${attacker.team}`);
                 // Don't show animation for same-team attacks
                 if (onComplete) onComplete();
                 return;
@@ -633,7 +649,7 @@ export default class BattleScene extends Phaser.Scene {
                 : this.enemyTeamContainer;
 
             if (!attackerTeamContainer || !targetTeamContainer) {
-                console.warn(`[BattleScene] showAttackAnimation: Missing team container(s)`);
+                console.warn(`[BattleScene] Legacy showAttackAnimation: Missing team container(s)`);
                 if (onComplete) onComplete();
                 return;
             }
@@ -642,7 +658,7 @@ export default class BattleScene extends Phaser.Scene {
             const targetSprite = targetTeamContainer.getCharacterSpriteByName(target.name);
 
             if (!attackerSprite || !targetSprite) {
-                console.warn(`[BattleScene] showAttackAnimation: Could not find sprites for ${!attackerSprite ? 'attacker' : 'target'}`);
+                console.warn(`[BattleScene] Legacy showAttackAnimation: Could not find sprites for ${!attackerSprite ? 'attacker' : 'target'}`);
                 if (onComplete) onComplete();
                 return;
             }
@@ -658,14 +674,47 @@ export default class BattleScene extends Phaser.Scene {
                     abilityName: inferredAbilityName
                 };
                 
-                console.log(`[BattleScene] showAttackAnimation: Created inferred actionContext:`, actionContext);
+                console.log(`[BattleScene] Legacy showAttackAnimation: Created inferred actionContext:`, actionContext);
             }
 
-            console.log(`[BattleScene] showAttackAnimation: Calling attackerSprite.showAttackAnimation with actionContext:`, actionContext);
             attackerSprite.showAttackAnimation(targetSprite, onComplete, actionContext);
         } catch (error) {
             console.error('[BattleScene] Error showing attack animation:', error);
             if (onComplete) onComplete();
+        }
+    }
+
+    /**
+     * Initialize the BattleFXManager
+     * @private
+     */
+    initializeFXManager() {
+        try {
+            // Check if BattleFXManager is available
+            if (window.BattleFXManager) {
+                console.log('BattleScene: Creating BattleFXManager instance');
+                
+                // Create manager with scene and TeamDisplayManager reference if available
+                this.fxManager = new window.BattleFXManager(
+                    this, 
+                    this.teamManager || null
+                );
+                
+                // Set reference in BattleEventManager if available
+                if (this.eventManager && typeof this.eventManager.setFXManager === 'function') {
+                    this.eventManager.setFXManager(this.fxManager);
+                    console.log('BattleScene: Set BattleFXManager reference in BattleEventManager');
+                }
+                
+                console.log('BattleScene: BattleFXManager initialized successfully');
+                return true;
+            } else {
+                console.warn('BattleScene: BattleFXManager not found, using legacy visual effects methods');
+                return false;
+            }
+        } catch (error) {
+            console.error('BattleScene: Error initializing FX manager:', error);
+            return false;
         }
     }
 
@@ -677,6 +726,16 @@ export default class BattleScene extends Phaser.Scene {
      */
     showFloatingText(character, text, style = {}) {
         try {
+            // Use BattleFXManager if available
+            if (this.fxManager) {
+                const success = this.fxManager.showFloatingText(character, text, style);
+                if (success) return; // Exit if successful
+                
+                // Otherwise fall through to original implementation
+                console.warn('[BattleScene] BattleFXManager.showFloatingText failed, using legacy implementation');
+            }
+            
+            // Original implementation as fallback
             if (!character) return;
 
             const teamContainer = character.team === 'player'
@@ -691,7 +750,7 @@ export default class BattleScene extends Phaser.Scene {
 
             sprite.showFloatingText(text, style);
         } catch (error) {
-            console.error('Error showing floating text:', error);
+            console.error('[BattleScene] Error showing floating text:', error);
         }
     }
 
@@ -1147,6 +1206,13 @@ export default class BattleScene extends Phaser.Scene {
                 console.log('BattleScene: Cleaning up BattleAssetLoader');
                 this.assetLoader.destroy();
                 this.assetLoader = null;
+            }
+            
+            // Clean up FX manager
+            if (this.fxManager && typeof this.fxManager.destroy === 'function') {
+                console.log('BattleScene: Cleaning up BattleFXManager');
+                this.fxManager.destroy();
+                this.fxManager = null;
             }
 
             // Clean up local references

@@ -1,7 +1,7 @@
 /**
  * BattleEventManager.js
  * Manages event listening setup and event handling for the BattleScene
- * Version: 0.6.2.3 (TeamDisplayManager integration)
+ * Version: 0.6.4.6 (BattleFXManager integration)
  */
 
 class BattleEventManager {
@@ -28,6 +28,7 @@ class BattleEventManager {
         this.battleBridge = battleBridge;
         this.teamManager = null; // Will be set via setTeamManager if available
         this.battleLog = null; // Will be set via setBattleLog if available
+        this.fxManager = null; // Will be set via setFXManager if available
         this.boundHandlers = new Map(); // For tracking bound handlers
         
         console.log("[BattleEventManager] Initializing with battleBridge:", {
@@ -94,6 +95,20 @@ class BattleEventManager {
         
         console.log("[BattleEventManager] Setting DirectBattleLog reference");
         this.battleLog = battleLog;
+    }
+    
+    /**
+     * Set the FXManager reference
+     * @param {BattleFXManager} fxManager - The BattleFXManager instance
+     */
+    setFXManager(fxManager) {
+        if (!fxManager) {
+            console.warn("[BattleEventManager] setFXManager: Missing FXManager reference");
+            return;
+        }
+        
+        console.log("[BattleEventManager] Setting BattleFXManager reference");
+        this.fxManager = fxManager;
     }
 
     /**
@@ -297,7 +312,10 @@ class BattleEventManager {
                 style: { fontSize: '16px', fill: '#FF00FF' }
             };
 
-            if (this.scene.showFloatingText) {
+            // Use FXManager if available, otherwise fall back to scene method
+            if (this.fxManager && typeof this.fxManager.showFloatingText === 'function') {
+                this.fxManager.showFloatingText(data.target, floatingTextConfig.text, floatingTextConfig.style);
+            } else if (this.scene.showFloatingText) {
                 this.scene.showFloatingText(data.target, floatingTextConfig.text, floatingTextConfig.style);
             }
         } catch (error) {
@@ -326,7 +344,10 @@ class BattleEventManager {
                 style: { fontSize: '16px', fill: '#8F8FFF' }
             };
 
-            if (this.scene.showFloatingText) {
+            // Use FXManager if available, otherwise fall back to scene method
+            if (this.fxManager && typeof this.fxManager.showFloatingText === 'function') {
+                this.fxManager.showFloatingText(data.target, floatingTextConfig.text, floatingTextConfig.style);
+            } else if (this.scene.showFloatingText) {
                 this.scene.showFloatingText(data.target, floatingTextConfig.text, floatingTextConfig.style);
             }
         } catch (error) {
@@ -373,12 +394,15 @@ class BattleEventManager {
                 }
             };
 
-            if (this.scene.showFloatingText) {
+            // Use FXManager if available, otherwise fall back to scene method
+            if (this.fxManager && typeof this.fxManager.showFloatingText === 'function') {
+                this.fxManager.showFloatingText(data.character, floatingTextConfig.text, floatingTextConfig.style);
+            } else if (this.scene.showFloatingText) {
                 this.scene.showFloatingText(data.character, floatingTextConfig.text, floatingTextConfig.style);
             }
 
             // Show attack animation if source is available
-            if (data.source && this.scene.showAttackAnimation) {
+            if (data.source) {
                 // Create action context from ability data if available
                 let actionContext = null;
                 
@@ -394,7 +418,13 @@ class BattleEventManager {
                 }
                 
                 console.log(`[BattleEventManager.onCharacterDamaged] Calling showAttackAnimation with actionContext:`, actionContext);
-                this.scene.showAttackAnimation(data.source, data.character, null, actionContext);
+                
+                // Use FXManager if available, otherwise fall back to scene method
+                if (this.fxManager && typeof this.fxManager.showAttackAnimation === 'function') {
+                    this.fxManager.showAttackAnimation(data.source, data.character, null, actionContext);
+                } else if (this.scene.showAttackAnimation) {
+                    this.scene.showAttackAnimation(data.source, data.character, null, actionContext);
+                }
             }
         } catch (error) {
             console.error("[BattleEventManager] Error handling character damaged:", error);
@@ -424,7 +454,10 @@ class BattleEventManager {
                 style: { fontSize: '20px', fill: '#00FF00' }
             };
 
-            if (this.scene.showFloatingText) {
+            // Use FXManager if available, otherwise fall back to scene method
+            if (this.fxManager && typeof this.fxManager.showFloatingText === 'function') {
+                this.fxManager.showFloatingText(data.character, floatingTextConfig.text, floatingTextConfig.style);
+            } else if (this.scene.showFloatingText) {
                 this.scene.showFloatingText(data.character, floatingTextConfig.text, floatingTextConfig.style);
             }
         } catch (error) {
@@ -673,6 +706,7 @@ class BattleEventManager {
         this.scene = null;
         this.battleBridge = null;
         this.teamManager = null;
+        this.fxManager = null;
         
         console.log("[BattleEventManager] Destroyed");
     }

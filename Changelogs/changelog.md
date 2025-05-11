@@ -1,3 +1,11 @@
+### [0.6.4.6] - 2025-05-11
+#### Changed
+- Implemented BattleFXManager component to centralize visual effects management
+- Extracted floating text and attack animation logic from BattleScene to BattleFXManager
+- Added fallback mechanisms for backward compatibility
+- Improved integration with TeamDisplayManager for visual effects
+- Updated BattleEventManager to support BattleFXManager integration
+
 ### [0.6.4.5] - 2025-05-11
 #### Changed
 - Implemented unified asset loading interface in BattleAssetLoader
