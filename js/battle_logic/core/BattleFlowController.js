@@ -877,13 +877,33 @@ class BattleFlowController {
      * @returns {boolean} True if the battle is over
      */
     async checkBattleEnd() {
+        // Ensure all characters with 0 HP are properly marked as defeated
+        this.battleManager.playerTeam.forEach(char => {
+            if (char.currentHp <= 0 && !char.isDefeated) {
+                console.log(`[BattleFlowController.checkBattleEnd] Fixing player character ${char.name} with 0 HP but not marked as defeated`);
+                char.isDefeated = true;
+            }
+        });
+        
+        this.battleManager.enemyTeam.forEach(char => {
+            if (char.currentHp <= 0 && !char.isDefeated) {
+                console.log(`[BattleFlowController.checkBattleEnd] Fixing enemy character ${char.name} with 0 HP but not marked as defeated`);
+                char.isDefeated = true;
+            }
+        });
+        
         // Count defeated members in each team- UPDATED: Use isDefeated for consistency with applyActionEffect
-const playerDefeated = this.battleManager.playerTeam.filter(char => char.isDefeated || char.currentHp <= 0).length;
-const enemyDefeated = this.battleManager.enemyTeam.filter(char => char.isDefeated || char.currentHp <= 0).length;
+        const playerDefeated = this.battleManager.playerTeam.filter(char => char.isDefeated || char.currentHp <= 0).length;
+        const enemyDefeated = this.battleManager.enemyTeam.filter(char => char.isDefeated || char.currentHp <= 0).length;
         
         // Determine if all players or all enemies are defeated
         const allPlayersDefeated = playerDefeated >= this.battleManager.playerTeam.length;
         const allEnemiesDefeated = enemyDefeated >= this.battleManager.enemyTeam.length;
+        
+        // Debug log to monitor defeat status
+        if (allEnemiesDefeated) {
+            console.log('[BattleFlowController.checkBattleEnd] All enemies defeated - ending battle');
+        }
         
         // If battle has ended, call endBattle with appropriate result
         if (allPlayersDefeated || allEnemiesDefeated) {

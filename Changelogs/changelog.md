@@ -1,3 +1,35 @@
+## Version 0.6.3.39 (May 10, 2025)
+
+### Fixed
+- Fixed battle not ending when all enemies are defeated, which caused battles to continue indefinitely
+- Fixed inconsistency between character HP and defeat status tracking
+- Eliminated "No valid targets found" errors during battles that should have already ended
+- Improved battle lifecycle handling for more reliable battle completion
+
+### Technical
+- Added character state validation in checkBattleEnd() to ensure defeat status is consistent
+- Modified DamageCalculator to properly mark characters as defeated when they reach 0 HP
+- Added diagnostic logging to identify when defeat status corrections are made
+- Implemented defensive programming patterns to prevent "zombie battles"
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.39_BattleEndDetectionFix.md*
+
+## Version 0.6.3.38 (May 10, 2025)
+
+### Fixed
+- Fixed "Invalid type 'healing'" console warnings by adding 'healing' as a valid message type
+- Enhanced BattleLogManager to properly handle healing-specific messages
+- Eliminated unnecessary console noise during healing events
+- Improved consistency between message creation and validation systems
+
+### Technical
+- Added diagnostic tracing to identify the source of 'healing' message type
+- Used console.trace() to capture complete call stack for targeted debugging
+- Maintained semantic meaning of healing messages while eliminating warnings
+- Implemented a minimally invasive solution that preserves existing behavior
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.6.3.38_BattleLogManagerHealingTypeFix.md*
+
 ## Version 0.6.3.37 (May 10, 2025)
 
 ### Fixed

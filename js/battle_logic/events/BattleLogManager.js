@@ -20,7 +20,7 @@ class BattleLogManager {
         }
         
         // Initialize validation lists
-        this.validTypes = ['default', 'info', 'success', 'action', 'error', 'player', 'enemy', 'status'];
+        this.validTypes = ['default', 'info', 'success', 'action', 'error', 'player', 'enemy', 'status', 'healing'];
         
         // Log initialization
         console.log("[BattleLogManager] Initialized");
@@ -43,6 +43,7 @@ class BattleLogManager {
         // Ensure type is valid
         if (!this.validTypes.includes(type)) {
             console.warn(`[BattleLogManager] Invalid type '${type}', defaulting to 'default'`);
+            if (type === 'healing') { console.trace(`[BattleLogManager] Trace for 'healing' type`); }
             type = 'default';
         }
         

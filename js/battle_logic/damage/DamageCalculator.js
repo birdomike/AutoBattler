@@ -314,8 +314,14 @@ applyDamage(target, amount, source, ability, damageType) {
     // Calculate actual damage done (after applying to health)
     const actualDamage = oldHealth - target.currentHp;
     
-    // Determine if character was killed by this damage (but don't set isDefeated)
+    // Determine if character was killed by this damage and set isDefeated
     const killed = oldHealth > 0 && target.currentHp <= 0;
+    
+    // If killed, ensure isDefeated flag is set
+    if (killed) {
+        console.log(`[DamageCalculator] Character ${target.name} is defeated, setting isDefeated to true`);
+        target.isDefeated = true;
+    }
     
     // Dispatch damage event
     if (this.battleManager.dispatchDamageEvent) {
