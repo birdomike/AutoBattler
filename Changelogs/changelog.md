@@ -23,6 +23,15 @@
 
 *Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.0_TeamBuilderUtils.md*
 
+### [0.6.6.0] - 2025-05-11
+#### Changed
+- Refactored TeamBuilderUI hero details functionality into dedicated HeroDetailPanelManager component
+- Implemented Extract-Verify-Remove pattern for component refactoring
+- Reduced TeamBuilderUI.js complexity by ~350 lines
+- Improved maintainability with clean delegation methods and component architecture
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.0_HeroDetailPanelManager.md*
+
 ### [0.6.5.0] - 2025-05-11
 #### Added
 - Added support for characters with multiple types (e.g., "water/ice")
