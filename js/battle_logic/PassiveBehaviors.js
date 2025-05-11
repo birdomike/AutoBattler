@@ -9,6 +9,21 @@
  * Helper function to apply status effects through StatusEffectManager
  * Falls back to BattleManager.addStatusEffect if StatusEffectManager isn't accessible
  * 
+ * PURPOSE:
+ * This function serves as a centralized routing mechanism to ensure all status effects
+ * applied by passive abilities go through StatusEffectManager, which properly enriches
+ * events with complete status effect definitions. This prevents "Creating minimal fallback"
+ * warnings in BattleBridge and ensures proper tooltip display.
+ * 
+ * ARCHITECTURAL ROLE:
+ * - Maintains the principle that StatusEffectManager should be the single point of entry
+ *   for status effect applications throughout the system
+ * - Bridges the gap between PassiveBehaviors and StatusEffectManager without requiring
+ *   direct dependencies
+ * - Provides graceful fallbacks to maintain backward compatibility
+ * 
+ * ADDED IN: v0.6.3.37 to fix status effect definition propagation issues
+ * 
  * @param {Object} battleManager - Reference to BattleManager
  * @param {Object} character - Character to apply the effect to
  * @param {string} effectId - ID of the effect to apply
