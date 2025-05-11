@@ -81,6 +81,9 @@ class TeamBuilderUI {
             // Initialize the hero detail manager
             await this.initializeHeroDetailManager();
             
+            // Initialize the filter manager
+            await this.initializeFilterManager();
+            
             this.renderFilters();
             this.renderHeroGrid();
             this.renderTeamSlots();
@@ -99,8 +102,15 @@ class TeamBuilderUI {
 
     /**
      * Render filter options for types and roles
+     * Delegated to FilterManager when available
      */
     renderFilters() {
+        if (this.filterManager) {
+            this.filterManager.renderFilters();
+            return;
+        }
+        
+        // Original implementation follows for fallback
         const heroesSection = document.getElementById('available-heroes');
         
         // Check if filter section already exists
@@ -942,6 +952,60 @@ class TeamBuilderUI {
             console.error('Error initializing hero detail manager:', error);
             this.heroDetailManager = null;
         }
+    }
+
+    /**
+     * Initialize the filter manager
+     */
+    async initializeFilterManager() {
+        try {
+            // Check if FilterManager is available
+            if (typeof window.FilterManager === 'undefined') {
+                console.warn('FilterManager not found, will use original implementation');
+                return false;
+            }
+            
+            // Create the filter manager
+            this.filterManager = new window.FilterManager(this);
+            
+            // Verify required methods exist
+            const methodCheck = {
+                renderFilters: typeof this.filterManager.renderFilters === 'function',
+                getActiveFilters: typeof this.filterManager.getActiveFilters === 'function',
+                toggleFilter: typeof this.filterManager.toggleFilter === 'function',
+                clearFilters: typeof this.filterManager.clearFilters === 'function'
+            };
+            
+            console.log('TeamBuilderUI: FilterManager initialized with methods:', methodCheck);
+            
+            if (!methodCheck.renderFilters || !methodCheck.getActiveFilters) {
+                console.error('FilterManager missing required methods!');
+                this.filterManager = null;
+                return false;
+            }
+            
+            // Set initial filters from the TeamBuilderUI state
+            this.filterManager.setActiveFilters(this.activeFilters);
+            
+            console.log('TeamBuilderUI: Filter manager initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('Error initializing filter manager:', error);
+            this.filterManager = null;
+            return false;
+        }
+    }
+
+    /**
+     * Callback for filter changes
+     * @param {Object} filters - The updated filters
+     */
+    onFiltersChanged(filters) {
+        // Update local filters reference
+        this.activeFilters = filters;
+        
+        // Update the hero grid based on new filters
+        this.renderHeroGrid();
     }
 
     /**

@@ -40,6 +40,15 @@
 
 *Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.3a_HeroDetailManagerHotfix.md*
 
+### [0.6.6.4] - 2025-05-11
+#### Changed
+- Refactored filter management from TeamBuilderUI into dedicated FilterManager component
+- Implemented Extract phase of the Extract-Verify-Remove pattern for filters
+- Added delegation methods to TeamBuilderUI for filter handling
+- Maintained backward compatibility with fallback implementation
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.6.6.4_FilterManagerExtract.md*
+
 ### [0.6.5.0] - 2025-05-11
 #### Added
 - Added support for characters with multiple types (e.g., "water/ice")
