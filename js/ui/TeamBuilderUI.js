@@ -25,6 +25,7 @@ class TeamBuilderUI {
         this.imageLoader = null; // Will hold the TeamBuilderImageLoader
         this.heroDetailManager = null; // Will hold the HeroDetailPanelManager
         this.heroGridManager = null; // Will hold the HeroGridManager
+        this.teamSlotsManager = null; // Will hold the TeamSlotsManager
         this.typeColors = {
             fire: '#ff4757',
             water: '#1e90ff',
@@ -88,6 +89,9 @@ class TeamBuilderUI {
             
             // Initialize the hero grid manager
             await this.initializeHeroGridManager();
+            
+            // Initialize the team slots manager
+            await this.initializeTeamSlotsManager();
             
             this.renderFilters();
             this.renderHeroGrid();
@@ -156,197 +160,37 @@ class TeamBuilderUI {
 
     /**
      * Render the team slots
+     * Delegated to TeamSlotsManager
      */
     renderTeamSlots() {
+        if (this.teamSlotsManager) {
+            this.teamSlotsManager.renderTeamSlots();
+            return;
+        }
+        
+        // Minimal fallback for error handling
+        console.error('Cannot render team slots - TeamSlotsManager not available');
         const teamSlots = document.getElementById('team-slots');
-        teamSlots.innerHTML = '';
-        
-        // Add team heading that shows which team we're building
-        const teamHeading = document.createElement('div');
-        teamHeading.className = 'team-heading team-heading-change';
-        teamHeading.id = 'team-heading';
-        teamHeading.textContent = this.isSelectingEnemyTeam ? 'Enemy Team' : 'Your Team';
-        teamHeading.style.color = this.isSelectingEnemyTeam ? '#ff4757' : '#1e90ff';
-        teamSlots.appendChild(teamHeading);
-        
-        // Add class to container if selecting enemy team
-        if (this.isSelectingEnemyTeam) {
-            teamSlots.classList.add('is-selecting-enemy');
-        } else {
-            teamSlots.classList.remove('is-selecting-enemy');
-        }
-        
-        // Get the right array based on what we're selecting
-        const currentTeam = this.isSelectingEnemyTeam ? this.enemySelectedHeroes : this.selectedHeroes;
-
-        // Create 3 team slots
-        for (let i = 0; i < 3; i++) {
-            const slotElement = document.createElement('div');
-            slotElement.className = 'team-slot';
-
-            const slotLabel = document.createElement('div');
-            slotLabel.className = 'slot-label';
-            slotLabel.textContent = `${i + 1}${TeamBuilderUtils.getOrdinalSuffix(i + 1)} Pick`;
-
-            const slotContent = document.createElement('div');
-            slotContent.className = 'slot-content';
-            
-            // Enemy team styling is handled by CSS via the is-selecting-enemy class
-
-            if (currentTeam[i]) {
-                // Slot is filled
-                slotContent.classList.add('slot-filled');
-                // For multiple types, use the first type's color for the background
-                const heroTypes = TeamBuilderUtils.splitTypes(currentTeam[i].type);
-                const primaryType = heroTypes[0] || currentTeam[i].type; // Fallback to full type
-                slotContent.style.backgroundColor = `${this.typeColors[primaryType]}33`;
-
-                const heroDetails = document.createElement('div');
-                heroDetails.className = 'hero-details';
-                
-                // Create avatar container structure for character art - NO VISIBLE BACKGROUNDS
-                const heroIconContainer = document.createElement('div');
-                heroIconContainer.className = 'hero-avatar-container';
-                heroIconContainer.dataset.characterId = currentTeam[i].id;
-                heroIconContainer.dataset.characterName = currentTeam[i].name;
-                heroIconContainer.dataset.artSynced = '0';
-                // No background color set - will only be visible if character art exists
-                
-                // Create art wrapper for character images
-                const artWrapper = document.createElement('div');
-                artWrapper.className = 'hero-art-wrapper';
-                
-                // Assemble the icon structure
-                heroIconContainer.appendChild(artWrapper);
-
-                const heroInfo = document.createElement('div');
-                heroInfo.className = 'hero-info';
-
-                const heroName = document.createElement('div');
-                heroName.className = 'hero-name';
-                heroName.style.fontWeight = 'bold';
-                heroName.textContent = currentTeam[i].name;
-
-                const heroType = document.createElement('div');
-                heroType.className = 'hero-type';
-                heroType.style.fontSize = '12px';
-                
-                // Render multi-type spans
-                TeamBuilderUtils.renderMultiTypeSpans(currentTeam[i].type, heroType, this.typeColors);
-                
-                const heroRole = document.createElement('div');
-                heroRole.className = 'hero-role';
-                heroRole.style.fontSize = '12px';
-                heroRole.textContent = currentTeam[i].role;
-
-                // Basic stats
-                const heroStats = document.createElement('div');
-                heroStats.className = 'hero-stats';
-                heroStats.style.fontSize = '12px';
-                heroStats.style.color = '#a4b0be';
-                heroStats.textContent = `HP: ${currentTeam[i].stats.hp} | ATK: ${currentTeam[i].stats.attack} | DEF: ${currentTeam[i].stats.defense}`;
-                
-                // Add advanced stats in condensed format
-                const heroAdvStats = document.createElement('div');
-                heroAdvStats.className = 'hero-adv-stats';
-                heroAdvStats.style.fontSize = '11px';
-                heroAdvStats.style.color = '#a4b0be';
-                
-                // Check if expanded stats exist before displaying them
-                if (currentTeam[i].stats.strength && currentTeam[i].stats.intellect && currentTeam[i].stats.spirit) {
-                    heroAdvStats.textContent = `STR: ${currentTeam[i].stats.strength} | INT: ${currentTeam[i].stats.intellect} | SPI: ${currentTeam[i].stats.spirit}`;
-                    heroInfo.appendChild(heroAdvStats);
-                }
-
-                heroInfo.appendChild(heroName);
-                heroInfo.appendChild(heroType);
-                heroInfo.appendChild(heroRole);
-                heroInfo.appendChild(heroStats);
-
-                heroDetails.appendChild(heroIconContainer);
-                heroDetails.appendChild(heroInfo);
-
-                const removeButton = document.createElement('button');
-                removeButton.className = 'remove-hero';
-                removeButton.textContent = '×';
-                removeButton.dataset.slotIndex = i;
-                removeButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.removeHeroFromTeam(i);
-                });
-
-                slotContent.appendChild(heroDetails);
-                slotContent.appendChild(removeButton);
-            } else {
-                // Slot is empty
-                slotContent.classList.add('slot-empty');
-
-                const emptyText = document.createElement('span');
-                if (this.selectedHeroDetails) {
-                    emptyText.textContent = `Click to place ${this.selectedHeroDetails.name} here`;
-                } else {
-                    emptyText.textContent = 'Select a hero first';
-                    emptyText.style.color = '#a4b0be';
-                }
-
-                slotContent.appendChild(emptyText);
-                slotContent.dataset.slotIndex = i;
-                slotContent.addEventListener('click', () => this.addHeroToTeam(i));
-            }
-
-            slotElement.appendChild(slotLabel);
-            slotElement.appendChild(slotContent);
-            teamSlots.appendChild(slotElement);
-        }
-        
-        // If we're in enemy selection mode, add a Back button to return to player team
-        if (this.isSelectingEnemyTeam) {
-            const backButton = document.createElement('button');
-            backButton.className = 'enemy-team-control-btn';
-            backButton.textContent = 'Back to Your Team';
-            backButton.addEventListener('click', () => {
-                this.isSelectingEnemyTeam = false;
-                this.renderTeamSlots();
-                this.renderTeamSynergies();
-                this.updateStartBattleButton();
-            });
-            teamSlots.appendChild(backButton);
-        }
-
-        // Update synergies - only show for player team
-        if (!this.isSelectingEnemyTeam) {
-            this.renderTeamSynergies();
-        }
-        
-        // Update the start battle button
-        this.updateStartBattleButton();
-        
-        // Force image loader to check for new images
-        if (this.imageLoader) {
-            this.imageLoader.forceCheck();
+        if (teamSlots) {
+            teamSlots.innerHTML = '<div class="slots-error">Team slots system unavailable</div>';
         }
     }
 
     /**
      * Render the team synergies
+     * Delegated to TeamSlotsManager
      */
     renderTeamSynergies() {
+        if (this.teamSlotsManager) {
+            this.teamSlotsManager.renderTeamSynergies();
+            return;
+        }
+        
+        // Minimal fallback for error handling
+        console.error('Cannot render team synergies - TeamSlotsManager not available');
         const synergiesList = document.getElementById('synergies-list');
-        synergiesList.innerHTML = '';
-
-        const synergies = this.calculateSynergies();
-
-        if (synergies.length > 0) {
-            synergies.forEach(synergy => {
-                const synergyItem = document.createElement('li');
-                synergyItem.textContent = synergy;
-                synergiesList.appendChild(synergyItem);
-            });
-        } else {
-            const noSynergies = document.createElement('li');
-            noSynergies.textContent = 'No active synergies yet';
-            noSynergies.style.color = '#a4b0be';
-            synergiesList.appendChild(noSynergies);
+        if (synergiesList) {
+            synergiesList.innerHTML = '<li class="synergy-error">Team synergies unavailable</li>';
         }
     }
 
@@ -426,12 +270,16 @@ class TeamBuilderUI {
             }
         ];
 
+        // Get state from TeamSlotsManager if available
+        const isSelectingEnemyTeam = this.teamSlotsManager ? 
+            this.teamSlotsManager.isSelectingEnemyTeam : this.isSelectingEnemyTeam;
+
         modes.forEach(mode => {
             const modeElement = document.createElement('div');
             
             // Add special class for custom mode when selecting enemy team
             let selectedClass = mode.id === this.battleMode ? 'selected' : '';
-            if (mode.id === 'custom' && this.battleMode === 'custom' && this.isSelectingEnemyTeam) {
+            if (mode.id === 'custom' && this.battleMode === 'custom' && isSelectingEnemyTeam) {
                 selectedClass = 'selected enemy-selection-active';
             }
             
@@ -443,7 +291,7 @@ class TeamBuilderUI {
             modeName.textContent = mode.name;
             
             // Add indicator for enemy team selection
-            if (mode.id === 'custom' && this.battleMode === 'custom' && this.isSelectingEnemyTeam) {
+            if (mode.id === 'custom' && this.battleMode === 'custom' && isSelectingEnemyTeam) {
                 modeName.innerHTML = `${mode.name} <span style="color: #ff4757; font-size: 12px;">(Selecting Enemy)</span>`;
             }
 
@@ -458,14 +306,19 @@ class TeamBuilderUI {
             // Add event listener
             modeElement.addEventListener('click', () => {
                 // Only allow changing battle mode if not in enemy selection mode
-                if (!this.isSelectingEnemyTeam || mode.id === this.battleMode) {
+                if (!isSelectingEnemyTeam || mode.id === this.battleMode) {
                     this.battleMode = mode.id;
                     this.renderBattleModes();
                     
                     // Reset enemy selection when changing modes
-                    if (this.isSelectingEnemyTeam && mode.id !== 'custom') {
-                        this.isSelectingEnemyTeam = false;
-                        this.renderTeamSlots();
+                    if (isSelectingEnemyTeam && mode.id !== 'custom') {
+                        // Use TeamSlotsManager if available
+                        if (this.teamSlotsManager) {
+                            this.teamSlotsManager.toggleTeamSelection(false);
+                        } else {
+                            this.isSelectingEnemyTeam = false;
+                            this.renderTeamSlots();
+                        }
                     }
                 } else {
                     // If in enemy selection, show a message that they should complete or cancel enemy selection first
@@ -483,10 +336,26 @@ class TeamBuilderUI {
      */
     updateStartBattleButton() {
         const startButton = document.getElementById('start-battle');
-        const hasTeamMembers = this.selectedHeroes.some(hero => hero !== null);
+        if (!startButton) {
+            console.error('Start battle button not found');
+            return;
+        }
+        
+        let selectedHeroes = this.selectedHeroes;
+        let enemySelectedHeroes = this.enemySelectedHeroes;
+        let isSelectingEnemyTeam = this.isSelectingEnemyTeam;
+        
+        // Get state from TeamSlotsManager if available
+        if (this.teamSlotsManager) {
+            selectedHeroes = this.teamSlotsManager.getPlayerTeam();
+            enemySelectedHeroes = this.teamSlotsManager.getEnemyTeam();
+            isSelectingEnemyTeam = this.teamSlotsManager.isSelectingEnemyTeam;
+        }
+        
+        const hasTeamMembers = selectedHeroes.some(hero => hero !== null);
         
         // For Custom Battle mode, we need to check if we're ready to select enemy team
-        if (this.battleMode === 'custom' && !this.isSelectingEnemyTeam) {
+        if (this.battleMode === 'custom' && !isSelectingEnemyTeam) {
             // If we have team members but haven't begun enemy team selection
             if (hasTeamMembers) {
                 startButton.textContent = 'Choose Enemy Team';
@@ -499,9 +368,9 @@ class TeamBuilderUI {
             // For Random and Campaign modes, or if we're already selecting enemy team
             startButton.textContent = 'Start Battle';
             
-            if (this.isSelectingEnemyTeam) {
+            if (isSelectingEnemyTeam) {
                 // When selecting enemy team, we need at least one enemy
-                startButton.disabled = !this.enemySelectedHeroes.some(hero => hero !== null);
+                startButton.disabled = !enemySelectedHeroes.some(hero => hero !== null);
             } else {
                 // For Random or Campaign, just check player team
                 startButton.disabled = !hasTeamMembers;
@@ -510,47 +379,6 @@ class TeamBuilderUI {
     }
 
     // Method createStatBox() has been moved to TeamBuilderUtils
-
-    /**
-     * Calculate team synergies
-     * @returns {string[]} An array of synergy descriptions
-     */
-    calculateSynergies() {
-        const heroes = this.selectedHeroes.filter(hero => hero !== null);
-        if (heroes.length < 2) return [];
-
-        const types = heroes.map(hero => hero.type);
-        const roles = heroes.map(hero => hero.role);
-        
-        const typeCounts = {};
-        types.forEach(type => {
-            typeCounts[type] = (typeCounts[type] || 0) + 1;
-        });
-        
-        const roleCounts = {};
-        roles.forEach(role => {
-            roleCounts[role] = (roleCounts[role] || 0) + 1;
-        });
-        
-        const synergies = [];
-        
-        // Check for type synergies
-        Object.entries(typeCounts).forEach(([type, count]) => {
-            if (count >= 2) {
-                synergies.push(`${type.charAt(0).toUpperCase() + type.slice(1)} Alliance (${count}): +${count * 10}% ${type} damage`);
-            }
-        });
-        
-        // Check for role synergies
-        if (roleCounts['Warrior'] >= 2) synergies.push('Warrior (2): +20% defense');
-        if (roleCounts['Mage'] >= 2) synergies.push('Mage (2): +20% ability power');
-        if (roleCounts['Ranger'] >= 2) synergies.push('Ranger (2): +15% attack speed');
-        if (roleCounts['Knight'] >= 2) synergies.push('Knight (2): +25% max health');
-        if (roleCounts['Assassin'] >= 2) synergies.push('Assassin (2): +30% critical hit chance');
-        if (roleCounts['Cleric'] >= 2) synergies.push('Cleric (2): +40% healing effectiveness');
-        
-        return synergies;
-    }
 
     /**
      * Select a hero to view details
@@ -564,7 +392,13 @@ class TeamBuilderUI {
         
         try {
             this.selectedHeroDetails = hero;
-            this.renderHeroGrid();
+            
+            // Update HeroGridManager if available
+            if (this.heroGridManager) {
+                this.heroGridManager.updateSelectedHero(hero);
+            } else {
+                this.renderHeroGrid();
+            }
             
             // Use HeroDetailPanelManager if available, otherwise fall back to original implementation
             if (this.heroDetailManager) {
@@ -577,7 +411,12 @@ class TeamBuilderUI {
                 this.renderHeroDetails();
             }
             
-            this.renderTeamSlots();
+            // Update TeamSlotsManager if available
+            if (this.teamSlotsManager) {
+                this.teamSlotsManager.setSelectedHero(hero);
+            } else {
+                this.renderTeamSlots();
+            }
             
             // Play select sound
             if (window.soundManager) {
@@ -595,53 +434,32 @@ class TeamBuilderUI {
 
     /**
      * Add the selected hero to a team slot
+     * Delegated to TeamSlotsManager
      * @param {number} position - The slot position (0-2)
      */
     addHeroToTeam(position) {
-        if (!this.selectedHeroDetails) return;
-        
-        // Determine which team we're modifying
-        const targetTeam = this.isSelectingEnemyTeam ? this.enemySelectedHeroes : this.selectedHeroes;
-
-        // Check if hero is already in team
-        const existingIndex = targetTeam.findIndex(h => h && h.id === this.selectedHeroDetails.id);
-        if (existingIndex !== -1) {
-            targetTeam[existingIndex] = null;
-        }
-
-        // Update the correct team
-        if (this.isSelectingEnemyTeam) {
-            this.enemySelectedHeroes[position] = this.selectedHeroDetails;
-        } else {
-            this.selectedHeroes[position] = this.selectedHeroDetails;
+        if (this.teamSlotsManager) {
+            this.teamSlotsManager.addHeroToTeam(position);
+            return;
         }
         
-        this.renderTeamSlots();
-        
-        // Play add sound
-        if (window.soundManager) {
-            window.soundManager.play('add');
-        }
+        // Minimal fallback
+        console.error('Cannot add hero to team - TeamSlotsManager not available');
     }
 
     /**
      * Remove a hero from a team slot
+     * Delegated to TeamSlotsManager
      * @param {number} position - The slot position (0-2)
      */
     removeHeroFromTeam(position) {
-        // Remove from the appropriate team
-        if (this.isSelectingEnemyTeam) {
-            this.enemySelectedHeroes[position] = null;
-        } else {
-            this.selectedHeroes[position] = null;
+        if (this.teamSlotsManager) {
+            this.teamSlotsManager.removeHeroFromTeam(position);
+            return;
         }
         
-        this.renderTeamSlots();
-        
-        // Play remove sound
-        if (window.soundManager) {
-            window.soundManager.play('remove');
-        }
+        // Minimal fallback
+        console.error('Cannot remove hero from team - TeamSlotsManager not available');
     }
 
     /**
@@ -759,6 +577,45 @@ class TeamBuilderUI {
     }
     
     /**
+     * Initialize the team slots manager
+     */
+    async initializeTeamSlotsManager() {
+        try {
+            // Check if TeamSlotsManager is available
+            if (typeof window.TeamSlotsManager === 'undefined') {
+                console.warn('TeamSlotsManager not found, will use original implementation');
+                return false;
+            }
+            
+            // Create the team slots manager
+            this.teamSlotsManager = new window.TeamSlotsManager(this);
+            
+            // Verify required methods exist
+            const methodCheck = {
+                renderTeamSlots: typeof this.teamSlotsManager.renderTeamSlots === 'function',
+                addHeroToTeam: typeof this.teamSlotsManager.addHeroToTeam === 'function',
+                removeHeroFromTeam: typeof this.teamSlotsManager.removeHeroFromTeam === 'function',
+                toggleTeamSelection: typeof this.teamSlotsManager.toggleTeamSelection === 'function'
+            };
+            
+            console.log('TeamBuilderUI: TeamSlotsManager initialized with methods:', methodCheck);
+            
+            if (!methodCheck.renderTeamSlots || !methodCheck.addHeroToTeam) {
+                console.error('TeamSlotsManager missing required methods!');
+                this.teamSlotsManager = null;
+                return false;
+            }
+            
+            console.log('TeamBuilderUI: Team slots manager initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('Error initializing team slots manager:', error);
+            this.teamSlotsManager = null;
+            return false;
+        }
+    }
+    
+    /**
      * Initialize the hero grid manager
      */
     async initializeHeroGridManager() {
@@ -820,16 +677,34 @@ class TeamBuilderUI {
     onHeroSelected(hero) {
         this.selectHeroDetails(hero);
     }
+    
+    /**
+     * Callback for team selection changes
+     * @param {boolean} isSelectingEnemy - Whether enemy team is being selected
+     */
+    onTeamSelectionChanged(isSelectingEnemy) {
+        this.isSelectingEnemyTeam = isSelectingEnemy;
+        this.renderBattleModes();
+        this.updateStartBattleButton();
+    }
 
     /**
      * Start a battle with the selected team
      */
     startBattle() {
+        // Get state from TeamSlotsManager if available
+        let isSelectingEnemyTeam = this.isSelectingEnemyTeam;
+        let team = [];
+        
+        if (this.teamSlotsManager) {
+            isSelectingEnemyTeam = this.teamSlotsManager.isSelectingEnemyTeam;
+            team = this.teamSlotsManager.getPlayerTeam().filter(hero => hero !== null);
+        } else {
+            team = this.selectedHeroes.filter(hero => hero !== null);
+        }
+        
         // For Custom Battle mode, we need to switch to enemy team selection if not done yet
-        if (this.battleMode === 'custom' && !this.isSelectingEnemyTeam) {
-            // Filter out empty slots
-            const team = this.selectedHeroes.filter(hero => hero !== null);
-            
+        if (this.battleMode === 'custom' && !isSelectingEnemyTeam) {
             if (team.length === 0) {
                 alert('Please select at least one hero for your team!');
                 // Play error sound
@@ -839,10 +714,14 @@ class TeamBuilderUI {
                 return;
             }
             
-            // Switch to enemy team selection mode
-            this.isSelectingEnemyTeam = true;
-            this.renderTeamSlots();
-            this.updateStartBattleButton();
+            // Switch to enemy team selection mode using TeamSlotsManager if available
+            if (this.teamSlotsManager) {
+                this.teamSlotsManager.toggleTeamSelection(true);
+            } else {
+                this.isSelectingEnemyTeam = true;
+                this.renderTeamSlots();
+                this.updateStartBattleButton();
+            }
             
             // Play selection sound
             if (window.soundManager) {
@@ -851,9 +730,6 @@ class TeamBuilderUI {
             
             return; // Exit without starting battle
         }
-        
-        // Filter out empty slots
-        const team = this.selectedHeroes.filter(hero => hero !== null);
         
         if (team.length === 0) {
             alert('Please select at least one hero for your team!');
@@ -888,11 +764,21 @@ class TeamBuilderUI {
 
         // Initialize the battle manager and start the battle
         if (this.teamManager) {
-            this.teamManager.setPlayerTeam(team);
+            // Get teams from TeamSlotsManager if available
+            let playerTeam = team;
+            let enemyTeam = [];
+            let isSelectingEnemyTeam = this.isSelectingEnemyTeam;
+            
+            if (this.teamSlotsManager) {
+                playerTeam = this.teamSlotsManager.getPlayerTeam().filter(hero => hero !== null);
+                enemyTeam = this.teamSlotsManager.getEnemyTeam().filter(hero => hero !== null);
+                isSelectingEnemyTeam = this.teamSlotsManager.isSelectingEnemyTeam;
+            }
+            
+            this.teamManager.setPlayerTeam(playerTeam);
             
             // For Custom battle, use the selected enemy team
-            if (this.battleMode === 'custom' && this.isSelectingEnemyTeam) {
-                const enemyTeam = this.enemySelectedHeroes.filter(hero => hero !== null);
+            if (this.battleMode === 'custom' && isSelectingEnemyTeam) {
                 if (enemyTeam.length > 0) {
                     this.teamManager.setCustomEnemyTeam(enemyTeam);
                 } else {

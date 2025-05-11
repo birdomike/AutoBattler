@@ -1,3 +1,23 @@
+### [0.6.7.1] - 2025-05-11
+#### Changed
+- Completed Remove stage of Phase 5 (TeamSlotsManager) refactoring
+- Updated TeamBuilderUI.js to consistently use TeamSlotsManager for team-related operations
+- Modified startBattle() method to properly use TeamSlotsManager state
+- Updated renderBattleModes() to work with TeamSlotsManager
+- Maintained backward compatibility with proper fallbacks throughout
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.1_TeamSlotsManager_Remove.md*
+
+### [0.6.7.0] - 2025-05-11
+#### Changed
+- Implemented Phase 5 of TeamBuilderUI refactoring with Extract stage of TeamSlotsManager component
+- Created new TeamSlotsManager.js component to handle team slot rendering and management
+- Added initialization and delegation methods to TeamBuilderUI.js
+- Enhanced team synergy calculation to better support heroes with multiple types
+- Improved integration with existing components (HeroDetailPanelManager, HeroGridManager)
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.0_TeamSlotsManager_Extract.md*
+
 ### [0.6.6.7] - 2025-05-11
 #### Changed
 - Completed Phase 4 of TeamBuilderUI refactoring with Remove stage of HeroGridManager component
