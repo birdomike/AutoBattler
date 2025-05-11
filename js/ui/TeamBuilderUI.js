@@ -15,7 +15,7 @@ class TeamBuilderUI {
         this.selectedHeroes = [null, null, null];
         this.enemySelectedHeroes = [null, null, null];
         this.selectedHeroDetails = null;
-        this.battleMode = 'random';
+        this.battleMode = 'random'; // Maintained for backward compatibility
         this.activeFilters = {
             types: [],
             roles: []
@@ -26,6 +26,8 @@ class TeamBuilderUI {
         this.heroDetailManager = null; // Will hold the HeroDetailPanelManager
         this.heroGridManager = null; // Will hold the HeroGridManager
         this.teamSlotsManager = null; // Will hold the TeamSlotsManager
+        this.battleModeManager = null; // Will hold the BattleModeManager
+        this.battleInitiator = null; // Will hold the BattleInitiator
         this.typeColors = {
             fire: '#ff4757',
             water: '#1e90ff',
@@ -92,6 +94,12 @@ class TeamBuilderUI {
             
             // Initialize the team slots manager
             await this.initializeTeamSlotsManager();
+            
+            // Initialize the battle mode manager
+            await this.initializeBattleModeManager();
+            
+            // Initialize the battle initiator
+            await this.initializeBattleInitiator();
             
             this.renderFilters();
             this.renderHeroGrid();
@@ -247,134 +255,38 @@ class TeamBuilderUI {
 
     /**
      * Render battle mode options
+     * Delegated to BattleModeManager
      */
     renderBattleModes() {
+        if (this.battleModeManager) {
+            this.battleModeManager.renderBattleModes();
+            return;
+        }
+        
+        // Minimal fallback for error handling
+        console.error('Cannot render battle modes - BattleModeManager not available');
         const battleModes = document.getElementById('battle-modes');
-        battleModes.innerHTML = '';
-
-        const modes = [
-            {
-                id: 'random',
-                name: 'Random Opponent',
-                description: 'Battle against a randomly generated team'
-            },
-            {
-                id: 'custom',
-                name: 'Custom Battle',
-                description: 'Choose your opponent\'s team composition'
-            },
-            {
-                id: 'campaign',
-                name: 'Campaign Mode',
-                description: 'Fight through increasingly difficult encounters'
-            }
-        ];
-
-        // Get state from TeamSlotsManager if available
-        const isSelectingEnemyTeam = this.teamSlotsManager ? 
-            this.teamSlotsManager.isSelectingEnemyTeam : this.isSelectingEnemyTeam;
-
-        modes.forEach(mode => {
-            const modeElement = document.createElement('div');
-            
-            // Add special class for custom mode when selecting enemy team
-            let selectedClass = mode.id === this.battleMode ? 'selected' : '';
-            if (mode.id === 'custom' && this.battleMode === 'custom' && isSelectingEnemyTeam) {
-                selectedClass = 'selected enemy-selection-active';
-            }
-            
-            modeElement.className = `battle-mode ${selectedClass}`;
-            modeElement.dataset.modeId = mode.id;
-
-            const modeName = document.createElement('div');
-            modeName.className = 'battle-mode-name';
-            modeName.textContent = mode.name;
-            
-            // Add indicator for enemy team selection
-            if (mode.id === 'custom' && this.battleMode === 'custom' && isSelectingEnemyTeam) {
-                modeName.innerHTML = `${mode.name} <span style="color: #ff4757; font-size: 12px;">(Selecting Enemy)</span>`;
-            }
-
-            const modeDesc = document.createElement('div');
-            modeDesc.className = 'battle-mode-desc';
-            modeDesc.textContent = mode.description;
-
-            modeElement.appendChild(modeName);
-            modeElement.appendChild(modeDesc);
-            battleModes.appendChild(modeElement);
-
-            // Add event listener
-            modeElement.addEventListener('click', () => {
-                // Only allow changing battle mode if not in enemy selection mode
-                if (!isSelectingEnemyTeam || mode.id === this.battleMode) {
-                    this.battleMode = mode.id;
-                    this.renderBattleModes();
-                    
-                    // Reset enemy selection when changing modes
-                    if (isSelectingEnemyTeam && mode.id !== 'custom') {
-                        // Use TeamSlotsManager if available
-                        if (this.teamSlotsManager) {
-                            this.teamSlotsManager.toggleTeamSelection(false);
-                        } else {
-                            this.isSelectingEnemyTeam = false;
-                            this.renderTeamSlots();
-                        }
-                    }
-                } else {
-                    // If in enemy selection, show a message that they should complete or cancel enemy selection first
-                    if (window.soundManager) {
-                        window.soundManager.play('error');
-                    }
-                    alert('Please complete enemy team selection or click "Back to Your Team" before changing battle mode');
-                }
-            });
-        });
+        if (battleModes) {
+            battleModes.innerHTML = '<div class="battle-mode-error">Battle mode system unavailable</div>';
+        }
     }
 
     /**
      * Update the start battle button state
+     * Delegated to BattleModeManager
      */
     updateStartBattleButton() {
-        const startButton = document.getElementById('start-battle');
-        if (!startButton) {
-            console.error('Start battle button not found');
+        if (this.battleModeManager) {
+            this.battleModeManager.updateStartBattleButton();
             return;
         }
         
-        let selectedHeroes = this.selectedHeroes;
-        let enemySelectedHeroes = this.enemySelectedHeroes;
-        let isSelectingEnemyTeam = this.isSelectingEnemyTeam;
-        
-        // Get state from TeamSlotsManager if available
-        if (this.teamSlotsManager) {
-            selectedHeroes = this.teamSlotsManager.getPlayerTeam();
-            enemySelectedHeroes = this.teamSlotsManager.getEnemyTeam();
-            isSelectingEnemyTeam = this.teamSlotsManager.isSelectingEnemyTeam;
-        }
-        
-        const hasTeamMembers = selectedHeroes.some(hero => hero !== null);
-        
-        // For Custom Battle mode, we need to check if we're ready to select enemy team
-        if (this.battleMode === 'custom' && !isSelectingEnemyTeam) {
-            // If we have team members but haven't begun enemy team selection
-            if (hasTeamMembers) {
-                startButton.textContent = 'Choose Enemy Team';
-                startButton.disabled = false;
-            } else {
-                startButton.textContent = 'Start Battle';
-                startButton.disabled = true;
-            }
-        } else {
-            // For Random and Campaign modes, or if we're already selecting enemy team
+        // Minimal fallback for error handling
+        console.error('Cannot update start battle button - BattleModeManager not available');
+        const startButton = document.getElementById('start-battle');
+        if (startButton) {
             startButton.textContent = 'Start Battle';
-            
-            if (isSelectingEnemyTeam) {
-                // When selecting enemy team, we need at least one enemy
-                startButton.disabled = !enemySelectedHeroes.some(hero => hero !== null);
-            } else {
-                // For Random or Campaign, just check player team
-                startButton.disabled = !hasTeamMembers;
-            }
+            startButton.disabled = true;
         }
     }
 
@@ -472,6 +384,87 @@ class TeamBuilderUI {
                 this.startBattle();
             }
         });
+    }
+    
+    /**
+     * Initialize the battle mode manager
+     */
+    async initializeBattleModeManager() {
+        try {
+            // Check if BattleModeManager is available
+            if (typeof window.BattleModeManager === 'undefined') {
+                console.warn('BattleModeManager not found, will use original implementation');
+                return false;
+            }
+            
+            // Create the battle mode manager
+            this.battleModeManager = new window.BattleModeManager(this);
+            
+            // Verify required methods exist
+            const methodCheck = {
+                renderBattleModes: typeof this.battleModeManager.renderBattleModes === 'function',
+                updateStartBattleButton: typeof this.battleModeManager.updateStartBattleButton === 'function',
+                getBattleMode: typeof this.battleModeManager.getBattleMode === 'function',
+                selectBattleMode: typeof this.battleModeManager.selectBattleMode === 'function'
+            };
+            
+            console.log('TeamBuilderUI: BattleModeManager initialized with methods:', methodCheck);
+            
+            if (!methodCheck.renderBattleModes || !methodCheck.updateStartBattleButton) {
+                console.error('BattleModeManager missing required methods!');
+                this.battleModeManager = null;
+                return false;
+            }
+            
+            // Initialize with current battle mode
+            if (typeof this.battleModeManager.setBattleMode === 'function') {
+                this.battleModeManager.setBattleMode(this.battleMode);
+            }
+            
+            console.log('TeamBuilderUI: Battle mode manager initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('Error initializing battle mode manager:', error);
+            this.battleModeManager = null;
+            return false;
+        }
+    }
+    
+    /**
+     * Initialize the battle initiator
+     */
+    async initializeBattleInitiator() {
+        try {
+            // Check if BattleInitiator is available
+            if (typeof window.BattleInitiator === 'undefined') {
+                console.warn('BattleInitiator not found, will use original implementation');
+                return false;
+            }
+            
+            // Create the battle initiator
+            this.battleInitiator = new window.BattleInitiator(this);
+            
+            // Verify required methods exist
+            const methodCheck = {
+                initiateBattle: typeof this.battleInitiator.initiateBattle === 'function',
+                startBattleWithDelay: typeof this.battleInitiator.startBattleWithDelay === 'function'
+            };
+            
+            console.log('TeamBuilderUI: BattleInitiator initialized with methods:', methodCheck);
+            
+            if (!methodCheck.initiateBattle) {
+                console.error('BattleInitiator missing required methods!');
+                this.battleInitiator = null;
+                return false;
+            }
+            
+            console.log('TeamBuilderUI: Battle initiator initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('Error initializing battle initiator:', error);
+            this.battleInitiator = null;
+            return false;
+        }
     }
     
     /**
@@ -690,142 +683,17 @@ class TeamBuilderUI {
 
     /**
      * Start a battle with the selected team
+     * Delegated to BattleInitiator
      */
     startBattle() {
-        // Get state from TeamSlotsManager if available
-        let isSelectingEnemyTeam = this.isSelectingEnemyTeam;
-        let team = [];
-        
-        if (this.teamSlotsManager) {
-            isSelectingEnemyTeam = this.teamSlotsManager.isSelectingEnemyTeam;
-            team = this.teamSlotsManager.getPlayerTeam().filter(hero => hero !== null);
-        } else {
-            team = this.selectedHeroes.filter(hero => hero !== null);
-        }
-        
-        // For Custom Battle mode, we need to switch to enemy team selection if not done yet
-        if (this.battleMode === 'custom' && !isSelectingEnemyTeam) {
-            if (team.length === 0) {
-                alert('Please select at least one hero for your team!');
-                // Play error sound
-                if (window.soundManager) {
-                    window.soundManager.play('error');
-                }
-                return;
-            }
-            
-            // Switch to enemy team selection mode using TeamSlotsManager if available
-            if (this.teamSlotsManager) {
-                this.teamSlotsManager.toggleTeamSelection(true);
-            } else {
-                this.isSelectingEnemyTeam = true;
-                this.renderTeamSlots();
-                this.updateStartBattleButton();
-            }
-            
-            // Play selection sound
-            if (window.soundManager) {
-                window.soundManager.play('click');
-            }
-            
-            return; // Exit without starting battle
-        }
-        
-        if (team.length === 0) {
-            alert('Please select at least one hero for your team!');
-            // Play error sound
-            if (window.soundManager) {
-                window.soundManager.play('error');
-            }
+        if (this.battleInitiator) {
+            this.battleInitiator.initiateBattle();
             return;
         }
         
-        // Play battle start sound
-        if (window.soundManager) {
-            window.soundManager.play('battle_start');
-        }
-
-        console.log('Starting battle with team:', team);
-        console.log('Battle mode:', this.battleMode);
-
-        // Remove any existing battle UI elements
-        const existingBattleUI = document.getElementById('battle-ui');
-        if (existingBattleUI) {
-            document.body.removeChild(existingBattleUI);
-        }
-        
-        // Switch to battle scene
-        document.getElementById('team-builder-container').classList.remove('active');
-        
-        // Clear the game container and make it active
-        const gameContainer = document.getElementById('game-container');
-        gameContainer.innerHTML = ''; // Clear any previous content
-        gameContainer.classList.add('active');
-
-        // Initialize the battle manager and start the battle
-        if (this.teamManager) {
-            // Get teams from TeamSlotsManager if available
-            let playerTeam = team;
-            let enemyTeam = [];
-            let isSelectingEnemyTeam = this.isSelectingEnemyTeam;
-            
-            if (this.teamSlotsManager) {
-                playerTeam = this.teamSlotsManager.getPlayerTeam().filter(hero => hero !== null);
-                enemyTeam = this.teamSlotsManager.getEnemyTeam().filter(hero => hero !== null);
-                isSelectingEnemyTeam = this.teamSlotsManager.isSelectingEnemyTeam;
-            }
-            
-            this.teamManager.setPlayerTeam(playerTeam);
-            
-            // For Custom battle, use the selected enemy team
-            if (this.battleMode === 'custom' && isSelectingEnemyTeam) {
-                if (enemyTeam.length > 0) {
-                    this.teamManager.setCustomEnemyTeam(enemyTeam);
-                } else {
-                    // Fallback if somehow no enemies were selected
-                    this.teamManager.generateEnemyTeam('random');
-                }
-            } else {
-                // For other modes, generate enemy team as usual
-                this.teamManager.generateEnemyTeam(this.battleMode);
-            }
-            
-            // Start the battle with our teams
-            if (window.battleManager) {
-                // We need to ensure BattleUI is available before starting the battle
-                if (typeof window.BattleUI === 'undefined') {
-                    console.error('BattleUI class not found, attempting to load it');
-                    
-                    // Dynamically load the BattleUI script
-                    const loadBattleUI = new Promise((resolve, reject) => {
-                        const script = document.createElement('script');
-                        script.src = 'js/ui/BattleUI.js';
-                        script.onload = () => {
-                            console.log('BattleUI script loaded successfully');
-                            resolve();
-                        };
-                        script.onerror = () => {
-                            console.error('Failed to load BattleUI script');
-                            reject(new Error('Failed to load BattleUI script'));
-                        };
-                        document.head.appendChild(script);
-                    });
-                    
-                    // Try to load the script before continuing
-                    loadBattleUI.then(() => {
-                        this.startBattleWithDelay();
-                    }).catch(error => {
-                        console.error('Error loading BattleUI:', error);
-                        alert('Failed to load battle system. Please refresh and try again.');
-                    });
-                    
-                    return; // Exit and wait for script to load
-                }
-                
-                // BattleUI is available, proceed with starting the battle
-                this.startBattleWithDelay();
-            }
-        }
+        // Minimal fallback for error handling
+        console.error('Cannot start battle - BattleInitiator not available');
+        alert('Battle initiation system unavailable. Please refresh the page and try again.');
     }
 
     // Method splitTypes() has been moved to TeamBuilderUtils
@@ -835,26 +703,19 @@ class TeamBuilderUI {
     // Method getOrdinalSuffix() has been moved to TeamBuilderUtils
     
     /**
-     * Start the battle with a delay to ensure scripts are loaded
+     * Callback for battle mode changes
+     * @param {string} modeId - The ID of the selected battle mode
      */
-    startBattleWithDelay() {
-        // Make sure the battleManager is initialized with BattleUI
-        setTimeout(() => {
-            try {
-                // Initialize BattleUI first if needed
-                if (!window.battleManager.battleUI) {
-                    window.battleManager.initialize();
-                }
-                
-                // Then start the battle
-                window.battleManager.startBattle(
-                    this.teamManager.playerTeam,
-                    this.teamManager.enemyTeam
-                );
-            } catch (error) {
-                console.error('Error starting battle:', error);
-                alert('Error starting battle. See console for details.');
-            }
-        }, 500); // Increased delay to ensure script loading
+    onBattleModeChanged(modeId) {
+        // Update local battle mode reference for backward compatibility
+        this.battleMode = modeId;
+        
+        // Update team slots display if available
+        if (this.teamSlotsManager && typeof this.teamSlotsManager.updateTeamDisplay === 'function') {
+            this.teamSlotsManager.updateTeamDisplay(modeId);
+        }
+        
+        // Update start battle button
+        this.updateStartBattleButton();
     }
 }

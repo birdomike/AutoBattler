@@ -1,3 +1,13 @@
+### [0.6.6.10] - 2025-05-11
+#### Changed
+- Implemented Phase 6 of TeamBuilderUI refactoring with Extract stage for BattleModeManager and BattleInitiator components
+- Created BattleModeManager component to handle battle mode selection and battle button state
+- Created BattleInitiator component to handle battle initiation and transition
+- Updated TeamBuilderUI.js to delegate battle mode selection and battle initiation
+- Added initialization methods and callbacks for proper component integration
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.6.10_BattleModeManager_BattleInitiator_Extract.md*
+
 ### [0.6.7.1] - 2025-05-11
 #### Changed
 - Completed Remove stage of Phase 5 (TeamSlotsManager) refactoring
