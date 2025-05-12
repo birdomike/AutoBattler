@@ -471,9 +471,11 @@ class HeroDetailPanelManager {
 
       this.detailContentElement.appendChild(detailHero);
       
-      // If this character has art, add it directly without relying on the observer
-      if (window.CHARACTER_IMAGE_CACHE && window.CHARACTER_IMAGE_CACHE[hero.name]) {
-        this.addArtToPanel(hero, detailIconContainer);
+      // Draw character art directly using the central drawing function
+      if (this.parentUI && this.parentUI.imageLoader && typeof this.parentUI.imageLoader.drawArt === 'function') {
+        this.parentUI.imageLoader.drawArt(hero, detailIconContainer, true);
+      } else {
+        console.error("[HeroDetailPanelManager] Cannot draw art - imageLoader.drawArt not available");
       }
     } finally {
       // Re-enable art observer after all detail panel updates are complete
@@ -507,9 +509,11 @@ class HeroDetailPanelManager {
         detailIconContainer.dataset.characterId = hero.id;
         detailIconContainer.dataset.characterName = hero.name;
         
-        // Add art directly if available, bypassing observer
-        if (window.CHARACTER_IMAGE_CACHE && window.CHARACTER_IMAGE_CACHE[hero.name]) {
-          this.addArtToPanel(hero, detailIconContainer);
+        // Draw character art directly using the central drawing function
+        if (this.parentUI && this.parentUI.imageLoader && typeof this.parentUI.imageLoader.drawArt === 'function') {
+          this.parentUI.imageLoader.drawArt(hero, detailIconContainer, true);
+        } else {
+          console.error("[HeroDetailPanelManager] Cannot draw art - imageLoader.drawArt not available");
         }
       }
       
@@ -893,58 +897,79 @@ class HeroDetailPanelManager {
   }
   
   /**
-   * Add character art directly to a detail panel without using the observer
+   * DEPRECATED: Add character art directly to a detail panel
+   * This method is now deprecated in favor of the central drawArt method in TeamBuilderImageLoader
    * @param {Object} hero - The hero to display art for
    * @param {HTMLElement} detailIconContainer - The container for the art
    */
   addArtToPanel(hero, detailIconContainer) {
+    console.warn("[HeroDetailPanelManager] addArtToPanel is deprecated - use TeamBuilderImageLoader.drawArt instead");
+    
+    // Forward to the central drawing function if available
+    if (this.parentUI && this.parentUI.imageLoader && typeof this.parentUI.imageLoader.drawArt === 'function') {
+      return this.parentUI.imageLoader.drawArt(hero, detailIconContainer, true);
+    }
+    
+    // Legacy fallback code - should not be needed but kept for safety
     if (!hero || !detailIconContainer) {
       console.error("[HeroDetailPanelManager] Missing hero or detailIconContainer");
-      return;
+      return false;
     }
     
-    // Find art wrapper or create one
-    let artWrapper = detailIconContainer.querySelector('.hero-art-wrapper');
-    if (!artWrapper) {
-      artWrapper = document.createElement('div');
-      artWrapper.className = 'hero-art-wrapper';
-      artWrapper.style.display = 'block';
-      detailIconContainer.appendChild(artWrapper);
+    if (!window.CHARACTER_IMAGE_CACHE || !window.CHARACTER_IMAGE_CACHE[hero.name]) {
+      console.error(`[HeroDetailPanelManager] No cached image for ${hero.name}`);
+      return false;
     }
     
-    // Clear any existing art
-    while (artWrapper.firstChild) {
-      artWrapper.removeChild(artWrapper.firstChild);
+    try {
+      // Find art wrapper or create one
+      let artWrapper = detailIconContainer.querySelector('.hero-art-wrapper');
+      if (!artWrapper) {
+        artWrapper = document.createElement('div');
+        artWrapper.className = 'hero-art-wrapper';
+        artWrapper.style.display = 'block';
+        detailIconContainer.appendChild(artWrapper);
+      }
+      
+      // Clear any existing art
+      artWrapper.innerHTML = '';
+      
+      // Clone image from cache and add to wrapper
+      const newImg = window.CHARACTER_IMAGE_CACHE[hero.name].cloneNode(true);
+      
+      // Style the image for detail view
+      newImg.className = 'character-art team-builder-art';
+      newImg.alt = hero.name;
+      newImg.style.position = 'absolute';
+      
+      // Get character positioning data
+      const character = this.availableHeroes.find(c => c.id == hero.id);
+      const artSettings = character?.detailArt || character?.teamBuilderArt || character?.art || {};
+      
+      // Apply appropriate positioning with defaults
+      newImg.style.left = artSettings.left || '-30px';
+      newImg.style.top = artSettings.top || '-45px';
+      newImg.style.width = artSettings.width || '140px';
+      newImg.style.height = artSettings.height || '140px';
+      
+      // Ensure visibility
+      newImg.style.visibility = 'visible';
+      newImg.style.display = 'block';
+      newImg.style.zIndex = '100';
+      
+      // Add the image to the wrapper
+      artWrapper.appendChild(newImg);
+      
+      // Add relevant classes
+      detailIconContainer.classList.add('has-art');
+      const detailHero = detailIconContainer.closest('.detail-hero');
+      if (detailHero) detailHero.classList.add('has-art');
+      
+      return true;
+    } catch (err) {
+      console.error(`[HeroDetailPanelManager] Error in legacy art rendering for ${hero.name}:`, err);
+      return false;
     }
-    
-    // Clone image from cache
-    const newImg = window.CHARACTER_IMAGE_CACHE[hero.name].cloneNode(true);
-    
-    // Set styling for detail view
-    newImg.className = 'character-art team-builder-art';
-    newImg.alt = hero.name;
-    newImg.style.position = 'absolute';
-    
-    // Get character positioning data
-    const character = this.availableHeroes.find(c => c.id == hero.id);
-    const artSettings = character?.detailArt || character?.teamBuilderArt || character?.art || {};
-    
-    // Apply custom positioning for this character
-    newImg.style.left = artSettings.left || '-30px';
-    newImg.style.top = artSettings.top || '-45px';
-    newImg.style.width = artSettings.width || '140px';
-    newImg.style.height = artSettings.height || '140px';
-    newImg.style.visibility = 'visible';
-    newImg.style.display = 'block';
-    newImg.style.zIndex = '100';
-    
-    // Add the image to the wrapper
-    artWrapper.appendChild(newImg);
-    
-    // Add relevant classes
-    detailIconContainer.classList.add('has-art');
-    const detailHero = detailIconContainer.closest('.detail-hero');
-    if (detailHero) detailHero.classList.add('has-art');
   }
   
   /**

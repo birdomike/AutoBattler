@@ -102,6 +102,11 @@ class TeamSlotsManager {
         
         // Assemble the icon structure
         heroIconContainer.appendChild(artWrapper);
+        
+        // Explicitly draw the character art
+        if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
+          this.imageLoader.drawArt(currentTeam[i], heroIconContainer, false);
+        }
 
         const heroInfo = document.createElement('div');
         heroInfo.className = 'hero-info';
@@ -202,8 +207,7 @@ class TeamSlotsManager {
     // Notify parent to update the start battle button
     this.notifyBattleButtonUpdate();
     
-    // Force image loader to check for new images
-    this.triggerImageLoader();
+    // Art is explicitly drawn during team slot rendering
   }
 
   /**
@@ -407,14 +411,12 @@ class TeamSlotsManager {
   }
   
   /**
-   * Trigger the image loader to check for new images
+   * DEPRECATED: Trigger the image loader to check for new images
+   * No longer needed as art is now explicitly drawn during team slot rendering
    */
   triggerImageLoader() {
-    if (this.imageLoader && typeof this.imageLoader.forceCheck === 'function') {
-      this.imageLoader.forceCheck();
-    } else {
-      console.warn("[TeamSlotsManager] Image loader not available or missing forceCheck method");
-    }
+    // No-op - art is now explicitly managed in renderTeamSlots
+    console.warn("[TeamSlotsManager] triggerImageLoader is deprecated - art is now explicitly drawn");
   }
 }
 

@@ -158,6 +158,13 @@ class HeroGridManager {
 
     // Add event listener
     heroCard.addEventListener('click', () => this.selectHero(hero));
+    
+    // Explicitly draw character art using the central drawing function
+    if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
+      this.imageLoader.drawArt(hero, heroIconContainer, false);
+    } else {
+      console.error("[HeroGridManager] Cannot draw art - imageLoader.drawArt not available");
+    }
 
     return heroCard;
   }
@@ -209,14 +216,12 @@ class HeroGridManager {
   }
   
   /**
-   * Trigger the image loader to check for new images
+   * DEPRECATED: Trigger the image loader to check for new images
+   * No longer needed as art is explicitly drawn during card creation
    */
   triggerImageLoader() {
-    if (this.imageLoader && typeof this.imageLoader.forceCheck === 'function') {
-      this.imageLoader.forceCheck();
-    } else {
-      console.warn("[HeroGridManager] Image loader not available or missing forceCheck method");
-    }
+    // No-op - art is now explicitly managed in createHeroCard
+    console.warn("[HeroGridManager] triggerImageLoader is deprecated - art is now explicitly drawn");
   }
 }
 

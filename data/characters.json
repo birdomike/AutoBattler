@@ -454,7 +454,7 @@
       "id": 4,
       "name": "Vaelgor",
       "type": "dark",
-      "role": "Knight",
+      "role": "Sentinel",
       "actionDecisionLogic": "decideAction_Defensive",
       "stats": {
         "hp": 139,
@@ -466,8 +466,8 @@
         "spirit": 23
       },
       "art": {
-        "left": "-10px",
-        "top": "-40px",
+        "left": "0px",
+        "top": "-20px",
         "width": "90px",
         "height": "130px"
       },
@@ -712,7 +712,7 @@
         "spirit": 44
       },
       "art": {
-        "left": "-8px",
+        "left": "0px",
         "top": "-32px",
         "width": "85px",
         "height": "125px"

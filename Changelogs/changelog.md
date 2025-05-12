@@ -10,6 +10,14 @@
 - Grid will now be hidden by default until toggled with Alt+G
 - Improved debugging experience by reducing initial visual clutter
 
+### [0.6.7.6] - 2025-05-12
+#### Changed
+- Completely removed the MutationObserver-based character art system from TeamBuilderImageLoader
+- Implemented centralized art drawing functionality (TeamBuilderImageLoader.drawArt)
+- Modified all UI managers (HeroGridManager, TeamSlotsManager, HeroDetailPanelManager) to explicitly manage their own art rendering
+- Eliminated sporadic art disappearance issues by ensuring robust art handling in each component
+- Fixed styling glitches by properly clearing and recreating art elements with correct settings
+
 ### [0.6.7.5] - 2025-05-12
 #### Changed
 - Removed rarity system from game (was not being used in gameplay mechanics)

@@ -238,7 +238,122 @@ async initialize() {
     }
 
     /**
-     * Create and add character art to a container
+     * Draw character art in a container - Primary art drawing function
+     * @param {Object} character - Character object with art settings
+     * @param {HTMLElement} container - DOM element to contain the art
+     * @param {boolean} isDetailViewContext - Whether this is a detail view
+     * @returns {boolean} Whether the art was successfully added
+     */
+    drawArt(character, container, isDetailViewContext) {
+        if (!character || !container) {
+            console.error('TeamBuilderImageLoader: Missing character or container for drawArt');
+            return false;
+        }
+        
+        try {
+            const characterName = character.name;
+            
+            // Skip if character has no defined image
+            if (!this.characterImages[characterName]) {
+                console.log(`TeamBuilderImageLoader: No image defined for ${characterName}`);
+                return false;
+            }
+            
+            // Skip if image not in cache
+            if (!window.CHARACTER_IMAGE_CACHE[characterName]) {
+                console.error(`TeamBuilderImageLoader: ${characterName} not found in image cache`);
+                return false;
+            }
+
+            // Find or create art wrapper
+            let artWrapper = container.querySelector('.hero-art-wrapper');
+            if (!artWrapper) {
+                artWrapper = document.createElement('div');
+                artWrapper.className = 'hero-art-wrapper';
+                container.appendChild(artWrapper);
+            }
+            
+            // ALWAYS clear any existing art from the wrapper
+            artWrapper.innerHTML = '';
+            
+            // Clone image from cache
+            const img = window.CHARACTER_IMAGE_CACHE[characterName].cloneNode(true);
+            
+            // Determine the correct art settings based on context
+            let artSettings;
+            if (isDetailViewContext) {
+                // Detail view - use special positioning
+                artSettings = character.detailArt || character.teamBuilderArt || character.art || {};
+            } else {
+                // Regular view - use enhanced sizing for the new 2-column layout
+                artSettings = {...(character.teamBuilderArt || character.art || {})};
+                
+                // Scale up the art by about 40% for the new larger cards
+                if (artSettings.width) {
+                    const originalWidth = parseInt(artSettings.width);
+                    if (!isNaN(originalWidth)) {
+                        artSettings.width = `${Math.round(originalWidth * 1.4)}px`;
+                    }
+                }
+                
+                if (artSettings.height) {
+                    const originalHeight = parseInt(artSettings.height);
+                    if (!isNaN(originalHeight)) {
+                        artSettings.height = `${Math.round(originalHeight * 1.4)}px`;
+                    }
+                }
+            }
+            
+            // Set image properties
+            img.className = 'character-art team-builder-art';
+            img.alt = characterName;
+            
+            // Apply position settings with proper defaults
+            img.style.position = 'absolute';
+            img.style.left = artSettings.left || '0px';
+            img.style.top = artSettings.top || '0px';
+            
+            // Apply width and height with context-sensitive defaults
+            if (isDetailViewContext) {
+                img.style.width = artSettings.width || '140px';
+                img.style.height = artSettings.height || '140px';
+            } else {
+                img.style.width = artSettings.width || '80px';
+                img.style.height = artSettings.height || '120px';
+            }
+            
+            // Store original positions for animation handling
+            img.dataset.originalLeft = artSettings.left || '0px';
+            img.dataset.originalTop = artSettings.top || '0px';
+            
+            // Add the image to the wrapper
+            artWrapper.appendChild(img);
+            artWrapper.style.display = 'block';
+            
+            // Add appropriate classes to container and parent elements
+            container.classList.add('has-art');
+            
+            // Add has-art to the parent card/content element if it exists
+            const heroCard = container.closest('.hero-card');
+            if (heroCard) heroCard.classList.add('has-art');
+            
+            const slotContent = container.closest('.slot-content');
+            if (slotContent) slotContent.classList.add('has-art');
+            
+            const detailHero = container.closest('.detail-hero');
+            if (detailHero) detailHero.classList.add('has-art');
+            
+            console.log(`TeamBuilderImageLoader: Drew art for ${characterName}${isDetailViewContext ? ' (detail view)' : ''}`);
+            return true;
+            
+        } catch (err) {
+            console.error(`TeamBuilderImageLoader: Error drawing art for ${character.name}`, err);
+            return false;
+        }
+    }
+    
+    /**
+     * Create and add character art to a container (Legacy method, now a wrapper for drawArt)
      * @param {HTMLElement} container - The container element
      * @param {string} characterId - Character ID
      * @param {string} characterName - Character name
@@ -253,151 +368,11 @@ async initialize() {
             return false;
         }
         
-        // Check if the wrapper exists
-        const artWrapper = container.querySelector('.hero-art-wrapper');
+        // Determine if this is a detail view
+        const isDetailView = container.classList.contains('detail-icon-container');
         
-        if (!artWrapper) {
-            console.error('TeamBuilderImageLoader: No art wrapper found for', characterName);
-            return false;
-        }
-        
-        // Try to load the image
-        try {
-            const imagePath = this.characterImages[characterName];
-            
-            // Check if we already have a cached image for this character
-            let img;
-            if (this.cachedImages.has(characterName)) {
-                // Use the cached image data to create a new image element
-                img = this.cachedImages.get(characterName).cloneNode(true);
-                console.log(`TeamBuilderImageLoader: Using cached image for ${characterName}`);
-            } else {
-                // Load the image for the first time
-                const imageExists = await this.checkImageExists(imagePath);
-                
-                if (!imageExists) {
-                    console.log(`TeamBuilderImageLoader: No image found for ${characterName}`);
-                    return false;
-                }
-                
-                // Create a new image element
-                img = document.createElement('img');
-                img.src = imagePath;
-                img.onload = () => {
-                    // Cache the loaded image for future use
-                    this.cachedImages.set(characterName, img.cloneNode(true));
-                    
-                    // Also store in global cache for persistent access
-                    window.CHARACTER_IMAGE_CACHE[characterName] = img.cloneNode(true);
-                    console.log(`TeamBuilderImageLoader: Added ${characterName} to global image cache`);
-                    
-                    // Set up mutation observer if not already set up
-                    if (typeof window.setupCharacterArtMutationObserver === 'function') {
-                        window.setupCharacterArtMutationObserver();
-                    }
-                    
-                    console.log(`TeamBuilderImageLoader: Cached image for ${characterName}`);
-                };
-            }
-            
-            // Determine if this is a detail view
-            const isDetailView = container.classList.contains('detail-icon-container');
-            
-            // Use teamBuilderArt if available, otherwise fall back to regular art
-            let artSettings;
-            
-            if (isDetailView) {
-                // For detail view, use special positioning
-                artSettings = character.detailArt || character.teamBuilderArt || character.art || {};
-                
-                // If no specific settings, use these defaults for detail view
-                if (!artSettings.left) artSettings.left = '-30px';
-                if (!artSettings.top) artSettings.top = '-45px';
-                if (!artSettings.width) artSettings.width = '140px';
-                if (!artSettings.height) artSettings.height = '140px';
-            } else {
-                // Regular view - use enhanced sizing for the new 2-column layout
-                artSettings = {...(character.teamBuilderArt || character.art || {})};
-                
-                // Scale up the art by about 40% for the new larger cards
-                // This is done by modifying the width/height but maintaining the aspect ratio
-                if (artSettings.width) {
-                    // Parse the existing width, ignoring 'px' suffix
-                    const originalWidth = parseInt(artSettings.width);
-                    if (!isNaN(originalWidth)) {
-                        // Scale up by 40%
-                        artSettings.width = `${Math.round(originalWidth * 1.4)}px`;
-                    }
-                }
-                
-                if (artSettings.height) {
-                    // Parse the existing height, ignoring 'px' suffix
-                    const originalHeight = parseInt(artSettings.height);
-                    if (!isNaN(originalHeight)) {
-                        // Scale up by 40%
-                        artSettings.height = `${Math.round(originalHeight * 1.4)}px`;
-                    }
-                }
-            }
-            
-            // Set image properties
-            img.className = 'character-art team-builder-art';
-            img.alt = characterName;
-            
-            // Apply position settings
-            img.style.position = 'absolute';
-            img.style.left = artSettings.left || '0px';
-            img.style.top = artSettings.top || '0px';
-            
-            if (artSettings.width) {
-                img.style.width = artSettings.width;
-            }
-            
-            if (artSettings.height) {
-                img.style.height = artSettings.height;
-            }
-            
-            // Store original positions for animation handling
-            img.dataset.originalLeft = artSettings.left || '0px';
-            img.dataset.originalTop = artSettings.top || '0px';
-            
-            // PRESERVE EXISTING ART: Check if art already exists before replacing
-            const existingArt = artWrapper.querySelector('.character-art');
-            if (!existingArt) {
-                // Only clear and add if there's no existing art
-                artWrapper.innerHTML = '';
-                artWrapper.appendChild(img);
-            }
-            
-            artWrapper.style.display = 'block';
-            
-            // Set all parent elements with appropriate classes
-            container.classList.add('has-art'); // Mark container as having art
-            
-            // Add has-art to the parent card/content element if it exists
-            const heroCard = container.closest('.hero-card');
-            if (heroCard) heroCard.classList.add('has-art');
-            
-            const slotContent = container.closest('.slot-content');
-            if (slotContent) slotContent.classList.add('has-art');
-            
-            const detailHero = container.closest('.detail-hero');
-            if (detailHero) detailHero.classList.add('has-art');
-            
-            // Record that we've loaded this character's art
-            // This is important to avoid reloading across different containers
-            this.loadedCharacters.add(characterName);
-            
-            // Always log for detail view to help track issues
-            if (isFirstLoad || isDetailView) {
-                console.log(`TeamBuilderImageLoader: Loaded art for ${characterName}${isDetailView ? ' (detail view)' : ''}`);
-            }
-            
-            return true;
-        } catch (err) {
-            console.error(`TeamBuilderImageLoader: Error loading art for ${characterName}`, err);
-            return false;
-        }
+        // Use the new drawArt method
+        return this.drawArt(character, container, isDetailView);
     }
 
     /**
@@ -422,34 +397,20 @@ async initialize() {
     }
 
     /**
-     * Manually trigger a check for new images and reset processing cache
+     * Manually trigger a check for new images (DEPRECATED - Use drawArt instead)
      * @param {boolean} debug - Enable debug output
      * @param {boolean} resetCache - Whether to reset the processed containers cache
      */
     forceCheck(debug = false, resetCache = false) {
-        // Temporarily enable debug mode if requested
-        const prevDebugMode = this.debugMode;
-        this.debugMode = debug;
+        // This method is now deprecated - use drawArt instead
+        console.warn("TeamBuilderImageLoader: forceCheck is deprecated. Use drawArt instead.");
         
         if (debug) {
-            console.log("TeamBuilderImageLoader: Force checking images");
+            console.log("TeamBuilderImageLoader: forceCheck is now a no-op. Use drawArt to explicitly render character art.");
         }
         
-        // Reset the processed containers cache if requested
-        // This will force reprocessing of all containers
-        if (resetCache) {
-            if (debug) {
-                console.log("TeamBuilderImageLoader: Resetting processed containers cache");
-            }
-            this.processedContainers = new WeakSet();
-            this.loadedCharacters = new Set();
-        }
-        
-        // Check for new images
-        this.checkAndLoadImages();
-        
-        // Restore previous debug mode
-        this.debugMode = prevDebugMode;
+        // No-op - art is now explicitly managed
+        return;
     }
 
     /**
@@ -476,170 +437,29 @@ async initialize() {
 }
 
 // Export the class
-// Create DOM observer to ensure character art is never removed
+// Disabled MutationObserver - No longer using observer-based approach
 window.setupCharacterArtMutationObserver = function() {
     // First, completely disconnect any existing observer to ensure clean slate
     if (window.characterArtObserver) {
         window.characterArtObserver.disconnect();
         window.characterArtObserver = null;
-        console.log('Reset existing character art observer');
+        console.log('Disconnected existing character art observer');
     }
     
-    console.log('Setting up character art mutation observer');
+    console.log('MutationObserver for character art is permanently disabled');
     
-    // Static flag to completely disable observer when needed
-    window.observerDisabled = false;
-    
-    // Throttling variable
-    let throttleId = null;
-    // Boolean flag to prevent re-entrance
-    let isRestoring = false;
-    
-    // Create a mutation observer to watch for DOM changes
-    window.characterArtObserver = new MutationObserver(function(mutations) {
-        // Skip if globally disabled or already processing or throttled
-        if (window.observerDisabled || isRestoring || throttleId) return;
-        
-        // Check if any mutation is directly affecting a detail container
-        // If so, skip processing entirely
-        const shouldSkip = mutations.some(mutation => {
-            return mutation.target.closest('.detail-icon-container') !== null;
-        });
-        
-        if (shouldSkip) return;
-        
-        // Set up throttling with requestAnimationFrame instead of setTimeout
-        if (throttleId) return; // already scheduled
-        
-        throttleId = requestAnimationFrame(() => {
-            try {
-                // Set isRestoring flag to prevent re-entrance
-                isRestoring = true;
-                
-                // Temporarily disconnect the observer to prevent self-triggering
-                window.characterArtObserver.disconnect();
-                
-                // Use a flag to track if we did any art restoration
-                let didRestoreArt = false;
-                
-                // Process mutations
-                mutations.forEach(function(mutation) {
-                    // Only process if we have element changes and not in a detail container
-                    if ((mutation.type === 'childList' || mutation.type === 'attributes') && 
-                        !mutation.target.closest('.detail-icon-container')) {
-                        
-                        // Check for any character containers that are missing their art
-                        // EXPLICITLY EXCLUDE the detail-icon-container to avoid any processing
-                        document.querySelectorAll('.hero-avatar-container[data-character-name]:not(.detail-icon-container)').forEach(container => {
-                            const characterName = container.dataset.characterName;
-                            
-                            // Only process if we have this character in our cache
-                            if (window.CHARACTER_IMAGE_CACHE[characterName]) {
-                                // EARLY EXIT: Skip if art already present
-                                if (container.querySelector('.character-art')) return;
-                                
-                                // EARLY EXIT: Skip if already synced in this animation frame
-                                if (container.dataset.artSynced === '1') return;
-                                container.dataset.artSynced = '1';
-                                
-                                // Check if art wrapper exists
-                                const artWrapper = container.querySelector('.hero-art-wrapper');
-                                
-                                // Clean any duplicate arts before proceeding
-                                if (artWrapper) {
-                                    const extraArts = artWrapper.querySelectorAll('.character-art:not(:first-child)');
-                                    extraArts.forEach(el => el.remove());
-                                }
-                                
-                                // If art wrapper is missing, create it
-                                let wrapper = artWrapper;
-                                if (!wrapper) {
-                                    wrapper = document.createElement('div');
-                                    wrapper.className = 'hero-art-wrapper';
-                                    wrapper.style.display = 'block';
-                                    container.appendChild(wrapper);
-                                }
-                                
-                                // Clone from global cache and add
-                                const newImg = window.CHARACTER_IMAGE_CACHE[characterName].cloneNode(true);
-                                newImg.style.visibility = 'visible';
-                                newImg.style.display = 'block';
-                                wrapper.appendChild(newImg);
-                                
-                                // Force proper class hierarchy
-                                container.classList.add('has-art');
-                                
-                                // Add has-art to parent elements
-                                const heroCard = container.closest('.hero-card');
-                                if (heroCard) heroCard.classList.add('has-art');
-                                
-                                const slotContent = container.closest('.slot-content');
-                                if (slotContent) slotContent.classList.add('has-art');
-                                
-                                // Track successful restoration
-                                const added = true; // Flag to track if we actually added art
-                                if (added) console.log(`Restored art for ${characterName}`);
-                                didRestoreArt = true;
-                            }
-                        });
-                    }
-                });
-                
-                // Only log if we actually did something
-                if (didRestoreArt) {
-                    console.log('Observer restored art for some characters');
-                }
-            } finally {
-                // Reset throttle ID
-                throttleId = null;
-                // Reset isRestoring flag
-                isRestoring = false;
-                
-                // Reconnect the observer after processing
-                if (!window.observerDisabled) {
-                    // Reconnect only to the targeted containers
-                    const targets = document.querySelectorAll('#heroes-grid, #team-slots');
-                    targets.forEach(t => window.characterArtObserver.observe(t, {
-                        childList: true,
-                        subtree: true,
-                        attributes: true
-                    }));
-                }
-            }
-        }, 50); // Increase throttle to 50ms for more stability
-    });
-
-    // Observe only the grids that actually recycle DOM
-    const targets = document.querySelectorAll('#heroes-grid, #team-slots');
-    targets.forEach(t => window.characterArtObserver.observe(t, {
-        childList: true, // Watch for added/removed nodes
-        subtree: true,   // Watch the entire subtree
-        attributes: true // Watch for attribute changes
-    }));
+    // Set the disabled flag to true permanently
+    window.observerDisabled = true;
 };
 
-// Utility to temporarily disable observer during complex DOM operations
+// Utility functions are now no-op (disabled permanently)
 window.disableArtObserver = function() {
-    if (window.characterArtObserver) {
-        window.observerDisabled = true;
-        window.characterArtObserver.disconnect();
-        console.log('Character art observer disabled');
-    }
+    // No-op function - observer is permanently disabled
 };
 
-// Utility to re-enable observer
+// Utility to re-enable observer - also a no-op now
 window.enableArtObserver = function() {
-    if (window.characterArtObserver) {
-        window.observerDisabled = false;
-        // Observe only the necessary containers
-        const targets = document.querySelectorAll('#heroes-grid, #team-slots');
-        targets.forEach(t => window.characterArtObserver.observe(t, {
-            childList: true,
-            subtree: true,
-            attributes: true
-        }));
-        console.log('Character art observer re-enabled');
-    }
+    // No-op function - observer is permanently disabled
 };
 
 window.TeamBuilderImageLoader = TeamBuilderImageLoader;
