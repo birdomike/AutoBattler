@@ -1,4 +1,527 @@
-﻿Combined Technical Changelog  (generated 2025-05-12 00:42)
+﻿Combined Technical Changelog  (generated 2025-05-12 12:32)
+
+===== CHANGELOG_0.6.7.7_ImagePreloadingSynchronization =====
+
+# Changelog: Image Preloading Synchronization
+
+## Version 0.6.7.7 - May 12, 2025
+
+### Overview
+This update resolves a race condition that was causing "TeamBuilderImageLoader: [CharacterName] not found in image cache" errors during game startup. The issue occurred because UI components (like HeroGridManager) were attempting to use character images before TeamBuilderImageLoader had finished loading them. The solution implements Promise-based image preloading and proper sequencing, ensuring all necessary images are loaded before UI rendering begins.
+
+### Technical Implementation
+
+#### 1. Promise-Based Image Preloading
+Modified `TeamBuilderImageLoader.preloadCharacterImages()` to return a Promise that resolves only when all images have been loaded (or failed to load):
+
+```javascript
+preloadCharacterImages() {
+    // Create an array of promises, one for each image
+    const loadPromises = charactersWithArt.map(characterName => {
+        return new Promise((resolve) => {
+            try {
+                // Image loading logic...
+                img.onload = () => {
+                    // Cache the image...
+                    resolve(); // Resolve this image's promise
+                };
+                img.onerror = (err) => {
+                    // Log error...
+                    resolve(); // Resolve even on error
+                };
+                // Start loading
+                img.src = imagePath;
+            } catch (err) {
+                resolve(); // Resolve even if there's an exception
+            }
+        });
+    });
+    
+    // Return a promise that resolves when ALL images are loaded
+    return Promise.all(loadPromises).then(() => {
+        console.log('TeamBuilderImageLoader: All character images have been processed');
+        // Additional setup...
+    });
+}
+```
+
+This implementation has several key features:
+- Creates a separate promise for each image to be loaded
+- Properly handles both successful loads and errors
+- Ensures all images are at least attempted to be loaded before resolving
+- Uses `Promise.all()` to wait for all individual promises to resolve
+
+#### 2. Awaitable Initialization
+Modified `TeamBuilderImageLoader.initialize()` to return the promise from `preloadCharacterImages()`:
+
+```javascript
+async initialize() {
+    // Load character data...
+    // Start periodic checking...
+    // Do an initial check...
+    
+    // Return the promise from preloadCharacterImages()
+    return this.preloadCharacterImages();
+}
+```
+
+This change enables other components to know when initialization and preloading is complete, rather than assuming it happens instantaneously.
+
+#### 3. Proper UI Initialization Sequencing
+Updated `TeamBuilderUI.initialize()` to await the completion of image preloading before initializing UI components:
+
+```javascript
+async initialize() {
+    // Load heroes data...
+    
+    // Initialize the image loader and AWAIT its completion
+    await this.initializeImageLoader();
+    
+    console.log('TeamBuilderUI: Image preloading complete, initializing UI components...');
+    
+    // Only now initialize UI components
+    await this.initializeHeroDetailManager();
+    await this.initializeFilterManager();
+    // etc...
+    
+    // And finally render UI elements
+    this.renderFilters();
+    this.renderHeroGrid();
+    // etc...
+}
+```
+
+This ensures that UI components only begin rendering after all images are preloaded.
+
+#### 4. Fallback On-Demand Loading
+Enhanced `TeamBuilderImageLoader.drawArt()` to handle cases where images aren't in the cache by loading them on-demand:
+
+```javascript
+// If image not in cache, attempt to load it immediately
+if (!window.CHARACTER_IMAGE_CACHE[characterName]) {
+    console.log(`TeamBuilderImageLoader: ${characterName} not found in image cache, loading now...`);
+    // Create and load the image immediately
+    const img = new Image();
+    img.onload = () => {
+        window.CHARACTER_IMAGE_CACHE[characterName] = img;
+        console.log(`TeamBuilderImageLoader: ${characterName}'s image loaded on-demand`);
+        // Force redraw now that the image is loaded
+        this.drawArt(character, container, isDetailViewContext);
+    };
+    img.src = this.characterImages[characterName];
+    
+    // Show loading indicator in the meantime
+    this.drawLoadingPlaceholder(container, isDetailViewContext);
+    return true;
+}
+```
+
+This provides a graceful fallback for any edge cases where an image might be needed before it's loaded, ensuring that something is still displayed to the user.
+
+#### 5. Loading Placeholder
+Added a new `drawLoadingPlaceholder()` method to show visual feedback while images are loading:
+
+```javascript
+drawLoadingPlaceholder(container, isDetailViewContext) {
+    // Create a placeholder div with loading text
+    const placeholder = document.createElement('div');
+    placeholder.className = 'loading-placeholder';
+    placeholder.style.position = 'absolute';
+    placeholder.style.display = 'flex';
+    // Set appropriate styling...
+    placeholder.textContent = 'Loading...';
+    // Add to container...
+}
+```
+
+This improves user experience by providing visual feedback for loading operations.
+
+### Implementation Challenges
+
+#### 1. Error Handling
+One challenge was ensuring that errors during image loading wouldn't block the entire chain of promises. We addressed this by:
+- Resolving each image's promise even if there's an error loading that image
+- Providing comprehensive error logging
+- Using try/catch blocks to handle unexpected exceptions
+
+#### 2. Promise Sequencing
+Ensuring the proper sequence of operations (load data â†’ preload images â†’ initialize UI â†’ render) required careful attention to async/await flow:
+- Each component method returns a promise that next steps can await
+- UI initialization now explicitly waits for image preloading completion
+- Log messages mark clear transitions between phases
+
+#### 3. Maintaining Backwards Compatibility
+We had to ensure the code remained compatible with existing systems:
+- Returning `Promise.resolve()` in error cases to maintain expected Promise chains
+- Providing fallback behavior for any images not loaded during preload
+- Maintaining existing observer and callback patterns for older code
+
+### User Experience Improvements
+
+1. **Elimination of Errors**: Users no longer see "not found in image cache" errors in the console during startup.
+
+2. **Consistent Image Display**: All character images appear immediately when the UI is first rendered.
+
+3. **Visual Feedback**: Loading placeholders provide visual feedback if any images need to be loaded on-demand.
+
+4. **Improved Stability**: The more robust architecture reduces the chance of visual glitches or missing art.
+
+### Performance Considerations
+
+1. **Initial Load Time**: There may be a slightly longer initial loading time as the game now explicitly waits for all images to preload before rendering UI.
+
+2. **Resource Efficiency**: By using Promise.all, all images load in parallel rather than sequentially, optimizing network usage.
+
+3. **Memory Usage**: The caching strategy remains unchanged, maintaining the same memory footprint as before.
+
+### Future Considerations
+
+1. **Loading Indicator**: A more sophisticated loading indicator could be added to show overall preloading progress.
+
+2. **Prioritized Loading**: Images could be loaded in priority order (e.g., team builder UI images first, then battle images).
+
+3. **Caching Strategy**: Future updates could implement a more sophisticated caching strategy, potentially using browser cache or IndexedDB for persistent caching.
+
+### Lessons Learned
+
+1. **Promise-Based Loading**: Asynchronous image loading should always be handled with Promises rather than callbacks for better flow control.
+
+2. **Sequential Dependencies**: When components depend on resources being loaded, explicit sequencing is necessary rather than assuming resources will be available.
+
+3. **Defensive Programming**: Adding fallback mechanisms (on-demand loading) provides resilience against edge cases.
+
+4. **Visual Feedback**: Always provide visual feedback for loading operations to improve user experience.
+
+This change addresses the immediate image loading issues and provides a more robust foundation for all asynchronous operations in the TeamBuilder UI.
+
+
+===== CHANGELOG_0.6.7.6_CharacterArtSystemRework =====
+
+# Changelog: Character Art System Rework
+
+## Version 0.6.7.6 - May 12, 2025
+
+### Overview
+This update completely reworks the character art rendering system in the TeamBuilder UI. We've transitioned from a MutationObserver-based reactive approach to an explicit, proactive rendering strategy where each UI manager is responsible for rendering its own character art. This eliminates inconsistent art rendering and styling glitches that were occurring intermittently with the previous approach.
+
+### Technical Implementation
+
+#### 1. Disabled MutationObserver in TeamBuilderImageLoader.js
+
+The reactive MutationObserver pattern was causing issues due to race conditions and DOM manipulation conflicts. We've removed this approach entirely:
+
+```javascript
+// Before: Complex MutationObserver setup with 150+ lines of code
+window.setupCharacterArtMutationObserver = function() {
+    // ...extensive observer code with DOM manipulation, event handling, etc...
+};
+
+// After: Simple no-op function that disables any existing observers
+window.setupCharacterArtMutationObserver = function() {
+    if (window.characterArtObserver) {
+        window.characterArtObserver.disconnect();
+        window.characterArtObserver = null;
+        console.log('Disconnected existing character art observer');
+    }
+    
+    console.log('MutationObserver for character art is permanently disabled');
+    window.observerDisabled = true;
+};
+```
+
+Similarly, we've converted the helper functions `disableArtObserver` and `enableArtObserver` to no-op functions since they're no longer needed.
+
+#### 2. Centralized Art Drawing Function
+
+We've created a new unified art drawing function in TeamBuilderImageLoader that can be called by any UI component:
+
+```javascript
+drawArt(character, container, isDetailViewContext) {
+    // Robust parameter validation
+    if (!character || !container) {
+        console.error('TeamBuilderImageLoader: Missing character or container for drawArt');
+        return false;
+    }
+    
+    try {
+        const characterName = character.name;
+        
+        // Skip if character has no defined image or if not in cache
+        if (!this.characterImages[characterName] || !window.CHARACTER_IMAGE_CACHE[characterName]) {
+            return false;
+        }
+
+        // Find or create art wrapper
+        let artWrapper = container.querySelector('.hero-art-wrapper');
+        if (!artWrapper) {
+            artWrapper = document.createElement('div');
+            artWrapper.className = 'hero-art-wrapper';
+            container.appendChild(artWrapper);
+        }
+        
+        // ALWAYS clear any existing art from the wrapper
+        artWrapper.innerHTML = '';
+        
+        // Clone image from cache
+        const img = window.CHARACTER_IMAGE_CACHE[characterName].cloneNode(true);
+        
+        // Get and apply the correct art settings based on context
+        let artSettings = {...};  // Context-specific settings
+        
+        // Apply position settings with proper defaults
+        img.style.position = 'absolute';
+        img.style.left = artSettings.left || '0px';
+        img.style.top = artSettings.top || '0px';
+        
+        // Add the image to the wrapper
+        artWrapper.appendChild(img);
+        
+        // Add appropriate classes to container and parent elements
+        container.classList.add('has-art');
+        // ...
+        
+        return true;
+    } catch (err) {
+        console.error(`TeamBuilderImageLoader: Error drawing art for ${character.name}`, err);
+        return false;
+    }
+}
+```
+
+This function:
+- Accepts the character object, target container, and a context flag
+- Ensures an art wrapper exists, creating it if needed
+- Always clears existing art to prevent duplicates
+- Applies appropriate positioning and styling
+- Handles error cases gracefully with detailed logging
+
+#### 3. Modified UI Managers
+
+Each UI manager has been updated to explicitly manage its own character art:
+
+##### HeroGridManager:
+```javascript
+createHeroCard(hero) {
+    // ...existing card creation code...
+    
+    // Explicitly draw character art using the central drawing function
+    if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
+        this.imageLoader.drawArt(hero, heroIconContainer, false);
+    } else {
+        console.error("[HeroGridManager] Cannot draw art - imageLoader.drawArt not available");
+    }
+
+    return heroCard;
+}
+```
+
+##### TeamSlotsManager:
+```javascript
+renderTeamSlots() {
+    // ...for each team slot with a character...
+    
+    // Explicitly draw the character art
+    if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
+        this.imageLoader.drawArt(currentTeam[i], heroIconContainer, false);
+    }
+    
+    // ...
+}
+```
+
+##### HeroDetailPanelManager:
+```javascript
+renderDetails(hero) {
+    // ...existing detail rendering code...
+    
+    // Draw character art directly using the central drawing function
+    if (this.parentUI && this.parentUI.imageLoader && typeof this.parentUI.imageLoader.drawArt === 'function') {
+        this.parentUI.imageLoader.drawArt(hero, detailIconContainer, true);
+    } else {
+        console.error("[HeroDetailPanelManager] Cannot draw art - imageLoader.drawArt not available");
+    }
+    
+    // ...
+}
+```
+
+#### 4. Deprecated Old Methods
+
+We've deprecated but maintained the original methods for backward compatibility:
+
+- `forceCheck()` in TeamBuilderImageLoader is now a no-op
+- `triggerImageLoader()` in manager classes is now a no-op
+- `addArtToPanel()` in HeroDetailPanelManager forwards to the new central drawing function
+
+### Implementation Challenges
+
+#### 1. Art Styling Consistency
+
+We had to ensure consistent styling across different contexts:
+
+- Regular hero cards use 80pxÃ—120px sizing by default
+- Detail view uses 140pxÃ—140px sizing
+- Custom positioning is preserved from character definitions
+- Default positioning is context-sensitive
+
+#### 2. Class Hierarchy Maintenance
+
+We had to make sure the correct CSS classes were applied in the component hierarchy:
+
+```javascript
+// Add appropriate classes to container and parent elements
+container.classList.add('has-art');
+
+// Add has-art to the parent card/content element if it exists
+const heroCard = container.closest('.hero-card');
+if (heroCard) heroCard.classList.add('has-art');
+
+const slotContent = container.closest('.slot-content');
+if (slotContent) slotContent.classList.add('has-art');
+
+const detailHero = container.closest('.detail-hero');
+if (detailHero) detailHero.classList.add('has-art');
+```
+
+#### 3. Transition Strategy
+
+We implemented a transition strategy that preserved compatibility with existing code:
+
+1. The original `createAndAddArt` method now delegates to the new `drawArt` function
+2. Helper methods like `forceCheck` log deprecation warnings but don't break existing code
+3. Utility functions for the old observer pattern remain as no-op functions
+
+### User Experience Improvements
+
+1. **Elimination of Flickering Art**: Character art now remains consistently visible and doesn't disappear during UI interactions.
+
+2. **Consistent Styling**: Art positioning and scaling is now applied consistently across all contexts.
+
+3. **More Reliable Art Loading**: Since each component explicitly manages its own art, there's no reliance on the observer detecting changes.
+
+4. **Better Error Handling**: If art fails to load for any reason, detailed error messages help identify the specific cause.
+
+### Performance Considerations
+
+1. **Reduced DOM Operations**: The MutationObserver was causing excessive DOM operations through constant checking and updating.
+
+2. **Faster Initial Rendering**: Art is now drawn immediately during component rendering rather than waiting for observer callbacks.
+
+3. **Lower Memory Usage**: We eliminated the need to maintain sets of processed containers and complex throttling mechanisms.
+
+### Future Considerations
+
+1. **Potential Art System Refactoring**: The current system still has separate character art paths for Battle UI and TeamBuilder UI. A future update could unify these systems for consistency.
+
+2. **Asset Preloading**: We might consider adding an explicit preloading phase for all character art at startup to eliminate any potential loading delays.
+
+3. **Image Error Handling**: We could enhance the system to provide fallback/placeholder images when art fails to load.
+
+### Lessons Learned
+
+1. **Observer Pattern Limitations**: The MutationObserver pattern is powerful but introduces complexity and potential race conditions, especially in highly dynamic UIs.
+
+2. **Proactive vs. Reactive Rendering**: For critical UI elements like character art, a proactive rendering approach (where components explicitly manage their own rendering) is more reliable than a reactive approach.
+
+3. **Clear Component Responsibilities**: By making each UI manager responsible for its own character art, we created clearer boundaries and reduced unexpected interactions.
+
+4. **Centralized Functionality**: Having a single, well-tested function for art drawing ensures consistent behavior across all UI components.
+
+This change represents a significant improvement in the reliability and maintainability of the character art system, addressing a long-standing source of visual glitches and intermittent issues.
+
+
+===== CHANGELOG_0.6.7.5_RemoveRaritySystem =====
+
+# Changelog: Rarity System Removal
+
+## Version 0.6.7.5 - May 12, 2025
+
+### Overview
+This update removes the rarity system from the game as it was not being utilized in any gameplay mechanics. The rarity property and visual display elements have been removed from both the UI components and the character data definitions.
+
+### Technical Implementation
+
+#### 1. UI Changes
+The primary UI changes were made to `HeroDetailPanelManager.js`, where we removed the code that created and displayed rarity tags:
+
+```javascript
+// Removed from renderDetails()
+const rarityTag = document.createElement('span');
+rarityTag.className = 'detail-tag';
+rarityTag.style.backgroundColor = this.rarityColors[hero.rarity];
+rarityTag.textContent = hero.rarity;
+detailTags.appendChild(rarityTag);
+```
+
+Similar code was also removed from the `updateExistingDetails()` method to ensure consistency. The code was replaced with comments indicating when the rarity tag was removed to maintain code clarity for future reference.
+
+#### 2. Data Structure Changes
+The "rarity" property was removed from all character definitions in `characters.json`. For example:
+
+**Before:**
+```json
+{
+  "id": 7,
+  "name": "Caste",
+  "type": "metal",
+  "role": "Berserker",
+  "rarity": "Epic",
+  "actionDecisionLogic": "decideAction_PrioritizeOffense",
+  ...
+}
+```
+
+**After:**
+```json
+{
+  "id": 7,
+  "name": "Caste",
+  "type": "metal",
+  "role": "Berserker",
+  "actionDecisionLogic": "decideAction_PrioritizeOffense",
+  ...
+}
+```
+
+This property was removed from all 8 character definitions in the file.
+
+#### 3. Visual Impact
+The removal of the rarity tags has a minimal visual impact on the UI. The hero detail display now shows only the type and role tags, resulting in a cleaner, more focused presentation:
+
+**Before:**
+- Hero name
+- Type tags (color-coded)
+- Role tag (gray)
+- Rarity tag (color-coded based on rarity)
+
+**After:**
+- Hero name
+- Type tags (color-coded)
+- Role tag (gray)
+
+### Rationale
+The rarity system was initially intended to be used for character progression and collection mechanics. However, as the game evolved, the focus shifted to team-building and tactical combat without a progression system that utilized rarity. Since this property was not being used in any gameplay mechanics, it was removed to:
+
+1. **Simplify Data Model**: Remove unused properties from the character data model
+2. **Clean UI**: Remove visual elements that don't contribute to gameplay understanding
+3. **Reduce Cognitive Load**: Simplify the information presented to players
+
+### Future Considerations
+
+1. **Character Progression**: If a character progression system is implemented in the future, a different approach may be needed rather than reintroducing rarity.
+
+2. **Existing Code**: The `rarityColors` definition in `TeamBuilderUI.js` has been left in place for now, as it might be useful for future features or if rarity is reintroduced in a different form.
+
+3. **Data Persistence**: If save data exists that references character rarity, additional migration steps might be needed (not applicable in the current implementation).
+
+### Lessons Learned
+
+1. **Data-Driven Design**: This change reinforces the benefit of separating data (character definitions) from presentation (UI components), making it straightforward to add or remove properties without cascading changes.
+
+2. **Documentation**: Adding clear comments where code was removed helps maintain historical context for future developers.
+
+3. **Simplification**: Removing unused features can sometimes be as valuable as adding new ones, especially for reducing maintenance burden and cognitive load.
+
 
 ===== CHANGELOG_0.6.7.4_HeroDetailsScrollbarFix =====
 
@@ -1239,487 +1762,5 @@ The Extract phase is now complete. The next phases will be:
 4. **State Management**: The component maintains its own state (selected heroes, enemy selection mode) while providing clear accessor methods for the parent UI.
 
 This update represents the Extract phase of Phase 5 in the TeamBuilderUI refactoring project. After verification and removal, four of the six planned components will be fully implemented, bringing us closer to a fully component-based architecture.
-
-
-===== CHANGELOG_0.6.6.7_HeroGridManager_Remove =====
-
-# CHANGELOG 0.6.6.7 - HeroGridManager Component: Remove Stage
-
-## Overview
-
-This update completes Phase 4 of the TeamBuilderUI refactoring by implementing the "Remove" stage of the Extract-Verify-Remove pattern for the HeroGridManager component. After successfully extracting the hero grid functionality to the HeroGridManager component and verifying its correct operation, we have now removed the original implementation from TeamBuilderUI.js, replacing it with a minimal delegation pattern.
-
-## Implementation Details
-
-### 1. Removed Original Implementation
-
-The original `renderHeroGrid()` method in TeamBuilderUI.js has been replaced with a minimal version that delegates to HeroGridManager:
-
-**Before (0.6.6.6):**
-```javascript
-renderHeroGrid() {
-    if (this.heroGridManager) {
-        this.heroGridManager.renderHeroGrid();
-        return;
-    }
-    
-    // Original implementation follows for fallback
-    const heroesGrid = document.getElementById('heroes-grid');
-    heroesGrid.innerHTML = '';
-    // ... [approximately 100 lines of code] ...
-}
-```
-
-**After (0.6.6.7):**
-```javascript
-renderHeroGrid() {
-    if (this.heroGridManager) {
-        this.heroGridManager.renderHeroGrid();
-        return;
-    }
-    
-    // Minimal fallback for error handling
-    console.error('Cannot render hero grid - HeroGridManager not available');
-    const heroesGrid = document.getElementById('heroes-grid');
-    if (heroesGrid) {
-        heroesGrid.innerHTML = '<div class="grid-error">Hero grid system unavailable</div>';
-    }
-}
-```
-
-### 2. Error Handling
-
-The new implementation includes proper error handling:
-
-1. Logs an error to the console: `Cannot render hero grid - HeroGridManager not available`
-2. Checks if the grid element exists before attempting to modify it
-3. Displays a user-visible error message: `Hero grid system unavailable`
-
-This ensures a graceful degradation experience if the component fails to initialize, while still providing clear feedback that something has gone wrong.
-
-## Benefits
-
-1. **Code Size Reduction**: Removed approximately 100 lines of code from TeamBuilderUI.js, further reducing its complexity and size.
-
-2. **Improved Separation of Concerns**: Hero grid rendering functionality is now fully encapsulated in the HeroGridManager component, adhering to the single responsibility principle.
-
-3. **Better Maintainability**: Grid-related changes can now be made in a single, focused component rather than the larger TeamBuilderUI class.
-
-4. **Consistent Component Architecture**: Follows the same patterns established in previous phases, maintaining architectural consistency.
-
-## Testing Considerations
-
-The minimal implementation in TeamBuilderUI.js provides graceful degradation when HeroGridManager is unavailable:
-
-1. Logs an error to the console for debugging
-2. Displays a user-visible error message
-3. Protects against DOM errors by checking for element existence
-
-This ensures a good user experience even in the event of component failure, while still making it clear that something has gone wrong.
-
-## Metrics
-
-- **Lines Removed**: ~100 lines
-- **Lines Added**: ~10 lines
-- **Net Reduction**: ~90 lines
-
-## Next Steps
-
-With Phase 4 (HeroGridManager) now complete, the refactoring will proceed to Phase 5:
-
-### Phase 5: TeamSlotsManager
-
-Methods to extract:
-- `renderTeamSlots()`
-- `renderTeamSynergies()`
-- `calculateSynergies()`
-- `addHeroToTeam()`
-- `removeHeroFromTeam()`
-
-Following the same Extract-Verify-Remove pattern that has proven successful in the first four phases.
-
-## Lessons Learned
-
-1. **Component Boundaries**: The refactoring highlighted the importance of clear component boundaries, particularly in how HeroGridManager interacts with the filter system.
-
-2. **Smooth Transition**: The Extract-Verify-Remove pattern again proved effective, allowing for a smooth transition from monolithic code to component-based architecture without breaking functionality.
-
-3. **Minimal Fallbacks**: Providing minimal but functional fallbacks ensures the system degrades gracefully when components are unavailable.
-
-4. **Communication Pattern**: The component communication pattern (parent callbacks) is working well for maintaining loose coupling between components.
-
-This update completes Phase 4 of the TeamBuilderUI refactoring, with four of six planned phases now complete. The component-based architecture is taking shape, with each refactoring phase further improving the separation of concerns and maintainability of the codebase.
-
-
-===== CHANGELOG_0.6.6.6_HeroGridManager_Extract =====
-
-# CHANGELOG 0.6.6.6 - HeroGridManager Component Extract Phase
-
-## Overview
-
-This update implements Phase 4 of the TeamBuilderUI refactoring plan, focusing on the Extract stage of the Extract-Verify-Remove methodology. We've created a new HeroGridManager component that handles hero grid rendering and selection, continuing the transformation of TeamBuilderUI.js from a monolithic class into a component-based architecture.
-
-## Implementation Details
-
-### 1. Created HeroGridManager Component
-
-Created a new component file at `js/ui/teambuilder/HeroGridManager.js` that encapsulates all hero grid-related functionality:
-
-- Rendering the hero grid with filtering support
-- Creating hero cards with proper structure and styling
-- Handling hero selection and updating selection state
-- Managing image loading for character art
-
-The component follows established architecture patterns:
-- Clear constructor with parent validation
-- Explicit dependencies on parent properties
-- Well-defined public interface
-- Defensive programming throughout
-
-Key methods include:
-- `renderHeroGrid()`: Renders the filtered grid of heroes
-- `createHeroCard(hero)`: Creates an individual hero card
-- `selectHero(hero)`: Handles hero selection and parent notification
-- `updateFilters(filters)`: Updates and applies active filters
-- `updateSelectedHero(hero)`: Updates selected hero state
-
-### 2. Enhanced TeamBuilderUI Integration
-
-Modified TeamBuilderUI.js to:
-
-- Initialize the HeroGridManager component
-- Delegate hero grid rendering to the component when available
-- Maintain original implementation for fallback
-- Add proper callback for hero selection
-- Update filter handling to work with the component
-
-The delegation pattern follows the same approach used for previous components:
-
-```javascript
-renderHeroGrid() {
-    if (this.heroGridManager) {
-        this.heroGridManager.renderHeroGrid();
-        return;
-    }
-    
-    // Original implementation follows for fallback
-    ...
-}
-```
-
-### 3. Added Hero Selection Callback
-
-Implemented `onHeroSelected(hero)` callback in TeamBuilderUI to handle hero selection events from the component:
-
-```javascript
-onHeroSelected(hero) {
-    this.selectHeroDetails(hero);
-}
-```
-
-### 4. Updated FilterManager Integration
-
-Enhanced the filter change handling to work with the component:
-
-```javascript
-onFiltersChanged(filters) {
-    // Update local filters reference
-    this.activeFilters = filters;
-    
-    // Update the hero grid based on new filters
-    if (this.heroGridManager) {
-        this.heroGridManager.updateFilters(filters);
-    } else {
-        this.renderHeroGrid();
-    }
-}
-```
-
-### 5. Updated Script Loading
-
-Updated index.html to load HeroGridManager.js before TeamBuilderUI.js:
-
-```html
-<script src="js/ui/teambuilder/TeamBuilderUtils.js" defer></script>
-<script src="js/ui/teambuilder/HeroDetailPanelManager.js" defer></script>
-<script src="js/ui/teambuilder/FilterManager.js" defer></script>
-<script src="js/ui/teambuilder/HeroGridManager.js" defer></script>
-<script src="js/ui/TeamBuilderUI.js" defer></script>
-```
-
-## Benefits
-
-1. **Reduced Complexity**: The HeroGridManager component further reduces the responsibility of TeamBuilderUI.js, focusing it on orchestration rather than implementation details.
-
-2. **Improved Maintainability**: Hero grid-related functionality is now contained in a single file, making it easier to update or debug.
-
-3. **Better Separation of Concerns**: Each component is responsible for a specific aspect of the UI, adhering to the single responsibility principle.
-
-4. **Consistent Architecture**: The implementation follows the same patterns established in previous refactoring phases.
-
-## Component Architecture
-
-The HeroGridManager follows the established component architecture:
-
-1. **Constructor with Parent Validation**:
-```javascript
-constructor(parentUI) {
-    // Validate parent
-    if (!parentUI) {
-        console.error("[HeroGridManager] parentUI is required");
-        return;
-    }
-    
-    this.parentUI = parentUI;
-    
-    // Required references from parent
-    this.availableHeroes = parentUI.availableHeroes;
-    this.typeColors = parentUI.typeColors;
-    this.selectedHeroDetails = null;
-    this.imageLoader = parentUI.imageLoader;
-    
-    // Component-specific properties
-    this.activeFilters = {
-        types: [],
-        roles: []
-    };
-    
-    console.log("[HeroGridManager] Initialized");
-}
-```
-
-2. **Well-Defined Public Interface**:
-```javascript
-// Public methods
-renderHeroGrid()
-selectHero(hero)
-updateFilters(filters)
-updateSelectedHero(hero)
-triggerImageLoader()
-```
-
-3. **Dependency Management**:
-The component explicitly requires references to:
-- `availableHeroes`: The list of available heroes
-- `typeColors`: Color definitions for hero types
-- `imageLoader`: Reference to the image loading system
-
-4. **Error Handling and Defensive Programming**:
-```javascript
-renderHeroGrid() {
-    const heroesGrid = document.getElementById('heroes-grid');
-    if (!heroesGrid) {
-        console.error("[HeroGridManager] Heroes grid element not found");
-        return;
-    }
-    
-    // ... implementation ...
-}
-```
-
-## Integration with Existing Components
-
-HeroGridManager integrates with:
-
-1. **FilterManager** (indirectly):
-   - Receives filter state via TeamBuilderUI and the `updateFilters` method
-   - Applies filters to render the appropriate heroes
-
-2. **TeamBuilderUtils**:
-   - Uses shared utility functions like `splitTypes` and `renderMultiTypeSpans`
-   - Maintains consistent rendering patterns across components
-
-3. **ImageLoader**:
-   - Triggers the image loader to check for new images after rendering
-   - Maintains the same art loading patterns as the original implementation
-
-## Testing Considerations
-
-This implementation maintains backward compatibility through:
-
-1. **Feature Detection**: Checks if HeroGridManager exists before using it
-2. **Fallback Implementation**: Retains original code path if component initialization fails
-3. **Method Verification**: Validates required methods exist before delegating
-
-## Next Steps
-
-The Extract phase is now complete. The next phases will be:
-
-1. **Verify Phase**: Run and test the implementation to ensure it works correctly, focusing on:
-   - Hero grid rendering
-   - Filtering functionality
-   - Hero selection
-   - Art loading
-   - Integration with other components
-
-2. **Remove Phase**: After successful verification, remove the original implementation from TeamBuilderUI.js, replacing it with a minimal fallback for error handling.
-
-## Lessons Learned
-
-1. **Component Dependencies**: The hero grid interacts with multiple systems (filtering, image loading, hero selection), requiring careful management of dependencies.
-
-2. **Event Flow Management**: The bi-directional communication between components (filters â†’ grid, grid â†’ hero details) highlights the importance of clear event flow patterns.
-
-3. **Interface Design**: Designing a clean interface that encapsulates all necessary functionality while maintaining flexibility is crucial for component-based architecture.
-
-4. **Incremental Refactoring**: The Extract-Verify-Remove methodology continues to prove effective, allowing for safe, incremental improvements to the codebase.
-
-This update represents another significant step toward the fully component-based architecture outlined in the TeamBuilderUI refactoring plan, with four of six planned components now implemented.
-
-
-===== CHANGELOG_0.6.6.5_FilterManager_Remove =====
-
-# CHANGELOG 0.6.6.5 - FilterManager: Remove Stage
-
-## Overview
-
-This update completes Phase 3 of the TeamBuilderUI refactoring by implementing the "Remove" stage of the Extract-Verify-Remove pattern for the FilterManager component. After successfully extracting filter functionality to the FilterManager component and verifying its correct operation, we have now removed the original implementation from TeamBuilderUI.js, replacing it with a minimal delegation pattern.
-
-## Implementation Details
-
-### 1. Removed Original Implementation
-
-The original `renderFilters()` method in TeamBuilderUI.js has been replaced with a minimal version that delegates to FilterManager:
-
-**Before (0.6.6.4):**
-```javascript
-renderFilters() {
-    if (this.filterManager) {
-        this.filterManager.renderFilters();
-        return;
-    }
-    
-    // Original implementation follows for fallback
-    const heroesSection = document.getElementById('available-heroes');
-    
-    // Check if filter section already exists
-    let filterSection = document.getElementById('hero-filters');
-    // ... [approximately 180 lines of code] ...
-}
-```
-
-**After (0.6.6.5):**
-```javascript
-renderFilters() {
-    if (this.filterManager) {
-        this.filterManager.renderFilters();
-        return;
-    }
-    
-    // Minimal fallback for error handling
-    console.error('Cannot render filters - FilterManager not available');
-    const heroesSection = document.getElementById('available-heroes');
-    
-    // Add a simple error message
-    let filterSection = document.getElementById('hero-filters');
-    if (!filterSection) {
-        filterSection = document.createElement('div');
-        filterSection.id = 'hero-filters';
-        filterSection.innerHTML = '<div class="filter-error">Filter system unavailable</div>';
-        
-        // Insert filters before the heroes grid
-        const heroesGrid = document.getElementById('heroes-grid');
-        if (heroesGrid) {
-            heroesSection.insertBefore(filterSection, heroesGrid);
-        } else {
-            heroesSection.appendChild(filterSection);
-        }
-    }
-}
-```
-
-### 2. Updated Filter Usage Throughout TeamBuilderUI
-
-Modified `renderHeroGrid()` to use FilterManager for filter state:
-
-```javascript
-// Get active filters from FilterManager if available
-const activeFilters = this.filterManager ? this.filterManager.getActiveFilters() : this.activeFilters;
-
-// Apply type filters
-if (activeFilters.types.length > 0) {
-    // ... filter logic using activeFilters instead of this.activeFilters ...
-}
-
-// Apply role filters
-if (activeFilters.roles.length > 0) {
-    // ... filter logic using activeFilters instead of this.activeFilters ...
-}
-```
-
-### 3. Updated Constructor Declaration
-
-Updated the constructor to explicitly declare the FilterManager instance variable:
-
-```javascript
-constructor(teamManager) {
-    // ... existing code ...
-    this.activeFilters = {
-        types: [],
-        roles: []
-    }; // Maintained for backward compatibility
-    this.filterManager = null; // Will hold the FilterManager
-    // ... existing code ...
-}
-```
-
-## Benefits
-
-1. **Code Size Reduction**: Removed approximately 180 lines of code from TeamBuilderUI.js, further reducing its complexity and size.
-
-2. **Improved Separation of Concerns**: Filter functionality is now fully encapsulated in the FilterManager component, adhering to the single responsibility principle.
-
-3. **Better Maintainability**: Filter-related changes can now be made in a single, focused component rather than the larger TeamBuilderUI class.
-
-4. **Consistent Component Architecture**: Follows the same patterns established in previous phases, maintaining architectural consistency.
-
-## Error Handling
-
-The minimal implementation in TeamBuilderUI.js provides graceful degradation when FilterManager is unavailable:
-
-1. Logs an error to the console: `Cannot render filters - FilterManager not available`
-2. Displays a user-visible error message: `Filter system unavailable`
-3. Maintains backward compatibility by falling back to `this.activeFilters` when needed
-
-This ensures a good user experience even in the event of component failure, while still making it clear that something has gone wrong.
-
-## Testing Considerations
-
-The implementation was tested to ensure:
-
-1. **Normal Operation**: Filters render correctly and function as expected when FilterManager is available.
-2. **Error Handling**: Appropriate error messages are displayed when FilterManager is not available.
-3. **Filter State Consistency**: Filter state is properly passed between FilterManager and TeamBuilderUI.
-4. **Grid Filtering**: The hero grid updates correctly based on filter changes from FilterManager.
-
-## Metrics
-
-- **Lines Removed**: ~180 lines
-- **Lines Added**: ~25 lines
-- **Net Reduction**: ~155 lines
-
-## Next Steps
-
-With Phase 3 (FilterManager) now complete, the refactoring will proceed to Phase 4:
-
-### Phase 4: HeroGridManager
-
-Methods to extract:
-- `renderHeroGrid()`
-- Related helper methods for grid creation and filtering
-
-Following the same Extract-Verify-Remove pattern that has proven successful in the first three phases.
-
-## Lessons Learned
-
-1. **State Management**: This refactoring highlighted the importance of proper state management between components, particularly how FilterManager keeps the filter state while TeamBuilderUI needs to access it for rendering the hero grid.
-
-2. **Smooth Transition**: The Extract-Verify-Remove pattern again proved effective, allowing for a smooth transition from monolithic code to component-based architecture without breaking functionality.
-
-3. **Consistent Error Handling**: Providing clear, helpful error messages is crucial when components fail to initialize or are unavailable.
-
-4. **Defensive Programming**: Using fallbacks (like `this.filterManager ? this.filterManager.getActiveFilters() : this.activeFilters`) helps ensure the system degrades gracefully when components are unavailable.
-
-This update completes Phase 3 of the TeamBuilderUI refactoring, with three of six planned phases now complete. The component-based architecture is taking shape, with each refactoring phase further improving the separation of concerns and maintainability of the codebase.
 
 

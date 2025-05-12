@@ -80,8 +80,11 @@ class TeamBuilderUI {
             this.availableHeroes = data.characters;
             console.log('TeamBuilderUI: Loaded', this.availableHeroes.length, 'heroes');
             
-            // Initialize the image loader
+            // Initialize the image loader and AWAIT its completion
             await this.initializeImageLoader();
+            
+            // Only proceed with UI initialization after images are loaded
+            console.log('TeamBuilderUI: Image preloading complete, initializing UI components...');
             
             // Initialize the hero detail manager
             await this.initializeHeroDetailManager();
@@ -101,6 +104,7 @@ class TeamBuilderUI {
             // Initialize the battle initiator
             await this.initializeBattleInitiator();
             
+            // Now render the UI elements
             this.renderFilters();
             this.renderHeroGrid();
             this.renderTeamSlots();
@@ -469,24 +473,28 @@ class TeamBuilderUI {
     
     /**
      * Initialize the character art image loader
+     * @returns {Promise} A promise that resolves when image preloading is complete
      */
     async initializeImageLoader() {
         try {
             // Check if window.TeamBuilderImageLoader is available (using window explicitly)
             if (typeof window.TeamBuilderImageLoader === 'undefined') {
                 console.warn('TeamBuilderImageLoader not found, skipping image loading');
-                return;
+                return Promise.resolve(); // Return a resolved promise
             }
             
             // Create the image loader
             this.imageLoader = new window.TeamBuilderImageLoader();
             
-            // Initialize it
+            // Initialize it and AWAIT the promise it returns
+            // This will ensure we wait for all images to be preloaded
             await this.imageLoader.initialize();
             
-            console.log('TeamBuilderUI: Image loader initialized');
+            console.log('TeamBuilderUI: Image loader initialized and all images preloaded');
+            return Promise.resolve(); // Return a resolved promise
         } catch (error) {
             console.error('Error initializing image loader:', error);
+            return Promise.reject(error); // Return a rejected promise
         }
     }
     

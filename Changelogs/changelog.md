@@ -10,6 +10,15 @@
 - Grid will now be hidden by default until toggled with Alt+G
 - Improved debugging experience by reducing initial visual clutter
 
+### [0.6.7.7] - 2025-05-12
+#### Fixed
+- Fixed "TeamBuilderImageLoader: [CharacterName] not found in image cache" errors on startup
+- Implemented Promise-based image preloading system to properly sequence loading
+- Modified TeamBuilderImageLoader.preloadCharacterImages() to return a Promise that resolves when all images are loaded
+- Updated TeamBuilderUI to await image preloading completion before initializing UI components
+- Added on-demand loading and placeholder display for any images that might be missed
+- Eliminated race condition between image preloading and UI rendering
+
 ### [0.6.7.6] - 2025-05-12
 #### Changed
 - Completely removed the MutationObserver-based character art system from TeamBuilderImageLoader
