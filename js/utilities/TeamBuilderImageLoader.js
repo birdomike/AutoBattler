@@ -316,8 +316,28 @@ async initialize() {
                 if (!artSettings.width) artSettings.width = '140px';
                 if (!artSettings.height) artSettings.height = '140px';
             } else {
-                // Regular view
-                artSettings = character.teamBuilderArt || character.art || {};
+                // Regular view - use enhanced sizing for the new 2-column layout
+                artSettings = {...(character.teamBuilderArt || character.art || {})};
+                
+                // Scale up the art by about 40% for the new larger cards
+                // This is done by modifying the width/height but maintaining the aspect ratio
+                if (artSettings.width) {
+                    // Parse the existing width, ignoring 'px' suffix
+                    const originalWidth = parseInt(artSettings.width);
+                    if (!isNaN(originalWidth)) {
+                        // Scale up by 40%
+                        artSettings.width = `${Math.round(originalWidth * 1.4)}px`;
+                    }
+                }
+                
+                if (artSettings.height) {
+                    // Parse the existing height, ignoring 'px' suffix
+                    const originalHeight = parseInt(artSettings.height);
+                    if (!isNaN(originalHeight)) {
+                        // Scale up by 40%
+                        artSettings.height = `${Math.round(originalHeight * 1.4)}px`;
+                    }
+                }
             }
             
             // Set image properties

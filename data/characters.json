@@ -24,7 +24,7 @@
       },
       "teamBuilderArt": {
         "left": "0px",
-        "top": "-55px",
+        "top": "-65px",
         "width": "100px",
         "height": "180px"
       },
@@ -187,7 +187,7 @@
       },
       "detailArt": {
         "left": "0px",
-        "top": "-50px",
+        "top": "-20px",
         "width": "150px",
         "height": "150px"
       },

@@ -10,10 +10,21 @@
 - Grid will now be hidden by default until toggled with Alt+G
 - Improved debugging experience by reducing initial visual clutter
 
-### [0.6.7.3] - 2025-05-11
+### [0.6.7.4] - 2025-05-12
 #### Changed
-- Updated collapsible filter sections to be collapsed by default for better initial space efficiency
-- Maintained all animation and functionality of the collapsible filter system
+- Optimized Hero Details panel layout to eliminate unnecessary scrollbars
+- Reduced spacing between elements in detail view to improve content density
+- Fine-tuned padding and margins throughout detail panel for better visual flow
+- Styled all scrollbars to match game theme with custom colors and width
+
+### [0.6.7.3] - 2025-05-12
+#### Changed
+- Enhanced hero card display with 2-column grid (previously 3 columns) for larger cards
+- Restructured hero cards with vertical layout: artwork on top, text below
+- Significantly increased character art size (40% larger) for better visibility
+- Enlarged hero cards with consistent minimum height to showcase character art
+- Improved text placement and spacing for better readability
+- Added custom-styled scrollbars that match the game's color scheme
 
 ### [0.6.7.2] - 2025-05-11
 #### Added

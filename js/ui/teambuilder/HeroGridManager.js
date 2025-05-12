@@ -143,11 +143,15 @@ class HeroGridManager {
     heroRole.className = 'hero-role';
     heroRole.textContent = hero.role;
 
+    // Changed order: First add the avatar container, then add text in vertical layout
+    heroContent.appendChild(heroIconContainer);
+    
+    // Add text elements to hero text container
     heroText.appendChild(heroName);
     heroText.appendChild(heroType);
     heroText.appendChild(heroRole);
-
-    heroContent.appendChild(heroIconContainer);
+    
+    // Add text container to content
     heroContent.appendChild(heroText);
 
     heroCard.appendChild(heroContent);

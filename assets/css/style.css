@@ -2,7 +2,7 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr); /* Create 2 columns */
     grid-gap: 10px; /* Add spacing between grid items */
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduced from 15px to save space */
 }
 
 /* Character Art Display */
@@ -366,6 +366,7 @@ body {
     margin: 0 auto;
     flex: 1;
     height: calc(100vh - 150px); /* Use fixed height instead of min-height */
+    overflow: hidden; /* Prevent scroll on main container */
 }
 
 .section {
@@ -393,24 +394,41 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     max-height: 100%; /* Ensure it doesn't exceed container height */
+    scrollbar-width: thin; /* For Firefox */
+    scrollbar-color: #3742fa #232a40; /* For Firefox */
+}
+
+#available-heroes::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+#available-heroes::-webkit-scrollbar-track {
+    background: #232a40; /* Track color */
+    border-radius: 4px;
+}
+
+#available-heroes::-webkit-scrollbar-thumb {
+    background-color: #3742fa; /* Thumb color */
+    border-radius: 4px;
 }
 
 #heroes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(2, 1fr); /* Changed to 2 columns */
+    gap: 20px; /* Increased gap for better spacing */
     width: 100%;
 }
 
 .hero-card {
-    padding: 15px;
-    border-radius: 8px;
+    padding: 20px; /* Increased padding */
+    border-radius: 10px; /* Slightly larger radius */
     cursor: pointer;
     transition: all 0.3s;
     display: flex;
     justify-content: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     border: 2px solid transparent;
+    min-height: 220px; /* Ensure consistent height */
 }
 
 .hero-card:hover {
@@ -424,45 +442,49 @@ body {
 }
 
 .hero-icon {
-    width: 48px;
-    height: 48px;
+    width: 80px; /* Increased from 48px */
+    height: 80px; /* Increased from 48px */
     border-radius: 50%;
-    margin-right: 12px;
+    margin-right: 15px; /* Slightly increased */
 }
 
 .hero-card-content {
     display: flex;
-    align-items: center;
+    flex-direction: column; /* Changed from row to column for vertical layout */
+    align-items: center; /* Center items horizontally */
     width: 100%;
     overflow: visible;
 }
 
 .hero-card-text {
-    flex: 1;
-    min-width: 0;
+    width: 100%; /* Full width instead of flex */
+    text-align: center; /* Center text */
+    margin-top: 10px; /* Add space between art and text */
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .hero-card-text .hero-name {
     font-weight: bold;
+    font-size: 16px; /* Slightly larger */
+    margin-bottom: 5px; /* Add space between name and type */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .hero-card-text .hero-type {
-    font-size: 12px;
+    font-size: 13px; /* Slightly larger */
     display: flex;
+    justify-content: center; /* Center type spans */
     gap: 4px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin-bottom: 4px; /* Add space between type and role */
 }
 
 .hero-card-text .hero-role {
-    font-size: 12px;
+    font-size: 13px; /* Slightly larger */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -560,14 +582,31 @@ body {
     width: 34%;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Hide scrollbars */
 }
 
 #detail-content {
     flex-grow: 1;
-	 max-height: 55vh; /* Adjust this value to control detail content height */
-    overflow-y: visible;
+    max-height: 65vh; /* Increased from 55vh to allow more content without scrolling */
+    overflow-y: auto;
     overflow-x: hidden;
     margin-bottom: 15px;
+    scrollbar-width: thin;
+    scrollbar-color: #3742fa #232a40;
+}
+
+#detail-content::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+#detail-content::-webkit-scrollbar-track {
+    background: #232a40; /* Track color */
+    border-radius: 4px;
+}
+
+#detail-content::-webkit-scrollbar-thumb {
+    background-color: #3742fa; /* Thumb color */
+    border-radius: 4px;
 }
 
 .detail-empty {
@@ -615,8 +654,8 @@ body {
 .detail-stats {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 6px; /* Reduced from 8px */
+    margin-bottom: 14px; /* Reduced from 16px */
 }
 
 .stat-box {
@@ -637,12 +676,13 @@ body {
     font-weight: bold;
 }
 
-.detail-abilities h4, .detail-advantages h4 {
-    margin-bottom: 12px;
+.detail-abilities h4, .detail-advantages h4, .detail-type-relations h4 {
+    margin-bottom: 10px; /* Reduced from 12px */
     font-size: 16px;
     color: #70a1ff;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 4px;
+    padding-bottom: 3px; /* Reduced from 4px */
+    grid-column: 1 / -1; /* Span all columns */
 }
 
 .detail-advantages {
@@ -655,17 +695,10 @@ body {
     grid-template-columns: repeat(2, 1fr);
     grid-gap: 10px;
     margin-top: 5px;
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduced from 15px */
 }
 
-.detail-type-relations h4 {
-    grid-column: 1 / -1; /* Span all columns like abilities heading */
-    margin-bottom: 12px;
-    font-size: 16px;
-    color: #70a1ff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 4px;
-}
+/* Delete this duplicate style */
 
 .type-column {
     display: flex;
@@ -681,12 +714,12 @@ body {
 
 .advantage-box, .disadvantage-box {
     background-color: var(--darker-bg);
-    padding: 8px;
+    padding: 6px; /* Reduced from 8px to save space */
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 36px;
+    height: 32px; /* Slightly reduced height */
     text-align: center;
 }
 
@@ -715,7 +748,7 @@ body {
 
 .ability-box {
     background-color: var(--darker-bg);
-    padding: 8px;
+    padding: 6px; /* Reduced from 8px to save space */
     border-radius: 4px;
     margin-bottom: 0; /* Remove bottom margin since grid handles spacing */
     height: 100%; /* Ensure consistent height */
@@ -745,7 +778,7 @@ body {
 #battle-options {
     flex-shrink: 0;
     border-top: 2px solid var(--border);
-    padding-top: 15px;
+    padding-top: 12px; /* Reduced from 15px */
     margin-top: 0;
     background-color: rgba(15, 21, 35, 0.7);
     border-radius: 0 0 8px 8px;
@@ -1070,9 +1103,9 @@ body {
 /* Team Builder Character Art Styles */
 .hero-avatar-container {
     position: relative;
-    width: 60px;
-    min-height: 60px;
-    margin-bottom: 10px;
+    width: 100px; /* Increased from 60px */
+    min-height: 100px; /* Increased from 60px */
+    margin-bottom: 12px; /* Slightly increased */
     overflow: visible; /* Ensure content isn't clipped */
 }
 
@@ -1127,11 +1160,11 @@ body {
 .team-builder-art {
     position: absolute;
     /* Base size - will be overridden by character-specific settings */
-    width: 120px; /* Increased from 75px */
-    height: 120px; /* Increased from 95px */
+    width: 180px; /* Increased from 120px for larger display */
+    height: 180px; /* Increased from 120px for larger display */
     /* Default centering */
-    left: -30px; /* Adjusted to accommodate larger width */
-    top: -30px; /* Adjusted to accommodate larger height */
+    left: -40px; /* Adjusted to accommodate larger width */
+    top: -40px; /* Adjusted to accommodate larger height */
     object-fit: contain;
     pointer-events: none;
     overflow: visible;  
