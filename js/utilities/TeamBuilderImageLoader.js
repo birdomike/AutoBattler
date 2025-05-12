@@ -37,13 +37,10 @@ class TeamBuilderImageLoader {
  * @returns {Promise} A promise that resolves when initialization is complete
  */
 async initialize() {
-    console.log('TeamBuilderImageLoader: Initializing...');
-    
     // Load character data
     try {
         const response = await fetch('data/characters.json');
         this.characterData = await response.json();
-        console.log('TeamBuilderImageLoader: Character data loaded');
     } catch (err) {
         console.error('TeamBuilderImageLoader: Failed to load character data', err);
         this.characterData = { characters: [] }; // Empty fallback
@@ -52,9 +49,8 @@ async initialize() {
     // Start periodic checking for new character elements
     this.startImageCheck();
     
-    // Do an initial check with debug enabled
-    console.log('TeamBuilderImageLoader: Performing initial detailed check...');
-    this.forceCheck(true);
+    // Do an initial check
+    this.forceCheck(false);
     
     // Preload all character images immediately and return the promise
     // This allows callers to await the completion of image preloading
@@ -66,8 +62,6 @@ async initialize() {
      * @returns {Promise} A promise that resolves when all images are loaded (or failed to load)
      */
     preloadCharacterImages() {
-        console.log('TeamBuilderImageLoader: Preloading all character images...');
-        
         // Get all characters that have images defined
         const charactersWithArt = Object.keys(this.characterImages);
         if (charactersWithArt.length === 0) {
@@ -81,11 +75,8 @@ async initialize() {
                 try {
                     const imagePath = this.characterImages[characterName];
                     if (!imagePath) {
-                        console.warn(`TeamBuilderImageLoader: No image path defined for ${characterName}`);
                         return resolve(); // Resolve this promise immediately
                     }
-                    
-                    console.log(`TeamBuilderImageLoader: Preloading ${characterName}'s image...`);
                     
                     // Create a new image element
                     const img = new Image();
@@ -94,7 +85,6 @@ async initialize() {
                     img.onload = () => {
                         // Store in global cache
                         window.CHARACTER_IMAGE_CACHE[characterName] = img;
-                        console.log(`TeamBuilderImageLoader: ${characterName}'s image preloaded and stored in global cache`);
                         
                         // Also store in instance cache
                         this.cachedImages.set(characterName, img);
@@ -123,8 +113,6 @@ async initialize() {
         
         // Return a promise that resolves when ALL images are loaded
         return Promise.all(loadPromises).then(() => {
-            console.log('TeamBuilderImageLoader: All character images have been processed');
-            
             // Set up mutation observer if not already set up
             if (typeof window.setupCharacterArtMutationObserver === 'function') {
                 window.setupCharacterArtMutationObserver();
@@ -278,50 +266,33 @@ async initialize() {
     * @returns {boolean} Whether the art was successfully added
      */
     drawArt(character, container, isDetailViewContext, viewMode = 'full') {
-    // Add detailed entry logging
-    console.log(`[TeamBuilderImageLoader] drawArt called with:`, {
-      character: character ? character.name : 'null',
-      container: container ? `${container.className} (${container.tagName})` : 'null',
-      isDetailViewContext: isDetailViewContext,
-      viewMode: viewMode
-    });
-    
     if (!character || !container) {
-    console.error('TeamBuilderImageLoader: Missing character or container for drawArt');
+      console.error('TeamBuilderImageLoader: Missing character or container for drawArt');
       return false;
     }
     
     try {
-    const characterName = character.name;
+      const characterName = character.name;
     
-    // Skip if character has no defined image
-    if (!this.characterImages[characterName]) {
-    console.log(`TeamBuilderImageLoader: No image defined for ${characterName}`);
-      return false;
-    }
+      // Skip if character has no defined image
+      if (!this.characterImages[characterName]) {
+        return false;
+      }
       
-    // Check if image is in the cache
-    console.log(`[TeamBuilderImageLoader] Cache status for ${characterName}:`, {
-      inCache: Boolean(window.CHARACTER_IMAGE_CACHE[characterName]),
-      globalCacheSize: Object.keys(window.CHARACTER_IMAGE_CACHE).length
-    });
-    
-    // If image not in cache, attempt to load it immediately
-    if (!window.CHARACTER_IMAGE_CACHE[characterName]) {
-    console.log(`TeamBuilderImageLoader: ${characterName} not found in image cache, loading now...`);
-    // Create and load the image immediately
-    const img = new Image();
-    img.onload = () => {
-    window.CHARACTER_IMAGE_CACHE[characterName] = img;
-    console.log(`TeamBuilderImageLoader: ${characterName}'s image loaded on-demand`);
-    // Force redraw now that the image is loaded
-      this.drawArt(character, container, isDetailViewContext, viewMode);
-    };
-    img.src = this.characterImages[characterName];
-    
-    // Show loading indicator in the meantime
-    this.drawLoadingPlaceholder(container, isDetailViewContext);
-      return true;
+      // If image not in cache, attempt to load it immediately
+      if (!window.CHARACTER_IMAGE_CACHE[characterName]) {
+        // Create and load the image immediately
+        const img = new Image();
+        img.onload = () => {
+          window.CHARACTER_IMAGE_CACHE[characterName] = img;
+          // Force redraw now that the image is loaded
+          this.drawArt(character, container, isDetailViewContext, viewMode);
+        };
+        img.src = this.characterImages[characterName];
+        
+        // Show loading indicator in the meantime
+        this.drawLoadingPlaceholder(container, isDetailViewContext);
+        return true;
       }
 
     // Find or create art wrapper
@@ -393,16 +364,6 @@ async initialize() {
             artWrapper.appendChild(img);
             artWrapper.style.display = 'block';
             
-            // Log the final calculated dimensions
-            console.log(`[TeamBuilderImageLoader] ${characterName} art settings:`, {
-                width: img.style.width,
-                height: img.style.height,
-                left: img.style.left,
-                top: img.style.top,
-                viewMode: viewMode,
-                isDetailView: isDetailViewContext
-            });
-            
             // Add appropriate classes to container and parent elements
             container.classList.add('has-art');
             
@@ -416,7 +377,6 @@ async initialize() {
             const detailHero = container.closest('.detail-hero');
             if (detailHero) detailHero.classList.add('has-art');
             
-            console.log(`[TeamBuilderImageLoader] Successfully drew art for ${characterName}${isDetailViewContext ? ' (detail view)' : ''}`);
             return true;
             
         } catch (err) {

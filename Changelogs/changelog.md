@@ -1,3 +1,26 @@
+### [0.6.7.13] - 2025-05-12
+#### Fixed
+- Fixed character art positioning in team slots by transforming the container position
+- Applied translateY(-25px) to move character art higher in the team slots
+- Improved visual alignment of characters within their team slot containers
+- Used transform approach for more reliable positioning across browsers
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.13_TeamSlotArtPositionFix.md*
+
+### [0.6.7.12] - 2025-05-12
+#### Changed
+- Fine-tuned character art positioning in team slots for improved visual alignment
+- Adjusted artwork to be positioned 5px higher and 5px more to the right for better centering
+- Increased the margin-right of slot avatars from 12px to 15px for better spacing
+
+#### Fixed
+- Removed all diagnostic logging added during the troubleshooting of character art visibility issues
+- Cleaned up console output by removing debug messages from TeamSlotsManager and TeamBuilderImageLoader
+- Removed temporary debug verification functions added in version 0.6.7.10
+- Improved console performance by eliminating excessive DOM structure logging
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.12_ArtPositioningAndDebugCleanup.md*
+
 ### [0.6.6.13] - 2025-05-11
 #### Fixed
 - Fixed play/pause button showing both icons at once when the game is paused
