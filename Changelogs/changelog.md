@@ -10,6 +10,37 @@
 - Grid will now be hidden by default until toggled with Alt+G
 - Improved debugging experience by reducing initial visual clutter
 
+### [0.6.7.11] - 2025-05-12
+#### Fixed
+- Fixed character art not appearing in 'Your Team' slots with targeted CSS fixes
+- Added specific styles for team slot avatar containers and art wrappers
+- Set explicit dimensions and z-index for character art in team slots
+- Ensured proper visibility with explicit display and opacity properties
+- Improved team slot hero details layout with consistent dimensions
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.11_TeamSlotArtVisibilityFix.md*
+
+### [0.6.7.10] - 2025-05-12
+#### Fixed
+- Fixed persistent issue with character art not appearing in 'Your Team' slots
+- Added comprehensive diagnostic logging throughout art rendering process
+- Enhanced TeamSlotsManager with DOM structure verification after rendering
+- Added detailed logging to TeamBuilderImageLoader.drawArt() for better troubleshooting
+- Improved art rendering state tracking and verification
+- Removed deprecated triggerImageLoader() call from HeroGridManager to eliminate console warnings
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.10_ArtRenderingDiagnostics.md*
+
+### [0.6.7.9] - 2025-05-12
+#### Fixed
+- Fixed issue where character art was not appearing in team slots after view toggle implementation
+- Updated TeamSlotsManager to properly get and pass the current view mode to drawArt method
+- Modified TeamBuilderImageLoader helper methods to propagate the viewMode parameter
+- Improved cross-component communication for consistent view mode application
+- Enhanced logging for better visibility into art rendering process
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.9_FixCharacterArtInTeamSlots.md*
+
 ### [0.6.7.8] - 2025-05-12
 #### Added
 - Added view toggle feature to TeamBuilder UI allowing switching between "Full" and "Compact" views for heroes

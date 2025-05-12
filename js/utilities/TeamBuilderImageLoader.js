@@ -136,8 +136,9 @@ async initialize() {
 
     /**
      * Start periodically checking for character elements that need art
+     * @param {string} viewMode - The view mode ('full' or 'compact')
      */
-    startImageCheck() {
+    startImageCheck(viewMode = 'full') {
         // Clear any existing timer
         if (this.imageCheckTimer) {
             clearInterval(this.imageCheckTimer);
@@ -145,17 +146,18 @@ async initialize() {
         
         // Set up periodic check - just basic checking, no forced updates
         this.imageCheckTimer = setInterval(() => {
-            this.checkAndLoadImages();
+            this.checkAndLoadImages(viewMode);
         }, this.checkInterval);
         
         // Run an immediate check
-        this.checkAndLoadImages();
+        this.checkAndLoadImages(viewMode);
     }
 
     /**
      * Check for character elements and load images if needed
+     * @param {string} viewMode - The view mode ('full' or 'compact')
      */
-    checkAndLoadImages() {
+    checkAndLoadImages(viewMode = 'full') {
         // Throttle checks to prevent excessive processing
         const now = Date.now();
         if (now - this.lastProcessTime < 500) { // minimum 500ms between full checks
@@ -205,7 +207,7 @@ async initialize() {
             if (!characterId) return;
             
             // Process and load art for this character if needed
-            if (this.loadCharacterArt(container, characterId, characterName)) {
+            if (this.loadCharacterArt(container, characterId, characterName, viewMode)) {
                 artLoadedInThisPass = true;
             }
         });
@@ -218,9 +220,13 @@ async initialize() {
 
     /**
      * Load art for a specific character
+     * @param {HTMLElement} container - The DOM container element
+     * @param {string} characterId - The character ID
+     * @param {string} characterName - The character name
+     * @param {string} viewMode - The view mode ('full' or 'compact')
      * @returns {boolean} Whether new art was loaded
      */
-    loadCharacterArt(container, characterId, characterName) {
+    loadCharacterArt(container, characterId, characterName, viewMode = 'full') {
         // Special handling for character details view
         const isDetailView = container.classList.contains('detail-icon-container');
         
@@ -251,7 +257,7 @@ async initialize() {
                 // If no inner content in wrapper, we need to add the image
                 // (for newly created UI elements)
                 if (artWrapper.innerHTML.trim() === '') {
-                    this.createAndAddArt(container, characterId, characterName, false);
+                    this.createAndAddArt(container, characterId, characterName, false, viewMode);
                     return true; // Consider as new art being added
                 }
             }
@@ -260,7 +266,7 @@ async initialize() {
         }
         
         // If we get here, character needs art and hasn't been loaded yet
-        return this.createAndAddArt(container, characterId, characterName, true);
+        return this.createAndAddArt(container, characterId, characterName, true, viewMode);
     }
 
     /**
@@ -272,6 +278,14 @@ async initialize() {
     * @returns {boolean} Whether the art was successfully added
      */
     drawArt(character, container, isDetailViewContext, viewMode = 'full') {
+    // Add detailed entry logging
+    console.log(`[TeamBuilderImageLoader] drawArt called with:`, {
+      character: character ? character.name : 'null',
+      container: container ? `${container.className} (${container.tagName})` : 'null',
+      isDetailViewContext: isDetailViewContext,
+      viewMode: viewMode
+    });
+    
     if (!character || !container) {
     console.error('TeamBuilderImageLoader: Missing character or container for drawArt');
       return false;
@@ -285,6 +299,12 @@ async initialize() {
     console.log(`TeamBuilderImageLoader: No image defined for ${characterName}`);
       return false;
     }
+      
+    // Check if image is in the cache
+    console.log(`[TeamBuilderImageLoader] Cache status for ${characterName}:`, {
+      inCache: Boolean(window.CHARACTER_IMAGE_CACHE[characterName]),
+      globalCacheSize: Object.keys(window.CHARACTER_IMAGE_CACHE).length
+    });
     
     // If image not in cache, attempt to load it immediately
     if (!window.CHARACTER_IMAGE_CACHE[characterName]) {
@@ -373,6 +393,16 @@ async initialize() {
             artWrapper.appendChild(img);
             artWrapper.style.display = 'block';
             
+            // Log the final calculated dimensions
+            console.log(`[TeamBuilderImageLoader] ${characterName} art settings:`, {
+                width: img.style.width,
+                height: img.style.height,
+                left: img.style.left,
+                top: img.style.top,
+                viewMode: viewMode,
+                isDetailView: isDetailViewContext
+            });
+            
             // Add appropriate classes to container and parent elements
             container.classList.add('has-art');
             
@@ -386,7 +416,7 @@ async initialize() {
             const detailHero = container.closest('.detail-hero');
             if (detailHero) detailHero.classList.add('has-art');
             
-            console.log(`TeamBuilderImageLoader: Drew art for ${characterName}${isDetailViewContext ? ' (detail view)' : ''}`);
+            console.log(`[TeamBuilderImageLoader] Successfully drew art for ${characterName}${isDetailViewContext ? ' (detail view)' : ''}`);
             return true;
             
         } catch (err) {
@@ -401,9 +431,10 @@ async initialize() {
      * @param {string} characterId - Character ID
      * @param {string} characterName - Character name
      * @param {boolean} isFirstLoad - Whether this is the first time loading this character
+     * @param {string} viewMode - The view mode to use ('full' or 'compact')
      * @returns {boolean} Whether the art was successfully added
      */
-    async createAndAddArt(container, characterId, characterName, isFirstLoad) {
+    async createAndAddArt(container, characterId, characterName, isFirstLoad, viewMode = 'full') {
         // Find character data
         const character = this.findCharacterData(characterId, characterName);
         if (!character) {
@@ -414,8 +445,8 @@ async initialize() {
         // Determine if this is a detail view
         const isDetailView = container.classList.contains('detail-icon-container');
         
-        // Use the new drawArt method
-        return this.drawArt(character, container, isDetailView);
+        // Use the new drawArt method with viewMode parameter
+        return this.drawArt(character, container, isDetailView, viewMode);
     }
 
     /**

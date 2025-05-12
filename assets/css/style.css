@@ -1199,6 +1199,43 @@ body {
     margin-bottom: 0;
 }
 
+/* Fix for character art in team slots */
+.slot-content .hero-avatar-container {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    margin-right: 12px;
+    overflow: visible; /* Ensure art isn't clipped */
+}
+
+.slot-content .hero-avatar-container .hero-art-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block !important;
+    z-index: 5;
+}
+
+.slot-content .hero-avatar-container .team-builder-art {
+    position: absolute;
+    width: 100px; /* Adjusted for team slot context */
+    height: 100px; /* Adjusted for team slot context */
+    top: -20px;
+    left: -20px;
+    display: block !important;
+    opacity: 1 !important;
+    z-index: 10;
+}
+
+/* Make sure the hero-details has proper layout */
+.slot-content .hero-details {
+    display: flex;
+    align-items: center;
+    min-height: 60px;
+}
+
 /* Special rules for character art to ensure images are always visible */
 .hero-avatar-container[data-character-name] .hero-art-wrapper,
 .hero-avatar-container[data-character-name] .character-art,

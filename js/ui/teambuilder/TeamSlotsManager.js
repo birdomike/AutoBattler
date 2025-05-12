@@ -34,6 +34,20 @@ class TeamSlotsManager {
   }
   
   /**
+   * Get the current view mode from HeroGridManager if available
+   * @returns {string} The current view mode ('full' or 'compact')
+   */
+  getViewMode() {
+    // Try to get the viewMode from HeroGridManager
+    if (this.parentUI && this.parentUI.heroGridManager && this.parentUI.heroGridManager.viewMode) {
+      return this.parentUI.heroGridManager.viewMode;
+    }
+    
+    // Fallback to 'full' if not available
+    return 'full';
+  }
+  
+  /**
    * Render the team slots
    */
   renderTeamSlots() {
@@ -104,8 +118,24 @@ class TeamSlotsManager {
         heroIconContainer.appendChild(artWrapper);
         
         // Explicitly draw the character art
+        console.log(`[TeamSlotsManager] Processing filled slot ${i} for ${currentTeam[i].name}`);
+        console.log(`[TeamSlotsManager] heroIconContainer DOM element:`, heroIconContainer);
+        console.log(`[TeamSlotsManager] imageLoader availability:`, {
+          imageLoader: Boolean(this.imageLoader),
+          drawArtMethod: this.imageLoader ? typeof this.imageLoader.drawArt === 'function' : 'N/A'
+        });
+        
         if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
-          this.imageLoader.drawArt(currentTeam[i], heroIconContainer, false);
+          // Get the current view mode from HeroGridManager
+          const viewMode = this.getViewMode();
+          console.log(`[TeamSlotsManager] Drawing team slot art for ${currentTeam[i].name} with viewMode: ${viewMode}`);
+          this.imageLoader.drawArt(currentTeam[i], heroIconContainer, false, viewMode);
+          
+          // Verify art creation
+          console.log(`[TeamSlotsManager] Art wrapper status after drawArt:`, {
+            wrapper: heroIconContainer.querySelector('.hero-art-wrapper'),
+            hasImg: heroIconContainer.querySelector('.hero-art-wrapper img') ? true : false
+          });
         }
 
         const heroInfo = document.createElement('div');
@@ -208,6 +238,9 @@ class TeamSlotsManager {
     this.notifyBattleButtonUpdate();
     
     // Art is explicitly drawn during team slot rendering
+    
+    // Verify art was properly added after a short delay to ensure DOM updates
+    setTimeout(() => this.verifyTeamSlotArt(), 100);
   }
 
   /**
@@ -215,7 +248,12 @@ class TeamSlotsManager {
    * @param {number} position - The slot position (0-2)
    */
   addHeroToTeam(position) {
-    if (!this.currentSelectedHero) return;
+    if (!this.currentSelectedHero) {
+      console.log("[TeamSlotsManager] No hero selected to add");
+      return;
+    }
+    
+    console.log(`[TeamSlotsManager] Adding ${this.currentSelectedHero.name} to position ${position}`);
     
     // Determine which team we're modifying
     const targetTeam = this.isSelectingEnemyTeam ? this.enemySelectedHeroes : this.selectedHeroes;
@@ -223,6 +261,7 @@ class TeamSlotsManager {
     // Check if hero is already in team
     const existingIndex = targetTeam.findIndex(h => h && h.id === this.currentSelectedHero.id);
     if (existingIndex !== -1) {
+      console.log(`[TeamSlotsManager] Removing ${this.currentSelectedHero.name} from position ${existingIndex} first`);
       targetTeam[existingIndex] = null;
     }
 
@@ -233,6 +272,7 @@ class TeamSlotsManager {
       this.selectedHeroes[position] = this.currentSelectedHero;
     }
     
+    console.log(`[TeamSlotsManager] Team data updated, calling renderTeamSlots()`);
     this.renderTeamSlots();
     
     // Play add sound
@@ -417,6 +457,42 @@ class TeamSlotsManager {
   triggerImageLoader() {
     // No-op - art is now explicitly managed in renderTeamSlots
     console.warn("[TeamSlotsManager] triggerImageLoader is deprecated - art is now explicitly drawn");
+  }
+  
+  /**
+   * Verify art was added to team slots (debugging function)
+   */
+  verifyTeamSlotArt() {
+    console.log("[TeamSlotsManager] Verifying team slot art...");
+    
+    // Get all team slots
+    const slotContents = document.querySelectorAll('.team-slot .slot-content');
+    
+    slotContents.forEach((slotContent, index) => {
+      const heroDetails = slotContent.querySelector('.hero-details');
+      if (!heroDetails) {
+        console.log(`[TeamSlotsManager] Slot ${index}: Empty slot`);
+        return;
+      }
+      
+      const avatarContainer = heroDetails.querySelector('.hero-avatar-container');
+      const artWrapper = avatarContainer ? avatarContainer.querySelector('.hero-art-wrapper') : null;
+      const img = artWrapper ? artWrapper.querySelector('img') : null;
+      
+      console.log(`[TeamSlotsManager] Slot ${index} DOM structure:`, {
+        hasAvatarContainer: Boolean(avatarContainer),
+        hasArtWrapper: Boolean(artWrapper),
+        hasImage: Boolean(img),
+        artWrapperDisplay: artWrapper ? artWrapper.style.display : 'N/A',
+        imageStyles: img ? {
+          width: img.style.width,
+          height: img.style.height,
+          position: img.style.position,
+          left: img.style.left,
+          top: img.style.top
+        } : 'N/A'
+      });
+    });
   }
 }
 

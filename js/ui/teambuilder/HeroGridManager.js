@@ -89,8 +89,7 @@ class HeroGridManager {
       heroesGrid.appendChild(heroCard);
     });
     
-    // Force image loader to check for new images
-    this.triggerImageLoader();
+    // Art is now explicitly drawn in createHeroCard() for each hero
   }
   
   /**

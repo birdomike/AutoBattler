@@ -1,4 +1,501 @@
-﻿Combined Technical Changelog  (generated 2025-05-12 12:32)
+﻿Combined Technical Changelog  (generated 2025-05-12 15:30)
+
+===== CHANGELOG_0.6.7.9_FixCharacterArtInTeamSlots =====
+
+# Changelog: Fix Character Art in Team Slots with View Toggle
+
+## Version 0.6.7.9 - May 12, 2025
+
+### Overview
+This update fixes an issue introduced in version 0.6.7.8 where character art was no longer appearing in the 'Your Team' slots after implementing the view toggle feature. The problem occurred because the TeamSlotsManager component was not passing the new `viewMode` parameter to the TeamBuilderImageLoader's `drawArt` method, causing art to be inconsistently displayed in different parts of the UI.
+
+### Root Cause Analysis
+The issue stemmed from an incomplete update during the implementation of the view toggle feature. While the `HeroGridManager` was correctly passing the `viewMode` parameter to the `drawArt` method, this parameter was not being propagated through two other important paths:
+
+1. **TeamSlotsManager**: When drawing a hero in a team slot, it was not aware of the current view mode and did not pass it to `drawArt`.
+
+2. **TeamBuilderImageLoader's Helper Methods**: Several helper methods in TeamBuilderImageLoader (`createAndAddArt`, `loadCharacterArt`, etc.) were not updated to accept and forward the `viewMode` parameter.
+
+The `drawArt` method had a default value of 'full' for the `viewMode` parameter, but the inconsistent passing of this parameter was causing visual discrepancies between different parts of the UI.
+
+### Technical Implementation
+
+#### 1. Updated TeamSlotsManager to Get and Pass View Mode
+Added a new method `getViewMode()` to retrieve the current view mode from HeroGridManager:
+
+```javascript
+/**
+ * Get the current view mode from HeroGridManager if available
+ * @returns {string} The current view mode ('full' or 'compact')
+ */
+getViewMode() {
+  // Try to get the viewMode from HeroGridManager
+  if (this.parentUI && this.parentUI.heroGridManager && this.parentUI.heroGridManager.viewMode) {
+    return this.parentUI.heroGridManager.viewMode;
+  }
+  
+  // Fallback to 'full' if not available
+  return 'full';
+}
+```
+
+Modified the character art drawing code to pass this view mode to `drawArt`:
+
+```javascript
+// Explicitly draw the character art
+if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
+  // Get the current view mode from HeroGridManager
+  const viewMode = this.getViewMode();
+  console.log(`[TeamSlotsManager] Drawing team slot art for ${currentTeam[i].name} with viewMode: ${viewMode}`);
+  this.imageLoader.drawArt(currentTeam[i], heroIconContainer, false, viewMode);
+}
+```
+
+#### 2. Updated TeamBuilderImageLoader Helper Methods
+Modified `createAndAddArt` to accept and pass the `viewMode` parameter:
+
+```javascript
+/**
+ * Create and add character art to a container (Legacy method, now a wrapper for drawArt)
+ * @param {HTMLElement} container - The container element
+ * @param {string} characterId - Character ID
+ * @param {string} characterName - Character name
+ * @param {boolean} isFirstLoad - Whether this is the first time loading this character
+ * @param {string} viewMode - The view mode to use ('full' or 'compact')
+ * @returns {boolean} Whether the art was successfully added
+ */
+async createAndAddArt(container, characterId, characterName, isFirstLoad, viewMode = 'full') {
+    // Find character data
+    const character = this.findCharacterData(characterId, characterName);
+    if (!character) {
+        console.log(`TeamBuilderImageLoader: Character data not found for ${characterName}`);
+        return false;
+    }
+    
+    // Determine if this is a detail view
+    const isDetailView = container.classList.contains('detail-icon-container');
+    
+    // Use the new drawArt method with viewMode parameter
+    return this.drawArt(character, container, isDetailView, viewMode);
+}
+```
+
+Updated `loadCharacterArt` to handle the `viewMode` parameter:
+
+```javascript
+/**
+ * Load art for a specific character
+ * @param {HTMLElement} container - The DOM container element
+ * @param {string} characterId - The character ID
+ * @param {string} characterName - The character name
+ * @param {string} viewMode - The view mode ('full' or 'compact')
+ * @returns {boolean} Whether new art was loaded
+ */
+loadCharacterArt(container, characterId, characterName, viewMode = 'full') {
+    // ...existing code...
+    
+    // If no inner content in wrapper, we need to add the image
+    if (artWrapper.innerHTML.trim() === '') {
+        this.createAndAddArt(container, characterId, characterName, false, viewMode);
+        return true; // Consider as new art being added
+    }
+    
+    // ...existing code...
+    
+    // If we get here, character needs art and hasn't been loaded yet
+    return this.createAndAddArt(container, characterId, characterName, true, viewMode);
+}
+```
+
+#### 3. Updated Periodic Checking Methods
+Modified `checkAndLoadImages` and `startImageCheck` to accept and propagate the `viewMode` parameter:
+
+```javascript
+/**
+ * Check for character elements and load images if needed
+ * @param {string} viewMode - The view mode ('full' or 'compact')
+ */
+checkAndLoadImages(viewMode = 'full') {
+    // ...existing code...
+    
+    // Process and load art for this character if needed
+    if (this.loadCharacterArt(container, characterId, characterName, viewMode)) {
+        artLoadedInThisPass = true;
+    }
+    
+    // ...existing code...
+}
+
+/**
+ * Start periodically checking for character elements that need art
+ * @param {string} viewMode - The view mode ('full' or 'compact')
+ */
+startImageCheck(viewMode = 'full') {
+    // Clear any existing timer
+    if (this.imageCheckTimer) {
+        clearInterval(this.imageCheckTimer);
+    }
+    
+    // Set up periodic check - just basic checking, no forced updates
+    this.imageCheckTimer = setInterval(() => {
+        this.checkAndLoadImages(viewMode);
+    }, this.checkInterval);
+    
+    // Run an immediate check
+    this.checkAndLoadImages(viewMode);
+}
+```
+
+### Implementation Challenges
+
+#### 1. Cascading Parameter Updates
+The main challenge was identifying all code paths that needed to be updated to propagate the `viewMode` parameter. Since there were several helper methods that indirectly call `drawArt`, all of these needed to be updated to accept and forward the parameter.
+
+#### 2. Maintaining Backward Compatibility
+While updating the methods, we needed to ensure backward compatibility by setting default values for the `viewMode` parameter in all methods. This ensures the code continues to work even if some components haven't been updated to pass the parameter.
+
+#### 3. Cross-Component Communication
+The implementation requires TeamSlotsManager to access the current view mode from HeroGridManager. This highlights the importance of proper cross-component communication patterns, which we addressed by adding a `getViewMode()` method that safely retrieves the value with appropriate fallbacks.
+
+### User Experience Improvements
+
+1. **Consistent Visual Appearance**: Character art now appears consistently across all parts of the UI, regardless of the selected view mode.
+
+2. **Proper Layout in Team Slots**: Team slots now display character art with the correct scaling and positioning based on the current view mode.
+
+3. **Seamless View Toggling**: The view toggle now affects the entire UI, including team slots, for a cohesive experience.
+
+### Testing Considerations
+
+The implementation has been tested for:
+
+1. **View Mode Consistency**: Ensuring character art appears correctly in both view modes.
+
+2. **Team Slot Integration**: Verifying that adding heroes to team slots displays their art correctly.
+
+3. **Dynamic View Switching**: Testing that switching between view modes updates all parts of the UI correctly.
+
+4. **Compatibility with Existing Features**: Ensuring these changes don't interfere with other functionality such as detailed hero view or team synergies.
+
+This fix ensures that the view toggle feature introduced in 0.6.7.8 works correctly and cohesively across all parts of the TeamBuilder UI.
+
+
+===== CHANGELOG_0.6.7.8_ViewToggleForHeroCards =====
+
+# Changelog: View Toggle for Hero Cards
+
+## Version 0.6.7.8 - May 12, 2025
+
+### Overview
+This update adds a view toggle feature to the TeamBuilder UI, allowing users to switch between two different layouts for available heroes:
+
+1. **Full View (Current 0.6.7.3 Layout)**:
+   - 2-column grid
+   - Vertical layout (art above text)
+   - 40% larger artwork
+   - Minimum height cards with extra padding
+
+2. **Compact View (Previous Layout)**:
+   - 3-column grid
+   - Horizontal layout (art beside text)
+   - Original artwork sizing (no 1.4x scaling)
+   - Standard padding and height
+
+This enhancement improves user experience by offering flexibility in how characters are displayed, with the preference persisting across sessions via localStorage.
+
+### Technical Implementation
+
+#### 1. View Mode State Management in HeroGridManager
+Added state management for the view mode to HeroGridManager:
+
+```javascript
+// Added to HeroGridManager constructor
+this.viewMode = localStorage.getItem('heroGridViewMode') || 'full'; // Default to 'full'
+```
+
+This state persists across page reloads via localStorage, allowing users to maintain their preferred view.
+
+#### 2. Toggle View Mode Functions
+Implemented methods for toggling between view modes:
+
+```javascript
+/**
+ * Set the grid view mode (full or compact)
+ * @param {string} mode - The view mode ('full' or 'compact')
+ */
+setViewMode(mode) {
+  if (mode !== 'full' && mode !== 'compact') {
+    console.warn("[HeroGridManager] Invalid view mode: " + mode);
+    return;
+  }
+  
+  this.viewMode = mode;
+  localStorage.setItem('heroGridViewMode', mode);
+  
+  // Re-render with new view mode
+  this.renderHeroGrid();
+  
+  // Update toggle button appearance
+  this.updateViewToggle();
+}
+
+/**
+ * Toggle between full and compact view modes
+ */
+toggleViewMode() {
+  const newMode = this.viewMode === 'full' ? 'compact' : 'full';
+  this.setViewMode(newMode);
+  
+  // Play sound effect if available
+  if (window.soundManager) {
+    window.soundManager.play('click');
+  }
+}
+```
+
+#### 3. Toggle UI Element
+Added a toggle button to the "Available Heroes" section header:
+
+```javascript
+initializeViewToggle() {
+  // Create section title wrapper if it doesn't exist
+  let sectionTitle = document.querySelector('#available-heroes > h2');
+  if (!sectionTitle) return;
+  
+  // Check if wrapper already exists
+  if (!sectionTitle.querySelector('.section-header-wrapper')) {
+    // Create wrapper for title and toggle
+    const wrapper = document.createElement('div');
+    wrapper.className = 'section-header-wrapper';
+    wrapper.style.display = 'flex';
+    wrapper.style.justifyContent = 'space-between';
+    wrapper.style.alignItems = 'center';
+    
+    // Move title into wrapper
+    const titleText = sectionTitle.textContent;
+    sectionTitle.textContent = '';
+    
+    const title = document.createElement('span');
+    title.textContent = titleText;
+    wrapper.appendChild(title);
+    
+    // Create toggle button with icon and label
+    const toggle = document.createElement('button');
+    toggle.id = 'toggle-view';
+    toggle.className = 'toggle-view-button';
+    toggle.title = 'Toggle between compact and full view';
+    
+    // Set button styling
+    toggle.style.background = 'var(--darker-bg)';
+    toggle.style.border = 'none';
+    toggle.style.borderRadius = '4px';
+    toggle.style.padding = '6px 10px';
+    toggle.style.color = 'var(--text)';
+    toggle.style.cursor = 'pointer';
+    toggle.style.display = 'flex';
+    toggle.style.alignItems = 'center';
+    toggle.style.gap = '5px';
+    toggle.style.transition = 'all 0.2s';
+    
+    // Add button to wrapper and initialize
+    wrapper.appendChild(toggle);
+    sectionTitle.appendChild(wrapper);
+    
+    // Update toggle appearance
+    this.updateViewToggle();
+  }
+}
+```
+
+The button visually indicates the current view mode and allows users to toggle between views with visual feedback.
+
+#### 4. Modified TeamBuilderImageLoader
+Updated the `drawArt` method to support different view modes:
+
+```javascript
+drawArt(character, container, isDetailViewContext, viewMode = 'full') {
+  // ...existing code...
+  
+  // Apply 1.4x scaling only in full view mode
+  if (viewMode === 'full') {
+    // Scale up the art by about 40% for full view
+    if (artSettings.width) {
+      const originalWidth = parseInt(artSettings.width);
+      if (!isNaN(originalWidth)) {
+        artSettings.width = `${Math.round(originalWidth * 1.4)}px`;
+      }
+    }
+    
+    if (artSettings.height) {
+      const originalHeight = parseInt(artSettings.height);
+      if (!isNaN(originalHeight)) {
+        artSettings.height = `${Math.round(originalHeight * 1.4)}px`;
+      }
+    }
+  }
+  // In compact view, we use the original size
+  
+  // ...existing code...
+  
+  // Apply width and height with context-sensitive defaults
+  if (isDetailViewContext) {
+    img.style.width = artSettings.width || '140px';
+    img.style.height = artSettings.height || '140px';
+  } else {
+    img.style.width = artSettings.width || (viewMode === 'full' ? '80px' : '60px');
+    img.style.height = artSettings.height || (viewMode === 'full' ? '120px' : '90px');
+  }
+}
+```
+
+This ensures character art is sized appropriately based on the selected view mode.
+
+#### 5. CSS Adjustments
+Added view-specific CSS classes to control the layout of hero cards:
+
+```css
+/* Base hero grid styles */
+#heroes-grid {
+  display: grid;
+  width: 100%;
+}
+
+/* Full view (current implementation) */
+#heroes-grid.view-full {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+/* Compact view (previous implementation) */
+#heroes-grid.view-compact {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+/* Card layouts */
+.view-full .hero-card {
+  padding: 20px;
+  min-height: 220px;
+}
+
+.view-compact .hero-card {
+  padding: 15px;
+  min-height: auto;
+}
+
+/* Content layouts */
+.view-full .hero-card-content {
+  flex-direction: column;
+  align-items: center;
+}
+
+.view-compact .hero-card-content {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* Avatar container sizing */
+.view-full .hero-avatar-container {
+  width: 100px;
+  min-height: 100px;
+  margin-bottom: 12px;
+}
+
+.view-compact .hero-avatar-container {
+  width: 60px;
+  min-height: 60px;
+  margin-right: 12px;
+  margin-bottom: 0;
+}
+```
+
+These CSS classes ensure consistent styling for both view modes.
+
+#### 6. Integration with TeamBuilderUI.js
+Updated the `initializeHeroGridManager` method to initialize the view toggle:
+
+```javascript
+async initializeHeroGridManager() {
+  try {
+    // ...existing code...
+    
+    // Verify required methods exist
+    const methodCheck = {
+      renderHeroGrid: typeof this.heroGridManager.renderHeroGrid === 'function',
+      // ...existing checks...
+      
+      // Check for new view mode methods
+      setViewMode: typeof this.heroGridManager.setViewMode === 'function',
+      toggleViewMode: typeof this.heroGridManager.toggleViewMode === 'function',
+      initializeViewToggle: typeof this.heroGridManager.initializeViewToggle === 'function'
+    };
+    
+    // ...existing code...
+    
+    // Initialize view toggle if the method exists
+    if (methodCheck.initializeViewToggle) {
+      this.heroGridManager.initializeViewToggle();
+    }
+    
+    // ...existing code...
+  } catch (error) {
+    // ...error handling...
+  }
+}
+```
+
+### Implementation Challenges
+
+#### 1. Maintaining Dynamic Layout Responsiveness
+The toggle needed to switch not only column counts but also layout directions (vertical vs. horizontal). This required careful CSS structuring to ensure both layouts remained responsive.
+
+#### 2. Character Art Scaling
+Art scaling needed to be conditional based on view mode. We modified TeamBuilderImageLoader to conditionally apply the 1.4x scaling only in full view mode.
+
+#### 3. Backward Compatibility
+The implementation had to work with the existing component architecture and gracefully degrade if any component was unavailable.
+
+#### 4. DOM Element Hierarchy
+The toggle button needed to coexist with the existing section title. We created a wrapper to maintain the visual hierarchy while adding the toggle button.
+
+### User Experience Improvements
+
+1. **Density Options**: Users can now choose between a visually rich layout that showcases character art (Full View) or a compact layout that shows more characters at once (Compact View).
+
+2. **Preference Persistence**: The selected view mode is stored in localStorage, ensuring the user's preference is remembered across sessions.
+
+3. **Visual Feedback**: The toggle button provides clear visual indication of the current mode and changes appearance when toggled.
+
+4. **Smooth Transitions**: CSS transitions ensure smooth animations when toggling between view modes.
+
+5. **Consistent Styling**: Both layouts maintain consistent styling that aligns with the game's overall aesthetic.
+
+### Future Considerations
+
+1. **Additional View Options**: The architecture supports adding more view modes in the future (e.g., list view, gallery view).
+
+2. **Responsive Breakpoints**: The current implementation uses fixed column counts, but future enhancements could adapt column count based on screen width.
+
+3. **User Preferences Panel**: A dedicated preferences panel could provide more customization options beyond just the view toggle.
+
+4. **Transition Animations**: Enhanced animations could be added when switching between views for a more polished feel.
+
+### Testing Considerations
+
+The implementation has been tested for:
+
+1. **Visual Consistency**: Both layouts render correctly with proper spacing and alignment.
+
+2. **Persistence**: The view preference correctly persists across page reloads.
+
+3. **Artwork Rendering**: Character art displays correctly in both layouts.
+
+4. **Toggle Behavior**: The toggle button correctly updates its appearance and the view mode.
+
+5. **Filtering Compatibility**: The toggle works correctly when filters are applied.
+
+This feature enhances the user experience by providing flexibility in how characters are displayed, catering to different user preferences for visual richness versus density.
+
 
 ===== CHANGELOG_0.6.7.7_ImagePreloadingSynchronization =====
 
@@ -193,6 +690,99 @@ We had to ensure the code remained compatible with existing systems:
 4. **Visual Feedback**: Always provide visual feedback for loading operations to improve user experience.
 
 This change addresses the immediate image loading issues and provides a more robust foundation for all asynchronous operations in the TeamBuilder UI.
+
+
+===== CHANGELOG_0.6.7.5_RemoveRaritySystem =====
+
+# Changelog: Rarity System Removal
+
+## Version 0.6.7.5 - May 12, 2025
+
+### Overview
+This update removes the rarity system from the game as it was not being utilized in any gameplay mechanics. The rarity property and visual display elements have been removed from both the UI components and the character data definitions.
+
+### Technical Implementation
+
+#### 1. UI Changes
+The primary UI changes were made to `HeroDetailPanelManager.js`, where we removed the code that created and displayed rarity tags:
+
+```javascript
+// Removed from renderDetails()
+const rarityTag = document.createElement('span');
+rarityTag.className = 'detail-tag';
+rarityTag.style.backgroundColor = this.rarityColors[hero.rarity];
+rarityTag.textContent = hero.rarity;
+detailTags.appendChild(rarityTag);
+```
+
+Similar code was also removed from the `updateExistingDetails()` method to ensure consistency. The code was replaced with comments indicating when the rarity tag was removed to maintain code clarity for future reference.
+
+#### 2. Data Structure Changes
+The "rarity" property was removed from all character definitions in `characters.json`. For example:
+
+**Before:**
+```json
+{
+  "id": 7,
+  "name": "Caste",
+  "type": "metal",
+  "role": "Berserker",
+  "rarity": "Epic",
+  "actionDecisionLogic": "decideAction_PrioritizeOffense",
+  ...
+}
+```
+
+**After:**
+```json
+{
+  "id": 7,
+  "name": "Caste",
+  "type": "metal",
+  "role": "Berserker",
+  "actionDecisionLogic": "decideAction_PrioritizeOffense",
+  ...
+}
+```
+
+This property was removed from all 8 character definitions in the file.
+
+#### 3. Visual Impact
+The removal of the rarity tags has a minimal visual impact on the UI. The hero detail display now shows only the type and role tags, resulting in a cleaner, more focused presentation:
+
+**Before:**
+- Hero name
+- Type tags (color-coded)
+- Role tag (gray)
+- Rarity tag (color-coded based on rarity)
+
+**After:**
+- Hero name
+- Type tags (color-coded)
+- Role tag (gray)
+
+### Rationale
+The rarity system was initially intended to be used for character progression and collection mechanics. However, as the game evolved, the focus shifted to team-building and tactical combat without a progression system that utilized rarity. Since this property was not being used in any gameplay mechanics, it was removed to:
+
+1. **Simplify Data Model**: Remove unused properties from the character data model
+2. **Clean UI**: Remove visual elements that don't contribute to gameplay understanding
+3. **Reduce Cognitive Load**: Simplify the information presented to players
+
+### Future Considerations
+
+1. **Character Progression**: If a character progression system is implemented in the future, a different approach may be needed rather than reintroducing rarity.
+
+2. **Existing Code**: The `rarityColors` definition in `TeamBuilderUI.js` has been left in place for now, as it might be useful for future features or if rarity is reintroduced in a different form.
+
+3. **Data Persistence**: If save data exists that references character rarity, additional migration steps might be needed (not applicable in the current implementation).
+
+### Lessons Learned
+
+1. **Data-Driven Design**: This change reinforces the benefit of separating data (character definitions) from presentation (UI components), making it straightforward to add or remove properties without cascading changes.
+
+2. **Documentation**: Adding clear comments where code was removed helps maintain historical context for future developers.
+
+3. **Simplification**: Removing unused features can sometimes be as valuable as adding new ones, especially for reducing maintenance burden and cognitive load.
 
 
 ===== CHANGELOG_0.6.7.6_CharacterArtSystemRework =====
@@ -428,99 +1018,6 @@ We implemented a transition strategy that preserved compatibility with existing 
 4. **Centralized Functionality**: Having a single, well-tested function for art drawing ensures consistent behavior across all UI components.
 
 This change represents a significant improvement in the reliability and maintainability of the character art system, addressing a long-standing source of visual glitches and intermittent issues.
-
-
-===== CHANGELOG_0.6.7.5_RemoveRaritySystem =====
-
-# Changelog: Rarity System Removal
-
-## Version 0.6.7.5 - May 12, 2025
-
-### Overview
-This update removes the rarity system from the game as it was not being utilized in any gameplay mechanics. The rarity property and visual display elements have been removed from both the UI components and the character data definitions.
-
-### Technical Implementation
-
-#### 1. UI Changes
-The primary UI changes were made to `HeroDetailPanelManager.js`, where we removed the code that created and displayed rarity tags:
-
-```javascript
-// Removed from renderDetails()
-const rarityTag = document.createElement('span');
-rarityTag.className = 'detail-tag';
-rarityTag.style.backgroundColor = this.rarityColors[hero.rarity];
-rarityTag.textContent = hero.rarity;
-detailTags.appendChild(rarityTag);
-```
-
-Similar code was also removed from the `updateExistingDetails()` method to ensure consistency. The code was replaced with comments indicating when the rarity tag was removed to maintain code clarity for future reference.
-
-#### 2. Data Structure Changes
-The "rarity" property was removed from all character definitions in `characters.json`. For example:
-
-**Before:**
-```json
-{
-  "id": 7,
-  "name": "Caste",
-  "type": "metal",
-  "role": "Berserker",
-  "rarity": "Epic",
-  "actionDecisionLogic": "decideAction_PrioritizeOffense",
-  ...
-}
-```
-
-**After:**
-```json
-{
-  "id": 7,
-  "name": "Caste",
-  "type": "metal",
-  "role": "Berserker",
-  "actionDecisionLogic": "decideAction_PrioritizeOffense",
-  ...
-}
-```
-
-This property was removed from all 8 character definitions in the file.
-
-#### 3. Visual Impact
-The removal of the rarity tags has a minimal visual impact on the UI. The hero detail display now shows only the type and role tags, resulting in a cleaner, more focused presentation:
-
-**Before:**
-- Hero name
-- Type tags (color-coded)
-- Role tag (gray)
-- Rarity tag (color-coded based on rarity)
-
-**After:**
-- Hero name
-- Type tags (color-coded)
-- Role tag (gray)
-
-### Rationale
-The rarity system was initially intended to be used for character progression and collection mechanics. However, as the game evolved, the focus shifted to team-building and tactical combat without a progression system that utilized rarity. Since this property was not being used in any gameplay mechanics, it was removed to:
-
-1. **Simplify Data Model**: Remove unused properties from the character data model
-2. **Clean UI**: Remove visual elements that don't contribute to gameplay understanding
-3. **Reduce Cognitive Load**: Simplify the information presented to players
-
-### Future Considerations
-
-1. **Character Progression**: If a character progression system is implemented in the future, a different approach may be needed rather than reintroducing rarity.
-
-2. **Existing Code**: The `rarityColors` definition in `TeamBuilderUI.js` has been left in place for now, as it might be useful for future features or if rarity is reintroduced in a different form.
-
-3. **Data Persistence**: If save data exists that references character rarity, additional migration steps might be needed (not applicable in the current implementation).
-
-### Lessons Learned
-
-1. **Data-Driven Design**: This change reinforces the benefit of separating data (character definitions) from presentation (UI components), making it straightforward to add or remove properties without cascading changes.
-
-2. **Documentation**: Adding clear comments where code was removed helps maintain historical context for future developers.
-
-3. **Simplification**: Removing unused features can sometimes be as valuable as adding new ones, especially for reducing maintenance burden and cognitive load.
 
 
 ===== CHANGELOG_0.6.7.4_HeroDetailsScrollbarFix =====
@@ -1453,314 +1950,5 @@ This will complete the six-phase refactoring project, transforming TeamBuilderUI
 5. **Consistent Patterns**: Following the same patterns established in previous phases has made the implementation smoother and more predictable.
 
 This Extract phase completes the first stage of Phase 6, bringing us one step closer to completing the TeamBuilderUI refactoring project.
-
-
-===== CHANGELOG_0.6.6.9_TeamSlotsManager_Remove =====
-
-# CHANGELOG 0.6.6.9 - TeamSlotsManager Component: Remove Stage
-
-## Overview
-
-This update completes Phase 5 of the TeamBuilderUI refactoring by implementing the "Remove" stage of the Extract-Verify-Remove pattern for the TeamSlotsManager component. After successfully extracting team slot functionality to the TeamSlotsManager component and verifying its correct operation, we've now updated TeamBuilderUI.js to fully utilize TeamSlotsManager for all team-related operations, maintaining backward compatibility through minimal fallback methods.
-
-## Implementation Details
-
-### 1. Updated TeamBuilderUI.js to Use TeamSlotsManager State
-
-The original implementation of TeamBuilderUI directly accessed and manipulated team state variables (`selectedHeroes`, `enemySelectedHeroes`, `isSelectingEnemyTeam`). We've updated methods that interact with these variables to use TeamSlotsManager when available:
-
-**renderBattleModes():**
-- Now retrieves team selection state from TeamSlotsManager
-- Updates team selection only through TeamSlotsManager's toggleTeamSelection()
-- Maintains backward compatibility for environments without TeamSlotsManager
-
-```javascript
-// Updated to use TeamSlotsManager for state management
-const isSelectingEnemyTeam = this.teamSlotsManager ? 
-    this.teamSlotsManager.isSelectingEnemyTeam : this.isSelectingEnemyTeam;
-
-// When toggling team selection
-if (this.teamSlotsManager) {
-    this.teamSlotsManager.toggleTeamSelection(false);
-} else {
-    this.isSelectingEnemyTeam = false;
-    this.renderTeamSlots();
-}
-```
-
-**startBattle():**
-- Now consistently gets team data and selection state from TeamSlotsManager
-- Uses TeamSlotsManager to toggle team selection mode
-- Properly handles both TeamSlotsManager and fallback implementation paths
-
-```javascript
-// Get state from TeamSlotsManager if available
-let isSelectingEnemyTeam = this.isSelectingEnemyTeam;
-let team = [];
-
-if (this.teamSlotsManager) {
-    isSelectingEnemyTeam = this.teamSlotsManager.isSelectingEnemyTeam;
-    team = this.teamSlotsManager.getPlayerTeam().filter(hero => hero !== null);
-} else {
-    team = this.selectedHeroes.filter(hero => hero !== null);
-}
-
-// Switch to enemy team selection mode using TeamSlotsManager if available
-if (this.teamSlotsManager) {
-    this.teamSlotsManager.toggleTeamSelection(true);
-} else {
-    this.isSelectingEnemyTeam = true;
-    this.renderTeamSlots();
-    this.updateStartBattleButton();
-}
-```
-
-### 2. Defensive Programming and Error Handling
-
-Throughout the implementation, we've maintained proper fallback behavior for environments where TeamSlotsManager might not be available:
-
-- Each method checks if `this.teamSlotsManager` exists before using it
-- All methods provide fallback implementations using the original state variables
-- Error messages are displayed when TeamSlotsManager is unavailable
-
-### 3. Team Data Access Pattern
-
-We've established a consistent pattern for accessing team data:
-
-1. First check if TeamSlotsManager is available
-2. If available, use TeamSlotsManager's accessor methods:
-   - `getPlayerTeam()`
-   - `getEnemyTeam()`
-   - `isSelectingEnemyTeam` (property)
-3. If not available, use the original state variables as fallback
-
-This pattern ensures consistent team data access throughout the codebase while maintaining backward compatibility.
-
-## Benefits
-
-1. **Proper Encapsulation**: Team-related state is now fully encapsulated within the TeamSlotsManager component.
-
-2. **Consistent State Management**: Team state changes are now handled consistently through TeamSlotsManager.
-
-3. **Enhanced Maintainability**: Code is now more maintainable with clear separation of concerns.
-
-4. **Improved Backward Compatibility**: The implementation gracefully handles environments where TeamSlotsManager is unavailable.
-
-5. **Cleaner Code**: The use of consistent patterns for component access and state management improves code clarity.
-
-## Testing Considerations
-
-The implementation was tested to ensure:
-
-1. **Team Slot Functionality**: Adding/removing heroes from teams works correctly.
-
-2. **Team Selection Toggle**: Switching between player and enemy team selection works properly.
-
-3. **Battle Initiation**: The startBattle() method correctly handles team state in both custom and random battle modes.
-
-4. **Error Handling**: Proper error messages are displayed when TeamSlotsManager is unavailable.
-
-5. **Backward Compatibility**: The system gracefully falls back to original behavior when TeamSlotsManager is unavailable.
-
-6. **Edge Cases**: Team selection works correctly in all battle modes and states.
-
-## Next Steps
-
-With Phase 5 (TeamSlotsManager) now complete, the refactoring will proceed to Phase 6:
-
-### Phase 6: BattleModeManager and BattleInitiator
-
-Methods to extract:
-- `renderBattleModes()`
-- `updateStartBattleButton()`
-- `startBattle()`
-- `startBattleWithDelay()`
-
-This will be the final phase of the TeamBuilderUI refactoring project, completing the transformation from a monolithic class to a component-based architecture.
-
-## Lessons Learned
-
-1. **Proper State Management**: This refactoring highlighted the importance of proper state management and clear component responsibilities.
-
-2. **Component Interfaces**: The TeamSlotsManager's well-defined public interface made integration with TeamBuilderUI straightforward.
-
-3. **Graceful Fallbacks**: The implementation of graceful fallbacks ensures a robust system that can handle component unavailability.
-
-4. **Consistent Patterns**: Using consistent patterns for component access and state management improves code clarity and maintainability.
-
-5. **Complete Refactoring**: By fully completing the Remove phase, we've demonstrated the value of the Extract-Verify-Remove methodology for incremental but thorough refactoring.
-
-This update completes Phase 5 of the TeamBuilderUI refactoring, with five of six planned phases now complete. The component-based architecture continues to take shape, with each refactoring phase further improving the separation of concerns and maintainability of the codebase.
-
-
-===== CHANGELOG_0.6.6.8_TeamSlotsManager_Extract =====
-
-# CHANGELOG 0.6.6.8 - TeamSlotsManager Component Extract Phase
-
-## Overview
-
-This update implements Phase 5 of the TeamBuilderUI refactoring plan, focusing on the Extract stage of the Extract-Verify-Remove methodology. Following the successful pattern established in previous phases, we've extracted team slot management functionality from TeamBuilderUI.js into a dedicated TeamSlotsManager component.
-
-## Implementation Details
-
-### 1. Created TeamSlotsManager Component
-
-Created a new component file at `js/ui/teambuilder/TeamSlotsManager.js` that encapsulates all team slot-related functionality:
-
-- Team slot rendering and management
-- Adding/removing heroes to/from teams
-- Team synergy calculation and display
-- Toggling between player and enemy team selection
-- Handling empty/filled slot visualization
-
-The component follows established architecture patterns:
-- Clear constructor with parent validation
-- Explicit dependencies on parent properties
-- Well-defined public interface
-- Defensive programming throughout
-- Proper component lifecycle management
-
-Key methods include:
-- `renderTeamSlots()`: Renders all team slot UI elements
-- `addHeroToTeam()`: Handles adding heroes to team slots
-- `removeHeroFromTeam()`: Handles removing heroes from team slots
-- `renderTeamSynergies()`: Renders team synergy information
-- `calculateSynergies()`: Calculates available synergies based on team composition
-- `toggleTeamSelection()`: Switches between player and enemy team selection
-- Accessor methods: `getPlayerTeam()`, `getEnemyTeam()`, `setSelectedHero()`
-
-### 2. Enhanced Team Slot Implementation
-
-The extracted implementation includes several improvements over the original:
-
-- **State Management**: Clear separation of team state (player/enemy teams)
-- **Event Handling**: Centralized event handling for team slot interactions
-- **Notification System**: Proper notifications to parent UI for team changes
-- **Visual Feedback**: Consistent visual feedback for slot states and team selection
-- **Multiple Type Support**: Maintained support for heroes with multiple types
-
-### 3. Added Delegation to TeamBuilderUI.js
-
-Modified TeamBuilderUI.js to:
-
-- Initialize the TeamSlotsManager component
-- Add new callback method `onTeamSelectionChanged` for team selection toggling
-- Delegate team slot rendering and management to the component when available
-- Maintain original implementations as fallback for backward compatibility
-- Update battle button state based on team information from the component
-
-The delegation pattern follows the same approach used for previous component extractions:
-
-```javascript
-renderTeamSlots() {
-    if (this.teamSlotsManager) {
-        this.teamSlotsManager.renderTeamSlots();
-        return;
-    }
-    
-    // Minimal fallback for error handling
-    console.error('Cannot render team slots - TeamSlotsManager not available');
-    const teamSlots = document.getElementById('team-slots');
-    if (teamSlots) {
-        teamSlots.innerHTML = '<div class="slots-error">Team slots system unavailable</div>';
-    }
-}
-```
-
-### 4. Updated Script Loading
-
-Updated index.html to load TeamSlotsManager.js before TeamBuilderUI.js:
-
-```html
-<script src="js/ui/teambuilder/TeamBuilderUtils.js" defer></script>
-<script src="js/ui/teambuilder/HeroDetailPanelManager.js" defer></script>
-<script src="js/ui/teambuilder/FilterManager.js" defer></script>
-<script src="js/ui/teambuilder/HeroGridManager.js" defer></script>
-<script src="js/ui/teambuilder/TeamSlotsManager.js" defer></script>
-<script src="js/ui/TeamBuilderUI.js" defer></script>
-```
-
-### 5. Key Component Method Implementation
-
-A significant piece of the implementation is the synergy calculation logic, which has been enhanced to properly support heroes with multiple types:
-
-```javascript
-calculateSynergies() {
-    const heroes = this.selectedHeroes.filter(hero => hero !== null);
-    if (heroes.length < 2) return [];
-
-    const types = [];
-    const roles = [];
-    
-    // Handle multiple types
-    heroes.forEach(hero => {
-      const heroTypes = TeamBuilderUtils.splitTypes(hero.type);
-      types.push(...heroTypes);
-      roles.push(hero.role);
-    });
-    
-    // Calculate type and role counts and synergies...
-}
-```
-
-This implementation properly handles heroes with multiple types (like "water/ice") to ensure correct synergy calculation.
-
-## Benefits
-
-1. **Reduced Complexity**: The extraction of team slot functionality reduces the responsibility of TeamBuilderUI.js, focusing it on orchestration rather than implementation details.
-
-2. **Improved Maintainability**: Team slot management is now contained in a single file, making it easier to update or debug.
-
-3. **Better Separation of Concerns**: Each component is responsible for a specific aspect of the UI.
-
-4. **Consistent Architecture**: The implementation follows the same patterns established in previous refactoring phases.
-
-5. **Enhanced Synergy Calculation**: Synergy calculation now properly handles heroes with multiple types.
-
-## Code Metrics
-
-- **Lines Extracted**: Approximately 200 lines from TeamBuilderUI.js
-- **New Component Size**: 300 lines in TeamSlotsManager.js (including improvements)
-- **Added Delegation Code**: 50 lines to TeamBuilderUI.js
-- **Method Extractions**: 
-  - `renderTeamSlots()`
-  - `renderTeamSynergies()`
-  - `calculateSynergies()`
-  - `addHeroToTeam()`
-  - `removeHeroFromTeam()`
-
-## Testing Considerations
-
-The Extract phase maintains backward compatibility through:
-
-1. **Feature Detection**: Checks if TeamSlotsManager exists before using it
-2. **Fallback Implementation**: Provides minimal fallback if component initialization fails
-3. **Method Verification**: Validates required methods exist before delegating
-
-## Next Steps
-
-The Extract phase is now complete. The next phases will be:
-
-1. **Verify Phase**: Run and test the implementation to ensure it works correctly, with special focus on:
-   - Team slot rendering and interactions
-   - Adding/removing heroes from teams
-   - Team synergy calculation and display
-   - Toggling between player/enemy team selection
-   - Battle button state updates
-   - Integration with the existing hero selection flow
-
-2. **Remove Phase**: After successful verification, remove the original implementation from TeamBuilderUI.js, replacing it with minimal fallbacks for error handling.
-
-## Lessons Learned
-
-1. **Component Responsibility Boundaries**: The TeamSlotsManager component encapsulates all team-related functionality, making its responsibility boundary clear.
-
-2. **Event Propagation**: The component uses explicit callback methods to notify the parent UI of important state changes, ensuring proper UI updates.
-
-3. **Integration Points**: The component integrates with the existing image loader and sound manager systems, demonstrating how components can work within the established infrastructure.
-
-4. **State Management**: The component maintains its own state (selected heroes, enemy selection mode) while providing clear accessor methods for the parent UI.
-
-This update represents the Extract phase of Phase 5 in the TeamBuilderUI refactoring project. After verification and removal, four of the six planned components will be fully implemented, bringing us closer to a fully component-based architecture.
 
 
