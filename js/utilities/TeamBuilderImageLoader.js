@@ -264,101 +264,106 @@ async initialize() {
     }
 
     /**
-     * Draw character art in a container - Primary art drawing function
-     * @param {Object} character - Character object with art settings
-     * @param {HTMLElement} container - DOM element to contain the art
-     * @param {boolean} isDetailViewContext - Whether this is a detail view
-     * @returns {boolean} Whether the art was successfully added
+    * Draw character art in a container - Primary art drawing function
+    * @param {Object} character - Character object with art settings
+    * @param {HTMLElement} container - DOM element to contain the art
+    * @param {boolean} isDetailViewContext - Whether this is a detail view
+    * @param {string} viewMode - The current view mode ('full' or 'compact')
+    * @returns {boolean} Whether the art was successfully added
      */
-    drawArt(character, container, isDetailViewContext) {
-        if (!character || !container) {
-            console.error('TeamBuilderImageLoader: Missing character or container for drawArt');
-            return false;
-        }
-        
-        try {
-            const characterName = character.name;
-            
-            // Skip if character has no defined image
-            if (!this.characterImages[characterName]) {
-                console.log(`TeamBuilderImageLoader: No image defined for ${characterName}`);
-                return false;
-            }
-            
-            // If image not in cache, attempt to load it immediately
-            if (!window.CHARACTER_IMAGE_CACHE[characterName]) {
-                console.log(`TeamBuilderImageLoader: ${characterName} not found in image cache, loading now...`);
-                // Create and load the image immediately
-                const img = new Image();
-                img.onload = () => {
-                    window.CHARACTER_IMAGE_CACHE[characterName] = img;
-                    console.log(`TeamBuilderImageLoader: ${characterName}'s image loaded on-demand`);
-                    // Force redraw now that the image is loaded
-                    this.drawArt(character, container, isDetailViewContext);
-                };
-                img.src = this.characterImages[characterName];
-                
-                // Show loading indicator in the meantime
-                this.drawLoadingPlaceholder(container, isDetailViewContext);
-                return true;
-            }
+    drawArt(character, container, isDetailViewContext, viewMode = 'full') {
+    if (!character || !container) {
+    console.error('TeamBuilderImageLoader: Missing character or container for drawArt');
+      return false;
+    }
+    
+    try {
+    const characterName = character.name;
+    
+    // Skip if character has no defined image
+    if (!this.characterImages[characterName]) {
+    console.log(`TeamBuilderImageLoader: No image defined for ${characterName}`);
+      return false;
+    }
+    
+    // If image not in cache, attempt to load it immediately
+    if (!window.CHARACTER_IMAGE_CACHE[characterName]) {
+    console.log(`TeamBuilderImageLoader: ${characterName} not found in image cache, loading now...`);
+    // Create and load the image immediately
+    const img = new Image();
+    img.onload = () => {
+    window.CHARACTER_IMAGE_CACHE[characterName] = img;
+    console.log(`TeamBuilderImageLoader: ${characterName}'s image loaded on-demand`);
+    // Force redraw now that the image is loaded
+      this.drawArt(character, container, isDetailViewContext, viewMode);
+    };
+    img.src = this.characterImages[characterName];
+    
+    // Show loading indicator in the meantime
+    this.drawLoadingPlaceholder(container, isDetailViewContext);
+      return true;
+      }
 
-            // Find or create art wrapper
-            let artWrapper = container.querySelector('.hero-art-wrapper');
-            if (!artWrapper) {
-                artWrapper = document.createElement('div');
-                artWrapper.className = 'hero-art-wrapper';
-                container.appendChild(artWrapper);
-            }
-            
-            // ALWAYS clear any existing art from the wrapper
-            artWrapper.innerHTML = '';
-            
-            // Clone image from cache
-            const img = window.CHARACTER_IMAGE_CACHE[characterName].cloneNode(true);
-            
-            // Determine the correct art settings based on context
-            let artSettings;
-            if (isDetailViewContext) {
-                // Detail view - use special positioning
-                artSettings = character.detailArt || character.teamBuilderArt || character.art || {};
-            } else {
-                // Regular view - use enhanced sizing for the new 2-column layout
-                artSettings = {...(character.teamBuilderArt || character.art || {})};
-                
-                // Scale up the art by about 40% for the new larger cards
-                if (artSettings.width) {
-                    const originalWidth = parseInt(artSettings.width);
-                    if (!isNaN(originalWidth)) {
-                        artSettings.width = `${Math.round(originalWidth * 1.4)}px`;
-                    }
-                }
-                
-                if (artSettings.height) {
-                    const originalHeight = parseInt(artSettings.height);
-                    if (!isNaN(originalHeight)) {
-                        artSettings.height = `${Math.round(originalHeight * 1.4)}px`;
-                    }
-                }
-            }
-            
-            // Set image properties
-            img.className = 'character-art team-builder-art';
-            img.alt = characterName;
-            
-            // Apply position settings with proper defaults
-            img.style.position = 'absolute';
-            img.style.left = artSettings.left || '0px';
-            img.style.top = artSettings.top || '0px';
-            
-            // Apply width and height with context-sensitive defaults
-            if (isDetailViewContext) {
-                img.style.width = artSettings.width || '140px';
-                img.style.height = artSettings.height || '140px';
-            } else {
-                img.style.width = artSettings.width || '80px';
-                img.style.height = artSettings.height || '120px';
-            }
+    // Find or create art wrapper
+    let artWrapper = container.querySelector('.hero-art-wrapper');
+    if (!artWrapper) {
+    artWrapper = document.createElement('div');
+    artWrapper.className = 'hero-art-wrapper';
+      container.appendChild(artWrapper);
+    }
+    
+    // ALWAYS clear any existing art from the wrapper
+    artWrapper.innerHTML = '';
+    
+    // Clone image from cache
+    const img = window.CHARACTER_IMAGE_CACHE[characterName].cloneNode(true);
+    
+    // Determine the correct art settings based on context
+    let artSettings;
+    if (isDetailViewContext) {
+    // Detail view - use special positioning (unchanged)
+      artSettings = character.detailArt || character.teamBuilderArt || character.art || {};
+    } else {
+    // Regular view - determine if we should use enhanced sizing based on view mode
+    artSettings = {...(character.teamBuilderArt || character.art || {})};
+    
+    // Apply 1.4x scaling only in full view mode
+    if (viewMode === 'full') {
+    // Scale up the art by about 40% for full view
+    if (artSettings.width) {
+      const originalWidth = parseInt(artSettings.width);
+        if (!isNaN(originalWidth)) {
+          artSettings.width = `${Math.round(originalWidth * 1.4)}px`;
+        }
+    }
+    
+    if (artSettings.height) {
+      const originalHeight = parseInt(artSettings.height);
+        if (!isNaN(originalHeight)) {
+            artSettings.height = `${Math.round(originalHeight * 1.4)}px`;
+          }
+        }
+      }
+      // In compact view, we use the original size
+    }
+    
+    // Set image properties
+    img.className = 'character-art team-builder-art';
+    img.alt = characterName;
+    
+    // Apply position settings with proper defaults
+    img.style.position = 'absolute';
+    img.style.left = artSettings.left || '0px';
+    img.style.top = artSettings.top || '0px';
+    
+    // Apply width and height with context-sensitive defaults
+    if (isDetailViewContext) {
+      img.style.width = artSettings.width || '140px';
+        img.style.height = artSettings.height || '140px';
+      } else {
+        img.style.width = artSettings.width || (viewMode === 'full' ? '80px' : '60px');
+        img.style.height = artSettings.height || (viewMode === 'full' ? '120px' : '90px');
+      }
             
             // Store original positions for animation handling
             img.dataset.originalLeft = artSettings.left || '0px';

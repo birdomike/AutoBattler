@@ -46,6 +46,37 @@
 .has-art.detail-hero {
     background-color: transparent !important;
 }
+
+/* Toggle button styling */
+.toggle-view-button {
+    background: var(--darker-bg);
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.toggle-view-button:hover {
+    background: var(--section-bg);
+    transform: translateY(-2px);
+}
+
+.toggle-view-button.active {
+    background: var(--highlight);
+    color: white;
+}
+
+.section-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
 /* Custom Battle Mode Styles */
 .team-heading {
     font-size: 18px;
@@ -412,23 +443,45 @@ body {
     border-radius: 4px;
 }
 
+/* Base hero grid styles */
 #heroes-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Changed to 2 columns */
-    gap: 20px; /* Increased gap for better spacing */
     width: 100%;
 }
 
+/* Full view (current implementation) */
+#heroes-grid.view-full {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+/* Compact view (previous implementation) */
+#heroes-grid.view-compact {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+/* Base hero card styles */
 .hero-card {
-    padding: 20px; /* Increased padding */
-    border-radius: 10px; /* Slightly larger radius */
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.3s;
     display: flex;
     justify-content: center;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     border: 2px solid transparent;
+}
+
+/* Full view card styles */
+.view-full .hero-card {
+    padding: 20px;
     min-height: 220px; /* Ensure consistent height */
+}
+
+/* Compact view card styles */
+.view-compact .hero-card {
+    padding: 15px;
+    min-height: auto;
 }
 
 .hero-card:hover {
@@ -448,19 +501,43 @@ body {
     margin-right: 15px; /* Slightly increased */
 }
 
+/* Base hero card content styles */
 .hero-card-content {
     display: flex;
-    flex-direction: column; /* Changed from row to column for vertical layout */
-    align-items: center; /* Center items horizontally */
     width: 100%;
     overflow: visible;
 }
 
+/* Full view content layout (vertical) */
+.view-full .hero-card-content {
+    flex-direction: column;
+    align-items: center; /* Center items horizontally */
+}
+
+/* Compact view content layout (horizontal) */
+.view-compact .hero-card-content {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* Base hero card text styles */
 .hero-card-text {
-    width: 100%; /* Full width instead of flex */
-    text-align: center; /* Center text */
-    margin-top: 10px; /* Add space between art and text */
     overflow: hidden;
+}
+
+/* Full view text styles */
+.view-full .hero-card-text {
+    width: 100%;
+    text-align: center;
+    margin-top: 10px; /* Add space between art and text */
+}
+
+/* Compact view text styles */
+.view-compact .hero-card-text {
+    flex: 1;
+    min-width: 0;
+    margin-top: 0;
+    text-align: left;
 }
 
 .hero-card-text .hero-name {
@@ -1101,12 +1178,25 @@ body {
 }
 
 /* Team Builder Character Art Styles */
+/* Base hero avatar container styles */
 .hero-avatar-container {
     position: relative;
-    width: 100px; /* Increased from 60px */
-    min-height: 100px; /* Increased from 60px */
-    margin-bottom: 12px; /* Slightly increased */
     overflow: visible; /* Ensure content isn't clipped */
+}
+
+/* Full view avatar container */
+.view-full .hero-avatar-container {
+    width: 100px;
+    min-height: 100px;
+    margin-bottom: 12px;
+}
+
+/* Compact view avatar container */
+.view-compact .hero-avatar-container {
+    width: 60px;
+    min-height: 60px;
+    margin-right: 12px;
+    margin-bottom: 0;
 }
 
 /* Special rules for character art to ensure images are always visible */

@@ -620,40 +620,49 @@ class TeamBuilderUI {
      * Initialize the hero grid manager
      */
     async initializeHeroGridManager() {
-        try {
-            // Check if HeroGridManager is available
-            if (typeof window.HeroGridManager === 'undefined') {
-                console.warn('HeroGridManager not found, will use original implementation');
-                return false;
-            }
-            
-            // Create the hero grid manager
-            this.heroGridManager = new window.HeroGridManager(this);
-            
-            // Verify required methods exist
-            const methodCheck = {
-                renderHeroGrid: typeof this.heroGridManager.renderHeroGrid === 'function',
-                selectHero: typeof this.heroGridManager.selectHero === 'function',
-                updateFilters: typeof this.heroGridManager.updateFilters === 'function',
-                updateSelectedHero: typeof this.heroGridManager.updateSelectedHero === 'function'
-            };
-            
-            console.log('TeamBuilderUI: HeroGridManager initialized with methods:', methodCheck);
-            
-            if (!methodCheck.renderHeroGrid || !methodCheck.selectHero) {
-                console.error('HeroGridManager missing required methods!');
-                this.heroGridManager = null;
-                return false;
-            }
-            
-            console.log('TeamBuilderUI: Hero grid manager initialized successfully');
-            return true;
-        } catch (error) {
-            console.error('Error initializing hero grid manager:', error);
-            this.heroGridManager = null;
-            return false;
-        }
+    try {
+    // Check if HeroGridManager is available
+    if (typeof window.HeroGridManager === 'undefined') {
+    console.warn('HeroGridManager not found, will use original implementation');
+    return false;
     }
+    
+    // Create the hero grid manager
+    this.heroGridManager = new window.HeroGridManager(this);
+    
+    // Verify required methods exist
+    const methodCheck = {
+    renderHeroGrid: typeof this.heroGridManager.renderHeroGrid === 'function',
+    selectHero: typeof this.heroGridManager.selectHero === 'function',
+    updateFilters: typeof this.heroGridManager.updateFilters === 'function',
+    updateSelectedHero: typeof this.heroGridManager.updateSelectedHero === 'function',
+      // Check for new view mode methods
+      setViewMode: typeof this.heroGridManager.setViewMode === 'function',
+      toggleViewMode: typeof this.heroGridManager.toggleViewMode === 'function',
+      initializeViewToggle: typeof this.heroGridManager.initializeViewToggle === 'function'
+    };
+    
+    console.log('TeamBuilderUI: HeroGridManager initialized with methods:', methodCheck);
+    
+    if (!methodCheck.renderHeroGrid || !methodCheck.selectHero) {
+      console.error('HeroGridManager missing required methods!');
+      this.heroGridManager = null;
+      return false;
+      }
+    
+    // Initialize view toggle if the method exists
+    if (methodCheck.initializeViewToggle) {
+        this.heroGridManager.initializeViewToggle();
+        }
+      
+      console.log('TeamBuilderUI: Hero grid manager initialized successfully');
+      return true;
+    } catch (error) {
+      console.error('Error initializing hero grid manager:', error);
+      this.heroGridManager = null;
+      return false;
+    }
+  }
 
     /**
      * Callback for filter changes

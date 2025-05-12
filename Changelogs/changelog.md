@@ -10,6 +10,17 @@
 - Grid will now be hidden by default until toggled with Alt+G
 - Improved debugging experience by reducing initial visual clutter
 
+### [0.6.7.8] - 2025-05-12
+#### Added
+- Added view toggle feature to TeamBuilder UI allowing switching between "Full" and "Compact" views for heroes
+- Implemented "Full" view (current 2-column layout with large art) and "Compact" view (3-column layout with smaller art)
+- Added toggle button in the "Available Heroes" section header with icon and label
+- Implemented view preference persistence using localStorage
+- Created view-specific CSS classes for maintaining consistent layout in both modes
+- Enhanced TeamBuilderImageLoader to support conditional art scaling based on view mode
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.8_ViewToggleForHeroCards.md*
+
 ### [0.6.7.7] - 2025-05-12
 #### Fixed
 - Fixed "TeamBuilderImageLoader: [CharacterName] not found in image cache" errors on startup
