@@ -10,8 +10,8 @@ let teamManager;
 let teamBuilderUI;
 let battleManager; // Declared here
 let gameConfig = {
-    width: 2000,
-    height: 1200
+    width: 3840,
+    height: 2160
 };
 
 // Check if BattleUI is defined

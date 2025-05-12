@@ -7,6 +7,27 @@
 
 *Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.14_CanvasWillReadFrequently.md*
 
+### [0.6.7.16] - 2025-05-12
+#### Changed
+- Enhanced the 4K rendering test with dedicated CSS to ensure canvas fills the entire viewport
+- Created new 4k-test.css file with 100% width/height canvas styling
+- Updated PhaserConfig.js canvasStyle to use 100% width/height
+- Modified container styling to use fixed positioning and full viewport dimensions
+- Set game container to be visible by default for immediate testing
+
+*Note: These changes complement the earlier 4K test (0.6.7.15) to ensure the canvas properly expands to fill a 4K viewport. Both sets of changes should be reverted after testing.*
+
+### [0.6.7.15] - 2025-05-12
+#### Changed
+- Implemented diagnostic 4K resolution test to troubleshoot fuzzy text rendering issue
+- Set game resolution to 3840x2160 with Phaser.Scale.NONE to create 1:1 pixel mapping
+- Added explicit resolution: 1 property to all text objects in CharacterSprite, ActionIndicator, and BattleUIManager
+- Enabled roundPixels: true in the PhaserConfig for sharper text rendering
+- Removed autoCenter to prevent automatic scaling during the test
+- Claude cannot follow simple instructions
+
+*Note: These changes are for diagnostic purposes only and will be reverted after testing. The user must manually set browser viewport to 3840x2160 during testing.*
+
 ### [0.6.7.13] - 2025-05-12
 #### Fixed
 - Fixed character art positioning in team slots by transforming the container position

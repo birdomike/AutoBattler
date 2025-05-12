@@ -36,6 +36,7 @@ class ActionIndicator {
             align: 'center',
             stroke: '#000000',
             strokeThickness: 3,
+            resolution: 1, // Set text resolution to match the game's base resolution for this test
             shadow: {
                 offsetX: 2,
                 offsetY: 2,

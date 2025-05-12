@@ -27,16 +27,19 @@
                     document.body.appendChild(container);
                 }
                 
-                // Make sure it has proper styling
-                container.style.width = '100%';
-                container.style.height = '100%';
-                container.style.position = 'absolute';
+                // Make sure it has proper styling for 4K testing (fill the viewport)
+                container.style.width = '100vw';
+                container.style.height = '100vh';
+                container.style.position = 'fixed';
                 container.style.top = '0';
                 container.style.left = '0';
-                container.style.zIndex = '1000';  // Make sure it's above the TeamBuilder UI
+                container.style.margin = '0';
+                container.style.padding = '0';
+                container.style.overflow = 'hidden';
+                container.style.zIndex = '1000';
                 
-                // Hide initially
-                container.style.display = 'none';
+                // Make sure container is visible for 4K test
+                container.style.display = 'block';
                 
                 return container;
             } catch (error) {
@@ -57,23 +60,23 @@
         create: function(gameConfig) {
             return {
                 type: Phaser.AUTO,
-                width: gameConfig.width || 1280,
-                height: gameConfig.height || 720,
+                width: gameConfig.width || 3840,
+                height: gameConfig.height || 2160,
                 parent: 'game-container',
                 backgroundColor: '#333344',
                 scene: [], // Scenes will be added after initialization
                 render: {
                     pixelArt: false,
                     antialias: true,
-                    roundPixels: false, // Need false for smoother scaling
+                    roundPixels: true, // Changed to true for the 4K test
                     powerPreference: 'high-performance',
                     crisp: false, // Don't use crisp pixelated rendering
                     batchSize: 8192, // Increased batch size for performance
                     // Note: setFilter was removed as it's not available in this Phaser version
                     // Instead, we use these render settings for the same effect
                 },
-                // Canvas configuration
-                canvasStyle: 'display: block; image-rendering: high-quality;',
+                // Canvas configuration for 4K test - allow canvas to fill the container
+                canvasStyle: 'display: block; width: 100%; height: 100%;',
                 // Custom canvas creation callback
                 callbacks: {
                     // Configure canvas context with willReadFrequently for performance
@@ -94,9 +97,10 @@
                     }
                 },
                 scale: {
-                    mode: Phaser.Scale.FIT,
-                    autoCenter: Phaser.Scale.CENTER_BOTH
+                    mode: Phaser.Scale.NONE
+                    // autoCenter removed for the 4K test
                 },
+                resolution: 1, // Explicitly set for the 4K test
                 physics: {
                     default: false  // No physics needed for this game
                 }

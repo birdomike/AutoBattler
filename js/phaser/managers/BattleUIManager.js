@@ -127,7 +127,8 @@ class BattleUIManager {
                     fontSize: 36,
                     color: '#ffffff',
                     stroke: '#000000',
-                    strokeThickness: 4
+                    strokeThickness: 4,
+                resolution: 1 // Set text resolution to match the game's base resolution for this test
                 }
             ).setOrigin(0.5);
 
@@ -164,7 +165,8 @@ class BattleUIManager {
                     fontSize: '20px',
                     color: '#ffffff',
                     backgroundColor: '#555555',
-                    padding: { x: 15, y: 8 }
+                    padding: { x: 15, y: 8 },
+                resolution: 1 // Set text resolution to match the game's base resolution for this test
                 }
             ).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
@@ -263,7 +265,8 @@ class BattleUIManager {
                     color: '#ffffff',
                     align: 'center',
                     stroke: '#000000',
-                    strokeThickness: 2
+                    strokeThickness: 2,
+                resolution: 1 // Set text resolution to match the game's base resolution for this test
                 }
             ).setOrigin(0.5);
             
@@ -316,7 +319,8 @@ class BattleUIManager {
                 fontFamily: 'Arial',
                 fontSize: 16,
                 color: '#ffffff',
-                align: 'center'
+                align: 'center',
+                resolution: 1 // Set text resolution to match the game's base resolution for this test
             }).setOrigin(0.5);
 
             testContainer.add(versionText);
@@ -426,7 +430,8 @@ class BattleUIManager {
                 stroke: '#000000',
                 strokeThickness: 3,
                 backgroundColor: '#444444',
-                padding: { x: 10, y: 5 }
+                padding: { x: 10, y: 5 },
+                resolution: 1 // Set text resolution to match the game's base resolution for this test
             };
             
             // Position at the top of the screen
@@ -665,6 +670,7 @@ class BattleUIManager {
                     stroke: '#000000',
                     strokeThickness: 6,
                     align: 'center',
+                    resolution: 1, // Set text resolution to match the game's base resolution for this test
                     shadow: { color: '#000000', fill: true, offsetX: 2, offsetY: 2, blur: 8 }
                 }
             ).setOrigin(0.5);
@@ -679,7 +685,8 @@ class BattleUIManager {
                     fontSize: '24px',
                     color: '#ffffff',
                     backgroundColor: '#555555',
-                    padding: { x: 20, y: 10 }
+                    padding: { x: 20, y: 10 },
+                    resolution: 1 // Set text resolution to match the game's base resolution for this test
                 }
             ).setOrigin(0.5).setInteractive({ useHandCursor: true });
             
@@ -731,6 +738,7 @@ class BattleUIManager {
                         color: '#ff0000', // Red color for errors
                         backgroundColor: 'rgba(0,0,0,0.7)',
                         padding: { x: 10, y: 5 },
+                        resolution: 1, // Set text resolution to match the game's base resolution for this test
                         wordWrap: { width: this.scene.cameras.main.width - 40 }
                     }
                 ).setOrigin(0.5, 0).setDepth(1001); // Ensure it's visible

@@ -448,7 +448,8 @@ class CharacterSprite {
                  color: '#ffffff',
                  stroke: '#000000',
                  strokeThickness: 3,
-                 align: 'center'
+                 align: 'center',
+                 resolution: 1 // Set text resolution to match the game's base resolution for this test
              }).setOrigin(0.5);
              this.container.add(this.nameText);
          } catch(error) {
@@ -495,7 +496,8 @@ class CharacterSprite {
                  fontSize: 10,
                  color: '#ffffff',
                  stroke: '#000000',
-                 strokeThickness: 2
+                 strokeThickness: 2,
+                 resolution: 1 // Set text resolution to match the game's base resolution for this test
              }).setOrigin(0.5);
 
              // Add elements to health bar container
