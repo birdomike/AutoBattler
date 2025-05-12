@@ -133,14 +133,9 @@ class HeroDetailPanelManager {
       roleTag.style.backgroundColor = '#2f3542';
       roleTag.textContent = hero.role;
 
-      const rarityTag = document.createElement('span');
-      rarityTag.className = 'detail-tag';
-      rarityTag.style.backgroundColor = this.rarityColors[hero.rarity];
-      rarityTag.textContent = hero.rarity;
-
       // Type tags already appended in the loop above
       detailTags.appendChild(roleTag);
-      detailTags.appendChild(rarityTag);
+      // Rarity tag removed in v0.6.7.5
 
       detailNameType.appendChild(heroName);
       detailNameType.appendChild(detailTags);
@@ -553,11 +548,7 @@ class HeroDetailPanelManager {
         roleTag.textContent = hero.role;
         detailTags.appendChild(roleTag);
         
-        const rarityTag = document.createElement('span');
-        rarityTag.className = 'detail-tag';
-        rarityTag.style.backgroundColor = this.rarityColors[hero.rarity];
-        rarityTag.textContent = hero.rarity;
-        detailTags.appendChild(rarityTag);
+        // Rarity tag removed in v0.6.7.5
       }
       
       // Get or create stats container

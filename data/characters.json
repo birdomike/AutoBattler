@@ -5,7 +5,6 @@
       "name": "Nyria",
       "type": "storm",
       "role": "Elementalist",
-      "rarity": "Rare",
       "actionDecisionLogic": "decideAction_WeightedRandomAbility",
       "stats": {
         "hp": 114,
@@ -41,7 +40,6 @@
       "name": "Caste",
       "type": "metal",
       "role": "Berserker",
-      "rarity": "Epic",
       "actionDecisionLogic": "decideAction_PrioritizeOffense",
       "stats": {
         "hp": 110,
@@ -161,7 +159,6 @@
       "name": "Drakarion",
       "type": "fire",
       "role": "Warrior",
-      "rarity": "Rare",
       "actionDecisionLogic": "decideAction_PrioritizeOffense",
       "actionDecisionLogic": "decideAction_PrioritizeOffense",
       "stats": {
@@ -249,7 +246,6 @@
       "name": "Aqualia",
       "type": "water/ice",
       "role": "Mage",
-      "rarity": "Rare",
       "actionDecisionLogic": "decideAction_WeightedRandomAbility",
       "stats": {
         "hp": 82,
@@ -360,7 +356,6 @@
       "name": "Sylvanna",
       "type": "nature",
       "role": "Ranger",
-      "rarity": "Uncommon",
       "actionDecisionLogic": "decideAction_WeightedRandomAbility",
       "stats": {
         "hp": 92,
@@ -460,7 +455,6 @@
       "name": "Vaelgor",
       "type": "dark",
       "role": "Knight",
-      "rarity": "Epic",
       "actionDecisionLogic": "decideAction_Defensive",
       "stats": {
         "hp": 139,
@@ -569,7 +563,6 @@
       "name": "Lumina",
       "type": "light",
       "role": "Cleric",
-      "rarity": "Rare",
       "actionDecisionLogic": "decideAction_PrioritizeHeal",
       "stats": {
         "hp": 100,
@@ -708,7 +701,6 @@
       "name": "Zephyr",
       "type": "air",
       "role": "Assassin",
-      "rarity": "Epic",
       "actionDecisionLogic": "decideAction_PrioritizeOffense",
       "stats": {
         "hp": 80,

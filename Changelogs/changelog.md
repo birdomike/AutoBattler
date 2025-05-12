@@ -10,6 +10,12 @@
 - Grid will now be hidden by default until toggled with Alt+G
 - Improved debugging experience by reducing initial visual clutter
 
+### [0.6.7.5] - 2025-05-12
+#### Changed
+- Removed rarity system from game (was not being used in gameplay mechanics)
+- Removed rarity tags from hero detail display UI
+- Removed rarity properties from all character definitions in characters.json
+
 ### [0.6.7.4] - 2025-05-12
 #### Changed
 - Optimized Hero Details panel layout to eliminate unnecessary scrollbars
