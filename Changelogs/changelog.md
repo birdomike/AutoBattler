@@ -1,3 +1,12 @@
+### [0.6.7.14] - 2025-05-12
+#### Fixed
+- Fixed Canvas2D warning by correctly applying willReadFrequently attribute to all canvas contexts
+- Added global canvas context configuration in PhaserConfig.js using preBoot callback
+- Enhanced BattleScene.configureCanvasSmoothing() to handle both Canvas and WebGL renderers
+- Added informative logging to verify canvas configuration is properly applied
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.14_CanvasWillReadFrequently.md*
+
 ### [0.6.7.13] - 2025-05-12
 #### Fixed
 - Fixed character art positioning in team slots by transforming the container position

@@ -233,12 +233,22 @@ export default class BattleScene extends Phaser.Scene {
         try {
             if (this.sys.game.renderer.type === Phaser.CANVAS) {
                 // For Canvas renderer, we need to explicitly enable image smoothing
+                // Add willReadFrequently: true to optimize for frequent getImageData calls
                 const canvasContext = this.sys.canvas.getContext('2d', { willReadFrequently: true });
                 canvasContext.imageSmoothingEnabled = true;
                 canvasContext.imageSmoothingQuality = 'high';
+                console.log('[BattleScene] Canvas configured with willReadFrequently=true and smoothing enabled');
+            } else {
+                // For WebGL renderer, we should check if there are any additional canvas contexts that need configuration
+                if (this.sys.canvas) {
+                    const mainCanvas = this.sys.canvas.getContext('2d', { willReadFrequently: true });
+                    if (mainCanvas) {
+                        console.log('[BattleScene] Main canvas context configured with willReadFrequently=true (WebGL mode)');
+                    }
+                }
             }
         } catch (e) {
-            console.warn('Could not configure Canvas smoothing', e);
+            console.warn('[BattleScene] Could not configure Canvas smoothing', e);
         }
     }
 

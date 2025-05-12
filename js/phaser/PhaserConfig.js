@@ -72,6 +72,27 @@
                     // Note: setFilter was removed as it's not available in this Phaser version
                     // Instead, we use these render settings for the same effect
                 },
+                // Canvas configuration
+                canvasStyle: 'display: block; image-rendering: high-quality;',
+                // Custom canvas creation callback
+                callbacks: {
+                    // Configure canvas context with willReadFrequently for performance
+                    // This reduces warnings about multiple readback operations
+                    preBoot: function(game) {
+                        if (game.canvas) {
+                            const originalGetContext = game.canvas.getContext;
+                            game.canvas.getContext = function(type, attributes) {
+                                // Always add willReadFrequently for 2d contexts
+                                if (type === '2d') {
+                                    attributes = attributes || {};
+                                    attributes.willReadFrequently = true;
+                                }
+                                return originalGetContext.call(this, type, attributes);
+                            };
+                            console.log('[PhaserConfig] Canvas getContext overridden with willReadFrequently=true');
+                        }
+                    }
+                },
                 scale: {
                     mode: Phaser.Scale.FIT,
                     autoCenter: Phaser.Scale.CENTER_BOTH
