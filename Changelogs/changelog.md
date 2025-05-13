@@ -1,3 +1,14 @@
+### [0.7.0.9] - 2025-05-13
+#### Improved
+- **UI:** Optimized top banner in Battle Scene for card-based interface
+  - Repositioned to left side of screen to free up central space
+  - Reduced font size for better space utilization
+  - Removed unnecessary "Battle Scene Initialized!" text
+  - Removed bouncing animation from title text
+  - Adjusted vertical spacing to make banner more compact
+  - Completely removed "Battle Scene" title text
+  - Added maintenance note for potential future refactoring
+
 ### [0.7.0.8] - 2025-05-14
 #### Fixed
 - Fixed CardFrame character visibility issues by identifying masking as the root cause

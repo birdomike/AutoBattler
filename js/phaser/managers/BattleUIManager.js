@@ -119,9 +119,9 @@ class BattleUIManager {
     createSceneTitle() {
         try {
             const sceneTitle = this.scene.add.text(
-                150, // Positioned on the left side instead of center
+                50, // Moved further left
                 50,
-                'Battle Scene',
+                '', // 'Battle Scene' text removed for being unnecessary - TODO: This function could be cleaned up entirely in a future refactor
                 {
                     fontFamily: 'Arial',
                     fontSize: 24, // Reduced from 36
@@ -246,8 +246,8 @@ class BattleUIManager {
 
             // Create welcome message
             const welcomeText = this.scene.add.text(
-                150, // Positioned on the left side instead of center
-                120,
+                50, // Moved further left
+                80, // Moved up to remove empty space
                 `${playerTeamText}\n${enemyTeamText}\n${battleModeText}`,
                 {
                     fontFamily: 'Arial',
