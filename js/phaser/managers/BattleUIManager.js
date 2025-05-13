@@ -119,29 +119,19 @@ class BattleUIManager {
     createSceneTitle() {
         try {
             const sceneTitle = this.scene.add.text(
-                this.scene.cameras.main.width / 2,
+                150, // Positioned on the left side instead of center
                 50,
                 'Battle Scene',
                 {
                     fontFamily: 'Arial',
-                    fontSize: 36,
+                    fontSize: 24, // Reduced from 36
                     color: '#ffffff',
                     stroke: '#000000',
                     strokeThickness: 4,
                 resolution: 1 // Set text resolution to match the game's base resolution for this test
                 }
-            ).setOrigin(0.5);
+            ).setOrigin(0.0, 0.5); // Left-align horizontally, keep vertical centering
 
-            // Add simple animation
-            this.scene.tweens.add({
-                targets: sceneTitle,
-                y: 40,
-                duration: 1500,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-            
             // Store reference for cleanup
             this.components.sceneTitle = sceneTitle;
 
@@ -256,19 +246,19 @@ class BattleUIManager {
 
             // Create welcome message
             const welcomeText = this.scene.add.text(
-                this.scene.cameras.main.width / 2,
+                150, // Positioned on the left side instead of center
                 120,
-                `Battle Scene Initialized!\n${playerTeamText}\n${enemyTeamText}\n${battleModeText}`,
+                `${playerTeamText}\n${enemyTeamText}\n${battleModeText}`,
                 {
                     fontFamily: 'Arial',
-                    fontSize: 20,
+                    fontSize: 16, // Reduced from 20
                     color: '#ffffff',
-                    align: 'center',
+                    align: 'left', // Changed from center to left
                     stroke: '#000000',
                     strokeThickness: 2,
                 resolution: 1 // Set text resolution to match the game's base resolution for this test
                 }
-            ).setOrigin(0.5);
+            ).setOrigin(0.0, 0.5); // Left-align horizontally, keep vertical centering
             
             // Store reference for cleanup
             this.components.welcomeMessage = welcomeText;
