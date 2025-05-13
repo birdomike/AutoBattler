@@ -247,7 +247,7 @@ class CharacterSprite {
         
         // Validate card configuration
         if (this.cardConfig.enabled && !this.cardFrameAvailable) {
-            console.warn(`CharacterSprite: CardFrame requested for ${character.name} but not available, falling back to circle representation`);
+            console.warn(`CharacterSprite: CardFrame requested for ${character.name} but not available, falling back to just using character art`);
             this.cardConfig.enabled = false;
         }
 

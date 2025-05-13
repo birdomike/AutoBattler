@@ -1,3 +1,10 @@
+### [0.7.0.3] - 2025-05-13
+#### Changed
+- Improved error message in CharacterSprite.js to more accurately reflect the game implementation
+- Added enhanced debug logging to CardFrame to diagnose missing character art
+
+*Note: For detailed information, see CHANGELOG_0.7.0.3_CardFrameCharacterArtDebugging.md*
+
 ### [0.7.0.2] - 2025-05-13
 #### Fixed
 - Fixed CardFrame not loading by adding the script to index.html

@@ -375,13 +375,39 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     createCharacterSprite() {
         try {
+            // Log the character key being used
+            console.log(`CardFrame: Attempting to create character sprite with key "${this.config.characterKey}"`);
+            
             // Validate character texture exists
-            if (!this.config.characterKey || !this.scene.textures.exists(this.config.characterKey)) {
-                console.warn(`CardFrame: Character texture "${this.config.characterKey}" not found`);
+            if (!this.config.characterKey) {
+                console.warn(`CardFrame: No character key provided`);
                 return;
             }
             
+            // Check if texture exists with explicit logging
+            const textureExists = this.scene.textures.exists(this.config.characterKey);
+            console.log(`CardFrame: Texture "${this.config.characterKey}" exists: ${textureExists}`);
+            
+            if (!textureExists) {
+                console.warn(`CardFrame: Character texture "${this.config.characterKey}" not found`);
+                
+                // Additional debug info - list available textures
+                console.log(`CardFrame: Available textures:`, 
+                            Object.keys(this.scene.textures.list)
+                              .filter(key => key.startsWith('character_'))
+                              .join(', '));
+                return;
+            }
+            
+            // Log texture dimensions if available
+            const texture = this.scene.textures.get(this.config.characterKey);
+            if (texture && texture.source && texture.source[0]) {
+                const source = texture.source[0];
+                console.log(`CardFrame: Texture dimensions - ${source.width}x${source.height}`);
+            }
+            
             // Create character sprite
+            console.log(`CardFrame: Creating sprite at position (${this.config.artOffsetX}, ${this.config.artOffsetY})`);
             this.characterSprite = this.scene.add.sprite(
                 this.config.artOffsetX,
                 this.config.artOffsetY,
@@ -390,16 +416,24 @@ class CardFrame extends Phaser.GameObjects.Container {
             
             // Apply scaling if needed
             if (this.config.artScale !== 1) {
+                console.log(`CardFrame: Applying scale factor ${this.config.artScale}`);
                 this.characterSprite.setScale(this.config.artScale);
             }
             
             // Apply mask if enabled
             if (this.config.portraitMask && this.portraitMask) {
+                console.log(`CardFrame: Applying portrait mask to character sprite`);
                 this.characterSprite.setMask(this.portraitMask.createGeometryMask());
+            } else {
+                console.log(`CardFrame: No portrait mask applied - portraitMask=${!!this.portraitMask}, config.portraitMask=${!!this.config.portraitMask}`);
             }
             
             // Add to portrait container
+            console.log(`CardFrame: Adding character sprite to portrait container`);
             this.portraitContainer.add(this.characterSprite);
+            
+            // Confirm successful creation
+            console.log(`CardFrame: Character sprite created and added successfully for "${this.config.characterName}"`);
         } catch (error) {
             console.error('CardFrame: Error creating character sprite:', error);
             this.createCharacterFallback();
