@@ -1,3 +1,23 @@
+### [0.7.0.6] - 2025-05-13
+#### Changed
+- Implemented focused debugging approach for CardFrame character sprite rendering
+- Added comprehensive seven-stage diagnostic process to isolate sprite visibility issue
+- Applied extreme visibility settings (large scale, bright red tint) for maximum visibility
+- Removed masking to eliminate it as a potential cause of the problem
+- Added detailed texture and container hierarchy inspection
+
+*Note: For detailed information, see CHANGELOG_0.7.0.6_CardFrameFocusedDebugging.md*
+
+### [0.7.0.5] - 2025-05-13
+#### Fixed
+- Fixed character art not appearing in card frames by implementing a structural hierarchy change
+- Restructured CardFrame to use sibling containers instead of nested hierarchy
+- Modified character sprites to be direct children of CardFrame instead of portraits
+- Updated all dependent components to work with the flattened hierarchy
+- Added comprehensive diagnostic logging to verify character sprite visibility
+
+*Note: For detailed information, see CHANGELOG_0.7.0.5_CardFrameHierarchyFix.md*
+
 ### [0.7.0.4] - 2025-05-13
 #### Fixed
 - Fixed character art not appearing in card frames due to z-ordering issues

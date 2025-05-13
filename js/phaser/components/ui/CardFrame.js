@@ -371,96 +371,106 @@ class CardFrame extends Phaser.GameObjects.Container {
     }
     
     /**
-     * Create and add character sprite to the portrait window
+     * Create and add character sprite with focused debugging approach (v0.7.0.6)
+     * Implements targeted diagnostics to isolate rendering issues
      */
     createCharacterSprite() {
         try {
-            // Log the character key being used
-            console.log(`CardFrame: Attempting to create character sprite with key "${this.config.characterKey}"`);
+            console.log(`==== CARD FRAME DEBUGGING [START] ====`);
+            console.log(`CardFrame (${this.config.characterName}): Debugging character sprite rendering`);
             
-            // Validate character texture exists
+            // STEP 1: Validate character key and texture
+            console.log(`1. TEXTURE VALIDATION:`);
             if (!this.config.characterKey) {
-                console.warn(`CardFrame: No character key provided`);
+                console.warn(`- No character key provided, aborting`);
                 return;
             }
             
-            // Check if texture exists with explicit logging
+            // Check if texture exists
             const textureExists = this.scene.textures.exists(this.config.characterKey);
-            console.log(`CardFrame: Texture "${this.config.characterKey}" exists: ${textureExists}`);
+            console.log(`- Texture key: "${this.config.characterKey}" exists: ${textureExists}`);
             
             if (!textureExists) {
-                console.warn(`CardFrame: Character texture "${this.config.characterKey}" not found`);
-                
-                // Additional debug info - list available textures
-                console.log(`CardFrame: Available textures:`, 
-                            Object.keys(this.scene.textures.list)
-                              .filter(key => key.startsWith('character_'))
-                              .join(', '));
+                console.warn(`- Character texture not found, listing available textures:`);
+                const characterTextures = Object.keys(this.scene.textures.list)
+                    .filter(key => key.startsWith('character_'));
+                console.log(`- Available character textures (${characterTextures.length}): ${characterTextures.join(', ')}`);
                 return;
             }
             
-            // Log texture dimensions if available
+            // STEP 2: Verify texture dimensions and frame data
+            console.log(`2. TEXTURE DIMENSIONS:`);
             const texture = this.scene.textures.get(this.config.characterKey);
             if (texture && texture.source && texture.source[0]) {
                 const source = texture.source[0];
-                console.log(`CardFrame: Texture dimensions - ${source.width}x${source.height}`);
-            }
-            
-            // Ensure portrait container has higher depth than other elements
-            this.portraitContainer.setDepth(5);
-            
-            // Create character sprite
-            console.log(`CardFrame: Creating sprite at position (${this.config.artOffsetX}, ${this.config.artOffsetY})`);
-            this.characterSprite = this.scene.add.sprite(
-                this.config.artOffsetX,
-                this.config.artOffsetY,
-                this.config.characterKey
-            );
-            
-            // Set explicit depth for character sprite
-            this.characterSprite.setDepth(10);
-            
-            // Apply scaling if needed
-            if (this.config.artScale !== 1) {
-                console.log(`CardFrame: Applying scale factor ${this.config.artScale}`);
-                this.characterSprite.setScale(this.config.artScale);
-            }
-            
-            // Apply mask if enabled
-            if (this.config.portraitMask && this.portraitMask) {
-                console.log(`CardFrame: Applying portrait mask to character sprite`);
-                this.characterSprite.setMask(this.portraitMask.createGeometryMask());
+                console.log(`- Texture dimensions: ${source.width}x${source.height}`);
+                console.log(`- Frames in texture: ${Object.keys(texture.frames).length}`);
+                console.log(`- Default frame: ${JSON.stringify(texture.frames.__BASE)}`);
             } else {
-                console.log(`CardFrame: No portrait mask applied - portraitMask=${!!this.portraitMask}, config.portraitMask=${!!this.config.portraitMask}`);
+                console.warn(`- Texture exists but structure is invalid or unexpected`);
             }
             
-            // Add to portrait container
-            console.log(`CardFrame: Adding character sprite to portrait container`);
-            this.portraitContainer.add(this.characterSprite);
+            // STEP 3: Create sprite with minimal configuration
+            console.log(`3. CREATING SPRITE:`);
+            // Create sprite at CENTER of container for maximum visibility during testing
+            this.characterSprite = this.scene.add.sprite(0, 0, this.config.characterKey);
+            console.log(`- Sprite created at position (0, 0)`);
             
-            // Bring character sprite to top of container
-            this.portraitContainer.bringToTop(this.characterSprite);
+            // STEP 4: Force visibility settings
+            console.log(`4. FORCING VISIBILITY:`);
+            this.characterSprite.setAlpha(1);
+            this.characterSprite.setVisible(true);
+            this.characterSprite.setScale(2); // ENLARGED for testing
+            this.characterSprite.setTint(0xFF0000); // BRIGHT RED for visibility
+            console.log(`- Applied: alpha=1, visible=true, scale=2, tint=RED`);
             
-            console.log(`CardFrame: Character sprite depth set to ${this.characterSprite.depth}, portrait container depth: ${this.portraitContainer.depth}`);
+            // STEP 5: Verify sprite dimensions
+            console.log(`5. SPRITE DIMENSIONS:`);
+            console.log(`- Sprite width: ${this.characterSprite.width}, height: ${this.characterSprite.height}`);
+            console.log(`- Sprite displayWidth: ${this.characterSprite.displayWidth}, displayHeight: ${this.characterSprite.displayHeight}`);
             
-            // Confirm successful creation
-            console.log(`CardFrame: Character sprite created and added successfully for "${this.config.characterName}"`);
+            // STEP 6: Container hierarchy check
+            console.log(`6. CONTAINER HIERARCHY:`);
+            console.log(`- CardFrame position: (${this.x}, ${this.y})`);
+            console.log(`- CardFrame dimensions: ${this.config.width}x${this.config.height}`);
+            console.log(`- CardFrame visible: ${this.visible}, alpha: ${this.alpha}`);
+            console.log(`- CardFrame depth: ${this.depth}`);
+            console.log(`- CardFrame parent: ${this.parentContainer ? 'exists' : 'none'}`);
+            
+            // STEP 7: Add to container WITHOUT mask for testing
+            console.log(`7. ADDING TO CONTAINER:`);
+            // DELIBERATELY NOT APPLYING MASK FOR TESTING
+            console.log(`- Skipping mask application for testing`);
+            
+            // Add directly to CardFrame container
+            this.add(this.characterSprite);
+            this.characterSprite.setDepth(1000); // EXTREMELY high depth
+            this.bringToTop(this.characterSprite);
+            
+            console.log(`- Added to container with depth: ${this.characterSprite.depth}`);
+            console.log(`- Final visibility state: visible=${this.characterSprite.visible}, alpha=${this.characterSprite.alpha}`);
+            console.log(`==== CARD FRAME DEBUGGING [END] ====`);
         } catch (error) {
-            console.error('CardFrame: Error creating character sprite:', error);
-            this.createCharacterFallback();
+            console.error('CardFrame: Error in debug rendering:', error);
+            // Do not fall back to createCharacterFallback() to isolate the issue
         }
     }
     
     /**
      * Create a fallback visual if character sprite cannot be created
+     * Changed in v0.7.0.5: Fallback text is now added directly to CardFrame like the sprite
      */
     createCharacterFallback() {
         try {
             // Create a text placeholder with character's first letter
             const firstLetter = this.config.characterName.charAt(0).toUpperCase();
             
+            // Get portraitContainer position for consistency with sprite positioning
+            const portraitY = this.config.portraitOffsetY;
+            
             const fallbackText = this.scene.add.text(
-                0, 0,
+                0, // Center horizontally
+                portraitY, // Position at portrait vertical position
                 firstLetter,
                 {
                     fontFamily: 'Arial',
@@ -471,8 +481,11 @@ class CardFrame extends Phaser.GameObjects.Container {
                 }
             ).setOrigin(0.5);
             
-            // Add to portrait container
-            this.portraitContainer.add(fallbackText);
+            // Add directly to CardFrame container
+            this.add(fallbackText);
+            
+            // Set high depth to ensure visibility
+            fallbackText.setDepth(100);
         } catch (error) {
             console.error('CardFrame: Error creating character fallback:', error);
         }
@@ -943,15 +956,22 @@ class CardFrame extends Phaser.GameObjects.Container {
                 } else if (oldWidth < newWidth) {
                     // Being healed - green flash
                     if (this.characterSprite) {
-                        // Add healing glow overlay
+                        // Add healing glow overlay positioned at the portrait's position
+                        const portraitY = this.config.portraitOffsetY;
+                        
                         const healGlow = this.scene.add.rectangle(
-                            0, 0,
+                            0, // Center horizontally
+                            portraitY, // Position at portrait vertical position
                             this.config.portraitWidth,
                             this.config.portraitHeight,
                             0x00FF00, 0.3
                         );
                         
-                        this.portraitContainer.add(healGlow);
+                        // Add directly to CardFrame (not portraitContainer)
+                        this.add(healGlow);
+                        
+                        // Ensure it's below the character sprite
+                        healGlow.setDepth(90);
                         
                         // Animate and remove the glow
                         this.scene.tweens.add({
