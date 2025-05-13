@@ -1,3 +1,27 @@
+### [0.7.0.2] - 2025-05-13
+#### Fixed
+- Fixed CardFrame not loading by adding the script to index.html
+- Corrected script loading order to ensure CardFrame is available before CharacterSprite initialization
+- Enabled proper card-based character representation in the battle scene
+
+*Note: For detailed information, see CHANGELOG_0.7.0.2_CardFrameScriptLoadingFix.md*
+
+### [0.7.0.1] - 2025-05-13
+#### Added
+- Implemented Phase 1 of CardFrame integration into CharacterSprite
+- Added framework and configuration system for card-based character representation
+- Created conditional creation logic to support both circle and card representations
+- Added card configuration validation and fallback mechanisms
+- Modified health updates, floating text, and attack animations to support both visual styles
+- Implemented proper event handling for turn-based card highlighting
+
+#### Fixed
+- Fixed syntax error in CharacterSprite.js that prevented game from loading
+- Correctly placed CardFrame-related methods inside the CharacterSprite class definition
+- Improved class structure to maintain proper encapsulation
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.0.1_CardFrameIntegrationPhase1.md and CHANGELOG_0.7.0.1_CardFrameIntegrationHotfix.md*
+
 ### [0.7.0.0] - 2025-05-13
 #### Added
 - Created new CardFrame component for professional character visualization

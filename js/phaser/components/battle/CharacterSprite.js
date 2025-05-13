@@ -2,7 +2,12 @@
  * CharacterSprite.js
  * Renders a character in the battle scene with appropriate visual elements
  * (Added try...catch blocks for debugging)
+ * 
+ * Supports two visual representations:
+ * 1. Traditional circle-based character visualization
+ * 2. Professional card-based representation using CardFrame
  */
+
 class CharacterSprite {
     /**
      * Update the character's health and refresh the health bar
@@ -34,41 +39,47 @@ class CharacterSprite {
                 this.showFloatingText(text, { color: textColor, fontSize: 20 });
             }
             
-            // Update the visual health bar
-            
-            this.updateHealthBar(newHealth, maxHealth);
-            
-            // Play a flash effect for damage on the character image instead of the circle
-            if (healthChange > 0 && this.characterImage) {
-                this.scene.tweens.add({
-                    targets: this.characterImage,
-                    alpha: { from: 1.0, to: 0.3 },
-                    yoyo: true,
-                    duration: 100,
-                    repeat: 1,
-                    ease: 'Sine.easeOut'
-                });
-            }
-            
-            // Play a healing glow effect on the character image
-            if (healthChange < 0 && this.characterImage) {
-                // Create a temporary glow effect
-                const healGlow = this.scene.add.circle(0, 0, 42, 0x00ff00, 0.3);
-                this.container.add(healGlow);
-                this.container.sendToBack(healGlow);
+            // Update the visual health display based on representation
+            if (this.cardConfig.enabled && this.cardFrame) {
+                // Use the CardFrame's built-in health update system
+                this.cardFrame.updateHealth(newHealth, maxHealth);
+                // CardFrame handles its own visual effects for damage/healing
+            } else {
+                // Traditional circle representation health updates
+                this.updateHealthBar(newHealth, maxHealth);
                 
-                // Animate and remove the glow
-                this.scene.tweens.add({
-                    targets: healGlow,
-                    alpha: { from: 0.3, to: 0 },
-                    scaleX: 1.5,
-                    scaleY: 1.5,
-                    duration: 400,
-                    ease: 'Sine.easeOut',
-                    onComplete: () => {
-                        healGlow.destroy();
-                    }
-                });
+                // Play a flash effect for damage on the character image instead of the circle
+                if (healthChange > 0 && this.characterImage) {
+                    this.scene.tweens.add({
+                        targets: this.characterImage,
+                        alpha: { from: 1.0, to: 0.3 },
+                        yoyo: true,
+                        duration: 100,
+                        repeat: 1,
+                        ease: 'Sine.easeOut'
+                    });
+                }
+                
+                // Play a healing glow effect on the character image
+                if (healthChange < 0 && this.characterImage) {
+                    // Create a temporary glow effect
+                    const healGlow = this.scene.add.circle(0, 0, 42, 0x00ff00, 0.3);
+                    this.container.add(healGlow);
+                    this.container.sendToBack(healGlow);
+                    
+                    // Animate and remove the glow
+                    this.scene.tweens.add({
+                        targets: healGlow,
+                        alpha: { from: 0.3, to: 0 },
+                        scaleX: 1.5,
+                        scaleY: 1.5,
+                        duration: 400,
+                        ease: 'Sine.easeOut',
+                        onComplete: () => {
+                            healGlow.destroy();
+                        }
+                    });
+                }
             }
         } catch (error) {
             console.error(`CharacterSprite.updateHealth: Error updating ${this.character?.name}'s health:`, error);
@@ -177,7 +188,16 @@ class CharacterSprite {
             scale: 1,
             showName: true,
             showHealth: true,
-            showStatusEffects: true
+            showStatusEffects: true,
+            useCardFrame: true,         // Whether to use card frame representation
+            cardConfig: {                // Card-specific configuration options
+                width: 240,              // Card width
+                height: 320,             // Card height
+                portraitOffsetY: -20,    // Portrait vertical offset from center
+                nameBannerHeight: 40,    // Height of name banner
+                healthBarOffsetY: 90,    // Distance from center to health bar
+                interactive: false       // Whether card is interactive
+            }
         }, config);
 
          // --- Validate Character Data ---
@@ -211,18 +231,52 @@ class CharacterSprite {
              throw error; // Re-throw critical error
          }
 
-
-        // --- Create character visual elements with try...catch ---
-        try {
-             console.log(`CharacterSprite (${character.name}): Creating character image...`);
-            this.createCharacterImage();
-             console.log(`CharacterSprite (${character.name}): Character image created.`);
-        } catch(error) {
-            console.error(`CharacterSprite Constructor (${character.name}): Error in createCharacterImage:`, error);
-            // Optionally create a fallback visual here if image fails
+        // Check if CardFrame is available globally
+        this.cardFrameAvailable = (typeof window.CardFrame === 'function');
+        
+        // Create a complete card configuration by merging defaults with provided options
+        this.cardConfig = {
+            enabled: this.config.useCardFrame || false,
+            width: this.config.cardConfig?.width || 240,
+            height: this.config.cardConfig?.height || 320,
+            portraitOffsetY: this.config.cardConfig?.portraitOffsetY || -20,
+            nameBannerHeight: this.config.cardConfig?.nameBannerHeight || 40,
+            healthBarOffsetY: this.config.cardConfig?.healthBarOffsetY || 90,
+            interactive: this.config.cardConfig?.interactive || false
+        };
+        
+        // Validate card configuration
+        if (this.cardConfig.enabled && !this.cardFrameAvailable) {
+            console.warn(`CharacterSprite: CardFrame requested for ${character.name} but not available, falling back to circle representation`);
+            this.cardConfig.enabled = false;
         }
 
-        if (this.config.showName) {
+
+        // --- Determine which representation to use ---
+        if (this.cardConfig.enabled && this.cardFrameAvailable) {
+            try {
+                console.log(`CharacterSprite (${character.name}): Creating card frame representation...`);
+                this.createCardFrameRepresentation();
+                console.log(`CharacterSprite (${character.name}): Card frame representation created.`);
+            } catch(error) {
+                console.error(`CharacterSprite Constructor (${character.name}): Error in createCardFrameRepresentation:`, error);
+                // Fall back to circle representation if card creation fails
+                this.cardConfig.enabled = false;
+                this.createCircleRepresentation();
+            }
+        } else {
+            // Use traditional circle representation
+            try {
+                console.log(`CharacterSprite (${character.name}): Creating circle representation...`);
+                this.createCircleRepresentation();
+                console.log(`CharacterSprite (${character.name}): Circle representation created.`);
+            } catch(error) {
+                console.error(`CharacterSprite Constructor (${character.name}): Error in createCircleRepresentation:`, error);
+                // Optionally create a fallback visual here if circle creation fails
+            }
+        }
+
+        if (this.config.showName && !this.cardConfig.enabled) {
             try {
                  console.log(`CharacterSprite (${character.name}): Creating name text...`);
                 this.createNameText();
@@ -232,7 +286,7 @@ class CharacterSprite {
             }
         }
 
-        if (this.config.showHealth) {
+        if (this.config.showHealth && !this.cardConfig.enabled) {
             try {
                  console.log(`CharacterSprite (${character.name}): Creating health bar...`);
                 this.createHealthBar();
@@ -311,9 +365,9 @@ class CharacterSprite {
     }
 
     /**
-     * Create the character image using the character art
+     * Create the traditional circle-based character representation
      */
-    createCharacterImage() {
+    createCircleRepresentation() {
         // Validate character name for path construction
         if (!this.character || !this.character.name) {
             console.error("createCharacterImage: Character name is missing.");
@@ -697,58 +751,120 @@ class CharacterSprite {
             targetSprite.container.getWorldTransformMatrix().transformPoint(0, 0, targetGlobalPos);
             const targetX_global = targetGlobalPos.x;
             const targetY_global = targetGlobalPos.y;
-
-            // --- Calculate moveTo using these GLOBAL coordinates ---
-            const moveToX = originalX + (targetX_global - originalX) * 0.7;
-            const moveToY = originalY + (targetY_global - originalY) * 0.7;
-
-            // Now, we need to convert our global moveToX/Y coordinates back to the container's local space
-            // for the tween to work correctly (since tweens operate in the object's local space)
-            let moveToLocal = { x: 0, y: 0 };
             
-            // Convert global coordinates to container's local space
-            // Note: We need the container's parent to do this properly
-            if (this.container.parentContainer) {
-                // If the container has a parent, we need to transform the global coordinates to local
-                let inverse = this.container.parentContainer.getWorldTransformMatrix().invert();
-                moveToLocal = inverse.transformPoint(moveToX, moveToY);
+            // Different animation approaches based on representation
+            if (this.cardConfig.enabled && this.cardFrame) {
+                // --- CARD-BASED ANIMATION ---
+                
+                // Calculate movement direction vector
+                const direction = new Phaser.Math.Vector2(
+                    targetX_global - originalX,
+                    targetY_global - originalY
+                ).normalize();
+                
+                // Use shorter distance for cards (50% instead of 70% for circles)
+                const moveDistance = 0.5;
+                
+                // Calculate move destination in local space
+                const moveToX = direction.x * this.cardConfig.width * moveDistance;
+                const moveToY = direction.y * this.cardConfig.height * moveDistance;
+                
+                // Add slight rotation based on team
+                const rotation = this.character.team === 'player' ? 5 : -5;
+                
+                // Create timeline with modified properties
+                const timeline = this.scene.tweens.createTimeline();
+                
+                // Move forward with slight rotation
+                timeline.add({
+                    targets: this.cardFrame,
+                    x: moveToX,
+                    y: moveToY,
+                    angle: rotation, // Add slight card rotation
+                    duration: 250,
+                    ease: 'Sine.easeOut'
+                });
+                
+                // Return to original position
+                timeline.add({
+                    targets: this.cardFrame,
+                    x: 0,
+                    y: 0,
+                    angle: 0, // Reset rotation
+                    duration: 250,
+                    ease: 'Sine.easeOut'
+                });
+                
+                // Add impact effect at halfway point
+                let hasTriggeredImpact = false;
+                timeline.on('update', () => {
+                    const progress = timeline.progress;
+                    if (progress > 0.45 && progress < 0.55 && !hasTriggeredImpact) {
+                        hasTriggeredImpact = true;
+                        this.createImpactEffect(targetSprite);
+                    }
+                });
+                
+                // Play timeline and handle completion
+                timeline.play();
+                timeline.once('complete', () => {
+                    if (onComplete) onComplete();
+                });
             } else {
-                // No parent container - coordinates are already in the right space
-                moveToLocal.x = moveToX;
-                moveToLocal.y = moveToY;
-            }
+                // --- ORIGINAL CIRCLE-BASED ANIMATION ---
             
-            // Get the original local coordinates (current position in container's local space)
-            const originalLocalX = this.container.x;
-            const originalLocalY = this.container.y;
+                // --- Calculate moveTo using these GLOBAL coordinates ---
+                const moveToX = originalX + (targetX_global - originalX) * 0.7;
+                const moveToY = originalY + (targetY_global - originalY) * 0.7;
 
-            // Create animation timeline
-            const timeline = this.scene.tweens.createTimeline();
+                // Now, we need to convert our global moveToX/Y coordinates back to the container's local space
+                // for the tween to work correctly (since tweens operate in the object's local space)
+                let moveToLocal = { x: 0, y: 0 };
+                
+                // Convert global coordinates to container's local space
+                // Note: We need the container's parent to do this properly
+                if (this.container.parentContainer) {
+                    // If the container has a parent, we need to transform the global coordinates to local
+                    let inverse = this.container.parentContainer.getWorldTransformMatrix().invert();
+                    moveToLocal = inverse.transformPoint(moveToX, moveToY);
+                } else {
+                    // No parent container - coordinates are already in the right space
+                    moveToLocal.x = moveToX;
+                    moveToLocal.y = moveToY;
+                }
+                
+                // Get the original local coordinates (current position in container's local space)
+                const originalLocalX = this.container.x;
+                const originalLocalY = this.container.y;
 
-            // Add move to target (using calculated local coordinates)
-            timeline.add({
-                targets: this.container,
-                x: moveToLocal.x,
-                y: moveToLocal.y,
-                duration: 300,
-                ease: 'Power2'
-            });
+                // Create animation timeline
+                const timeline = this.scene.tweens.createTimeline();
 
-            // Add return to original position (using original local coordinates)
-            timeline.add({
-                targets: this.container,
-                x: originalLocalX,
-                y: originalLocalY,
-                duration: 300,
-                ease: 'Power2'
-            });
+                // Add move to target (using calculated local coordinates)
+                timeline.add({
+                    targets: this.container,
+                    x: moveToLocal.x,
+                    y: moveToLocal.y,
+                    duration: 300,
+                    ease: 'Power2'
+                });
 
-            // Play timeline
-            timeline.play();
+                // Add return to original position (using original local coordinates)
+                timeline.add({
+                    targets: this.container,
+                    x: originalLocalX,
+                    y: originalLocalY,
+                    duration: 300,
+                    ease: 'Power2'
+                });
 
-            // Call complete callback
-            if (onComplete) {
-                timeline.once('complete', onComplete);
+                // Play timeline
+                timeline.play();
+
+                // Call complete callback
+                if (onComplete) {
+                    timeline.once('complete', onComplete);
+                }
             }
         } catch (error) {
              console.error(`showAttackAnimation (${this.character.name}): Error creating/playing tween:`, error);
@@ -756,6 +872,38 @@ class CharacterSprite {
              if (onComplete) {
                   try { onComplete(); } catch (cbError){ console.error("Error in onComplete callback:", cbError); }
              }
+        }
+    }
+    
+    /**
+     * Create an impact effect at the target during attack animations
+     * @param {CharacterSprite} targetSprite - The target of the attack
+     */
+    createImpactEffect(targetSprite) {
+        try {
+            // Create flash or particle effect at target position
+            const targetPos = new Phaser.Math.Vector2();
+            targetSprite.container.getWorldTransformMatrix().transformPoint(0, 0, targetPos);
+            
+            // Create impact effect at target's position
+            const impactFlash = this.scene.add.circle(
+                targetPos.x, targetPos.y, 
+                40, 0xFFFFFF, 0.7
+            );
+            
+            // Animate impact and destroy
+            this.scene.tweens.add({
+                targets: impactFlash,
+                alpha: 0,
+                scale: 1.5,
+                duration: 200,
+                ease: 'Sine.easeOut',
+                onComplete: () => {
+                    impactFlash.destroy();
+                }
+            });
+        } catch (error) {
+            console.error('Error creating impact effect:', error);
         }
     }
 
@@ -793,10 +941,18 @@ class CharacterSprite {
             
             console.log(`showFloatingText (${this.character?.name}): Using global position (${globalPosition.x}, ${globalPosition.y}) for floating text.`);
 
+            // Adjust vertical position based on representation
+            let yOffset = -50; // Default for circle representation
+            
+            if (this.cardConfig.enabled && this.cardFrame) {
+                // For card frames, adjust to be above the card
+                yOffset = -this.cardConfig.height/2 - 20;
+            }
+
             // Create text at the correct global position
             const floatingText = this.scene.add.text(
                 globalPosition.x,
-                globalPosition.y - 50, // Initial position slightly higher
+                globalPosition.y + yOffset, // Position based on representation
                 text,
                 mergedStyle
             ).setOrigin(0.5);
@@ -842,6 +998,103 @@ highlight() {
     }
 
     /**
+     * Create the card-based character representation using CardFrame
+     */
+    createCardFrameRepresentation() {
+        try {
+            // Create CardFrame instance with proper configuration
+            this.cardFrame = new window.CardFrame(this.scene, 0, 0, {
+                // Character information
+                characterKey: `character_${this.character.name}`,
+                characterName: this.character.name,
+                characterType: this.character.type,
+                characterTeam: this.character.team,
+                
+                // Health information
+                currentHealth: this.character.currentHp || 0,
+                maxHealth: this.character.stats.hp || 100,
+                showHealth: this.config.showHealth,
+                
+                // Visual customization
+                width: this.cardConfig.width,
+                height: this.cardConfig.height,
+                portraitOffsetY: this.cardConfig.portraitOffsetY,
+                
+                // Art positioning from character data
+                artOffsetX: parseInt(this.character.art?.left) || 0,
+                artOffsetY: parseInt(this.character.art?.top) || 0,
+                
+                // Interactivity settings
+                interactive: this.config.interactive,
+                onSelect: () => {
+                    // Forward selection event to scene (same as circle representation)
+                    this.scene.events.emit('character_selected', this.character);
+                },
+                onHoverStart: () => {
+                    // Handle hover start (e.g., show additional info)
+                    this.scene.events.emit('character_hover_start', this.character);
+                    document.body.style.cursor = 'pointer';
+                },
+                onHoverEnd: () => {
+                    // Handle hover end
+                    this.scene.events.emit('character_hover_end', this.character);
+                    document.body.style.cursor = 'default';
+                }
+            });
+            
+            // Add CardFrame to main container
+            this.container.add(this.cardFrame);
+            
+            // Set up events for the card frame
+            this.setupCardFrameEvents();
+            
+            console.log(`CardFrame created successfully for ${this.character.name} of type ${this.character.type}`);
+        } catch (error) {
+            console.error(`CharacterSprite (${this.character?.name}): Error creating card frame:`, error);
+            
+            // Fall back to circle representation
+            this.cardConfig.enabled = false;
+            this.createCircleRepresentation();
+        }
+    }
+    
+    /**
+     * Set up event listeners for the card frame
+     */
+    setupCardFrameEvents() {
+        try {
+            // Listen for scene events that need to update CardFrame
+            this.scene.events.on('turn_started', (characterId) => {
+                if (this.character.uniqueId === characterId && this.cardFrame) {
+                    this.cardFrame.setHighlighted(true);
+                } else if (this.cardFrame) {
+                    this.cardFrame.setHighlighted(false);
+                }
+            }, this);
+            
+            // Cleanup on shutdown/destroy
+            this.scene.events.once('shutdown', this.cleanupCardFrameEvents, this);
+            this.scene.events.once('destroy', this.cleanupCardFrameEvents, this);
+        } catch (error) {
+            console.error(`CharacterSprite (${this.character?.name}): Error setting up card frame events:`, error);
+        }
+    }
+    
+    /**
+     * Clean up card frame event listeners
+     */
+    cleanupCardFrameEvents() {
+        try {
+            // Remove all event listeners
+            if (this.scene && this.scene.events) {
+                this.scene.events.off('turn_started', null, this);
+            }
+        } catch (error) {
+            console.error(`CharacterSprite (${this.character?.name}): Error cleaning up card frame events:`, error);
+        }
+    }
+
+    /**
      * Clean up sprite resources
      */
     destroy() {
@@ -876,6 +1129,21 @@ highlight() {
             this.statusEffectContainer = null;
         }
         
+        // Clean up card frame if it exists
+        if (this.cardFrame) {
+            try {
+                // CardFrame handles its own cleanup in its destroy method
+                this.cardFrame.destroy();
+                console.log(`CharacterSprite destroy: CardFrame destroyed for ${this.character?.name || 'Unknown'}`);
+            } catch (error) {
+                console.error(`CharacterSprite destroy: Error destroying CardFrame for ${this.character?.name || 'Unknown'}:`, error);
+            }
+            this.cardFrame = null;
+            
+            // Clean up card frame events
+            this.cleanupCardFrameEvents();
+        }
+        
         // Stop any active tweens (highlight tweens moved to TurnIndicator)
 
         // Clean up and destroy container and its children
@@ -893,6 +1161,7 @@ highlight() {
          this.scene = null;
          this.character = null;
          this.config = null;
+         this.cardConfig = null;
          this.circle = null;
          this.characterImage = null;
          this.nameText = null;
