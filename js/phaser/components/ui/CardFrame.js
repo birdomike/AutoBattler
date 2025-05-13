@@ -426,9 +426,9 @@ class CardFrame extends Phaser.GameObjects.Container {
             console.log(`4. FORCING VISIBILITY:`);
             this.characterSprite.setAlpha(1);
             this.characterSprite.setVisible(true);
-            this.characterSprite.setScale(2); // ENLARGED for testing
+            this.characterSprite.setScale(this.config.artScale); // Using config scale instead of fixed value
             // Removed red tint to make characters look normal
-            console.log(`- Applied: alpha=1, visible=true, scale=2`);
+            console.log(`- Applied: alpha=1, visible=true, scale=${this.config.artScale}`);
             
             // STEP 5: Verify sprite dimensions
             console.log(`5. SPRITE DIMENSIONS:`);

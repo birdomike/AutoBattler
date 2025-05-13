@@ -1,3 +1,13 @@
+### [0.7.0.8] - 2025-05-14
+#### Fixed
+- Fixed CardFrame character visibility issues by identifying masking as the root cause
+- Kept masking disabled intentionally to ensure characters remain visible
+- Changed scale from fixed value 2 to configurable artScale parameter
+- Removed the red debug tint for normal character appearance
+- Maintained proper rendering structure with high depth value
+
+*Note: For detailed information on implementation approach and lessons learned, see CHANGELOG_0.7.0.8_CardFrameDebuggingRevision.md*
+
 ### [0.7.0.7] - 2025-05-14
 #### Fixed
 - Fixed circular reference error in CardFrame debugging code
