@@ -1,4 +1,19 @@
 
+## Version 0.7.0.11 - Card Frame Visual Depth Enhancement (2025-05-13)
+### Added
+- Implemented enhanced visual depth effects for card frames
+- Added configurable inner glow effect that matches each card's type color
+- Added edge highlights and shadows to create 3D appearance
+- Created comprehensive configuration system for all depth effects
+
+### Technical
+- Implemented multi-layered inner glow system with adjustable intensity and layers
+- Added edge highlighting with top-left light source simulation
+- Created proper visual layering for shadow, glow, and background elements
+- Enhanced resource management for proper cleanup
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.0.11_CardFrameVisualDepthEnhancement.md*
+
 ## Version 0.7.0.10 - Card Frame Visual Improvements (2025-05-13)
 ### Changed
 - Reduced card frame border thickness from 20px to 10px for a sleeker, more professional appearance

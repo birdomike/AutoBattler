@@ -26,108 +26,125 @@ class CardFrame extends Phaser.GameObjects.Container {
         this.scene = scene;
 
         /**
-         * Configuration options with sensible defaults
-         * All visual parameters are explicitly defined here for easy adjustment
-         */
+        * Configuration options with sensible defaults
+        * All visual parameters are explicitly defined here for easy adjustment
+        */
         this.config = Object.assign({
-            // Core dimensions (3:4 aspect ratio)
-            width: 240,                 // Width of card frame
-            height: 320,                // Height of card frame
-            borderWidth: 10,            // Width of frame border (reduced from 20px for sleeker appearance)
-            cornerRadius: 12,           // Corner radius for frame
+        // Core dimensions (3:4 aspect ratio)
+        width: 240,                 // Width of card frame
+        height: 320,                // Height of card frame
+        borderWidth: 10,            // Width of frame border (reduced from 20px for sleeker appearance)
+        cornerRadius: 12,           // Corner radius for frame
 
-            // Character information
-            characterKey: null,         // Texture key for character sprite
-            characterName: 'Character', // Name to display on card
-            characterType: 'neutral',   // Type for themed styling (e.g., 'fire', 'water')
-            characterTeam: null,        // Team identifier (e.g., 'player', 'enemy')
-            
-            // Art positioning adjustments
-            artOffsetX: 0,              // Fine-tune character art horizontal position
-            artOffsetY: 0,              // Fine-tune character art vertical position
-            artScale: 1,                // Scaling factor for character art
-            
-            // Portrait window
-            portraitWidth: 200,         // Width of portrait area
-            portraitHeight: 240,        // Height of portrait area
-            portraitOffsetY: -20,       // Portrait vertical offset from center
-            portraitMask: true,         // Whether to mask the portrait
-            
-            // Health display
-            currentHealth: 100,         // Current health value
-            maxHealth: 100,             // Maximum health value
-            showHealth: true,           // Whether to show health bar
-            healthBarWidth: 180,        // Width of health bar
-            healthBarHeight: 12,        // Height of health bar
-            healthBarOffsetY: 90,       // Distance from center to health bar
-            showHealthText: true,       // Whether to show health text
-            
-            // Nameplate
-            nameBannerHeight: 40,       // Height of name banner
-            nameBannerWidth: 210,       // Width of name banner (slightly less than card width)
-            nameFontSize: 16,           // Font size for name text
-            nameFontFamily: 'serif',    // Font family for name text
-            nameOffsetY: 110,           // Distance from center to nameplate
-            showDecorativeFlourishes: true, // Whether to show flourishes around name
-            
-            // Appearance
-            frameTexture: 'card-frame', // Base texture for card frame
-            nameplateTexture: 'nameplate', // Base texture for nameplate
-            typeColors: {               // Type-specific colors (overrides auto-detection)
-                fire: 0xFF4757,
-                water: 0x1E90FF,
-                nature: 0x2ED573,
-                electric: 0xF7DF1E,
-                ice: 0xADD8E6,
-                rock: 0x8B4513,
-                air: 0x70A1FF,
-                light: 0xFFD700,
-                dark: 0x9900CC,
-                metal: 0xC0C0C0,
-                psychic: 0xDA70D6,
-                poison: 0x8A2BE2,
-                physical: 0xCD5C5C,
-                arcane: 0x7B68EE,
-                mechanical: 0x778899,
-                void: 0x2F4F4F,
-                crystal: 0xAFEEEE,
-                storm: 0x4682B4,
-                ethereal: 0xE6E6FA,
-                blood: 0x8B0000,
-                plague: 0x556B2F,
-                gravity: 0x36454F,
-                neutral: 0xAAAAAA
+        // Character information
+        characterKey: null,         // Texture key for character sprite
+        characterName: 'Character', // Name to display on card
+        characterType: 'neutral',   // Type for themed styling (e.g., 'fire', 'water')
+        characterTeam: null,        // Team identifier (e.g., 'player', 'enemy')
+        
+        // Art positioning adjustments
+        artOffsetX: 0,              // Fine-tune character art horizontal position
+        artOffsetY: 0,              // Fine-tune character art vertical position
+        artScale: 1,                // Scaling factor for character art
+        
+        // Portrait window
+        portraitWidth: 200,         // Width of portrait area
+        portraitHeight: 240,        // Height of portrait area
+        portraitOffsetY: -20,       // Portrait vertical offset from center
+        portraitMask: true,         // Whether to mask the portrait
+        
+        // Health display
+        currentHealth: 100,         // Current health value
+        maxHealth: 100,             // Maximum health value
+        showHealth: true,           // Whether to show health bar
+        healthBarWidth: 180,        // Width of health bar
+        healthBarHeight: 12,        // Height of health bar
+        healthBarOffsetY: 90,       // Distance from center to health bar
+        showHealthText: true,       // Whether to show health text
+        
+        // Nameplate
+        nameBannerHeight: 40,       // Height of name banner
+        nameBannerWidth: 210,       // Width of name banner (slightly less than card width)
+        nameFontSize: 16,           // Font size for name text
+        nameFontFamily: 'serif',    // Font family for name text
+        nameOffsetY: 110,           // Distance from center to nameplate
+        showDecorativeFlourishes: true, // Whether to show flourishes around name
+        
+        // Appearance
+        frameTexture: 'card-frame', // Base texture for card frame
+        nameplateTexture: 'nameplate', // Base texture for nameplate
+        typeColors: {               // Type-specific colors (overrides auto-detection)
+        fire: 0xFF4757,
+        water: 0x1E90FF,
+        nature: 0x2ED573,
+        electric: 0xF7DF1E,
+        ice: 0xADD8E6,
+        rock: 0x8B4513,
+        air: 0x70A1FF,
+        light: 0xFFD700,
+        dark: 0x9900CC,
+        metal: 0xC0C0C0,
+        psychic: 0xDA70D6,
+        poison: 0x8A2BE2,
+        physical: 0xCD5C5C,
+        arcane: 0x7B68EE,
+        mechanical: 0x778899,
+        void: 0x2F4F4F,
+        crystal: 0xAFEEEE,
+        storm: 0x4682B4,
+        ethereal: 0xE6E6FA,
+        blood: 0x8B0000,
+        plague: 0x556B2F,
+        gravity: 0x36454F,
+        neutral: 0xAAAAAA
+        },
+        frameAlpha: 1,              // Opacity of the frame
+        frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
+        backgroundAlpha: 0.2,       // Background opacity
+        
+        // 9-Slice specifics
+        cornerSize: 20,             // Size of corners for 9-slice scaling
+        sliceMargins: [20, 20, 20, 20], // Left, right, top, bottom margins for 9-slice
+        
+        // Depth Effects (new in v0.7.0.11)
+        depthEffects: {
+            enabled: true,           // Master toggle for all depth effects
+            innerGlow: {
+                enabled: true,       // Enable inner glow effect
+                intensity: 0.3,      // Intensity of inner glow (0-1)
+                layers: 4           // Number of glow layers (more = smoother but more expensive)
             },
-            frameAlpha: 1,              // Opacity of the frame
-            frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
-            backgroundAlpha: 0.2,       // Background opacity
-            
-            // 9-Slice specifics
-            cornerSize: 20,             // Size of corners for 9-slice scaling
-            sliceMargins: [20, 20, 20, 20], // Left, right, top, bottom margins for 9-slice
-            
-            // Interaction
-            interactive: false,         // Whether card is interactive
-            onSelect: null,             // Callback when card is selected
-            hoverEnabled: true,         // Whether hover effects are enabled
-            
-            // Animation
-            hoverScale: 1.05,           // Scale factor when hovering
-            selectedScale: 1.1,         // Scale factor when selected
-            animationDuration: 150,     // Duration of animations in ms
-            glowIntensity: 0.7,         // Intensity of glow effect (0-1)
-            
-            // State
-            selected: false,            // Whether card is currently selected
-            highlighted: false,         // Whether card is highlighted (e.g., active turn)
-            
-            // Status effects
-            statusEffectScale: 0.7,     // Scale factor for status effect icons
-            statusEffectSpacing: 24,    // Spacing between status effect icons
-            statusEffectOffsetY: -130,  // Vertical position of status effect icons
-            
-            // Debug
-            debugMode: false            // Show debug information/boundaries
+            edgeEffects: {
+                enabled: true,       // Enable edge highlights and shadows
+                highlightBrightness: 40, // How much brighter the highlights are (%)
+                shadowDarkness: 40,  // How much darker the shadows are (%)
+                width: 1.5,          // Width of edge effect lines
+                opacity: 0.6         // Opacity of edge effects (0-1)
+            }
+        },
+        
+        // Interaction
+        interactive: false,         // Whether card is interactive
+        onSelect: null,             // Callback when card is selected
+        hoverEnabled: true,         // Whether hover effects are enabled
+        
+        // Animation
+        hoverScale: 1.05,           // Scale factor when hovering
+        selectedScale: 1.1,         // Scale factor when selected
+        animationDuration: 150,     // Duration of animations in ms
+        glowIntensity: 0.7,         // Intensity of glow effect (0-1)
+        
+        // State
+        selected: false,            // Whether card is currently selected
+        highlighted: false,         // Whether card is highlighted (e.g., active turn)
+        
+        // Status effects
+        statusEffectScale: 0.7,     // Scale factor for status effect icons
+        statusEffectSpacing: 24,    // Spacing between status effect icons
+        statusEffectOffsetY: -130,  // Vertical position of status effect icons
+        
+        // Debug
+        debugMode: false            // Show debug information/boundaries
         }, config);
         
         // Store internal state
@@ -141,6 +158,11 @@ class CardFrame extends Phaser.GameObjects.Container {
         this.createBaseFrame();
         this.createBackgroundElements();
         this.createPortraitWindow();
+        
+        // Add depth effects if enabled
+        if (this.config.depthEffects.enabled) {
+            this.addEdgeDepthEffects();
+        }
         
         if (this.config.characterKey) {
             this.createCharacterSprite();
@@ -281,7 +303,95 @@ class CardFrame extends Phaser.GameObjects.Container {
     }
     
     /**
+     * Add edge highlights and shadows to enhance depth perception
+     * Added in v0.7.0.11 for enhanced visual depth
+     */
+    addEdgeDepthEffects() {
+        // Skip if edge effects are disabled
+        if (!this.config.depthEffects.edgeEffects.enabled) return;
+        
+        try {
+            // Get configuration options
+            const {
+                highlightBrightness,
+                shadowDarkness,
+                width,
+                opacity
+            } = this.config.depthEffects.edgeEffects;
+            
+            // Calculate frame dimensions
+            const frameWidth = this.config.width;
+            const frameHeight = this.config.height;
+            const cornerRadius = this.config.cornerRadius;
+            
+            // Create graphics object for edge effects
+            const edgeEffects = this.scene.add.graphics();
+            
+            // Create highlight color (lighter version of type color)
+            const highlightColor = Phaser.Display.Color.ValueToColor(this.typeColor);
+            highlightColor.brighten(highlightBrightness); // Make it brighter
+            
+            // Create shadow color (darker version of type color)
+            const shadowColor = Phaser.Display.Color.ValueToColor(this.typeColor);
+            shadowColor.darken(shadowDarkness); // Make it darker
+            
+            // Draw top and left highlights (thin bright lines)
+            edgeEffects.lineStyle(width, highlightColor.color, opacity);
+            
+            // Top edge highlight
+            edgeEffects.beginPath();
+            edgeEffects.moveTo(-frameWidth / 2 + cornerRadius, -frameHeight / 2);
+            edgeEffects.lineTo(frameWidth / 2 - cornerRadius, -frameHeight / 2);
+            edgeEffects.strokePath();
+            
+            // Left edge highlight
+            edgeEffects.beginPath();
+            edgeEffects.moveTo(-frameWidth / 2, -frameHeight / 2 + cornerRadius);
+            edgeEffects.lineTo(-frameWidth / 2, frameHeight / 2 - cornerRadius);
+            edgeEffects.strokePath();
+            
+            // Draw bottom and right shadows (thin dark lines)
+            edgeEffects.lineStyle(width, shadowColor.color, opacity);
+            
+            // Bottom edge shadow
+            edgeEffects.beginPath();
+            edgeEffects.moveTo(-frameWidth / 2 + cornerRadius, frameHeight / 2);
+            edgeEffects.lineTo(frameWidth / 2 - cornerRadius, frameHeight / 2);
+            edgeEffects.strokePath();
+            
+            // Right edge shadow
+            edgeEffects.beginPath();
+            edgeEffects.moveTo(frameWidth / 2, -frameHeight / 2 + cornerRadius);
+            edgeEffects.lineTo(frameWidth / 2, frameHeight / 2 - cornerRadius);
+            edgeEffects.strokePath();
+            
+            // Add subtle corner treatments for a polished look
+            // Top-left corner (highlight)
+            edgeEffects.lineStyle(width, highlightColor.color, opacity * 0.8);
+            edgeEffects.beginPath();
+            edgeEffects.arc(-frameWidth / 2 + cornerRadius, -frameHeight / 2 + cornerRadius, cornerRadius, Math.PI, 1.5 * Math.PI);
+            edgeEffects.strokePath();
+            
+            // Bottom-right corner (shadow)
+            edgeEffects.lineStyle(width, shadowColor.color, opacity * 0.8);
+            edgeEffects.beginPath();
+            edgeEffects.arc(frameWidth / 2 - cornerRadius, frameHeight / 2 - cornerRadius, cornerRadius, 0, 0.5 * Math.PI);
+            edgeEffects.strokePath();
+            
+            // Add to container
+            this.add(edgeEffects);
+            
+            // Store reference for cleanup
+            this.edgeEffects = edgeEffects;
+            
+        } catch (error) {
+            console.error('CardFrame: Error creating edge depth effects:', error);
+        }
+    }
+    
+    /**
      * Create background elements for the card
+     * Enhanced with inner glow effect (v0.7.0.11)
      */
     createBackgroundElements() {
         try {
@@ -294,7 +404,7 @@ class CardFrame extends Phaser.GameObjects.Container {
                 this.config.backgroundAlpha
             );
             
-            // Add soft inner shadow effect
+            // Create inner shadow effect
             const innerShadow = this.scene.add.graphics();
             innerShadow.fillStyle(0x000000, 0.2);
             innerShadow.fillRoundedRect(
@@ -305,11 +415,67 @@ class CardFrame extends Phaser.GameObjects.Container {
                 this.config.cornerRadius - this.config.borderWidth / 2
             );
             
-            // Add to container
-            this.add(bgRect);
-            this.add(innerShadow);
+            // Create inner glow effect if enabled
+            let innerGlowGraphics = null;
+            if (this.config.depthEffects.enabled && this.config.depthEffects.innerGlow.enabled) {
+                innerGlowGraphics = this.createInnerGlowEffect();
+            }
+            
+            // Add to container in proper order for correct layering
+            this.add(innerShadow); // Shadow at the bottom
+            if (innerGlowGraphics) {
+                this.add(innerGlowGraphics); // Glow above shadow
+            }
+            this.add(bgRect); // Background on top
         } catch (error) {
             console.error('CardFrame: Error creating background elements:', error);
+        }
+    }
+    
+    /**
+     * Create multi-layered inner glow effect
+     * @returns {Phaser.GameObjects.Graphics} - Graphics object containing the glow effect
+     */
+    createInnerGlowEffect() {
+        try {
+            // Get configuration options
+            const {
+                intensity,
+                layers
+            } = this.config.depthEffects.innerGlow;
+            
+            // Create graphics object for glow effect
+            const glowGraphics = this.scene.add.graphics();
+            
+            // Get card dimensions
+            const width = this.config.width;
+            const height = this.config.height;
+            const borderWidth = this.config.borderWidth;
+            const cornerRadius = this.config.cornerRadius;
+            
+            // Create multiple concentric rectangles with decreasing opacity
+            for (let i = 0; i < layers; i++) {
+                // Calculate padding for this layer (decreases for inner layers)
+                const layerPadding = 8 - (i * 2);
+                
+                // Calculate opacity for this layer (decreases for inner layers)
+                const layerOpacity = intensity * (1 - (i / layers));
+                
+                // Draw glow layer
+                glowGraphics.fillStyle(this.typeColor, layerOpacity);
+                glowGraphics.fillRoundedRect(
+                    -width / 2 + borderWidth + layerPadding,
+                    -height / 2 + borderWidth + layerPadding,
+                    width - (borderWidth * 2) - (layerPadding * 2),
+                    height - (borderWidth * 2) - (layerPadding * 2),
+                    cornerRadius - borderWidth / 2
+                );
+            }
+            
+            return glowGraphics;
+        } catch (error) {
+            console.error('CardFrame: Error creating inner glow effect:', error);
+            return null;
         }
     }
     
@@ -1224,6 +1390,11 @@ class CardFrame extends Phaser.GameObjects.Container {
                 this.scene.tweens.killTweensOf(this.characterSprite);
                 this.scene.tweens.killTweensOf(this.nameText);
                 this.scene.tweens.killTweensOf(this.healthText);
+                
+                // Clean up any tweens for depth effects
+                if (this.edgeEffects) {
+                    this.scene.tweens.killTweensOf(this.edgeEffects);
+                }
             }
             
             // Reset cursor if interactive
