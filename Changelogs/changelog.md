@@ -1,4 +1,19 @@
 
+## Version 0.7.0.12 - Card Frame Visual Depth Refinement (2025-05-13)
+### Changed
+- Refined card frame visual depth implementation for more professional appearance
+- Applied glow effect to the frame itself rather than the backdrop
+- Improved layering of visual components for better depth perception
+- Created proper separation between backdrop and frame elements
+
+### Technical
+- Restructured component creation order for proper visual layering
+- Renamed and simplified `createBackgroundElements()` to `createBackdrop()`
+- Created enhanced `createInnerGlowEffect()` method with frame-based glow
+- Improved resource management for all visual components
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.0.12_CardFrameVisualDepthRefinement.md*
+
 ## Version 0.7.0.11 - Card Frame Visual Depth Enhancement (2025-05-13)
 ### Added
 - Implemented enhanced visual depth effects for card frames

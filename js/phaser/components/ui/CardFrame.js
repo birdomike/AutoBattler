@@ -154,15 +154,23 @@ class CardFrame extends Phaser.GameObjects.Container {
         // Auto-detect type color if not provided
         this.typeColor = this.getTypeColor(this.config.characterType);
         
-        // Create card components
-        this.createBaseFrame();
-        this.createBackgroundElements();
-        this.createPortraitWindow();
+        // Create card components in proper layer order
+        this.createBackdrop();
         
-        // Add depth effects if enabled
-        if (this.config.depthEffects.enabled) {
+        // Add inner glow effect if enabled
+        if (this.config.depthEffects.enabled && this.config.depthEffects.innerGlow.enabled) {
+            this.createInnerGlowEffect();
+        }
+        
+        // Create base frame
+        this.createBaseFrame();
+        
+        // Add edge depth effects if enabled
+        if (this.config.depthEffects.enabled && this.config.depthEffects.edgeEffects.enabled) {
             this.addEdgeDepthEffects();
         }
+        
+        this.createPortraitWindow();
         
         if (this.config.characterKey) {
             this.createCharacterSprite();
@@ -390,10 +398,9 @@ class CardFrame extends Phaser.GameObjects.Container {
     }
     
     /**
-     * Create background elements for the card
-     * Enhanced with inner glow effect (v0.7.0.11)
+     * Create the backdrop rectangle for the card
      */
-    createBackgroundElements() {
+    createBackdrop() {
         try {
             // Create semi-transparent background fill
             const bgRect = this.scene.add.rectangle(
@@ -404,37 +411,19 @@ class CardFrame extends Phaser.GameObjects.Container {
                 this.config.backgroundAlpha
             );
             
-            // Create inner shadow effect
-            const innerShadow = this.scene.add.graphics();
-            innerShadow.fillStyle(0x000000, 0.2);
-            innerShadow.fillRoundedRect(
-                -this.config.width / 2 + this.config.borderWidth + 2,
-                -this.config.height / 2 + this.config.borderWidth + 2,
-                this.config.width - (this.config.borderWidth * 2) - 4,
-                this.config.height - (this.config.borderWidth * 2) - 4,
-                this.config.cornerRadius - this.config.borderWidth / 2
-            );
+            // Add to container
+            this.add(bgRect);
             
-            // Create inner glow effect if enabled
-            let innerGlowGraphics = null;
-            if (this.config.depthEffects.enabled && this.config.depthEffects.innerGlow.enabled) {
-                innerGlowGraphics = this.createInnerGlowEffect();
-            }
-            
-            // Add to container in proper order for correct layering
-            this.add(innerShadow); // Shadow at the bottom
-            if (innerGlowGraphics) {
-                this.add(innerGlowGraphics); // Glow above shadow
-            }
-            this.add(bgRect); // Background on top
+            // Store reference for later use
+            this.backdrop = bgRect;
         } catch (error) {
-            console.error('CardFrame: Error creating background elements:', error);
+            console.error('CardFrame: Error creating backdrop:', error);
         }
     }
     
     /**
-     * Create multi-layered inner glow effect
-     * @returns {Phaser.GameObjects.Graphics} - Graphics object containing the glow effect
+     * Create inner glow effect that matches the card's type color
+     * The glow is applied to the frame itself for better visual depth
      */
     createInnerGlowEffect() {
         try {
@@ -456,26 +445,29 @@ class CardFrame extends Phaser.GameObjects.Container {
             // Create multiple concentric rectangles with decreasing opacity
             for (let i = 0; i < layers; i++) {
                 // Calculate padding for this layer (decreases for inner layers)
-                const layerPadding = 8 - (i * 2);
+                const layerPadding = borderWidth - (i * (borderWidth / layers));
                 
                 // Calculate opacity for this layer (decreases for inner layers)
                 const layerOpacity = intensity * (1 - (i / layers));
                 
-                // Draw glow layer
+                // Draw glow layer - Note: This is drawn at the frame border, not the backdrop
                 glowGraphics.fillStyle(this.typeColor, layerOpacity);
                 glowGraphics.fillRoundedRect(
-                    -width / 2 + borderWidth + layerPadding,
-                    -height / 2 + borderWidth + layerPadding,
-                    width - (borderWidth * 2) - (layerPadding * 2),
-                    height - (borderWidth * 2) - (layerPadding * 2),
-                    cornerRadius - borderWidth / 2
+                    -width / 2 + layerPadding,
+                    -height / 2 + layerPadding,
+                    width - (layerPadding * 2),
+                    height - (layerPadding * 2),
+                    cornerRadius
                 );
             }
             
-            return glowGraphics;
+            // Add to container
+            this.add(glowGraphics);
+            
+            // Store reference for cleanup
+            this.innerGlowGraphics = glowGraphics;
         } catch (error) {
             console.error('CardFrame: Error creating inner glow effect:', error);
-            return null;
         }
     }
     
@@ -1394,6 +1386,12 @@ class CardFrame extends Phaser.GameObjects.Container {
                 // Clean up any tweens for depth effects
                 if (this.edgeEffects) {
                     this.scene.tweens.killTweensOf(this.edgeEffects);
+                }
+                if (this.innerGlowGraphics) {
+                    this.scene.tweens.killTweensOf(this.innerGlowGraphics);
+                }
+                if (this.backdrop) {
+                    this.scene.tweens.killTweensOf(this.backdrop);
                 }
             }
             
