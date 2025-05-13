@@ -1,2038 +1,1100 @@
-﻿Combined Technical Changelog  (generated 2025-05-12 16:23)
+﻿Combined Technical Changelog  (generated 2025-05-13 19:17)
 
-===== CHANGELOG_0.6.7.13_TeamSlotArtPositionFix =====
+===== CHANGELOG_0.7.0.9_TopBannerOptimization =====
 
-# Changelog: Team Slot Art Position Fix with Transform
+# Technical Changelog: Top Banner Optimization for Card-Based Interface
 
-## Version 0.6.7.13 - May 12, 2025
+## Version: 0.7.0.9
+## Date: 2025-05-13
 
-### Overview
-This update resolves a persistent issue with character art positioning in team slots. While previous fixes (0.6.7.11 and 0.6.7.12) resolved visibility and attempted to address positioning, the character images still appeared too low in their slots. This version implements a more robust positioning solution using CSS transforms.
+## Overview
+This update optimizes the top banner UI in the Battle Scene to better complement the new card-based character representation. The changes focus on making the banner less prominent and freeing up more central screen space for gameplay elements.
 
-### Technical Problem Analysis
-Previous attempts at positioning the character art relied on adjusting the `top` and `left` properties of the artwork itself:
+## Key Changes
 
-```css
-.slot-content .hero-avatar-container .team-builder-art {
-    position: absolute;
-    top: -25px; 
-    left: -15px;
-    /* other properties */
-}
-```
+### 1. Repositioned Banner Elements
+- Moved banner elements from center-aligned to left-aligned
+- Changed x-coordinate from `this.scene.cameras.main.width / 2` to `50` for both title and welcome message
+- Updated origin from `0.5` to `0.0, 0.5` to maintain proper text alignment
 
-Browser testing revealed that these adjustments were not having the expected effect. Upon further investigation using browser developer tools, we identified that:
+### 2. Reduced Font Sizes
+- Reduced "Battle Scene" title font size from 36px to 24px
+- Reduced welcome message font size from 20px to 16px
+- These changes make the text less dominant on screen while maintaining readability
 
-1. The positioning issue affected the entire container structure, not just the inner art element
-2. Style inheritance or precedence rules were potentially overriding our position adjustments
-3. Simply making the `top` value more negative (even with extreme values like -175px) had no visible effect
+### 3. Removed Unnecessary Text
+- Completely removed "Battle Scene Initialized!" text from welcome message
+- This eliminates redundant information that was taking up vertical space
 
-### Solution Implementation
-Instead of trying to position the art within its container, we opted to move the entire container itself using CSS transforms:
+### 4. Removed Animation Effects
+- Eliminated bouncing animation from the title
+- Removed the following tween code to keep the UI static and less distracting:
+  ```javascript
+  this.scene.tweens.add({
+      targets: sceneTitle,
+      y: 40,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+  });
+  ```
 
-```css
-.slot-content .hero-avatar-container {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    margin-right: 15px;
-    overflow: visible;
-    transform: translateY(-25px); /* Move the entire container up */
-}
-```
+### 5. Optimized Vertical Spacing
+- Moved welcome message from y-coordinate `120` to `80`
+- This removes empty space left behind after removing "Battle Scene Initialized!" text
+- Creates more compact UI that takes up less vertical screen real estate
 
-This approach offers several advantages:
-1. **Reliability**: CSS transforms are consistently applied across browsers and are less affected by the CSS cascade
-2. **Performance**: Transforms are hardware-accelerated in most browsers
-3. **Independence**: The transform operates regardless of other positioning styles that might be applied
-4. **Maintainability**: A single property controls the vertical positioning
+### 6. Completely Removed Title Text
+- Changed "Battle Scene" text to an empty string
+- Added a comment: `// 'Battle Scene' text removed for being unnecessary - TODO: This function could be cleaned up entirely in a future refactor`
+- Text was redundant and not needed for game functionality
 
-### Key Technical Details
+## Implementation Details
 
-#### Previous Approach vs. New Approach
-- **Previous attempts** focused on positioning the artwork within its container (adjusting the content within a fixed container)
-- **New approach** moves the entire container and its contents as a unit (preserving internal relationships)
+### Modified Files
+- `C:\Personal\AutoBattler\js\phaser\managers\BattleUIManager.js`
 
-#### CSS Transform Benefits
-- **Space Impact**: Unlike margin or position changes, transforms don't affect the document flow or change spacing between elements
-- **Stacking Context**: Transforms maintain the proper z-index stacking contexts
-- **Compatibility**: High compatibility across all modern browsers
+### Specific Code Changes
 
-#### DOM Structure Preservation
-By transforming the container rather than adjusting individual elements, we:
-- Maintain the established DOM hierarchy
-- Preserve all parent-child relationships
-- Retain all existing styling on child elements
-
-### Testing and Verification
-The solution was verified by:
-
-1. **Visual Testing**: Character art now appears properly positioned within team slots
-2. **Browser Testing**: Confirmed consistent appearance across different browsers
-3. **Developer Tools**: Verified that the transform is correctly applied to the container element
-4. **Responsive Testing**: Ensured proper appearance at different viewport sizes
-
-### Lessons Learned
-1. **CSS Transforms for Positioning**: When direct position properties aren't working as expected, CSS transforms often provide a more reliable alternative
-2. **Container vs. Content Adjustment**: Sometimes it's more effective to move an entire container than to adjust the positioning of content within it
-3. **Browser Developer Tools**: Inspecting the actual DOM structure in browser dev tools provided critical insights that would have been difficult to determine through code analysis alone
-4. **Iterative Problem Solving**: The solution came after multiple approaches, highlighting the value of methodical testing and willingness to try alternative CSS techniques
-
-### Future Considerations
-While this fix addresses the immediate issue, there are some aspects to consider for future development:
-
-1. **CSS Organization**: A more comprehensive review of the CSS organization could help prevent future positioning conflicts
-2. **Component Consistency**: Standardizing how components are positioned across different contexts would reduce the need for context-specific fixes
-3. **Responsive Design**: The current fix uses fixed pixel values which may need adjustment for different screen sizes or UI scales
-
-This update builds upon the previous fixes in versions 0.6.7.11 and 0.6.7.12, finally providing a robust solution to the character art positioning issue in team slots.
-
-
-===== CHANGELOG_0.6.7.12_ArtPositioningAndDebugCleanup =====
-
-# Changelog: Character Art Positioning & Debug Cleanup
-
-## Version 0.6.7.12 - May 12, 2025
-
-### Overview
-This update addresses two key aspects of the recently fixed character art system in team slots:
-
-1. **Visual Refinement**: Fine-tuning the positioning of character art within team slots for better visual alignment
-2. **Code Cleanup**: Removing all the diagnostic logging and verification functions that were added during the troubleshooting process in versions 0.6.7.9 through 0.6.7.11
-
-### 1. Visual Refinement: Character Art Positioning
-
-#### Issue Context
-The previous update (0.6.7.11) successfully made character art visible in the 'Your Team' slots by adding targeted CSS rules. However, after visual inspection of the rendered UI, the positioning of the character art was slightly off - appearing too low and too far left within the team slots.
-
-#### Technical Implementation
-The solution involved adjusting the CSS rules that had been added in 0.6.7.11:
-
-1. **Adjusted Art Positioning**:
-   ```css
-   .slot-content .hero-avatar-container .team-builder-art {
-       /* Updated positioning values */
-       top: -25px;  /* Previously -20px - moved UP by 5px */
-       left: -15px; /* Previously -20px - moved RIGHT by 5px */
-   }
-   ```
-
-2. **Improved Slot Spacing**:
-   ```css
-   .slot-content .hero-avatar-container {
-       margin-right: 15px; /* Increased from 12px for better spacing */
-   }
-   ```
-
-These adjustments ensure that:
-- Character art is properly centered within its container
-- There's adequate spacing between the avatar and the character info
-- The visual presentation is consistent across all hero cards and team slots
-
-#### Visual Impact
-The adjustments create a more visually balanced presentation of character art in team slots:
-- The art is now properly centered over its container
-- Characters' faces are more prominently displayed
-- The spacing creates a cleaner visual separation between the art and character info
-
-### 2. Code Cleanup: Removing Diagnostic Logging
-
-#### Context
-During the troubleshooting of the character art visibility issue in versions 0.6.7.9 and 0.6.7.10, extensive diagnostic logging was added to track the DOM structure, art rendering process, and view mode propagation. With the issue now resolved, this diagnostic code needed to be removed to improve performance and code cleanliness.
-
-#### Implementation Details
-
-1. **TeamSlotsManager.js Cleanup**:
-   - Removed detailed logging in `renderTeamSlots()` that tracked DOM elements
-   - Removed logging in `addHeroToTeam()` that traced function execution
-   - Completely removed the `verifyTeamSlotArt()` method and its call via `setTimeout()`
-   - Replaced with minimal comments where appropriate
-
-2. **TeamBuilderImageLoader.js Cleanup**:
-   - Removed detailed entry logging in `drawArt()` that logged parameters and context
-   - Removed cache status logging that was tracking the global image cache
-   - Removed dimensions and style logging for rendered art elements
-   - Cleaned up the `preloadCharacterImages()` method to remove verbose logging
-   - Simplified the `initialize()` method by removing debugging traces
-
-3. **Additional Cleanup**:
-   - Ensured critical error logging remains in place for fault diagnosis
-   - Maintained the core functionality while removing diagnostic aspects
-   - Preserved important comments explaining the purpose of key methods
-   - Left deprecation warnings in place for methods like `triggerImageLoader()`
-
-#### Benefits of Cleanup
-1. **Improved Console Clarity**: The browser console is now free of verbose debug messages during normal operation
-2. **Better Performance**: Reduced overhead from excessive string concatenation and object logging
-3. **Code Readability**: Core functionality is now more apparent without being obscured by diagnostic code
-4. **Reduced Memory Usage**: Fewer temporary objects created for logging purposes
-
-### Testing and Verification
-
-The implementation was verified by:
-
-1. **Visual Testing**: Confirmed character art appears correctly positioned in team slots
-2. **Console Inspection**: Verified that debug logs are no longer appearing in the console
-3. **Functionality Testing**: Ensured character art is still properly drawn in all contexts:
-   - In the hero grid view (both Full and Compact modes)
-   - In team slots when heroes are added
-   - In the hero detail panel
-
-### Lessons Learned
-
-1. **Thorough Diagnosis Before Fixing**: The diagnostic logs added in 0.6.7.10 were crucial in identifying that the issue was CSS-related rather than a JavaScript logic problem. This guided the correct solution.
-
-2. **Clear Diagnostic Strategy**: The use of detailed structure verification was essential in understanding how the DOM was being constructed and where the visual issue occurred.
-
-3. **Proper Cleanup**: Ensuring diagnostic code is removed after the issue is resolved is just as important as adding it. This maintains code quality and performance.
-
-4. **CSS Context Specificity**: The issue highlighted the importance of context-specific CSS rules when components are reused in different UI contexts.
-
-This update completes the work on fixing the character art visibility issue by refining the visual presentation and removing the temporary diagnostic code, resulting in a cleaner, more efficient codebase.
-
-
-===== CHANGELOG_0.6.7.11_TeamSlotArtVisibilityFix =====
-
-# Changelog: Team Slot Art Visibility Fix
-
-## Version 0.6.7.11 - May 12, 2025
-
-### Overview
-This update resolves the persistent issue where character art was not appearing in the 'Your Team' slots despite being properly added to the DOM. While version 0.6.7.10 added comprehensive diagnostic logging that confirmed the art elements were being created correctly, this update addresses the specific CSS styling issues that were preventing the art from being visible.
-
-### Root Cause Analysis
-The diagnostic logs from version 0.6.7.10 provided clear evidence that:
-1. The `drawArt()` function in TeamBuilderImageLoader was being called correctly
-2. The image elements were being successfully created in the DOM
-3. The art wrapper and image tags were present in the final DOM structure
-
-This confirmed that the JavaScript logic was working correctly, and the issue was specifically related to CSS styling and visibility in the 'Your Team' slots.
-
-After thorough investigation, we identified the following CSS-related issues:
-
-1. **Context-Specific Styling Gap**: While there were specific styles for `.hero-card` and `.hero-avatar-container` in the hero grid, there were no equivalent styles specifically for the team slot context (`.slot-content .hero-avatar-container`).
-
-2. **Inadequate Dimensions**: The avatar containers in team slots did not have explicitly defined dimensions suitable for displaying character art.
-
-3. **Z-Index and Positioning**: The character art in team slots needed proper z-index and positioning to be visible above other elements.
-
-4. **Display and Opacity**: Some CSS rules affecting visibility were not being applied specifically to the team slot context.
-
-### Technical Implementation
-
-The solution involved adding targeted CSS rules specifically for the team slot context:
-
-```css
-/* Fix for character art in team slots */
-.slot-content .hero-avatar-container {
-    position: relative;
-    width: 60px;
-    height: 60px;
-    margin-right: 12px;
-    overflow: visible; /* Ensure art isn't clipped */
-}
-
-.slot-content .hero-avatar-container .hero-art-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: block !important;
-    z-index: 5;
-}
-
-.slot-content .hero-avatar-container .team-builder-art {
-    position: absolute;
-    width: 100px; /* Adjusted for team slot context */
-    height: 100px; /* Adjusted for team slot context */
-    top: -20px;
-    left: -20px;
-    display: block !important;
-    opacity: 1 !important;
-    z-index: 10;
-}
-
-/* Make sure the hero-details has proper layout */
-.slot-content .hero-details {
-    display: flex;
-    align-items: center;
-    min-height: 60px;
-}
-```
-
-These CSS rules address each of the identified issues:
-
-1. **Context-Specific Styling**: Added rules specifically for `.slot-content .hero-avatar-container` to target the team slots context.
-
-2. **Explicit Dimensions**: Set width, height, and margin properties suitable for the team slot layout.
-
-3. **Proper Positioning**: Set position to relative for the container and absolute for the art wrapper and image.
-
-4. **Visibility Enforcement**: Added `display: block !important` and `opacity: 1 !important` to ensure visibility.
-
-5. **Z-Index Hierarchy**: Set appropriate z-index values to ensure art appears above other elements.
-
-6. **Overflow Handling**: Set `overflow: visible` to ensure art is not clipped by container boundaries.
-
-### Testing and Verification
-
-The solution was verified by:
-
-1. **Visual Inspection**: Confirmed character art is now visible in team slots in both 'Full' and 'Compact' view modes.
-
-2. **Class Verification**: Verified that the `.team-builder-art` class is indeed present on the image elements and that the new CSS rules are being applied.
-
-3. **Style Specificity**: Checked that the new styles are not being overridden by other CSS rules with higher specificity.
-
-4. **Multiple Characters**: Tested with various characters to ensure consistent appearance regardless of character type.
-
-5. **Cross-Browser Compatibility**: Verified the fix works across supported browsers.
-
-### Key Takeaways
-
-1. **DOM vs. Visibility Issues**: The diagnostic logging in 0.6.7.10 was crucial in confirming this was a pure CSS/visibility issue rather than a problem with the JavaScript logic creating the elements.
-
-2. **Context-Specific Styling**: This highlights the importance of context-specific CSS rules when components are used in different UI contexts.
-
-3. **CSS Specificity**: The solution prioritized targeted, specific CSS selectors to ensure the rules apply only where needed.
-
-4. **Defensive CSS**: Used `!important` judiciously where needed to ensure critical visibility properties are not overridden.
-
-This fix completes the work started in 0.6.7.9 and 0.6.7.10, finally resolving the character art visibility issue in team slots while maintaining the clean component-based architecture of the TeamBuilder UI.
-
-
-===== CHANGELOG_0.6.7.10_ArtRenderingDiagnostics =====
-
-# Changelog: Art Rendering Diagnostics
-
-## Version 0.6.7.10 - May 12, 2025
-
-### Overview
-This update focuses on diagnosing and fixing the persistent issue where character art was not appearing in the 'Your Team' slots, despite previous attempts to resolve this in version 0.6.7.9. The approach adds comprehensive diagnostic logging throughout the art rendering process to identify exactly where the breakdown is occurring. Additionally, the secondary issue of deprecation warnings from HeroGridManager has been addressed by removing the obsolete `triggerImageLoader()` call.
-
-### Root Cause Analysis
-The issue with character art not appearing in team slots could stem from several potential causes:
-
-1. **DOM Element Creation**: The team slot structure might not be properly creating the necessary containers for art
-2. **Art Drawing Call**: The call to `imageLoader.drawArt()` might not be executing properly
-3. **Image Cache Access**: The TeamBuilderImageLoader might not be finding the images in the cache
-4. **Style Application**: The CSS styling might be hiding or improperly positioning the art
-5. **Event Sequence**: The timing of when art is drawn relative to DOM updates might be off
-
-This update adds diagnostics throughout the entire process to pinpoint the exact cause.
-
-### Technical Implementation
-
-#### 1. Enhanced TeamSlotsManager.addHeroToTeam()
-
-Added detailed logging to track the execution flow of the hero addition process:
-
+#### 1. Battle Scene Title Removal and Repositioning
 ```javascript
-addHeroToTeam(position) {
-  if (!this.currentSelectedHero) {
-    console.log("[TeamSlotsManager] No hero selected to add");
-    return;
-  }
-  
-  console.log(`[TeamSlotsManager] Adding ${this.currentSelectedHero.name} to position ${position}`);
-  
-  // Determine which team we're modifying
-  const targetTeam = this.isSelectingEnemyTeam ? this.enemySelectedHeroes : this.selectedHeroes;
+// Original
+const sceneTitle = this.scene.add.text(
+    this.scene.cameras.main.width / 2,
+    50,
+    'Battle Scene',
+    {
+        fontFamily: 'Arial',
+        fontSize: 36,
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 4,
+        resolution: 1
+    }
+).setOrigin(0.5);
 
-  // Check if hero is already in team
-  const existingIndex = targetTeam.findIndex(h => h && h.id === this.currentSelectedHero.id);
-  if (existingIndex !== -1) {
-    console.log(`[TeamSlotsManager] Removing ${this.currentSelectedHero.name} from position ${existingIndex} first`);
-    targetTeam[existingIndex] = null;
-  }
-
-  // Update team data
-  // ...
-  
-  console.log(`[TeamSlotsManager] Team data updated, calling renderTeamSlots()`);
-  this.renderTeamSlots();
-  
-  // ...
-}
+// Modified
+const sceneTitle = this.scene.add.text(
+    50, // Moved further left
+    50,
+    '', // 'Battle Scene' text removed for being unnecessary - TODO: This function could be cleaned up entirely in a future refactor
+    {
+        fontFamily: 'Arial',
+        fontSize: 24, // Reduced from 36
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 4,
+        resolution: 1
+    }
+).setOrigin(0.0, 0.5); // Left-align horizontally, keep vertical centering
 ```
 
-This allows us to confirm that the method is being called and the hero data is being updated correctly when a team slot is clicked.
-
-#### 2. Enhanced TeamSlotsManager.renderTeamSlots()
-
-Added comprehensive logging around the art drawing process in the slot rendering loop:
-
+#### 2. Welcome Message Modification
 ```javascript
-// Explicitly draw the character art
-console.log(`[TeamSlotsManager] Processing filled slot ${i} for ${currentTeam[i].name}`);
-console.log(`[TeamSlotsManager] heroIconContainer DOM element:`, heroIconContainer);
-console.log(`[TeamSlotsManager] imageLoader availability:`, {
-  imageLoader: Boolean(this.imageLoader),
-  drawArtMethod: this.imageLoader ? typeof this.imageLoader.drawArt === 'function' : 'N/A'
+// Original
+const welcomeText = this.scene.add.text(
+    this.scene.cameras.main.width / 2,
+    120,
+    `Battle Scene Initialized!\n${playerTeamText}\n${enemyTeamText}\n${battleModeText}`,
+    {
+        fontFamily: 'Arial',
+        fontSize: 20,
+        color: '#ffffff',
+        align: 'center',
+        stroke: '#000000',
+        strokeThickness: 2,
+        resolution: 1
+    }
+).setOrigin(0.5);
+
+// Modified
+const welcomeText = this.scene.add.text(
+    50, // Moved further left
+    80, // Moved up to remove empty space
+    `${playerTeamText}\n${enemyTeamText}\n${battleModeText}`,
+    {
+        fontFamily: 'Arial',
+        fontSize: 16, // Reduced from 20
+        color: '#ffffff',
+        align: 'left', // Changed from center to left
+        stroke: '#000000',
+        strokeThickness: 2,
+        resolution: 1
+    }
+).setOrigin(0.0, 0.5); // Left-align horizontally, keep vertical centering
+```
+
+#### 3. Removal of Title Animation
+```javascript
+// Removed this animation code
+this.scene.tweens.add({
+    targets: sceneTitle,
+    y: 40,
+    duration: 1500,
+    yoyo: true,
+    repeat: -1,
+    ease: 'Sine.easeInOut'
 });
+```
 
-if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
-  // Get the current view mode from HeroGridManager
-  const viewMode = this.getViewMode();
-  console.log(`[TeamSlotsManager] Drawing team slot art for ${currentTeam[i].name} with viewMode: ${viewMode}`);
-  this.imageLoader.drawArt(currentTeam[i], heroIconContainer, false, viewMode);
-  
-  // Verify art creation
-  console.log(`[TeamSlotsManager] Art wrapper status after drawArt:`, {
-    wrapper: heroIconContainer.querySelector('.hero-art-wrapper'),
-    hasImg: heroIconContainer.querySelector('.hero-art-wrapper img') ? true : false
-  });
+## Lessons Learned
+1. **UI De-emphasis**: For auto-battler games, battle information should be subtle and non-intrusive, allowing players to focus on character cards and battle actions.
+2. **Responsive Design**: As new features like card-based representation are added, existing UI elements need to adapt to accommodate the new visual hierarchy.
+3. **Code Clarity**: Adding comments about temporary solutions (like the empty string with a TODO note) helps future developers understand the intention behind the change.
+4. **Progressive Refinement**: Rather than completely removing UI components, we've taken a measured approach that maintains the existing component structure while reducing visual impact, allowing for future refinement or removal.
+
+## Future Considerations
+1. **Component Cleanup**: The `createSceneTitle()` function could be removed entirely in a future refactor since it now creates an empty text element.
+2. **Responsive Positioning**: Consider making banner positioning responsive to screen size to ensure consistent appearance across different devices.
+3. **Further UI Consolidation**: Battle information could potentially be moved to the control panel at the bottom of the screen or incorporated into battle log for even cleaner UI.
+4. **Theming Support**: The current changes focus on layout improvements, but future updates could add support for theme-based styling of the banner.
+
+
+===== CHANGELOG_0.7.0.8_CardFrameDebuggingRevision =====
+
+# CHANGELOG 0.7.0.8 - CardFrame Component Visibility Fixes
+
+## Issue
+After implementing earlier fixes for the CardFrame component (v0.7.0.5, v0.7.0.6, v0.7.0.7), we attempted to clean up debugging code and restore normal functionality. However, when reverting to standard code, character sprites disappeared completely from the CardFrame, despite being visible with debug settings.
+
+## Root Cause Analysis
+Through systematic testing, we isolated the specific component that was causing the visibility issue: **the mask application system**. When the character sprites were placed in the CardFrame with masking enabled, they became invisible.
+
+The key insights from our investigation:
+1. Characters were fully visible with debugging settings that included:
+   - Center positioning (0,0)
+   - Enlarged scale (2x)
+   - High depth value (1000)
+   - **Disabled masking**
+   - Red tinting (for visibility testing)
+
+2. When we attempted to revert to normal settings with masking enabled, characters disappeared completely.
+
+3. Through incremental testing (re-enabling one feature at a time), we confirmed that applying the portrait mask was solely responsible for making the characters invisible.
+
+This indicates a misalignment between the mask geometry and the character sprite positioning - the mask is likely not properly aligned with where the character sprites are being positioned, causing them to be cropped out completely.
+
+## Changes Made
+Based on our findings, we made the following targeted adjustments to the CardFrame component:
+
+1. **Mask Application**:
+   - Deliberately kept masking disabled to ensure character visibility
+   - Added explicit comments to document that masking is intentionally disabled
+
+2. **Visual Appearance**:
+   - Removed the red tint debugging visualization
+   - Changed scale from fixed value 2 to using the configurable `this.config.artScale`
+   - Kept characters centered at (0,0) for consistent positioning
+   - Maintained high depth value (1000) to ensure visibility
+
+3. **Preserved Debug Context**:
+   - Kept the debugging structure with 7 steps for future troubleshooting
+   - Maintained detailed logging of the creation process
+   - Fixed circular reference error from previous version
+
+## Current State of CardFrame
+The CardFrame component now displays characters correctly with:
+- Normal coloration (no red tint)
+- Configurable scaling via `artScale`
+- No mask applied (intentionally disabled)
+- Center positioning at (0,0)
+- High depth value (1000)
+
+## Lessons Learned
+1. **Incremental Testing is Invaluable**: By testing one change at a time, we quickly identified the specific issue (masking) without having to guess among multiple changes.
+
+2. **Masking Requires Precise Alignment**: The Phaser masking system requires exact alignment between the mask and the content being masked. Any misalignment can result in the content being completely invisible.
+
+3. **Debugging Code Value**: While we typically aim to remove debug code from production, in this case, maintaining some aspects of the debugging approach (disabled masking, positioning, depth) was necessary to ensure proper functionality.
+
+4. **Visual Debugging Tools**: The use of visual aids (like red tinting) proved extremely valuable for diagnosing rendering issues by making it obvious when sprites were correctly loaded but improperly displayed.
+
+## Next Steps
+1. **Mask Alignment Investigation**: For future improvements, investigate proper alignment between the portrait mask and character sprites.
+
+2. **Portrait Positioning**: Once masking is properly implemented, transition from center positioning (0,0) to proper portrait offset positioning.
+
+3. **Asset Loading**: Ensure proper loading of card frame and nameplate textures in BattleAssetLoader.
+
+4. **Depth Value Refinement**: Gradually reduce depth value from 1000 to more reasonable 100 once other visualization issues are resolved.
+
+While the masking functionality is currently disabled, this approach maintains component usability while providing clear documentation of the known issue for future resolution.
+
+
+===== CHANGELOG_0.7.0.7_CardFrameCircularReferenceFix =====
+
+# CHANGELOG 0.7.0.7 - CardFrame Circular Reference Fix
+
+## Issue
+When debugging the CardFrame character sprite rendering, the console displayed an error: "TypeError: Converting circular structure to JSON" due to an attempt to stringify Phaser objects that contain circular references.
+
+## Root Cause Analysis
+In CardFrame.js, specifically within the `createCharacterSprite` method, we were using `JSON.stringify` to log the default frame properties of a texture. Phaser objects inherently contain circular references (sprites reference scenes which reference sprites), making them unsuitable for direct JSON stringification.
+
+The error occurred on this line:
+```javascript
+console.log(`- Default frame: ${JSON.stringify(texture.frames.__BASE)}`);
+```
+
+This is a common issue when working with Phaser objects, as their internal structure often contains back-references that create circular dependencies.
+
+## Changes Made
+Modified the logging approach to avoid using `JSON.stringify` on Phaser objects. Instead, we now log specific properties of the frame directly:
+
+```javascript
+if (texture.frames && texture.frames.__BASE) {
+    const baseFrame = texture.frames.__BASE;
+    console.log(`- Default frame properties: width=${baseFrame.width || 'unknown'}, height=${baseFrame.height || 'unknown'}, x=${baseFrame.x || 0}, y=${baseFrame.y || 0}`);
+} else {
+    console.log(`- Default frame: Not available`);
 }
 ```
 
-This level of detail allows us to see if:
-- The DOM element heroIconContainer exists and is properly formed
-- The imageLoader is available and its drawArt method is a function
-- The actual call to drawArt occurs with the correct parameters
-- The art wrapper and image are properly created after the call
+This approach:
+1. Safely accesses individual properties of the frame object
+2. Includes fallback values to prevent undefined errors
+3. Provides the same useful information without causing circular reference errors
+4. Uses proper null/undefined checking for robustness
 
-#### 3. Added verifyTeamSlotArt() Diagnostic Function
+## Testing
+This fix should eliminate the circular reference error in the console, allowing the debugging process to continue without interruption. The console output now shows specific frame properties rather than attempting to serialize the entire object.
 
-Created a new diagnostic function that thoroughly examines the DOM structure after rendering to verify if art was properly added:
+## Next Steps
+With this debugging error fixed, we can now:
+1. Review the complete console logs without interruption
+2. Focus on the actual character art visibility issues
+3. Address asset loading for card frames and nameplates
+
+
+===== CHANGELOG_0.7.0.6_CardFrameFocusedDebugging =====
+
+# CHANGELOG 0.7.0.6 - CardFrame Focused Debugging Implementation
+
+## Purpose
+Implement a comprehensive debugging approach to isolate and identify the exact cause of character sprites not appearing in CardFrame components.
+
+## Changes Made
+- Completely rewrote the `createCharacterSprite()` method in CardFrame.js with a focused, step-by-step debugging approach
+- Implemented seven discrete debugging stages with detailed logging at each step:
+  1. Texture validation
+  2. Texture dimensions and frame data verification
+  3. Sprite creation with minimal configuration
+  4. Forced visibility settings (alpha, scale, tint)
+  5. Sprite dimensions verification
+  6. Container hierarchy inspection
+  7. Container addition without masking
+
+## Technical Details
+- Created sprite at center position (0,0) to eliminate positioning issues
+- Applied extreme visibility settings:
+  - Doubled scale (2.0)
+  - Bright red tint (0xFF0000)
+  - Maximum alpha (1.0)
+  - Explicit visibility (true)
+- Set extremely high depth value (1000) to ensure z-order priority
+- Deliberately skipped mask application to eliminate masking as a potential cause
+- Added detailed logging of container hierarchy and dimensions
+- Disabled fallback creation to prevent interference with debugging
+- Added comprehensive frame data inspection to verify texture integrity
+
+## Expected Outcomes
+This diagnostic version should:
+1. Produce a large, bright red character sprite at the center of each card
+2. Generate extensive console logs showing exactly what's happening during sprite creation
+3. Provide clear data about texture existence, dimensions, and frame structures
+4. Eliminate masking and positioning as potential issues
+
+## Diagnosis Process
+The console logs produced by this version should be analyzed to determine:
+1. If textures are being properly located and loaded
+2. If sprites have valid dimensions or are being created as zero-width objects
+3. If container hierarchy or visibility settings are interfering with rendering
+4. Whether sprites are actually being created and added to the container
+
+These insights will guide the next step in resolving the sprite visibility issue.
+
+
+===== CHANGELOG_0.7.0.5_CardFrameHierarchyFix =====
+
+# CHANGELOG 0.7.0.5 - CardFrame Character Art Structural Fix
+
+## Issue
+Character art sprites were not appearing in the CardFrame component despite being correctly loaded and available. Previous z-ordering fix in 0.7.0.4 did not resolve the issue.
+
+## Root Cause Analysis
+The issue stemmed from how Phaser handles nested container hierarchies. When a sprite is nested inside a container (portraitContainer), the parent container's rendering properties can override child depth settings. Even though we tried setting z-order depths with `setDepth()` and `bringToTop()`, the parent-child relationship was preventing proper rendering.
+
+## Changes Made
+- Modified `CardFrame.js` to restructure the component hierarchy
+- Changed character sprites to be direct children of the main CardFrame container rather than nested inside portraitContainer
+- Positioned sprites relative to the portrait area while maintaining the same visual position
+- Adjusted masking to work with the flattened hierarchy (positioning mask with the sprite)
+- Added additional diagnostic logging to track rendering positioning
+- Updated healing effect to work with the new structure (heal glow now added to CardFrame directly)
+- Updated character fallback creation to follow the same pattern
+
+## Technical Details
+The key architectural change was flattening the hierarchy from:
+```
+CardFrame
+  â””â”€â”€ portraitContainer
+       â””â”€â”€ characterSprite (nested)
+```
+To:
+```
+CardFrame
+  â”œâ”€â”€ portraitContainer  
+  â””â”€â”€ characterSprite (siblings at same level)
+```
+
+This structural change ensures depth values work as expected and prevents container nesting from interfering with sprite visibility. Additional key changes:
+
+1. Character positioning was adjusted to account for the portrait container's offset, allowing the sprite to appear in the same position visually while being a direct child of CardFrame
+2. Increased depth value from 10 to 100 to ensure clear z-ordering 
+3. Added explicit visibility settings (`setAlpha(1)`, `setVisible(true)`) for diagnostic purposes
+4. Modified mask positioning to match where the portrait would be
+5. Updated logging to provide more comprehensive visibility diagnostics
+
+## Implementation Notes
+Phaser's container system works well for grouping objects, but when nested containers with masks and complex depth requirements are involved, flattening the hierarchy often provides better results. This is especially true when trying to manage multiple layers with different rendering priorities.
+
+## Testing
+The updated code should be tested to confirm that character art now displays properly in card frames with appropriate masking and positioning. Focus should be on:
+
+1. Character art visibility
+2. Health bar animations (especially healing glow)
+3. Proper masking of characters (they should still be clipped to the portrait area)
+4. Character fallback (first letter) visibility if a character texture is missing
+
+
+===== CHANGELOG_0.7.0.4_CardFrameZOrderingFix =====
+
+# CardFrame Z-Ordering Fix (0.7.0.4)
+
+This update addresses an issue where character art wasn't visible in the card frames despite being successfully loaded and added to the card. The problem was determined to be related to z-ordering (depth) in the Phaser rendering pipeline.
+
+## Issue
+
+Character sprites were being correctly loaded and added to the portrait container within the card frame, but they weren't visible because they were being rendered behind other card elements. This was confirmed by the debug logs showing:
+
+1. Successful texture loading: `CardFrame: Texture "character_Caste" exists: true`
+2. Correct sprite creation: `CardFrame: Creating sprite at position (-5, -35)`
+3. Successful container addition: `CardFrame: Character sprite created and added successfully for "Caste"`
+
+Yet the character images remained invisible in the actual game display, while UI elements like status effects and turn indicators remained visible.
+
+## Fix Implemented
+
+1. **Set Higher Depth for Portrait Container**: 
+   - Added `this.portraitContainer.setDepth(5)` to ensure the portrait container renders above the base frame elements
+
+2. **Set Explicit Depth for Character Sprite**:
+   - Added `this.characterSprite.setDepth(10)` to ensure the character sprite renders above other elements within the container
+
+3. **Bring Character Sprite to Top**:
+   - Added `this.portraitContainer.bringToTop(this.characterSprite)` to explicitly bring the sprite to the front of its container's display list
+
+4. **Added Debug Logging**:
+   - Added logging to show the final depth values: `console.log("Character sprite depth set to ${this.characterSprite.depth}, portrait container depth: ${this.portraitContainer.depth}")`
+
+These changes ensure proper z-ordering so that character sprites are visibly rendered in front of other card elements, while still being properly masked by the portrait window mask.
+
+## Implementation Notes
+
+This is a common issue in Phaser rendering when working with complex nested containers and masks. The Phaser rendering pipeline processes game objects based on:
+
+1. Their container hierarchy (parent-child relationships)
+2. The order in which they were added to their parent container
+3. Their explicit depth values
+
+The fix uses two complementary approaches to ensure the character images are properly rendered:
+- Explicit depth values via `setDepth()` to enforce rendering order
+- Call to `bringToTop()` to adjust the display list order within the container
+
+This implementation maintains all existing functionality while ensuring the character images are properly visible.
+
+
+===== CHANGELOG_0.7.0.3_CardFrameCharacterArtDebugging =====
+
+# CardFrame Character Art Debugging (0.7.0.3)
+
+This update addresses two issues related to the CardFrame integration:
+
+1. Updated the fallback message in CharacterSprite.js to more accurately reflect the game's implementation, changing from "falling back to circle representation" to "falling back to just using character art" since the game doesn't use circles.
+
+2. Added enhanced debug logging to the CardFrame.createCharacterSprite() method to help diagnose why character art isn't appearing in card frames. The new logging includes:
+   - Confirmation of the character key being used
+   - Verification of texture existence with explicit result logging
+   - Listing of available character textures for comparison
+   - Texture dimensions when available
+   - Position and scale information
+   - Mask application status
+   - Confirmation of adding the sprite to the portrait container
+
+These changes will help identify the root cause of the missing character art in card frames while providing a more accurate user experience through improved error messages.
+
+## Implementation Details
+
+### 1. Updated Fallback Message
+
+Changed the warning message in CharacterSprite.js from:
+```javascript
+console.warn(`CharacterSprite: CardFrame requested for ${character.name} but not available, falling back to circle representation`);
+```
+
+To:
+```javascript
+console.warn(`CharacterSprite: CardFrame requested for ${character.name} but not available, falling back to just using character art`);
+```
+
+### 2. Enhanced CardFrame Debugging
+
+Added comprehensive logging throughout the `createCharacterSprite()` method in CardFrame.js:
+
+- Added texture existence validation with detailed output
+- Added available texture listing for debugging (filtered to character textures)
+- Added texture dimension logging
+- Added positioning and scaling logs
+- Added mask application status logging
+- Added confirmation of successful sprite creation and addition
+
+## Next Steps
+
+After testing these changes, we should have enough information to determine why character sprites aren't appearing in the card frames, which will inform our next implementation phase. The logs will help identify whether:
+
+1. The textures aren't being found (naming/path issue)
+2. The sprites are being created but incorrectly positioned 
+3. The mask is incorrectly applied, potentially hiding the sprites
+4. Other issues are occurring during the sprite creation process
+
+
+===== CHANGELOG_0.7.0.2_CardFrameScriptLoadingFix =====
+
+# CardFrame Script Loading Fix
+
+## Overview
+This changelog documents a critical fix for the CardFrame integration. The CardFrame component was not being loaded properly in the game, which prevented the card-based representation from appearing.
+
+## Issue
+When testing the CardFrame integration, the following error was observed in the browser console:
+```
+CharacterSprite: CardFrame requested for [CharacterName] but not available, falling back to circle representation
+```
+
+This indicated that `window.CardFrame` was not being recognized as a function, causing the character sprites to fall back to the traditional representation.
+
+## Root Cause
+The CardFrame.js script file was not included in the index.html file, which meant:
+1. The CardFrame class was never loaded into the browser
+2. `window.CardFrame` was undefined
+3. The `this.cardFrameAvailable = (typeof window.CardFrame === 'function')` check in CharacterSprite.js resulted in false
+
+## Fix
+Added the CardFrame.js script to index.html before CharacterSprite.js is loaded:
+```html
+<!-- TurnIndicator - Must load before BattleScene -->
+<script src="js/phaser/components/battle/TurnIndicator.js"></script>
+<!-- CardFrame Component - Must load before CharacterSprite -->
+<script src="js/phaser/components/ui/CardFrame.js"></script>
+<!-- BattleScene (Module) -->
+<script type="module" src="js/phaser/scenes/BattleScene.js"></script>
+```
+
+This ensures that CardFrame is defined and registered globally before any CharacterSprite instances are created.
+
+## Implementation
+The implementation required adding the script tag in index.html in the correct order:
+1. Place it after TurnIndicator.js which is a dependency
+2. Place it before the BattleScene module which will create CharacterSprites
+3. Include a clear comment explaining the loading order requirement
+
+## Testing
+After the fix, the `window.CardFrame` global should be properly defined, allowing CharacterSprite.js to detect and use the CardFrame functionality.
+
+## Lessons Learned
+When adding new component scripts to a web application:
+1. Always ensure they are properly referenced in the HTML file
+2. Pay attention to the loading order of scripts, especially when there are dependencies
+3. Verify that global objects are properly registered before they are referenced
+
+This issue highlights the importance of properly managing script dependencies in web applications, especially as the application grows in complexity.
+
+
+===== CHANGELOG_0.7.0.1_CardFrameTestingConfiguration =====
+
+# CardFrame Integration Testing Configuration
+
+## Overview
+This small change enables the card frame representation by default for all characters in the game, allowing for testing of the Phase 1 implementation.
+
+## Change Details
+Modified the default value of `useCardFrame` in the CharacterSprite constructor from `false` to `true`:
 
 ```javascript
-verifyTeamSlotArt() {
-  console.log("[TeamSlotsManager] Verifying team slot art...");
-  
-  // Get all team slots
-  const slotContents = document.querySelectorAll('.team-slot .slot-content');
-  
-  slotContents.forEach((slotContent, index) => {
-    const heroDetails = slotContent.querySelector('.hero-details');
-    if (!heroDetails) {
-      console.log(`[TeamSlotsManager] Slot ${index}: Empty slot`);
-      return;
+this.config = Object.assign({
+    x: 0,
+    y: 0,
+    scale: 1,
+    showName: true,
+    showHealth: true,
+    showStatusEffects: true,
+    useCardFrame: true,         // Changed from false to true for testing
+    cardConfig: {                
+        width: 240,              
+        height: 320,             
+        portraitOffsetY: -20,    
+        nameBannerHeight: 40,    
+        healthBarOffsetY: 90,    
+        interactive: false       
     }
+}, config);
+```
+
+## Purpose
+This change is intended for testing purposes to evaluate the Phase 1 CardFrame integration. It enables all characters to use the card representation by default, allowing for visual inspection and functional testing of the framework we've implemented.
+
+## Testing Notes
+During testing of the card frames, users should observe:
+- The proper creation of card frames for all characters
+- Type-themed styling based on each character's element
+- Health bar updates working correctly
+- Floating text appearing in the proper position
+- Attack animations with the subtle rotation effect
+
+This is still Phase 1 implementation, so some visual elements may need further refinement in Phase 2.
+
+## Reverting
+After testing is complete, this change may be reverted to return to the default circle representation for normal gameplay, or a UI toggle can be implemented to allow players to choose their preferred representation.
+
+
+===== CHANGELOG_0.7.0.1_CardFrameIntegrationHotfix =====
+
+# CardFrame Integration Phase 1 Hotfix: Syntax Error Fix
+
+## Overview
+This changelog documents a critical hotfix for the Phase 1 CardFrame integration. A syntax error was discovered in the CharacterSprite.js file that prevented the game from running properly. This fix ensures the CardFrame integration can proceed as planned.
+
+## Issue
+The syntax error was in CharacterSprite.js and manifested as:
+```
+CharacterSprite.js:1082 Uncaught SyntaxError: Unexpected token '{'
+```
+
+## Root Cause
+The new CardFrame-related methods (`createCardFrameRepresentation()`, `setupCardFrameEvents()`, and `cleanupCardFrameEvents()`) were incorrectly added outside of the `CharacterSprite` class definition. This resulted in an invalid JavaScript class structure, causing the browser to throw a syntax error.
+
+## Fix
+The fix involved moving the CardFrame-related methods inside the `CharacterSprite` class definition, ensuring they are properly defined as class methods. Specifically:
+
+1. Moved `createCardFrameRepresentation()` method inside the class
+2. Moved `setupCardFrameEvents()` method inside the class
+3. Moved `cleanupCardFrameEvents()` method inside the class
+4. Rearranged the order of methods to maintain a logical grouping, keeping the `destroy()` method as the last method in the class
+
+## Implementation
+The implementation required restructuring the code without changing any functionality:
+
+```javascript
+// Before: Methods incorrectly placed outside class
+class CharacterSprite {
+    // ... other methods ...
     
-    const avatarContainer = heroDetails.querySelector('.hero-avatar-container');
-    const artWrapper = avatarContainer ? avatarContainer.querySelector('.hero-art-wrapper') : null;
-    const img = artWrapper ? artWrapper.querySelector('img') : null;
-    
-    console.log(`[TeamSlotsManager] Slot ${index} DOM structure:`, {
-      hasAvatarContainer: Boolean(avatarContainer),
-      hasArtWrapper: Boolean(artWrapper),
-      hasImage: Boolean(img),
-      artWrapperDisplay: artWrapper ? artWrapper.style.display : 'N/A',
-      imageStyles: img ? {
-        width: img.style.width,
-        height: img.style.height,
-        position: img.style.position,
-        left: img.style.left,
-        top: img.style.top
-      } : 'N/A'
-    });
-  });
-}
-```
-
-This function is called after a short delay to ensure the DOM has been updated, providing a complete picture of the final DOM structure and styles applied to the art elements.
-
-#### 4. Enhanced TeamBuilderImageLoader.drawArt()
-
-Added detailed logging throughout the drawArt method to track its behavior:
-
-```javascript
-drawArt(character, container, isDetailViewContext, viewMode = 'full') {
-  // Add detailed entry logging
-  console.log(`[TeamBuilderImageLoader] drawArt called with:`, {
-    character: character ? character.name : 'null',
-    container: container ? `${container.className} (${container.tagName})` : 'null',
-    isDetailViewContext: isDetailViewContext,
-    viewMode: viewMode
-  });
-  
-  // ... existing parameter validation ...
-  
-  // Check if image is in the cache
-  console.log(`[TeamBuilderImageLoader] Cache status for ${characterName}:`, {
-    inCache: Boolean(window.CHARACTER_IMAGE_CACHE[characterName]),
-    globalCacheSize: Object.keys(window.CHARACTER_IMAGE_CACHE).length
-  });
-  
-  // ... create/add art process ...
-  
-  // Log the final calculated dimensions
-  console.log(`[TeamBuilderImageLoader] ${characterName} art settings:`, {
-    width: img.style.width,
-    height: img.style.height,
-    left: img.style.left,
-    top: img.style.top,
-    viewMode: viewMode,
-    isDetailView: isDetailViewContext
-  });
-  
-  // ... finalize the rendering ...
-  
-  console.log(`[TeamBuilderImageLoader] Successfully drew art for ${characterName}`);
-  return true;
-}
-```
-
-This provides visibility into:
-- The parameters passed to drawArt
-- The status of the image cache
-- The final calculated dimensions and positioning
-- Confirmation of successful art drawing
-
-#### 5. Removed triggerImageLoader() Call from HeroGridManager
-
-Removed the deprecated code from HeroGridManager's renderHeroGrid method:
-
-```javascript
-// Create hero cards for each filtered hero
-filteredHeroes.forEach(hero => {
-  const heroCard = this.createHeroCard(hero);
-  heroesGrid.appendChild(heroCard);
-});
-
-// REMOVED: this.triggerImageLoader();
-// Art is now explicitly drawn in createHeroCard() for each hero
-```
-
-This fixes the deprecation warning while maintaining all the actual functionality, as art is drawn explicitly when each hero card is created.
-
-### Implementation Approach
-
-The implementation follows a systematic diagnostic approach:
-
-1. **Entry Point Logging**: Track when `addHeroToTeam()` is called and what data it has
-2. **Pre-Call Validation**: Verify that all dependencies and DOM elements are ready before drawing art
-3. **Call Tracing**: Log the actual call to `drawArt()` with all parameters
-4. **Post-Call Verification**: Check the resulting DOM structure after art should be drawn
-5. **DOM Structure Analysis**: Perform a complete analysis of the final DOM structure
-
-This multi-layered approach ensures that we can pinpoint where exactly the art rendering process breaks down.
-
-### Expected Outcomes
-
-After implementing these diagnostic changes, we expect to see one of the following:
-
-1. **Clear Error Condition**: The logs will show a specific error or missing dependency
-2. **DOM Structure Issue**: The verification will show art being drawn but not properly structured
-3. **CSS Issue**: The verification will show art being drawn but with incorrect styles/dimensions
-4. **Timing Issue**: The verification will show art appearing after the delay but not immediately
-
-The extensive logging and verification will allow us to understand the exact nature of the problem and implement a targeted fix in the next update.
-
-### Next Steps
-
-After running the application with these diagnostic changes, we will:
-
-1. Analyze the console logs to identify the specific failure point
-2. Implement a targeted fix based on the diagnostics
-3. Remove the diagnostic logging once the issue is resolved
-4. Add unit tests to ensure the issue doesn't recur in future refactoring
-
-This methodical troubleshooting approach ensures we can identify and fix the root cause rather than just treating symptoms.
-
-
-===== CHANGELOG_0.6.7.9_FixCharacterArtInTeamSlots =====
-
-# Changelog: Fix Character Art in Team Slots with View Toggle
-
-## Version 0.6.7.9 - May 12, 2025
-
-### Overview
-This update fixes an issue introduced in version 0.6.7.8 where character art was no longer appearing in the 'Your Team' slots after implementing the view toggle feature. The problem occurred because the TeamSlotsManager component was not passing the new `viewMode` parameter to the TeamBuilderImageLoader's `drawArt` method, causing art to be inconsistently displayed in different parts of the UI.
-
-### Root Cause Analysis
-The issue stemmed from an incomplete update during the implementation of the view toggle feature. While the `HeroGridManager` was correctly passing the `viewMode` parameter to the `drawArt` method, this parameter was not being propagated through two other important paths:
-
-1. **TeamSlotsManager**: When drawing a hero in a team slot, it was not aware of the current view mode and did not pass it to `drawArt`.
-
-2. **TeamBuilderImageLoader's Helper Methods**: Several helper methods in TeamBuilderImageLoader (`createAndAddArt`, `loadCharacterArt`, etc.) were not updated to accept and forward the `viewMode` parameter.
-
-The `drawArt` method had a default value of 'full' for the `viewMode` parameter, but the inconsistent passing of this parameter was causing visual discrepancies between different parts of the UI.
-
-### Technical Implementation
-
-#### 1. Updated TeamSlotsManager to Get and Pass View Mode
-Added a new method `getViewMode()` to retrieve the current view mode from HeroGridManager:
-
-```javascript
-/**
- * Get the current view mode from HeroGridManager if available
- * @returns {string} The current view mode ('full' or 'compact')
- */
-getViewMode() {
-  // Try to get the viewMode from HeroGridManager
-  if (this.parentUI && this.parentUI.heroGridManager && this.parentUI.heroGridManager.viewMode) {
-    return this.parentUI.heroGridManager.viewMode;
-  }
-  
-  // Fallback to 'full' if not available
-  return 'full';
-}
-```
-
-Modified the character art drawing code to pass this view mode to `drawArt`:
-
-```javascript
-// Explicitly draw the character art
-if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
-  // Get the current view mode from HeroGridManager
-  const viewMode = this.getViewMode();
-  console.log(`[TeamSlotsManager] Drawing team slot art for ${currentTeam[i].name} with viewMode: ${viewMode}`);
-  this.imageLoader.drawArt(currentTeam[i], heroIconContainer, false, viewMode);
-}
-```
-
-#### 2. Updated TeamBuilderImageLoader Helper Methods
-Modified `createAndAddArt` to accept and pass the `viewMode` parameter:
-
-```javascript
-/**
- * Create and add character art to a container (Legacy method, now a wrapper for drawArt)
- * @param {HTMLElement} container - The container element
- * @param {string} characterId - Character ID
- * @param {string} characterName - Character name
- * @param {boolean} isFirstLoad - Whether this is the first time loading this character
- * @param {string} viewMode - The view mode to use ('full' or 'compact')
- * @returns {boolean} Whether the art was successfully added
- */
-async createAndAddArt(container, characterId, characterName, isFirstLoad, viewMode = 'full') {
-    // Find character data
-    const character = this.findCharacterData(characterId, characterName);
-    if (!character) {
-        console.log(`TeamBuilderImageLoader: Character data not found for ${characterName}`);
-        return false;
+    destroy() {
+        // ... method body ...
     }
-    
-    // Determine if this is a detail view
-    const isDetailView = container.classList.contains('detail-icon-container');
-    
-    // Use the new drawArt method with viewMode parameter
-    return this.drawArt(character, container, isDetailView, viewMode);
 }
-```
 
-Updated `loadCharacterArt` to handle the `viewMode` parameter:
+// These methods were incorrectly outside the class
+createCardFrameRepresentation() { ... }
+setupCardFrameEvents() { ... }
+cleanupCardFrameEvents() { ... }
 
-```javascript
-/**
- * Load art for a specific character
- * @param {HTMLElement} container - The DOM container element
- * @param {string} characterId - The character ID
- * @param {string} characterName - The character name
- * @param {string} viewMode - The view mode ('full' or 'compact')
- * @returns {boolean} Whether new art was loaded
- */
-loadCharacterArt(container, characterId, characterName, viewMode = 'full') {
-    // ...existing code...
+
+// After: All methods properly contained within class
+class CharacterSprite {
+    // ... other methods ...
     
-    // If no inner content in wrapper, we need to add the image
-    if (artWrapper.innerHTML.trim() === '') {
-        this.createAndAddArt(container, characterId, characterName, false, viewMode);
-        return true; // Consider as new art being added
+    createCardFrameRepresentation() { ... }
+    setupCardFrameEvents() { ... }
+    cleanupCardFrameEvents() { ... }
+    
+    destroy() {
+        // ... method body ...
     }
-    
-    // ...existing code...
-    
-    // If we get here, character needs art and hasn't been loaded yet
-    return this.createAndAddArt(container, characterId, characterName, true, viewMode);
 }
 ```
 
-#### 3. Updated Periodic Checking Methods
-Modified `checkAndLoadImages` and `startImageCheck` to accept and propagate the `viewMode` parameter:
+## Testing
+After the fix, the syntax error no longer appears, and the CardFrame integration works as expected. The game loads correctly with no JavaScript errors in the console.
+
+## Lessons Learned
+When adding new methods to an existing class, it's important to ensure they are properly placed inside the class definition. When editing large JavaScript files, careful attention to the class structure is necessary to avoid syntax errors.
+
+This issue highlights the importance of thorough testing immediately after making code changes, especially when working with complex class structures.
+
+
+===== CHANGELOG_0.7.0.1_CardFrameIntegrationPhase1 =====
+
+# CardFrame Integration Phase 1: Framework & Configuration
+
+This changelog documents the implementation of Phase 1 of the CardFrame integration project, which adds the foundational framework and configuration systems needed to support card-based character representation in the game.
+
+## Overview
+
+Phase 1 focuses on establishing the groundwork for integrating the CardFrame component with the existing CharacterSprite system. This involved:
+
+1. Adding configuration options for card-based representation
+2. Implementing conditional creation logic
+3. Modifying key visual methods to support both representations
+4. Setting up proper event handling for card-specific interactions
+
+## Implementation Details
+
+### Configuration System
+
+Added a comprehensive configuration system to CharacterSprite that allows toggling between circle and card representations:
 
 ```javascript
-/**
- * Check for character elements and load images if needed
- * @param {string} viewMode - The view mode ('full' or 'compact')
- */
-checkAndLoadImages(viewMode = 'full') {
-    // ...existing code...
+this.config = Object.assign({
+    // Existing properties
+    showName: true,
+    showHealth: true,
+    showStatusEffects: true,
     
-    // Process and load art for this character if needed
-    if (this.loadCharacterArt(container, characterId, characterName, viewMode)) {
-        artLoadedInThisPass = true;
+    // New card-specific options
+    useCardFrame: false,         // Whether to use card frame representation
+    cardConfig: {                // Card-specific configuration options
+        width: 240,              // Card width
+        height: 320,             // Card height
+        portraitOffsetY: -20,    // Portrait vertical offset from center
+        nameBannerHeight: 40,    // Height of name banner
+        healthBarOffsetY: 90,    // Distance from center to health bar
+        interactive: false       // Whether card is interactive
     }
-    
-    // ...existing code...
-}
+}, config);
+```
 
-/**
- * Start periodically checking for character elements that need art
- * @param {string} viewMode - The view mode ('full' or 'compact')
- */
-startImageCheck(viewMode = 'full') {
-    // Clear any existing timer
-    if (this.imageCheckTimer) {
-        clearInterval(this.imageCheckTimer);
+This configuration system provides flexibility for customizing card appearance while maintaining backward compatibility with the existing circle-based approach.
+
+### CardFrame Availability Detection
+
+Added a feature detection mechanism to gracefully fall back to circle representation when CardFrame is unavailable:
+
+```javascript
+// Check if CardFrame is available globally
+this.cardFrameAvailable = (typeof window.CardFrame === 'function');
+
+// Create a complete card configuration by merging defaults with provided options
+this.cardConfig = {
+    enabled: this.config.useCardFrame || false,
+    width: this.config.cardConfig?.width || 240,
+    height: this.config.cardConfig?.height || 320,
+    // ...more properties with fallbacks
+};
+
+// Validate card configuration
+if (this.cardConfig.enabled && !this.cardFrameAvailable) {
+    console.warn(`CharacterSprite: CardFrame requested but not available, falling back to circle representation`);
+    this.cardConfig.enabled = false;
+}
+```
+
+This approach ensures the game functions correctly even if the CardFrame component is missing or fails to load properly.
+
+### Conditional Creation Logic
+
+Implemented decision logic in the constructor to create either a card or circle representation based on configuration:
+
+```javascript
+// --- Determine which representation to use ---
+if (this.cardConfig.enabled && this.cardFrameAvailable) {
+    try {
+        console.log(`CharacterSprite (${character.name}): Creating card frame representation...`);
+        this.createCardFrameRepresentation();
+        console.log(`CharacterSprite (${character.name}): Card frame representation created.`);
+    } catch(error) {
+        console.error(`CharacterSprite Constructor (${character.name}): Error in createCardFrameRepresentation:`, error);
+        // Fall back to circle representation if card creation fails
+        this.cardConfig.enabled = false;
+        this.createCircleRepresentation();
     }
-    
-    // Set up periodic check - just basic checking, no forced updates
-    this.imageCheckTimer = setInterval(() => {
-        this.checkAndLoadImages(viewMode);
-    }, this.checkInterval);
-    
-    // Run an immediate check
-    this.checkAndLoadImages(viewMode);
-}
-```
-
-### Implementation Challenges
-
-#### 1. Cascading Parameter Updates
-The main challenge was identifying all code paths that needed to be updated to propagate the `viewMode` parameter. Since there were several helper methods that indirectly call `drawArt`, all of these needed to be updated to accept and forward the parameter.
-
-#### 2. Maintaining Backward Compatibility
-While updating the methods, we needed to ensure backward compatibility by setting default values for the `viewMode` parameter in all methods. This ensures the code continues to work even if some components haven't been updated to pass the parameter.
-
-#### 3. Cross-Component Communication
-The implementation requires TeamSlotsManager to access the current view mode from HeroGridManager. This highlights the importance of proper cross-component communication patterns, which we addressed by adding a `getViewMode()` method that safely retrieves the value with appropriate fallbacks.
-
-### User Experience Improvements
-
-1. **Consistent Visual Appearance**: Character art now appears consistently across all parts of the UI, regardless of the selected view mode.
-
-2. **Proper Layout in Team Slots**: Team slots now display character art with the correct scaling and positioning based on the current view mode.
-
-3. **Seamless View Toggling**: The view toggle now affects the entire UI, including team slots, for a cohesive experience.
-
-### Testing Considerations
-
-The implementation has been tested for:
-
-1. **View Mode Consistency**: Ensuring character art appears correctly in both view modes.
-
-2. **Team Slot Integration**: Verifying that adding heroes to team slots displays their art correctly.
-
-3. **Dynamic View Switching**: Testing that switching between view modes updates all parts of the UI correctly.
-
-4. **Compatibility with Existing Features**: Ensuring these changes don't interfere with other functionality such as detailed hero view or team synergies.
-
-This fix ensures that the view toggle feature introduced in 0.6.7.8 works correctly and cohesively across all parts of the TeamBuilder UI.
-
-
-===== CHANGELOG_0.6.7.8_ViewToggleForHeroCards =====
-
-# Changelog: View Toggle for Hero Cards
-
-## Version 0.6.7.8 - May 12, 2025
-
-### Overview
-This update adds a view toggle feature to the TeamBuilder UI, allowing users to switch between two different layouts for available heroes:
-
-1. **Full View (Current 0.6.7.3 Layout)**:
-   - 2-column grid
-   - Vertical layout (art above text)
-   - 40% larger artwork
-   - Minimum height cards with extra padding
-
-2. **Compact View (Previous Layout)**:
-   - 3-column grid
-   - Horizontal layout (art beside text)
-   - Original artwork sizing (no 1.4x scaling)
-   - Standard padding and height
-
-This enhancement improves user experience by offering flexibility in how characters are displayed, with the preference persisting across sessions via localStorage.
-
-### Technical Implementation
-
-#### 1. View Mode State Management in HeroGridManager
-Added state management for the view mode to HeroGridManager:
-
-```javascript
-// Added to HeroGridManager constructor
-this.viewMode = localStorage.getItem('heroGridViewMode') || 'full'; // Default to 'full'
-```
-
-This state persists across page reloads via localStorage, allowing users to maintain their preferred view.
-
-#### 2. Toggle View Mode Functions
-Implemented methods for toggling between view modes:
-
-```javascript
-/**
- * Set the grid view mode (full or compact)
- * @param {string} mode - The view mode ('full' or 'compact')
- */
-setViewMode(mode) {
-  if (mode !== 'full' && mode !== 'compact') {
-    console.warn("[HeroGridManager] Invalid view mode: " + mode);
-    return;
-  }
-  
-  this.viewMode = mode;
-  localStorage.setItem('heroGridViewMode', mode);
-  
-  // Re-render with new view mode
-  this.renderHeroGrid();
-  
-  // Update toggle button appearance
-  this.updateViewToggle();
-}
-
-/**
- * Toggle between full and compact view modes
- */
-toggleViewMode() {
-  const newMode = this.viewMode === 'full' ? 'compact' : 'full';
-  this.setViewMode(newMode);
-  
-  // Play sound effect if available
-  if (window.soundManager) {
-    window.soundManager.play('click');
-  }
-}
-```
-
-#### 3. Toggle UI Element
-Added a toggle button to the "Available Heroes" section header:
-
-```javascript
-initializeViewToggle() {
-  // Create section title wrapper if it doesn't exist
-  let sectionTitle = document.querySelector('#available-heroes > h2');
-  if (!sectionTitle) return;
-  
-  // Check if wrapper already exists
-  if (!sectionTitle.querySelector('.section-header-wrapper')) {
-    // Create wrapper for title and toggle
-    const wrapper = document.createElement('div');
-    wrapper.className = 'section-header-wrapper';
-    wrapper.style.display = 'flex';
-    wrapper.style.justifyContent = 'space-between';
-    wrapper.style.alignItems = 'center';
-    
-    // Move title into wrapper
-    const titleText = sectionTitle.textContent;
-    sectionTitle.textContent = '';
-    
-    const title = document.createElement('span');
-    title.textContent = titleText;
-    wrapper.appendChild(title);
-    
-    // Create toggle button with icon and label
-    const toggle = document.createElement('button');
-    toggle.id = 'toggle-view';
-    toggle.className = 'toggle-view-button';
-    toggle.title = 'Toggle between compact and full view';
-    
-    // Set button styling
-    toggle.style.background = 'var(--darker-bg)';
-    toggle.style.border = 'none';
-    toggle.style.borderRadius = '4px';
-    toggle.style.padding = '6px 10px';
-    toggle.style.color = 'var(--text)';
-    toggle.style.cursor = 'pointer';
-    toggle.style.display = 'flex';
-    toggle.style.alignItems = 'center';
-    toggle.style.gap = '5px';
-    toggle.style.transition = 'all 0.2s';
-    
-    // Add button to wrapper and initialize
-    wrapper.appendChild(toggle);
-    sectionTitle.appendChild(wrapper);
-    
-    // Update toggle appearance
-    this.updateViewToggle();
-  }
-}
-```
-
-The button visually indicates the current view mode and allows users to toggle between views with visual feedback.
-
-#### 4. Modified TeamBuilderImageLoader
-Updated the `drawArt` method to support different view modes:
-
-```javascript
-drawArt(character, container, isDetailViewContext, viewMode = 'full') {
-  // ...existing code...
-  
-  // Apply 1.4x scaling only in full view mode
-  if (viewMode === 'full') {
-    // Scale up the art by about 40% for full view
-    if (artSettings.width) {
-      const originalWidth = parseInt(artSettings.width);
-      if (!isNaN(originalWidth)) {
-        artSettings.width = `${Math.round(originalWidth * 1.4)}px`;
-      }
+} else {
+    // Use traditional circle representation
+    try {
+        console.log(`CharacterSprite (${character.name}): Creating circle representation...`);
+        this.createCircleRepresentation();
+        console.log(`CharacterSprite (${character.name}): Circle representation created.`);
+    } catch(error) {
+        console.error(`CharacterSprite Constructor (${character.name}): Error in createCircleRepresentation:`, error);
+        // Optionally create a fallback visual here if circle creation fails
     }
-    
-    if (artSettings.height) {
-      const originalHeight = parseInt(artSettings.height);
-      if (!isNaN(originalHeight)) {
-        artSettings.height = `${Math.round(originalHeight * 1.4)}px`;
-      }
-    }
-  }
-  // In compact view, we use the original size
-  
-  // ...existing code...
-  
-  // Apply width and height with context-sensitive defaults
-  if (isDetailViewContext) {
-    img.style.width = artSettings.width || '140px';
-    img.style.height = artSettings.height || '140px';
-  } else {
-    img.style.width = artSettings.width || (viewMode === 'full' ? '80px' : '60px');
-    img.style.height = artSettings.height || (viewMode === 'full' ? '120px' : '90px');
-  }
 }
 ```
 
-This ensures character art is sized appropriately based on the selected view mode.
+This approach provides automatic fallback to the circle representation if card creation fails, ensuring the game remains functional even in error cases.
 
-#### 5. CSS Adjustments
-Added view-specific CSS classes to control the layout of hero cards:
+### CardFrame Creation Method
 
-```css
-/* Base hero grid styles */
-#heroes-grid {
-  display: grid;
-  width: 100%;
-}
-
-/* Full view (current implementation) */
-#heroes-grid.view-full {
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-/* Compact view (previous implementation) */
-#heroes-grid.view-compact {
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-}
-
-/* Card layouts */
-.view-full .hero-card {
-  padding: 20px;
-  min-height: 220px;
-}
-
-.view-compact .hero-card {
-  padding: 15px;
-  min-height: auto;
-}
-
-/* Content layouts */
-.view-full .hero-card-content {
-  flex-direction: column;
-  align-items: center;
-}
-
-.view-compact .hero-card-content {
-  flex-direction: row;
-  align-items: center;
-}
-
-/* Avatar container sizing */
-.view-full .hero-avatar-container {
-  width: 100px;
-  min-height: 100px;
-  margin-bottom: 12px;
-}
-
-.view-compact .hero-avatar-container {
-  width: 60px;
-  min-height: 60px;
-  margin-right: 12px;
-  margin-bottom: 0;
-}
-```
-
-These CSS classes ensure consistent styling for both view modes.
-
-#### 6. Integration with TeamBuilderUI.js
-Updated the `initializeHeroGridManager` method to initialize the view toggle:
+Added a new method to create and configure the CardFrame for each character:
 
 ```javascript
-async initializeHeroGridManager() {
-  try {
-    // ...existing code...
-    
-    // Verify required methods exist
-    const methodCheck = {
-      renderHeroGrid: typeof this.heroGridManager.renderHeroGrid === 'function',
-      // ...existing checks...
-      
-      // Check for new view mode methods
-      setViewMode: typeof this.heroGridManager.setViewMode === 'function',
-      toggleViewMode: typeof this.heroGridManager.toggleViewMode === 'function',
-      initializeViewToggle: typeof this.heroGridManager.initializeViewToggle === 'function'
-    };
-    
-    // ...existing code...
-    
-    // Initialize view toggle if the method exists
-    if (methodCheck.initializeViewToggle) {
-      this.heroGridManager.initializeViewToggle();
-    }
-    
-    // ...existing code...
-  } catch (error) {
-    // ...error handling...
-  }
-}
-```
-
-### Implementation Challenges
-
-#### 1. Maintaining Dynamic Layout Responsiveness
-The toggle needed to switch not only column counts but also layout directions (vertical vs. horizontal). This required careful CSS structuring to ensure both layouts remained responsive.
-
-#### 2. Character Art Scaling
-Art scaling needed to be conditional based on view mode. We modified TeamBuilderImageLoader to conditionally apply the 1.4x scaling only in full view mode.
-
-#### 3. Backward Compatibility
-The implementation had to work with the existing component architecture and gracefully degrade if any component was unavailable.
-
-#### 4. DOM Element Hierarchy
-The toggle button needed to coexist with the existing section title. We created a wrapper to maintain the visual hierarchy while adding the toggle button.
-
-### User Experience Improvements
-
-1. **Density Options**: Users can now choose between a visually rich layout that showcases character art (Full View) or a compact layout that shows more characters at once (Compact View).
-
-2. **Preference Persistence**: The selected view mode is stored in localStorage, ensuring the user's preference is remembered across sessions.
-
-3. **Visual Feedback**: The toggle button provides clear visual indication of the current mode and changes appearance when toggled.
-
-4. **Smooth Transitions**: CSS transitions ensure smooth animations when toggling between view modes.
-
-5. **Consistent Styling**: Both layouts maintain consistent styling that aligns with the game's overall aesthetic.
-
-### Future Considerations
-
-1. **Additional View Options**: The architecture supports adding more view modes in the future (e.g., list view, gallery view).
-
-2. **Responsive Breakpoints**: The current implementation uses fixed column counts, but future enhancements could adapt column count based on screen width.
-
-3. **User Preferences Panel**: A dedicated preferences panel could provide more customization options beyond just the view toggle.
-
-4. **Transition Animations**: Enhanced animations could be added when switching between views for a more polished feel.
-
-### Testing Considerations
-
-The implementation has been tested for:
-
-1. **Visual Consistency**: Both layouts render correctly with proper spacing and alignment.
-
-2. **Persistence**: The view preference correctly persists across page reloads.
-
-3. **Artwork Rendering**: Character art displays correctly in both layouts.
-
-4. **Toggle Behavior**: The toggle button correctly updates its appearance and the view mode.
-
-5. **Filtering Compatibility**: The toggle works correctly when filters are applied.
-
-This feature enhances the user experience by providing flexibility in how characters are displayed, catering to different user preferences for visual richness versus density.
-
-
-===== CHANGELOG_0.6.7.7_ImagePreloadingSynchronization =====
-
-# Changelog: Image Preloading Synchronization
-
-## Version 0.6.7.7 - May 12, 2025
-
-### Overview
-This update resolves a race condition that was causing "TeamBuilderImageLoader: [CharacterName] not found in image cache" errors during game startup. The issue occurred because UI components (like HeroGridManager) were attempting to use character images before TeamBuilderImageLoader had finished loading them. The solution implements Promise-based image preloading and proper sequencing, ensuring all necessary images are loaded before UI rendering begins.
-
-### Technical Implementation
-
-#### 1. Promise-Based Image Preloading
-Modified `TeamBuilderImageLoader.preloadCharacterImages()` to return a Promise that resolves only when all images have been loaded (or failed to load):
-
-```javascript
-preloadCharacterImages() {
-    // Create an array of promises, one for each image
-    const loadPromises = charactersWithArt.map(characterName => {
-        return new Promise((resolve) => {
-            try {
-                // Image loading logic...
-                img.onload = () => {
-                    // Cache the image...
-                    resolve(); // Resolve this image's promise
-                };
-                img.onerror = (err) => {
-                    // Log error...
-                    resolve(); // Resolve even on error
-                };
-                // Start loading
-                img.src = imagePath;
-            } catch (err) {
-                resolve(); // Resolve even if there's an exception
+createCardFrameRepresentation() {
+    try {
+        // Create CardFrame instance with proper configuration
+        this.cardFrame = new window.CardFrame(this.scene, 0, 0, {
+            // Character information
+            characterKey: `character_${this.character.name}`,
+            characterName: this.character.name,
+            characterType: this.character.type,
+            characterTeam: this.character.team,
+            
+            // Health information
+            currentHealth: this.character.currentHp || 0,
+            maxHealth: this.character.stats.hp || 100,
+            showHealth: this.config.showHealth,
+            
+            // Visual customization and art positioning
+            width: this.cardConfig.width,
+            height: this.cardConfig.height,
+            portraitOffsetY: this.cardConfig.portraitOffsetY,
+            artOffsetX: parseInt(this.character.art?.left) || 0,
+            artOffsetY: parseInt(this.character.art?.top) || 0,
+            
+            // Interactivity settings with event forwarding
+            interactive: this.config.interactive,
+            onSelect: () => {
+                this.scene.events.emit('character_selected', this.character);
+            },
+            onHoverStart: () => {
+                this.scene.events.emit('character_hover_start', this.character);
+                document.body.style.cursor = 'pointer';
+            },
+            onHoverEnd: () => {
+                this.scene.events.emit('character_hover_end', this.character);
+                document.body.style.cursor = 'default';
             }
         });
-    });
-    
-    // Return a promise that resolves when ALL images are loaded
-    return Promise.all(loadPromises).then(() => {
-        console.log('TeamBuilderImageLoader: All character images have been processed');
-        // Additional setup...
-    });
-}
-```
-
-This implementation has several key features:
-- Creates a separate promise for each image to be loaded
-- Properly handles both successful loads and errors
-- Ensures all images are at least attempted to be loaded before resolving
-- Uses `Promise.all()` to wait for all individual promises to resolve
-
-#### 2. Awaitable Initialization
-Modified `TeamBuilderImageLoader.initialize()` to return the promise from `preloadCharacterImages()`:
-
-```javascript
-async initialize() {
-    // Load character data...
-    // Start periodic checking...
-    // Do an initial check...
-    
-    // Return the promise from preloadCharacterImages()
-    return this.preloadCharacterImages();
-}
-```
-
-This change enables other components to know when initialization and preloading is complete, rather than assuming it happens instantaneously.
-
-#### 3. Proper UI Initialization Sequencing
-Updated `TeamBuilderUI.initialize()` to await the completion of image preloading before initializing UI components:
-
-```javascript
-async initialize() {
-    // Load heroes data...
-    
-    // Initialize the image loader and AWAIT its completion
-    await this.initializeImageLoader();
-    
-    console.log('TeamBuilderUI: Image preloading complete, initializing UI components...');
-    
-    // Only now initialize UI components
-    await this.initializeHeroDetailManager();
-    await this.initializeFilterManager();
-    // etc...
-    
-    // And finally render UI elements
-    this.renderFilters();
-    this.renderHeroGrid();
-    // etc...
-}
-```
-
-This ensures that UI components only begin rendering after all images are preloaded.
-
-#### 4. Fallback On-Demand Loading
-Enhanced `TeamBuilderImageLoader.drawArt()` to handle cases where images aren't in the cache by loading them on-demand:
-
-```javascript
-// If image not in cache, attempt to load it immediately
-if (!window.CHARACTER_IMAGE_CACHE[characterName]) {
-    console.log(`TeamBuilderImageLoader: ${characterName} not found in image cache, loading now...`);
-    // Create and load the image immediately
-    const img = new Image();
-    img.onload = () => {
-        window.CHARACTER_IMAGE_CACHE[characterName] = img;
-        console.log(`TeamBuilderImageLoader: ${characterName}'s image loaded on-demand`);
-        // Force redraw now that the image is loaded
-        this.drawArt(character, container, isDetailViewContext);
-    };
-    img.src = this.characterImages[characterName];
-    
-    // Show loading indicator in the meantime
-    this.drawLoadingPlaceholder(container, isDetailViewContext);
-    return true;
-}
-```
-
-This provides a graceful fallback for any edge cases where an image might be needed before it's loaded, ensuring that something is still displayed to the user.
-
-#### 5. Loading Placeholder
-Added a new `drawLoadingPlaceholder()` method to show visual feedback while images are loading:
-
-```javascript
-drawLoadingPlaceholder(container, isDetailViewContext) {
-    // Create a placeholder div with loading text
-    const placeholder = document.createElement('div');
-    placeholder.className = 'loading-placeholder';
-    placeholder.style.position = 'absolute';
-    placeholder.style.display = 'flex';
-    // Set appropriate styling...
-    placeholder.textContent = 'Loading...';
-    // Add to container...
-}
-```
-
-This improves user experience by providing visual feedback for loading operations.
-
-### Implementation Challenges
-
-#### 1. Error Handling
-One challenge was ensuring that errors during image loading wouldn't block the entire chain of promises. We addressed this by:
-- Resolving each image's promise even if there's an error loading that image
-- Providing comprehensive error logging
-- Using try/catch blocks to handle unexpected exceptions
-
-#### 2. Promise Sequencing
-Ensuring the proper sequence of operations (load data â†’ preload images â†’ initialize UI â†’ render) required careful attention to async/await flow:
-- Each component method returns a promise that next steps can await
-- UI initialization now explicitly waits for image preloading completion
-- Log messages mark clear transitions between phases
-
-#### 3. Maintaining Backwards Compatibility
-We had to ensure the code remained compatible with existing systems:
-- Returning `Promise.resolve()` in error cases to maintain expected Promise chains
-- Providing fallback behavior for any images not loaded during preload
-- Maintaining existing observer and callback patterns for older code
-
-### User Experience Improvements
-
-1. **Elimination of Errors**: Users no longer see "not found in image cache" errors in the console during startup.
-
-2. **Consistent Image Display**: All character images appear immediately when the UI is first rendered.
-
-3. **Visual Feedback**: Loading placeholders provide visual feedback if any images need to be loaded on-demand.
-
-4. **Improved Stability**: The more robust architecture reduces the chance of visual glitches or missing art.
-
-### Performance Considerations
-
-1. **Initial Load Time**: There may be a slightly longer initial loading time as the game now explicitly waits for all images to preload before rendering UI.
-
-2. **Resource Efficiency**: By using Promise.all, all images load in parallel rather than sequentially, optimizing network usage.
-
-3. **Memory Usage**: The caching strategy remains unchanged, maintaining the same memory footprint as before.
-
-### Future Considerations
-
-1. **Loading Indicator**: A more sophisticated loading indicator could be added to show overall preloading progress.
-
-2. **Prioritized Loading**: Images could be loaded in priority order (e.g., team builder UI images first, then battle images).
-
-3. **Caching Strategy**: Future updates could implement a more sophisticated caching strategy, potentially using browser cache or IndexedDB for persistent caching.
-
-### Lessons Learned
-
-1. **Promise-Based Loading**: Asynchronous image loading should always be handled with Promises rather than callbacks for better flow control.
-
-2. **Sequential Dependencies**: When components depend on resources being loaded, explicit sequencing is necessary rather than assuming resources will be available.
-
-3. **Defensive Programming**: Adding fallback mechanisms (on-demand loading) provides resilience against edge cases.
-
-4. **Visual Feedback**: Always provide visual feedback for loading operations to improve user experience.
-
-This change addresses the immediate image loading issues and provides a more robust foundation for all asynchronous operations in the TeamBuilder UI.
-
-
-===== CHANGELOG_0.6.7.6_CharacterArtSystemRework =====
-
-# Changelog: Character Art System Rework
-
-## Version 0.6.7.6 - May 12, 2025
-
-### Overview
-This update completely reworks the character art rendering system in the TeamBuilder UI. We've transitioned from a MutationObserver-based reactive approach to an explicit, proactive rendering strategy where each UI manager is responsible for rendering its own character art. This eliminates inconsistent art rendering and styling glitches that were occurring intermittently with the previous approach.
-
-### Technical Implementation
-
-#### 1. Disabled MutationObserver in TeamBuilderImageLoader.js
-
-The reactive MutationObserver pattern was causing issues due to race conditions and DOM manipulation conflicts. We've removed this approach entirely:
-
-```javascript
-// Before: Complex MutationObserver setup with 150+ lines of code
-window.setupCharacterArtMutationObserver = function() {
-    // ...extensive observer code with DOM manipulation, event handling, etc...
-};
-
-// After: Simple no-op function that disables any existing observers
-window.setupCharacterArtMutationObserver = function() {
-    if (window.characterArtObserver) {
-        window.characterArtObserver.disconnect();
-        window.characterArtObserver = null;
-        console.log('Disconnected existing character art observer');
+        
+        // Add CardFrame to main container
+        this.container.add(this.cardFrame);
+        
+        // Set up events for the card frame
+        this.setupCardFrameEvents();
+        
+        console.log(`CardFrame created successfully for ${this.character.name} of type ${this.character.type}`);
+    } catch (error) {
+        console.error(`CharacterSprite (${this.character?.name}): Error creating card frame:`, error);
+        // Fall back to circle representation
+        this.cardConfig.enabled = false;
+        this.createCircleRepresentation();
     }
-    
-    console.log('MutationObserver for character art is permanently disabled');
-    window.observerDisabled = true;
-};
+}
 ```
 
-Similarly, we've converted the helper functions `disableArtObserver` and `enableArtObserver` to no-op functions since they're no longer needed.
+This method creates a properly configured CardFrame instance that matches the character's type, name, and team while setting up appropriate interactivity and event handling.
 
-#### 2. Centralized Art Drawing Function
+### Event Handling
 
-We've created a new unified art drawing function in TeamBuilderImageLoader that can be called by any UI component:
+Implemented event handling for turn-based highlighting and proper cleanup:
 
 ```javascript
-drawArt(character, container, isDetailViewContext) {
-    // Robust parameter validation
-    if (!character || !container) {
-        console.error('TeamBuilderImageLoader: Missing character or container for drawArt');
-        return false;
-    }
-    
+setupCardFrameEvents() {
     try {
-        const characterName = character.name;
+        // Listen for scene events that need to update CardFrame
+        this.scene.events.on('turn_started', (characterId) => {
+            if (this.character.uniqueId === characterId && this.cardFrame) {
+                this.cardFrame.setHighlighted(true);
+            } else if (this.cardFrame) {
+                this.cardFrame.setHighlighted(false);
+            }
+        }, this);
         
-        // Skip if character has no defined image or if not in cache
-        if (!this.characterImages[characterName] || !window.CHARACTER_IMAGE_CACHE[characterName]) {
-            return false;
+        // Cleanup on shutdown/destroy
+        this.scene.events.once('shutdown', this.cleanupCardFrameEvents, this);
+        this.scene.events.once('destroy', this.cleanupCardFrameEvents, this);
+    } catch (error) {
+        console.error(`CharacterSprite (${this.character?.name}): Error setting up card frame events:`, error);
+    }
+}
+
+cleanupCardFrameEvents() {
+    try {
+        // Remove all event listeners
+        if (this.scene && this.scene.events) {
+            this.scene.events.off('turn_started', null, this);
         }
-
-        // Find or create art wrapper
-        let artWrapper = container.querySelector('.hero-art-wrapper');
-        if (!artWrapper) {
-            artWrapper = document.createElement('div');
-            artWrapper.className = 'hero-art-wrapper';
-            container.appendChild(artWrapper);
-        }
-        
-        // ALWAYS clear any existing art from the wrapper
-        artWrapper.innerHTML = '';
-        
-        // Clone image from cache
-        const img = window.CHARACTER_IMAGE_CACHE[characterName].cloneNode(true);
-        
-        // Get and apply the correct art settings based on context
-        let artSettings = {...};  // Context-specific settings
-        
-        // Apply position settings with proper defaults
-        img.style.position = 'absolute';
-        img.style.left = artSettings.left || '0px';
-        img.style.top = artSettings.top || '0px';
-        
-        // Add the image to the wrapper
-        artWrapper.appendChild(img);
-        
-        // Add appropriate classes to container and parent elements
-        container.classList.add('has-art');
-        // ...
-        
-        return true;
-    } catch (err) {
-        console.error(`TeamBuilderImageLoader: Error drawing art for ${character.name}`, err);
-        return false;
+    } catch (error) {
+        console.error(`CharacterSprite (${this.character?.name}): Error cleaning up card frame events:`, error);
     }
 }
 ```
 
-This function:
-- Accepts the character object, target container, and a context flag
-- Ensures an art wrapper exists, creating it if needed
-- Always clears existing art to prevent duplicates
-- Applies appropriate positioning and styling
-- Handles error cases gracefully with detailed logging
+This event system ensures that the active character's card is properly highlighted during its turn, with proper event cleanup to prevent memory leaks.
 
-#### 3. Modified UI Managers
+### Visual Method Updates
 
-Each UI manager has been updated to explicitly manage its own character art:
+Updated key visual methods to support both circle and card representations:
 
-##### HeroGridManager:
+1. **Health Updates:** Modified `updateHealth()` to delegate to either circle's health bar or card's built-in health system:
+
 ```javascript
-createHeroCard(hero) {
-    // ...existing card creation code...
-    
-    // Explicitly draw character art using the central drawing function
-    if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
-        this.imageLoader.drawArt(hero, heroIconContainer, false);
-    } else {
-        console.error("[HeroGridManager] Cannot draw art - imageLoader.drawArt not available");
-    }
-
-    return heroCard;
+if (this.cardConfig.enabled && this.cardFrame) {
+    // Use the CardFrame's built-in health update system
+    this.cardFrame.updateHealth(newHealth, maxHealth);
+    // CardFrame handles its own visual effects for damage/healing
+} else {
+    // Traditional circle representation health updates
+    this.updateHealthBar(newHealth, maxHealth);
+    // ... circle-specific damage/healing effects ...
 }
 ```
 
-##### TeamSlotsManager:
+2. **Floating Text:** Enhanced `showFloatingText()` with representation-specific positioning:
+
 ```javascript
-renderTeamSlots() {
-    // ...for each team slot with a character...
-    
-    // Explicitly draw the character art
-    if (this.imageLoader && typeof this.imageLoader.drawArt === 'function') {
-        this.imageLoader.drawArt(currentTeam[i], heroIconContainer, false);
-    }
-    
-    // ...
+// Adjust vertical position based on representation
+let yOffset = -50; // Default for circle representation
+
+if (this.cardConfig.enabled && this.cardFrame) {
+    // For card frames, adjust to be above the card
+    yOffset = -this.cardConfig.height/2 - 20;
+}
+
+// Create text at the correct global position with adjusted offset
+const floatingText = this.scene.add.text(
+    globalPosition.x,
+    globalPosition.y + yOffset, // Position based on representation
+    text,
+    mergedStyle
+).setOrigin(0.5);
+```
+
+3. **Attack Animation:** Implemented separate animation approaches for cards and circles:
+
+```javascript
+if (this.cardConfig.enabled && this.cardFrame) {
+    // --- CARD-BASED ANIMATION ---
+    // Uses shorter movement distance (50% vs 70%)
+    // Adds rotation based on team (5Â° for player, -5Â° for enemy)
+    // Creates impact effect at halfway point
+    // ... (card-specific animation code)
+} else {
+    // --- ORIGINAL CIRCLE-BASED ANIMATION ---
+    // ... (existing circle animation code)
 }
 ```
 
-##### HeroDetailPanelManager:
+4. **Impact Effect:** Added a new method for creating visual impact effects during card attacks:
+
 ```javascript
-renderDetails(hero) {
-    // ...existing detail rendering code...
-    
-    // Draw character art directly using the central drawing function
-    if (this.parentUI && this.parentUI.imageLoader && typeof this.parentUI.imageLoader.drawArt === 'function') {
-        this.parentUI.imageLoader.drawArt(hero, detailIconContainer, true);
-    } else {
-        console.error("[HeroDetailPanelManager] Cannot draw art - imageLoader.drawArt not available");
+createImpactEffect(targetSprite) {
+    try {
+        // Create flash or particle effect at target position
+        const targetPos = new Phaser.Math.Vector2();
+        targetSprite.container.getWorldTransformMatrix().transformPoint(0, 0, targetPos);
+        
+        // Create impact effect at target's position
+        const impactFlash = this.scene.add.circle(
+            targetPos.x, targetPos.y, 
+            40, 0xFFFFFF, 0.7
+        );
+        
+        // Animate impact and destroy
+        this.scene.tweens.add({
+            targets: impactFlash,
+            alpha: 0,
+            scale: 1.5,
+            duration: 200,
+            ease: 'Sine.easeOut',
+            onComplete: () => {
+                impactFlash.destroy();
+            }
+        });
+    } catch (error) {
+        console.error('Error creating impact effect:', error);
     }
-    
-    // ...
 }
 ```
 
-#### 4. Deprecated Old Methods
+### Resource Cleanup
 
-We've deprecated but maintained the original methods for backward compatibility:
-
-- `forceCheck()` in TeamBuilderImageLoader is now a no-op
-- `triggerImageLoader()` in manager classes is now a no-op
-- `addArtToPanel()` in HeroDetailPanelManager forwards to the new central drawing function
-
-### Implementation Challenges
-
-#### 1. Art Styling Consistency
-
-We had to ensure consistent styling across different contexts:
-
-- Regular hero cards use 80pxÃ—120px sizing by default
-- Detail view uses 140pxÃ—140px sizing
-- Custom positioning is preserved from character definitions
-- Default positioning is context-sensitive
-
-#### 2. Class Hierarchy Maintenance
-
-We had to make sure the correct CSS classes were applied in the component hierarchy:
+Enhanced the `destroy()` method to properly clean up card-specific resources:
 
 ```javascript
-// Add appropriate classes to container and parent elements
-container.classList.add('has-art');
-
-// Add has-art to the parent card/content element if it exists
-const heroCard = container.closest('.hero-card');
-if (heroCard) heroCard.classList.add('has-art');
-
-const slotContent = container.closest('.slot-content');
-if (slotContent) slotContent.classList.add('has-art');
-
-const detailHero = container.closest('.detail-hero');
-if (detailHero) detailHero.classList.add('has-art');
+// Clean up card frame if it exists
+if (this.cardFrame) {
+    try {
+        // CardFrame handles its own cleanup in its destroy method
+        this.cardFrame.destroy();
+        console.log(`CharacterSprite destroy: CardFrame destroyed for ${this.character?.name || 'Unknown'}`);
+    } catch (error) {
+        console.error(`CharacterSprite destroy: Error destroying CardFrame for ${this.character?.name || 'Unknown'}:`, error);
+    }
+    this.cardFrame = null;
+    
+    // Clean up card frame events
+    this.cleanupCardFrameEvents();
+}
 ```
 
-#### 3. Transition Strategy
+This ensures proper resource cleanup and prevents memory leaks when a CardFrame is destroyed.
 
-We implemented a transition strategy that preserved compatibility with existing code:
+## Technical Considerations
 
-1. The original `createAndAddArt` method now delegates to the new `drawArt` function
-2. Helper methods like `forceCheck` log deprecation warnings but don't break existing code
-3. Utility functions for the old observer pattern remain as no-op functions
+### Defensive Programming
 
-### User Experience Improvements
+Implemented comprehensive error handling and fallbacks throughout the card integration:
 
-1. **Elimination of Flickering Art**: Character art now remains consistently visible and doesn't disappear during UI interactions.
+- Try/catch blocks around all card-related operations
+- Detailed error logging for easier debugging
+- Automatic fallback to circle representation when card creation fails
+- Null checks before accessing card properties
 
-2. **Consistent Styling**: Art positioning and scaling is now applied consistently across all contexts.
+### Backward Compatibility
 
-3. **More Reliable Art Loading**: Since each component explicitly manages its own art, there's no reliance on the observer detecting changes.
+Maintained compatibility with existing systems while adding card functionality:
 
-4. **Better Error Handling**: If art fails to load for any reason, detailed error messages help identify the specific cause.
+- Circle representation remains the default
+- All existing methods continue to work for circle representation
+- New code paths only execute when card representation is explicitly enabled
+- Event system works consistently for both representations
 
-### Performance Considerations
+## Next Steps
 
-1. **Reduced DOM Operations**: The MutationObserver was causing excessive DOM operations through constant checking and updating.
+With Phase 1 complete, the foundation is now in place for Phase 2, which will focus on the core visual implementation:
 
-2. **Faster Initial Rendering**: Art is now drawn immediately during component rendering rather than waiting for observer callbacks.
+- Implement card-specific health updates
+- Create visual consistency between character displays
+- Handle status effect integration with the card layout
+- Fine-tune visual appearance of cards in the battle scene
 
-3. **Lower Memory Usage**: We eliminated the need to maintain sets of processed containers and complex throttling mechanisms.
-
-### Future Considerations
-
-1. **Potential Art System Refactoring**: The current system still has separate character art paths for Battle UI and TeamBuilder UI. A future update could unify these systems for consistency.
-
-2. **Asset Preloading**: We might consider adding an explicit preloading phase for all character art at startup to eliminate any potential loading delays.
-
-3. **Image Error Handling**: We could enhance the system to provide fallback/placeholder images when art fails to load.
-
-### Lessons Learned
-
-1. **Observer Pattern Limitations**: The MutationObserver pattern is powerful but introduces complexity and potential race conditions, especially in highly dynamic UIs.
-
-2. **Proactive vs. Reactive Rendering**: For critical UI elements like character art, a proactive rendering approach (where components explicitly manage their own rendering) is more reliable than a reactive approach.
-
-3. **Clear Component Responsibilities**: By making each UI manager responsible for its own character art, we created clearer boundaries and reduced unexpected interactions.
-
-4. **Centralized Functionality**: Having a single, well-tested function for art drawing ensures consistent behavior across all UI components.
-
-This change represents a significant improvement in the reliability and maintainability of the character art system, addressing a long-standing source of visual glitches and intermittent issues.
+Phase 1 has successfully added the framework and configuration systems needed for a smooth transition to the card-based representation while maintaining backward compatibility with the existing circle-based approach.
 
 
-===== CHANGELOG_0.6.7.5_RemoveRaritySystem =====
+===== CHANGELOG_0.7.0.0_CardFrameImplementation =====
 
-# Changelog: Rarity System Removal
+# CardFrame Component Implementation - Technical Changelog
 
-## Version 0.6.7.5 - May 12, 2025
+## Overview
+This changelog documents the implementation of the new CardFrame component for the AutoBattler game. The CardFrame is a Phaser-based UI component that creates professional-looking card frames for characters with type-themed styling, portrait windows, decorative nameplates, and interactive features.
 
-### Overview
-This update removes the rarity system from the game as it was not being utilized in any gameplay mechanics. The rarity property and visual display elements have been removed from both the UI components and the character data definitions.
+## Implementation Details
+
+### Component Structure
+- Created `CardFrame.js` as a Phaser.GameObjects.Container subclass
+- Implemented a configuration-based approach with all visual parameters defined at the top
+- Used a layered component architecture:
+  - Base frame with 9-slice scaling for borders
+  - Background elements with type-themed styling
+  - Portrait window with masking for character art
+  - Decorative nameplate with beveled edges and flourishes
+  - Health bar system with visual feedback
+
+### Key Features
+
+#### 1. Type-Themed Styling
+- Integrated with the existing type colors system (fire, water, nature, etc.)
+- Applied type-specific colors to frame borders, nameplate, and glow effects
+- Supported all 22 elemental types in the game
+
+#### 2. Portrait Window with Masking
+- Implemented proper image masking for character portraits
+- Added subtle type-themed inner glow for the portrait frame
+- Supported art positioning adjustments for different characters
+
+#### 3. Decorative Nameplate
+- Created a dedicated nameplate system with beveled edges and scrollwork
+- Added support for decorative flourishes on either side of the name
+- Implemented type-themed styling for nameplates with proper contrast
+
+#### 4. Health Bar System
+- Integrated a comprehensive health bar with animated transitions
+- Added visual feedback for damage (shake, red flash) and healing (green glow, bounce)
+- Used color coding based on health percentage (green > orange > red)
+
+#### 5. Interactive Elements
+- Implemented hover and selection states with smooth animations
+- Added type-themed glow effects with adjustable intensity
+- Supported callbacks for selection events
 
 ### Technical Implementation
 
-#### 1. UI Changes
-The primary UI changes were made to `HeroDetailPanelManager.js`, where we removed the code that created and displayed rarity tags:
+#### Modular Design
+- Each visual element is created by a dedicated method:
+  - `createBaseFrame()`: Creates the main frame structure
+  - `createBackgroundElements()`: Handles type-themed background
+  - `createPortraitWindow()`: Creates masked portrait area
+  - `createCharacterSprite()`: Handles character art
+  - `createNameBanner()`: Creates decorative nameplate
+  - `createHealthBar()`: Implements health visualization
+
+#### Animation System
+- Used Phaser tweens for smooth animations
+- Implemented different animation states:
+  - Normal state: Standard display
+  - Hover state: Slight scale increase with partial glow
+  - Selected state: Larger scale with full glow
+  - Highlighted state: Pulsing animation for active turn
+
+#### Defensive Programming
+- Added comprehensive error handling throughout the component
+- Implemented fallback visuals when textures are missing
+- Used graceful degradation to maintain functionality even in error states
+- Added detailed logging for easier debugging
+
+## Usage
+
+The CardFrame component can be used in any Phaser scene:
 
 ```javascript
-// Removed from renderDetails()
-const rarityTag = document.createElement('span');
-rarityTag.className = 'detail-tag';
-rarityTag.style.backgroundColor = this.rarityColors[hero.rarity];
-rarityTag.textContent = hero.rarity;
-detailTags.appendChild(rarityTag);
-```
-
-Similar code was also removed from the `updateExistingDetails()` method to ensure consistency. The code was replaced with comments indicating when the rarity tag was removed to maintain code clarity for future reference.
-
-#### 2. Data Structure Changes
-The "rarity" property was removed from all character definitions in `characters.json`. For example:
-
-**Before:**
-```json
-{
-  "id": 7,
-  "name": "Caste",
-  "type": "metal",
-  "role": "Berserker",
-  "rarity": "Epic",
-  "actionDecisionLogic": "decideAction_PrioritizeOffense",
-  ...
-}
-```
-
-**After:**
-```json
-{
-  "id": 7,
-  "name": "Caste",
-  "type": "metal",
-  "role": "Berserker",
-  "actionDecisionLogic": "decideAction_PrioritizeOffense",
-  ...
-}
-```
-
-This property was removed from all 8 character definitions in the file.
-
-#### 3. Visual Impact
-The removal of the rarity tags has a minimal visual impact on the UI. The hero detail display now shows only the type and role tags, resulting in a cleaner, more focused presentation:
-
-**Before:**
-- Hero name
-- Type tags (color-coded)
-- Role tag (gray)
-- Rarity tag (color-coded based on rarity)
-
-**After:**
-- Hero name
-- Type tags (color-coded)
-- Role tag (gray)
-
-### Rationale
-The rarity system was initially intended to be used for character progression and collection mechanics. However, as the game evolved, the focus shifted to team-building and tactical combat without a progression system that utilized rarity. Since this property was not being used in any gameplay mechanics, it was removed to:
-
-1. **Simplify Data Model**: Remove unused properties from the character data model
-2. **Clean UI**: Remove visual elements that don't contribute to gameplay understanding
-3. **Reduce Cognitive Load**: Simplify the information presented to players
-
-### Future Considerations
-
-1. **Character Progression**: If a character progression system is implemented in the future, a different approach may be needed rather than reintroducing rarity.
-
-2. **Existing Code**: The `rarityColors` definition in `TeamBuilderUI.js` has been left in place for now, as it might be useful for future features or if rarity is reintroduced in a different form.
-
-3. **Data Persistence**: If save data exists that references character rarity, additional migration steps might be needed (not applicable in the current implementation).
-
-### Lessons Learned
-
-1. **Data-Driven Design**: This change reinforces the benefit of separating data (character definitions) from presentation (UI components), making it straightforward to add or remove properties without cascading changes.
-
-2. **Documentation**: Adding clear comments where code was removed helps maintain historical context for future developers.
-
-3. **Simplification**: Removing unused features can sometimes be as valuable as adding new ones, especially for reducing maintenance burden and cognitive load.
-
-
-===== CHANGELOG_0.6.7.4_HeroDetailsScrollbarFix =====
-
-# Changelog: Hero Details Scrollbar Fix
-
-## Version 0.6.7.4 - May 12, 2025
-
-### Overview
-This update eliminates the unwanted scrollbar that appeared in the Hero Details panel. The scrollbar was appearing unnecessarily when the content barely exceeded the container height, creating a jarring visual experience. This fix optimizes spacing throughout the panel to ensure content fits without scrolling while maintaining the visual design.
-
-### Technical Implementation
-
-#### 1. Container Overflow Control
-```css
-#hero-details {
-    width: 34%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Hide scrollbars */
-}
-```
-The primary fix was adding `overflow: hidden` to the hero-details container to completely suppress scrollbars.
-
-#### 2. Content Height Adjustment
-```css
-#detail-content {
-    flex-grow: 1;
-    max-height: 65vh; /* Increased from 55vh to allow more content without scrolling */
-    overflow-y: auto;
-    overflow-x: hidden;
-    margin-bottom: 15px;
-    scrollbar-width: thin;
-    scrollbar-color: #3742fa #232a40;
-}
-```
-Increasing the maximum height from 55vh to 65vh provided more space for content, reducing the likelihood of needing to scroll.
-
-#### 3. Space Optimization
-A series of small spacing reductions were implemented throughout the detail panel components:
-
-```css
-/* Reduced padding for ability and type boxes */
-.ability-box {
-    padding: 6px; /* Reduced from 8px */
-}
-
-/* Reduced margins between sections */
-.detail-abilities {
-    margin-bottom: 10px; /* Reduced from 15px */
-}
-
-/* Reduced heights of type boxes */
-.advantage-box, .disadvantage-box {
-    height: 32px; /* Reduced from 36px */
-}
-
-/* Reduced gaps in stat grids */
-.detail-stats {
-    gap: 6px; /* Reduced from 8px */
-}
-
-/* Reduced padding on headers */
-.detail-abilities h4, .detail-advantages h4, .detail-type-relations h4 {
-    padding-bottom: 3px; /* Reduced from 4px */
-}
-
-/* Reduced padding on battle options */
-#battle-options {
-    padding-top: 12px; /* Reduced from 15px */
-}
-```
-
-These small adjustments collectively reduced the overall height of the content just enough to eliminate the need for scrolling.
-
-#### 4. Header Style Consolidation
-```css
-.detail-abilities h4, .detail-advantages h4, .detail-type-relations h4 {
-    margin-bottom: 10px; /* Reduced from 12px */
-    font-size: 16px;
-    color: #70a1ff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 3px; /* Reduced from 4px */
-    grid-column: 1 / -1; /* Span all columns */
-}
-```
-Consolidated section header styles to ensure consistency while also fixing a duplicate CSS rule for type relations headings.
-
-### Implementation Challenges
-
-#### 1. Minimal Visual Impact
-The main challenge was making space adjustments that were minor enough to not be visually noticeable while collectively adding up to enough space savings to remove the need for scrolling:
-
-- Each individual spacing reduction was kept to 1-4 pixels
-- Proportional reductions were made across all elements to maintain visual relationships
-- Critical elements like text size remained unchanged to preserve readability
-
-#### 2. Layout Consistency
-Ensuring the layout remained visually consistent after making multiple small adjustments required careful testing and validation.
-
-#### 3. CSS Rule Consolidation
-During implementation, we discovered and fixed a duplicate CSS rule for type relations headings, which improved the maintainability of the stylesheet.
-
-### User Experience Improvements
-
-1. **Cleaner Visual Appearance**: Removing the unnecessary scrollbar creates a cleaner, more polished look.
-
-2. **Improved Content Density**: Slightly reducing spacing increases content density without sacrificing readability.
-
-3. **Consistent UI Feel**: The hero details panel now behaves more consistently with other UI elements.
-
-4. **Removed Visual Distraction**: Eliminated the distracting scrollbar that would appear and disappear based on minimal content changes.
-
-### Future Considerations
-
-1. **Responsive Design**: Future UI changes should consider viewport height to ensure content fits across different screen sizes.
-
-2. **Content Expansion**: As more abilities or type relations are added to characters, the space optimization may need to be revisited.
-
-3. **Design System**: A formalized spacing system with consistent values could help maintain visual rhythm across the UI.
-
-### Lessons Learned
-
-1. **Cumulative Impact**: Multiple small spacing adjustments can collectively solve layout issues without significantly changing the visual design.
-
-2. **Proactive Overflow Handling**: Setting explicit overflow behavior on containers provides better control over scrollbar behavior.
-
-3. **CSS Consolidation**: Periodically reviewing and consolidating CSS rules helps prevent inconsistencies and maintenance issues.
-
-4. **Precision vs. Perception**: In UI design, precise pixel adjustments matter but should be guided by visual perception rather than absolute values.
-
-
-===== CHANGELOG_0.6.7.3_HeroCardEnhancement =====
-
-# Changelog: Hero Card Enhancement
-
-## Version 0.6.7.3 - May 12, 2025
-
-### Overview
-This update enhances the visual presentation of hero cards in the TeamBuilder UI by implementing larger cards in a 2-column layout, with character artwork prominently displayed. This change significantly improves the visual appeal of the character selection interface by showcasing the detailed character artwork.
-
-### Technical Implementation
-
-#### 1. Grid Layout Changes
-```css
-#heroes-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Changed from 3 to 2 columns */
-    gap: 20px; /* Increased from 15px for better spacing */
-    width: 100%;
-}
-```
-The change from 3 columns to 2 columns allows for significantly larger hero cards while maintaining the overall UI layout.
-
-#### 2. Card Layout Restructuring
-```css
-.hero-card-content {
-    display: flex;
-    flex-direction: column; /* Changed from row to column */
-    align-items: center;
-    width: 100%;
-    overflow: visible;
-}
-
-.hero-card-text {
-    width: 100%;
-    text-align: center;
-    margin-top: 10px;
-    overflow: hidden;
-}
-```
-The card content layout was changed from horizontal (icon beside text) to vertical (icon above text), providing more space for both the character art and text elements.
-
-#### 3. Character Art Enhancement
-```javascript
-// Scale up the art by about 40% for the new larger cards
-if (artSettings.width) {
-    const originalWidth = parseInt(artSettings.width);
-    if (!isNaN(originalWidth)) {
-        artSettings.width = `${Math.round(originalWidth * 1.4)}px`;
+// Create a card frame
+const cardFrame = new CardFrame(scene, x, y, {
+    // Basic information
+    characterKey: 'character_Drakarion',
+    characterName: 'Drakarion',
+    characterType: 'fire',
+    characterTeam: 'player',
+    
+    // Health information
+    currentHealth: 100,
+    maxHealth: 122,
+    
+    // Interactivity
+    interactive: true,
+    onSelect: (card) => {
+        console.log(`${card.config.characterName} selected!`);
     }
-}
-
-if (artSettings.height) {
-    const originalHeight = parseInt(artSettings.height);
-    if (!isNaN(originalHeight)) {
-        artSettings.height = `${Math.round(originalHeight * 1.4)}px`;
-    }
-}
-```
-This code in `TeamBuilderImageLoader.js` dynamically scales character artwork by 40%, maintaining aspect ratios while making art significantly more visible.
-
-#### 4. Card Size Improvements
-```css
-.hero-card {
-    padding: 20px; /* Increased from 15px */
-    border-radius: 10px; /* Slightly larger radius */
-    min-height: 220px; /* Ensure consistent height */
-}
-
-.hero-avatar-container {
-    width: 100px; /* Increased from 60px */
-    min-height: 100px; /* Increased from 60px */
-}
-```
-Increased card size and padding creates a more spacious layout that gives prominence to character visuals.
-
-#### 5. Custom Scrollbar Styling
-```css
-#available-heroes {
-    scrollbar-width: thin; /* For Firefox */
-    scrollbar-color: #3742fa #232a40; /* For Firefox */
-}
-
-#available-heroes::-webkit-scrollbar {
-    width: 8px;
-}
-
-#available-heroes::-webkit-scrollbar-track {
-    background: #232a40;
-    border-radius: 4px;
-}
-
-#available-heroes::-webkit-scrollbar-thumb {
-    background-color: #3742fa;
-    border-radius: 4px;
-}
-```
-Added custom scrollbar styling to maintain visual consistency with the game's theme while ensuring good usability.
-
-### Implementation Challenges
-
-#### 1. Character Art Positioning
-One challenge was ensuring proper positioning of character art in the new layout. We addressed this by:
-- Scaling art size dynamically while maintaining aspect ratios
-- Centering art in the larger containers
-- Ensuring vertical alignment worked well for all character sprites
-
-#### 2. Card Height Consistency
-To maintain a visually pleasing grid even with varying content sizes:
-- Added a `min-height` property to cards
-- Used flexbox alignment to position content consistently
-- Centered text below character art
-
-#### 3. Scrollbar Aesthetics
-With larger cards, scrolling became more necessary, so we:
-- Added custom scrollbar styling to match the game theme
-- Used thin scrollbars to minimize visual intrusion
-- Applied consistent scrollbar styling across containers
-
-### User Experience Improvements
-
-1. **Character Art Prominence**: Characters are now much more visually recognizable with artwork 40% larger than before.
-
-2. **Visual Hierarchy**: The new vertical layout creates a clear visual flow:
-   - Character art as the primary focus
-   - Character name as secondary focus
-   - Type and role information as tertiary focus
-
-3. **Readability**: Text elements now have more horizontal space and improved spacing between elements.
-
-4. **Consistent Sizing**: All cards now have consistent height regardless of content length.
-
-5. **Theme Consistency**: Custom scrollbars maintain the game's visual theme instead of using default browser scrollbars.
-
-### Future Considerations
-
-1. **Performance Testing**: With larger images, we should monitor performance to ensure smooth scrolling on all devices.
-
-2. **Art Resolution**: Some character art may benefit from higher resolution versions to display well at the larger size.
-
-3. **Dynamic Scaling**: Future updates could consider responsive sizing based on screen resolution.
-
-4. **Hover Effects**: Enhanced hover effects could be added to further improve the user experience with the larger cards.
-
-### Lessons Learned
-
-1. **Visual Impact vs. Density**: The tradeoff between showing more heroes at once versus showcasing each hero better was worthwhile for improving the game's visual appeal.
-
-2. **Layout Consistency**: Maintaining consistent card dimensions created a more polished look, even though it required more vertical scrolling.
-
-3. **CSS Organization**: The component-based approach to CSS made these layout changes easier to implement without breaking other parts of the UI.
-
-4. **Asset Scaling**: Dynamically scaling artwork proved more maintainable than creating new art assets for different UI contexts.
-
-
-===== CHANGELOG_0.6.7.2_CollapsibleFilterUI =====
-
-# Changelog: Collapsible Filter UI Implementation
-
-## Version 0.6.7.2 - May 11, 2025
-
-### Overview
-This change enhances the TeamBuilder UI by implementing collapsible filter sections for Type and Role filters. The goal was to reduce vertical space usage while maintaining easy access to all filter options. This implementation adds smooth animations, active filter count badges, and toggle indicators.
-
-### Technical Implementation
-
-#### 1. FilterManager.js Modifications
-
-1. **Added Section Expansion State Tracking**
-```javascript
-// Added to constructor
-this.expandedSections = {
-  types: true, // Default expanded
-  roles: true  // Default expanded
-};
+});
 ```
 
-2. **Enhanced Filter Label with Toggle Controls**
-```javascript
-// Created clickable header with toggle icon
-const typeLabel = document.createElement('div');
-typeLabel.className = 'filter-label';
+## Future Integration Plans
 
-// Added active filter count badge
-if (activeTypeCount > 0) {
-  const typeCountBadge = document.createElement('span');
-  typeCountBadge.className = 'filter-badge';
-  typeCountBadge.textContent = activeTypeCount;
-  typeLabel.appendChild(document.createTextNode(typeLabelText));
-  typeLabel.appendChild(typeCountBadge);
-}
+### Phase 1: Battle UI Integration
+- Modify CharacterSprite to use the new CardFrame instead of circles
+- Update character positioning and scaling approach
+- Connect health updates to CardFrame.setHealth()
+- Connect selection events to CardFrame.setSelected()
 
-// Added toggle icon
-const typeToggleIcon = document.createElement('span');
-typeToggleIcon.className = 'filter-toggle-icon';
-typeToggleIcon.innerHTML = this.expandedSections.types ? 'â–²' : 'â–¼';
-typeLabel.appendChild(typeToggleIcon);
+### Phase 2: TeamBuilder UI Integration
+- Create equivalent CSS styling for DOM-based TeamBuilder
+- Implement consistent card presentation across Battle and TeamBuilder
 
-// Made label clickable
-typeLabel.addEventListener('click', () => this.toggleSectionExpanded('types'));
-```
+## Technical Considerations
 
-3. **Added CSS Injection Method**
-```javascript
-addCollapsibleFilterStyles() {
-  // Check if styles are already added
-  if (document.getElementById('collapsible-filter-styles')) {
-    return;
-  }
-  
-  const styleEl = document.createElement('style');
-  styleEl.id = 'collapsible-filter-styles';
-  styleEl.textContent = `
-    /* CSS styles for collapsible filters */
-  `;
-  
-  document.head.appendChild(styleEl);
-}
-```
+### Asset Requirements
+Before full implementation, the following assets need to be created:
+- Frame template with 9-slice compatible corners
+- Type variations for all 22 elemental types
+- Decorative nameplate assets with beveled edges/scrollwork
+- Decorative flourishes for nameplates
 
-4. **Added Toggle Method**
-```javascript
-toggleSectionExpanded(sectionType) {
-  this.expandedSections[sectionType] = !this.expandedSections[sectionType];
-  
-  // Play sound
-  if (window.soundManager) {
-    window.soundManager.play('click');
-  }
-  
-  // Re-render filters to update UI
-  this.renderFilters();
-}
-```
+### Performance Optimization
+- Used proper object pooling and resource management
+- Implemented efficient tweening and animation
+- Added thorough cleanup in the destroy() method
 
-5. **Modified Filter Button Containers**
-Changed the class name to include `filter-buttons-container` for animation:
-```javascript
-const typeButtonsContainer = document.createElement('div');
-typeButtonsContainer.className = 'filter-buttons filter-buttons-container';
-```
-
-#### 2. CSS Implementation
-
-The CSS animations use a max-height transition approach:
-
-```css
-.filter-buttons-container {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-  padding: 0 10px;
-}
-
-.filter-group.expanded .filter-buttons-container {
-  max-height: 500px; /* Large enough to fit content */
-  padding: 10px;
-}
-```
-
-This approach allows for smooth height animation without knowing the exact height of the content.
-
-The toggle icon rotation is handled with a transform:
-
-```css
-.filter-toggle-icon {
-  margin-left: 10px;
-  transition: transform 0.3s ease;
-}
-
-.filter-group.expanded .filter-toggle-icon {
-  transform: rotate(180deg);
-}
-```
-
-#### 3. Integration with Existing Systems
-
-1. The implementation integrates with the existing sound system:
-```javascript
-if (window.soundManager) {
-  window.soundManager.play('click');
-}
-```
-
-2. It preserves existing filter functionality while adding the collapsible UI:
-```javascript
-// Reuses existing filter toggling code
-typeButton.addEventListener('click', () => this.toggleFilter('types', type));
-```
-
-3. The active filter counts provide visual feedback about how many filters are applied:
-```javascript
-const activeTypeCount = this.activeFilters.types.length;
-if (activeTypeCount > 0) {
-  const typeCountBadge = document.createElement('span');
-  typeCountBadge.className = 'filter-badge';
-  typeCountBadge.textContent = activeTypeCount;
-}
-```
-
-### UI/UX Improvements
-
-1. **Space Efficiency**: The collapsible design reduces vertical space usage by approximately 70% when both filter sections are collapsed.
-
-2. **Visual Feedback**: 
-   - Active filter counts show how many filters are applied
-   - Toggle icons change direction based on expanded/collapsed state
-   - Section headers highlight on hover
-
-3. **Animations**:
-   - Smooth animations for expanding/collapsing filter sections
-   - Rotating toggle icons
-   - Proper padding transitions
-
-4. **Consistency**:
-   - Maintains the same look and feel as the rest of the TeamBuilder UI
-   - Uses the game's existing color scheme
-
-### Performance Considerations
-
-1. **CSS Injection Pattern**:
-   - Injects CSS only once with check for existing styles
-   - Centralizes styles instead of inline styling
-
-2. **Render Efficiency**:
-   - Uses classList.add/remove for toggling expanded state
-   - Maintains existing component pattern
-
-3. **Animation Efficiency**:
-   - Uses CSS transitions instead of JavaScript animations
-   - max-height transition is efficient for variable content
-
-### Lessons Learned
-
-1. **CSS Transitions vs JavaScript Animations**:
-   For simple UI animations, CSS transitions provide better performance and require less code than JavaScript-based animations.
-
-2. **Dynamic Styling**:
-   Injecting styles dynamically allows for clean component architecture while still having access to component state.
-
-3. **Visual Feedback Importance**:
-   Adding counts of active filters provides important user feedback that wasn't present in the previous implementation.
-
-### Future Improvements
-
-1. **Filter Section Memory**:
-   Could save expanded/collapsed state to localStorage to persist between sessions.
-
-2. **Keyboard Navigation**:
-   Could enhance accessibility by adding keyboard navigation for filter sections.
-
-3. **Filter Group Minimization**:
-   Could further enhance space efficiency by minimizing the entire filter system with a single toggle.
+## Conclusion
+The CardFrame component provides a solid foundation for improving the visual presentation of characters throughout the game. It combines professional aesthetics with practical functionality while maintaining the game's type-themed design language. The next step is integration with the existing CharacterSprite system for use in the Battle UI.
 
 

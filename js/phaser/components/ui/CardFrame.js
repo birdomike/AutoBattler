@@ -33,7 +33,7 @@ class CardFrame extends Phaser.GameObjects.Container {
             // Core dimensions (3:4 aspect ratio)
             width: 240,                 // Width of card frame
             height: 320,                // Height of card frame
-            borderWidth: 20,            // Width of frame border
+            borderWidth: 10,            // Width of frame border (reduced from 20px for sleeker appearance)
             cornerRadius: 12,           // Corner radius for frame
 
             // Character information
@@ -288,8 +288,8 @@ class CardFrame extends Phaser.GameObjects.Container {
             // Create semi-transparent background fill
             const bgRect = this.scene.add.rectangle(
                 0, 0,
-                this.config.width - this.config.borderWidth * 2,
-                this.config.height - this.config.borderWidth * 2,
+                this.config.width - (this.config.borderWidth * 2) + 2, // Adjusted to reduce gap with frame
+                this.config.height - (this.config.borderWidth * 2) + 2, // Adjusted to reduce gap with frame
                 this.typeColor,
                 this.config.backgroundAlpha
             );

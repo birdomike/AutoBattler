@@ -1,3 +1,9 @@
+
+## Version 0.7.0.10 - Card Frame Visual Improvements (2025-05-13)
+### Changed
+- Reduced card frame border thickness from 20px to 10px for a sleeker, more professional appearance
+- Fixed the gap between frame and backdrop by adjusting backdrop dimensions
+
 ### [0.7.0.9] - 2025-05-13
 #### Improved
 - **UI:** Optimized top banner in Battle Scene for card-based interface
