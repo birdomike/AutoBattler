@@ -28,6 +28,15 @@
 
 *Note: These changes are for diagnostic purposes only and will be reverted after testing. The user must manually set browser viewport to 3840x2160 during testing.*
 
+### [0.6.7.14] - 2025-05-12
+#### Fixed
+- Fixed positioning issue with floating damage/healing numbers by using global coordinates
+- Implemented proper coordinate conversion using getWorldTransformMatrix() in CharacterSprite.js
+- Added depth setting to ensure floating text is always visible above other elements
+- Improved error handling for floating text positioning
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.6.7.14_FloatingTextPositionFix.md*
+
 ### [0.6.7.13] - 2025-05-12
 #### Fixed
 - Fixed character art positioning in team slots by transforming the container position

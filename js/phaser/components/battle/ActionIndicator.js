@@ -3,6 +3,34 @@
  * A component for displaying floating action text above characters during battle.
  * Shows what action a character is currently performing (auto attack, abilities, etc.)
  */
+
+// ========== CONFIGURABLE PARAMETERS ==========
+// Adjust these values to customize the ActionIndicator behavior
+const ACTION_INDICATOR_CONFIG = {
+    // Position of the indicator above the character (negative = higher)
+    VERTICAL_OFFSET: -80,
+    
+    // Default animation settings
+    ANIMATION: {
+        DURATION: 1500,   // Total duration in ms
+        RISE_DISTANCE: 20, // How far it rises during animation
+        FADE_IN_TIME: 300, // Fade in duration in ms
+        FADE_OUT_TIME: 300 // Fade out duration in ms
+    },
+    
+    // Text appearance
+    TEXT: {
+        FONT_FAMILY: 'Arial',
+        FONT_SIZE: '14px',
+        STROKE_THICKNESS: 3,
+        COLORS: {
+            DEFAULT: '#ffffff',   // Default white
+            AUTO_ATTACK: '#f0f0f0', // Light grey
+            ABILITY: '#42f5a7',   // Light green
+            STATUS: '#f5d142'     // Gold
+        }
+    }
+};
 class ActionIndicator {
     /**
      * Create a new ActionIndicator
@@ -21,6 +49,9 @@ class ActionIndicator {
         this.timeline = null;
         this.isAnimating = false;
         
+        // Store reference to config
+        this.config = ACTION_INDICATOR_CONFIG;
+        
         this.initialize();
     }
     
@@ -29,13 +60,13 @@ class ActionIndicator {
      */
     initialize() {
         // Create text with shadow for better readability
-        this.text = this.scene.add.text(0, -60, '', {
-            fontFamily: 'Arial',
-            fontSize: '14px',
+        this.text = this.scene.add.text(0, this.config.VERTICAL_OFFSET, '', {
+            fontFamily: this.config.TEXT.FONT_FAMILY,
+            fontSize: this.config.TEXT.FONT_SIZE,
             color: '#ffffff',
             align: 'center',
             stroke: '#000000',
-            strokeThickness: 3,
+            strokeThickness: this.config.TEXT.STROKE_THICKNESS,
             resolution: 1, // Set text resolution to match the game's base resolution for this test
             shadow: {
                 offsetX: 2,
@@ -62,7 +93,7 @@ class ActionIndicator {
             
             // Since we're adding to the container, position is relative to container origin (0,0)
             // Default position above the character's head
-            this.text.setPosition(0, -60);
+            this.text.setPosition(0, this.config.VERTICAL_OFFSET);
         } else {
             console.warn(`ActionIndicator.initialize: No parent container for ${this.parent?.character?.name}`);
             // Position relative to parent manually
@@ -79,11 +110,11 @@ class ActionIndicator {
         // Position above the character's head
         if (this.parent.container) {
             // Position is relative to container
-            this.text.setPosition(0, -60);
+            this.text.setPosition(0, this.config.VERTICAL_OFFSET);
         } else {
             // Position relative to scene coordinates
             const xPos = this.parent.x || 0;
-            const yPos = (this.parent.y || 0) - 60;
+            const yPos = (this.parent.y || 0) + this.config.VERTICAL_OFFSET;
             this.text.setPosition(xPos, yPos);
         }
         
@@ -104,9 +135,9 @@ class ActionIndicator {
         
         // Default options
         const config = {
-            color: '#ffffff', // default white
-            duration: 1500,   // how long to display
-            rise: 20,         // how far it rises during animation
+            color: this.config.TEXT.COLORS.DEFAULT,
+            duration: this.config.ANIMATION.DURATION,
+            rise: this.config.ANIMATION.RISE_DISTANCE,
             ...options        // override with any provided options
         };
         
@@ -139,7 +170,7 @@ class ActionIndicator {
             targets: this.text,
             alpha: 1,
             y: startY - (config.rise / 2),
-            duration: 300,
+            duration: this.config.ANIMATION.FADE_IN_TIME,
             ease: 'Power1'
         });
         
@@ -159,7 +190,7 @@ class ActionIndicator {
             targets: this.text,
             alpha: 0,
             y: startY - config.rise,
-            duration: 300,
+            duration: this.config.ANIMATION.FADE_OUT_TIME,
             ease: 'Power1',
             onComplete: () => {
                 this.isAnimating = false;
@@ -175,7 +206,7 @@ class ActionIndicator {
      */
     showAutoAttack() {
         this.showAction('Auto Attack', {
-            color: '#f0f0f0' // Light grey color
+            color: this.config.TEXT.COLORS.AUTO_ATTACK
         });
     }
     
@@ -185,7 +216,7 @@ class ActionIndicator {
      */
     showAbility(abilityName) {
         this.showAction(abilityName, {
-            color: '#42f5a7' // Light green color for abilities
+            color: this.config.TEXT.COLORS.ABILITY
         });
     }
     
@@ -195,7 +226,7 @@ class ActionIndicator {
      */
     showStatusEffect(statusName) {
         this.showAction(`Status: ${statusName}`, {
-            color: '#f5d142' // Gold color for status effects
+            color: this.config.TEXT.COLORS.STATUS
         });
     }
     

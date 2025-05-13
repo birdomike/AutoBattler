@@ -768,7 +768,7 @@ class CharacterSprite {
     showFloatingText(text, style = {}) {
           // Validate container and scene
           if (!this.container || !this.scene || !this.scene.tweens || !this.scene.add) {
-               console.error(`showFloatingText (${this.character.name}): Missing container or scene functionality (tweens/add).`);
+               console.error(`showFloatingText (${this.character?.name}): Missing container or scene functionality (tweens/add).`);
                return;
           }
          try { // Added try...catch
@@ -780,19 +780,31 @@ class CharacterSprite {
                 strokeThickness: 3
             };
             const mergedStyle = {...defaultStyle, ...style};
+            
+            // Check if container has getWorldTransformMatrix method
+            if (!this.container.getWorldTransformMatrix) {
+                console.error(`showFloatingText (${this.character?.name}): Container missing getWorldTransformMatrix method.`);
+                return;
+            }
+            
+            // Get global position of the character using world transform matrix
+            let globalPosition = new Phaser.Math.Vector2();
+            this.container.getWorldTransformMatrix().transformPoint(0, 0, globalPosition);
+            
+            console.log(`showFloatingText (${this.character?.name}): Using global position (${globalPosition.x}, ${globalPosition.y}) for floating text.`);
 
-            // Create text
+            // Create text at the correct global position
             const floatingText = this.scene.add.text(
-                this.container.x,
-                this.container.y - 50, // Initial position slightly higher
+                globalPosition.x,
+                globalPosition.y - 50, // Initial position slightly higher
                 text,
                 mergedStyle
             ).setOrigin(0.5);
 
-             // Ensure text is added to the correct display list / depth if necessary
-             // floatingText.setDepth(100); // Example: Set depth if needed
+            // Ensure text is added with appropriate depth
+            floatingText.setDepth(1000); // High depth to ensure visibility above other elements
 
-            // Animate text
+            // Animate text (using the already positioned text's y coordinate)
             this.scene.tweens.add({
                 targets: floatingText,
                 y: floatingText.y - 50, // Move further up
@@ -807,7 +819,7 @@ class CharacterSprite {
                 }
             });
         } catch (error) {
-             console.error(`showFloatingText (${this.character.name}): Error creating/animating floating text:`, error);
+             console.error(`showFloatingText (${this.character?.name}): Error creating/animating floating text:`, error);
         }
     }
 
