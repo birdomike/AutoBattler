@@ -1,3 +1,12 @@
+### [0.7.0.7] - 2025-05-14
+#### Fixed
+- Fixed circular reference error in CardFrame debugging code
+- Eliminated "TypeError: Converting circular structure to JSON" error that was breaking the debugging process
+- Replaced JSON.stringify calls with explicit property logging for Phaser objects
+- Added proper null checking and fallback values for robust error handling
+
+*Note: For detailed information, see CHANGELOG_0.7.0.7_CardFrameCircularReferenceFix.md*
+
 ### [0.7.0.6] - 2025-05-13
 #### Changed
 - Implemented focused debugging approach for CardFrame character sprite rendering

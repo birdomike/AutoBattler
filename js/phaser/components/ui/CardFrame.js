@@ -405,7 +405,13 @@ class CardFrame extends Phaser.GameObjects.Container {
                 const source = texture.source[0];
                 console.log(`- Texture dimensions: ${source.width}x${source.height}`);
                 console.log(`- Frames in texture: ${Object.keys(texture.frames).length}`);
-                console.log(`- Default frame: ${JSON.stringify(texture.frames.__BASE)}`);
+                // Log specific frame properties instead of using JSON.stringify to avoid circular references
+                if (texture.frames && texture.frames.__BASE) {
+                    const baseFrame = texture.frames.__BASE;
+                    console.log(`- Default frame properties: width=${baseFrame.width || 'unknown'}, height=${baseFrame.height || 'unknown'}, x=${baseFrame.x || 0}, y=${baseFrame.y || 0}`);
+                } else {
+                    console.log(`- Default frame: Not available`);
+                }
             } else {
                 console.warn(`- Texture exists but structure is invalid or unexpected`);
             }
