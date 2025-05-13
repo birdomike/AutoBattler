@@ -27,7 +27,7 @@ class TurnIndicator extends Phaser.GameObjects.Graphics {
      * @param {number} fadeInDuration - Duration of fade-in animation in milliseconds
      * @param {number} offsetY - Optional vertical offset for fine-tuning position
      */
-    showAt(x, y, color, fadeInDuration = 300, offsetY = -8) {
+    showAt(x, y, color, fadeInDuration = 300, offsetY = 45) {
         if (this.fadeTween) {
             this.fadeTween.stop();
             this.fadeTween = null;

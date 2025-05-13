@@ -158,7 +158,7 @@ class TeamContainer {
         this.config = Object.assign({
             x: isPlayerTeam ? 300 : 900,
             y: 350,
-            spacing: 180, // Original spacing
+            spacing: 275, // Original spacing
             characterScale: 1,
             interactive: true
         }, config);
