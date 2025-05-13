@@ -406,6 +406,9 @@ class CardFrame extends Phaser.GameObjects.Container {
                 console.log(`CardFrame: Texture dimensions - ${source.width}x${source.height}`);
             }
             
+            // Ensure portrait container has higher depth than other elements
+            this.portraitContainer.setDepth(5);
+            
             // Create character sprite
             console.log(`CardFrame: Creating sprite at position (${this.config.artOffsetX}, ${this.config.artOffsetY})`);
             this.characterSprite = this.scene.add.sprite(
@@ -413,6 +416,9 @@ class CardFrame extends Phaser.GameObjects.Container {
                 this.config.artOffsetY,
                 this.config.characterKey
             );
+            
+            // Set explicit depth for character sprite
+            this.characterSprite.setDepth(10);
             
             // Apply scaling if needed
             if (this.config.artScale !== 1) {
@@ -431,6 +437,11 @@ class CardFrame extends Phaser.GameObjects.Container {
             // Add to portrait container
             console.log(`CardFrame: Adding character sprite to portrait container`);
             this.portraitContainer.add(this.characterSprite);
+            
+            // Bring character sprite to top of container
+            this.portraitContainer.bringToTop(this.characterSprite);
+            
+            console.log(`CardFrame: Character sprite depth set to ${this.characterSprite.depth}, portrait container depth: ${this.portraitContainer.depth}`);
             
             // Confirm successful creation
             console.log(`CardFrame: Character sprite created and added successfully for "${this.config.characterName}"`);

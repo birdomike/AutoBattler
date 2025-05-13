@@ -1,3 +1,11 @@
+### [0.7.0.4] - 2025-05-13
+#### Fixed
+- Fixed character art not appearing in card frames due to z-ordering issues
+- Added proper depth settings to ensure character sprites render above other card elements
+- Implemented explicit z-index ordering for portrait containers and character sprites
+
+*Note: For detailed information, see CHANGELOG_0.7.0.4_CardFrameZOrderingFix.md*
+
 ### [0.7.0.3] - 2025-05-13
 #### Changed
 - Improved error message in CharacterSprite.js to more accurately reflect the game implementation
