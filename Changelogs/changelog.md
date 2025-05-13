@@ -1,3 +1,15 @@
+### [0.7.0.0] - 2025-05-13
+#### Added
+- Created new CardFrame component for professional character visualization
+- Implemented 3:4 aspect ratio design with type-themed styling
+- Added decorative nameplate with beveled edges/scrollwork
+- Implemented portrait window with proper masking
+- Added support for selection/hover animations and glow effects
+- Included comprehensive health bar system with visual feedback
+- Introduced detailed configuration options for easy visual customization
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.0.0_CardFrameImplementation.md*
+
 ### [0.6.7.14] - 2025-05-12
 #### Fixed
 - Fixed Canvas2D warning by correctly applying willReadFrequently attribute to all canvas contexts
