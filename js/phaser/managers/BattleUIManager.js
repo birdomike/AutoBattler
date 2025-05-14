@@ -334,7 +334,7 @@ class BattleUIManager {
             if (typeof BattleControlPanel === 'function') {
                 const battleControlPanel = new BattleControlPanel(
                     this.scene,
-                    this.scene.cameras.main.width / 2, // center horizontally
+                    50, // 50px from left edge, aligned with other UI elements
                     this.scene.cameras.main.height - 50 // position near bottom
                 );
                 
