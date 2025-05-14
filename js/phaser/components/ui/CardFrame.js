@@ -211,53 +211,23 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     createBaseFrame() {
         try {
-            // Determine frame texture key to use
-            const frameTextureKey = `${this.config.frameTexture}-${this.config.characterType}`;
-            let textureToUse = frameTextureKey;
+            // Skip texture check and use graphics rendering by default
+            // This eliminates the "card-frame texture not found" warning
             
-            // Check if type-specific texture exists, fallback to base if not
-            if (!this.scene.textures.exists(frameTextureKey)) {
-                textureToUse = this.config.frameTexture;
-                console.log(`CardFrame: Type-specific frame texture "${frameTextureKey}" not found, using base texture "${this.config.frameTexture}"`);
-            }
+            // Create frame graphics directly
+            const frameGraphics = this.scene.add.graphics();
             
-            // Create frame with 9-slice for proper scaling
-            if (this.scene.textures.exists(textureToUse)) {
-                // Use 9-slice for texture-based frame
-                this.frameBase = this.scene.add.nineslice(
-                    0, 0,
-                    this.config.width,
-                    this.config.height,
-                    textureToUse,
-                    this.config.sliceMargins
-                ).setOrigin(0.5);
-                
-                // Set frame alpha
-                this.frameBase.setAlpha(this.config.frameAlpha);
-                
-                // Tint with type color if using base frame
-                if (textureToUse === this.config.frameTexture && this.typeColor) {
-                    this.frameBase.setTint(this.typeColor);
-                }
-            } else {
-                // Fallback: Create frame using graphics if texture doesn't exist
-                console.warn(`CardFrame: Frame texture "${textureToUse}" not found, using graphics fallback`);
-                
-                // Create frame graphics
-                const frameGraphics = this.scene.add.graphics();
-                
-                // Draw outer border with type color
-                frameGraphics.lineStyle(this.config.borderWidth, this.typeColor, this.config.frameAlpha);
-                frameGraphics.strokeRoundedRect(
-                    -this.config.width / 2,
-                    -this.config.height / 2,
-                    this.config.width,
-                    this.config.height,
-                    this.config.cornerRadius
-                );
-                
-                this.frameBase = frameGraphics;
-            }
+            // Draw outer border with type color
+            frameGraphics.lineStyle(this.config.borderWidth, this.typeColor, this.config.frameAlpha);
+            frameGraphics.strokeRoundedRect(
+                -this.config.width / 2,
+                -this.config.height / 2,
+                this.config.width,
+                this.config.height,
+                this.config.cornerRadius
+            );
+            
+            this.frameBase = frameGraphics;
             
             // Add frame to container
             this.add(this.frameBase);
@@ -666,59 +636,33 @@ class CardFrame extends Phaser.GameObjects.Container {
             // Create banner container
             this.nameBannerContainer = this.scene.add.container(0, bannerY);
             
-            // Determine nameplate texture to use
-            const nameplateTextureKey = `${this.config.nameplateTexture}-${this.config.characterType}`;
-            let textureToUse = nameplateTextureKey;
+            // Skip texture check and use graphics rendering by default
+            // This eliminates the "nameplate texture not found" warning
             
-            // Check if type-specific texture exists, fallback to base if not
-            if (!this.scene.textures.exists(nameplateTextureKey)) {
-                textureToUse = this.config.nameplateTexture;
-                console.log(`CardFrame: Type-specific nameplate texture "${nameplateTextureKey}" not found, using base texture "${this.config.nameplateTexture}"`);
-            }
+            // Create nameplate using graphics
+            const nameplateBg = this.scene.add.graphics();
             
-            // Create decorative banner background
-            if (this.scene.textures.exists(textureToUse)) {
-                // Use 9-slice for texture-based nameplate
-                this.nameBanner = this.scene.add.nineslice(
-                    0, 0,
-                    this.config.nameBannerWidth,
-                    this.config.nameBannerHeight,
-                    textureToUse,
-                    [15, 15, 15, 15] // Left, right, top, bottom slice points for beveled edges
-                ).setOrigin(0.5);
-                
-                // Tint with type color if using base nameplate
-                if (textureToUse === this.config.nameplateTexture && this.typeColor) {
-                    this.nameBanner.setTint(this.typeColor);
-                }
-            } else {
-                // Fallback: Create nameplate using graphics if texture doesn't exist
-                console.warn(`CardFrame: Nameplate texture "${textureToUse}" not found, using graphics fallback`);
-                
-                const nameplateBg = this.scene.add.graphics();
-                
-                // Draw decorative background
-                nameplateBg.fillStyle(this.typeColor, 0.8);
-                nameplateBg.fillRoundedRect(
-                    -this.config.nameBannerWidth / 2,
-                    -this.config.nameBannerHeight / 2,
-                    this.config.nameBannerWidth,
-                    this.config.nameBannerHeight,
-                    8 // Rounded corners
-                );
-                
-                // Add bevel effect
-                nameplateBg.lineStyle(2, 0xFFFFFF, 0.3);
-                nameplateBg.strokeRoundedRect(
-                    -this.config.nameBannerWidth / 2 + 1,
-                    -this.config.nameBannerHeight / 2 + 1,
-                    this.config.nameBannerWidth - 2,
-                    this.config.nameBannerHeight - 2,
-                    7
-                );
-                
-                this.nameBanner = nameplateBg;
-            }
+            // Draw decorative background
+            nameplateBg.fillStyle(this.typeColor, 0.8);
+            nameplateBg.fillRoundedRect(
+                -this.config.nameBannerWidth / 2,
+                -this.config.nameBannerHeight / 2,
+                this.config.nameBannerWidth,
+                this.config.nameBannerHeight,
+                8 // Rounded corners
+            );
+            
+            // Add bevel effect
+            nameplateBg.lineStyle(2, 0xFFFFFF, 0.3);
+            nameplateBg.strokeRoundedRect(
+                -this.config.nameBannerWidth / 2 + 1,
+                -this.config.nameBannerHeight / 2 + 1,
+                this.config.nameBannerWidth - 2,
+                this.config.nameBannerHeight - 2,
+                7
+            );
+            
+            this.nameBanner = nameplateBg;
             
             // Create name text with shadow for depth
             this.nameText = this.scene.add.text(

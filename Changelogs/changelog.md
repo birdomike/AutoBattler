@@ -1,14 +1,18 @@
-## 0.7.0.13 - Fixed Card Representation Circle Error (2025-05-13)
+## 0.7.0.13 - Fixed Card Representation Errors (2025-05-13)
 
 ### Fixed
 - Fixed error messages "Background circle does not exist" when using card-based character representation
+- Fixed warning messages about missing texture assets ("card-frame texture not found" and "nameplate texture not found")
 - Modified CharacterSprite.makeInteractive() to check which representation is being used before trying to access background circle
 - Improved error message to be more specific about the representation context
+- Updated CardFrame to use graphics rendering by default for frame and nameplate without attempting to load textures first
 
 ### Technical
 - Added early return in makeInteractive() for card-based representation where interactivity is already handled by the CardFrame component
+- Simplified CardFrame.createBaseFrame() and CardFrame.createNameBanner() methods to use graphics rendering directly
+- Eliminated texture-related warning messages in the console
 - No changes to visual appearance or functionality - purely error message elimination
-- *Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.0.13_CardFrameCircleErrorFix.md*
+- *Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.0.13_CardFrameErrorFixes.md*
 ## Version 0.7.0.12 - Card Frame Visual Depth Refinement (2025-05-13)
 ### Changed
 - Refined card frame visual depth implementation for more professional appearance
