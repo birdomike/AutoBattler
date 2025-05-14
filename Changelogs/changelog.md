@@ -1,16 +1,17 @@
-## 0.7.0.15 - Battle Controls UI Repositioning (2025-05-14)
+## 0.7.0.15 - Battle Controls UI Repositioning and Resizing (2025-05-14)
 
 ### Changed
-- Moved Battle Controls panel from center-bottom to left-bottom of the screen
-- Aligned Battle Controls with other left-aligned UI elements for visual consistency
-- Improved UI layout to prevent controls from being obscured by character cards
-- Maintained the same vertical position for the control panel
+- Moved Battle Controls panel from center-bottom to left-bottom of the screen with optimal positioning
+- Reduced the horizontal size of the Battle Controls panel for a more compact appearance
+- Decreased button sizes and spacing for better space efficiency
+- Ensured controls are visible without overlapping character cards
 
 ### Technical
-- Modified x-coordinate parameter in BattleUIManager.createBattleControls() from screen-center to 50px from left edge
-- Left all other UI component positions unchanged
-- No functional changes to battle controls - only repositioned the panel
-- Aligned with existing UI design language of left-aligned status information
+- Modified x-coordinate parameter in BattleUIManager.createBattleControls() from screen-center to 150px from left edge
+- Reduced button width from 60px to 45px in BattleControlPanel
+- Decreased button spacing from 8px to 5px for more compact layout
+- Reduced icon button size from 36px to 30px
+- Made consistent size adjustments throughout the panel creation methods
 
 *Note: For detailed information on implementation and design considerations, see CHANGELOG_0.7.0.15_BattleControlsRepositioning.md*
 

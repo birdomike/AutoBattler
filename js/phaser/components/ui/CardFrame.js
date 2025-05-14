@@ -59,15 +59,15 @@ class CardFrame extends Phaser.GameObjects.Container {
         showHealth: true,           // Whether to show health bar
         healthBarWidth: 180,        // Width of health bar
         healthBarHeight: 12,        // Height of health bar
-        healthBarOffsetY: 90,       // Distance from center to health bar
+        healthBarOffsetY: -148,       // Distance from center to health bar
         showHealthText: true,       // Whether to show health text
         
         // Nameplate
-        nameBannerHeight: 40,       // Height of name banner
+        nameBannerHeight: 25,       // Height of name banner
         nameBannerWidth: 210,       // Width of name banner (slightly less than card width)
         nameFontSize: 16,           // Font size for name text
         nameFontFamily: 'serif',    // Font family for name text
-        nameOffsetY: 110,           // Distance from center to nameplate
+        nameOffsetY: 135,           // Distance from center to nameplate
         showDecorativeFlourishes: true, // Whether to show flourishes around name
         
         // Appearance

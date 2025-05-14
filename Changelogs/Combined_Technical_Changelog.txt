@@ -1,4 +1,744 @@
-﻿Combined Technical Changelog  (generated 2025-05-13 19:17)
+﻿Combined Technical Changelog  (generated 2025-05-14 00:36)
+
+===== CHANGELOG_0.7.0.15_BattleControlsRepositioning =====
+
+# CHANGELOG 0.7.0.15 - Battle Controls UI Repositioning and Resizing
+
+## Problem Analysis
+
+The Battle Controls UI panel was previously positioned at the center-bottom of the screen. With the recent improvements to card spacing in version 0.7.0.14, the vertically taller cards were overlapping with or visually competing with the control panel. An initial fix positioned the panel at the far left edge (50px from left), but this proved to be too extreme, making it appear disconnected from the rest of the UI.
+
+Additionally, the panel itself was unnecessarily large horizontally, taking up more screen space than needed for its functionality.
+
+Specific issues identified:
+- The initial repositioning (50px from left edge) was too extreme, making the panel feel disconnected
+- The panel's width was larger than necessary, with excessive button sizes and spacing
+- The icon buttons were disproportionately large compared to text buttons
+
+## Implementation Solution
+
+The solution involved two key changes:
+
+1. **Adjusted Horizontal Position**: Modified the x-coordinate to place the panel at a more balanced position (150px from left edge instead of 50px)
+
+2. **Reduced Panel Width**: Decreased the overall panel width by:
+   - Reducing button width from 60px to 45px
+   - Decreasing button spacing from 8px to 5px
+   - Shrinking icon button size from 36px to 30px
+
+### Code Changes
+
+#### 1. Updated Control Panel Position in BattleUIManager.js
+
+```javascript
+// Old positioning (left-aligned at 50px)
+const battleControlPanel = new BattleControlPanel(
+    this.scene,
+    50, // 50px from left edge, aligned with other UI elements
+    this.scene.cameras.main.height - 50 // position near bottom
+);
+
+// New positioning (balanced at 150px)
+const battleControlPanel = new BattleControlPanel(
+    this.scene,
+    150, // 150px from left edge, better balanced position
+    this.scene.cameras.main.height - 50 // position near bottom
+);
+```
+
+#### 2. Reduced Button Sizes and Spacing in BattleControlPanel.js
+
+```javascript
+// Old dimensions
+const buttonWidth = 60;
+const buttonHeight = 30;
+const width = (buttonWidth * 6) + (this.config.buttonSpacing * 7) + (this.config.padding * 2);
+
+// New dimensions
+const buttonWidth = 45; // Reduced from 60 to make more compact
+const buttonHeight = 30;
+const buttonSpacing = 5; // Reduced from 8 to make more compact
+const width = (buttonWidth * 6) + (buttonSpacing * 7) + (this.config.padding * 2);
+```
+
+#### 3. Updated Icon Button Size
+
+```javascript
+// Old size
+const buttonSize = 36;
+
+// New size
+const buttonSize = 30; // Reduced from 36 to make more compact
+```
+
+## How It Works
+
+The Battle Control panel creation and positioning involves two key components working together:
+
+1. **BattleUIManager**: Determines the overall panel position within the scene
+   - The x,y coordinates (now 150, bottom-50) position the container in the scene
+   - This controls where the panel appears on screen
+
+2. **BattleControlPanel**: Handles its own internal layout and component sizing
+   - Button width, spacing, and container dimensions are defined here
+   - All internal components are positioned relative to the panel's center (0,0)
+   - The overall panel width is calculated based on button dimensions and spacing
+
+By adjusting both the position in BattleUIManager and the internal dimensions in BattleControlPanel, we've achieved a better balanced and more compact UI panel that maintains full functionality while using less screen space.
+
+The key changes to reduce width were:
+- Button width: 60px â†’ 45px (25% reduction)
+- Button spacing: 8px â†’ 5px (37.5% reduction)
+- Icon button size: 36px â†’ 30px (16.7% reduction)
+
+These reductions compound to create a significantly smaller horizontal footprint while maintaining usability.
+
+## Visual Improvements
+
+This repositioning and resizing yields several visual improvements:
+
+1. **Better Balance**: Panel is properly positioned between the left edge and the game area
+2. **Space Efficiency**: Reduced size means less visual competition with game elements
+3. **Harmony with Character Cards**: Controls no longer feel too close to or too far from the card-based representation
+4. **Consistent Proportions**: Buttons remain properly proportioned but take less horizontal space
+5. **Clean Lines**: The panel maintains its visual style while being more compact
+
+## Testing Results
+
+After implementing the changes, the Battle Controls panel now appears at a balanced position from the left side of the screen (150px from left edge), with a more compact width. The controls remain fully functional and all buttons are clearly visible with proper spacing.
+
+The reduced size and adjusted position create a more harmonious UI layout that works better with the card-based character representation while maintaining the left-aligned nature of the status UI elements.
+
+## Next Steps
+
+While these changes significantly improve the Battle Controls placement and size, a few additional UI improvements could be considered in the future:
+
+1. **Layout Consistency**: Review the full UI for other elements that could benefit from size optimization
+2. **Responsive Design**: Consider scaling adjustments based on different screen sizes or resolutions
+3. **Vertical Position**: Evaluate whether raising the vertical position slightly would improve the layout
+4. **Visual Styling**: Update panel aesthetics to better complement the card-based theme
+
+
+===== CHANGELOG_0.7.0.14_CardFrameSpacingOptimization =====
+
+# CHANGELOG 0.7.0.14 - Card Frame Spacing Optimization
+
+## Problem Analysis
+
+The card-based character representation introduced in version 0.7.0.0 had spacing issues when multiple characters were displayed in a team. The original spacing value of 275px was sufficient for the circle-based representation but inadequate for the taller card frames (320px in height).
+
+Specific issues observed:
+- Cards appeared too close together vertically, creating a cluttered appearance
+- For 3-character teams, the special positioning logic added too much extra space (40px) on top of the already increased spacing
+- Overlapping visual elements when characters used status effects or action indicators
+- The spacing recommendation from earlier discussions (340-360px) had not been implemented
+
+## Implementation Solution
+
+### 1. Increased Team Spacing
+
+Modified the default spacing value in the `TeamContainer` constructor:
+
+```javascript
+this.config = Object.assign({
+    x: isPlayerTeam ? 300 : 900,
+    y: 350,
+    spacing: 350, // Increased from 275 to provide adequate space for card frames
+    characterScale: 1,
+    interactive: true
+}, config);
+```
+
+The new spacing value of 350px provides sufficient vertical separation between cards, accounting for the 320px card height plus a small buffer for visual clarity.
+
+### 2. Adjusted Special Positioning for 3-Character Teams
+
+Updated the special positioning logic for 3-character teams to use a smaller offset:
+
+```javascript
+// For 3 character teams, use a special positioning
+if (teamSize === 3) {
+    // Position first character higher
+    positions.push({
+        x: 0,
+        y: -spacing - 20 // Move first character 20px higher (reduced from 40px with increased spacing)
+    });
+    
+    // Keep middle character in center
+    positions.push({
+        x: 0,
+        y: 0
+    });
+    
+    // Position last character lower
+    positions.push({
+        x: 0,
+        y: spacing + 20 // Move last character 20px lower (reduced from 40px with increased spacing)
+    });
+    
+    return positions;
+}
+```
+
+The offset was reduced from 40px to 20px to maintain a balanced team appearance while preventing excessive spacing with the new larger default spacing value.
+
+## Testing Results
+
+After implementing these changes:
+- Characters now have clear visual separation without overlapping
+- The card frames are properly displayed with enough buffer space between them
+- Team composition is more visually distinct and readable
+- There is adequate space for action indicators, floating text, and status effects
+- The 3-character teams have a balanced vertical distribution
+
+## Visual Comparison
+
+**Before**: Characters appeared close together with minimal separation, especially when using card frames.
+
+**After**: Cards have proper vertical spacing, allowing the full card frame to be visible with a small buffer between cards. The team layout appears more balanced and professional.
+
+## Lessons Learned
+
+1. **Visual Balance in UI Design**: When moving from a compact representation (circles) to a larger one (cards), spacing needs to scale proportionally to maintain visual clarity.
+
+2. **Adaptive Design Parameters**: UI components should have configurable spacing that takes into account the dimensions of the elements being positioned.
+
+3. **Phased Implementation**: This change completes the card frame implementation that began in version 0.7.0.0 by addressing the team spacing requirements identified during earlier development.
+
+## Next Steps
+
+While this change significantly improves the card representation, a few other enhancements could be considered in the future:
+
+1. **Responsive Spacing**: Implement dynamic spacing based on screen size or resolution
+2. **Horizontal Distribution**: Consider adjusting horizontal positioning for better team balance
+3. **Animation Improvements**: Optimize attack animations for the card-based representation
+4. **Type-Specific Visual Effects**: Add more pronounced visual effects based on character type
+
+
+===== CHANGELOG_0.7.0.13_CardFrameErrorFixes =====
+
+# CHANGELOG 0.7.0.13 - Card Frame Error Fixes
+
+## Problem Analysis
+
+The AutoBattler game's console was displaying several warning and error messages related to the card frame implementation:
+
+1. **Circle Reference Errors**: When using the card-based character representation, numerous error messages were being logged:
+   ```
+   makeInteractive (CharacterName): Background circle does not exist.
+   ```
+   These occurred because the `makeInteractive()` method in `CharacterSprite.js` was assuming all character sprites used the traditional circle-based representation.
+
+2. **Missing Texture Warnings**: Additional warnings were appearing related to missing texture assets:
+   ```
+   CardFrame: Frame texture "card-frame" not found, using graphics fallback
+   CardFrame: Nameplate texture "nameplate" not found, using graphics fallback
+   ```
+   These occurred in `CardFrame.js` when it attempted to use textures that hadn't been created or loaded.
+
+All of these issues were purely cosmetic with no impact on functionality, as the card-based representation's interactivity was already properly implemented through the `CardFrame` component, and the graphics fallback for missing textures was working correctly. However, the numerous messages in the console were distracting and could potentially mask other, more important errors.
+
+## Implementation Solution
+
+### 1. Circle Reference Fix
+
+Modified the `makeInteractive()` method in `CharacterSprite.js` to first check which representation is being used before trying to access `this.circle`. For card-based representations, the method now returns early, acknowledging that interactivity is already handled by the `CardFrame` component.
+
+```javascript
+makeInteractive() {
+    // Check which representation is being used
+    if (this.cardConfig.enabled && this.cardFrame) {
+        // Card representation is being used - interactivity is managed by the CardFrame component
+        // No need to do anything here as it's already handled in createCardFrameRepresentation()
+        return;
+    }
+    
+    // For circle representation, ensure circle exists before making interactive
+    if (!this.circle) {
+        console.error(`makeInteractive (${this.character.name}): Background circle does not exist in circle representation.`);
+        return;
+    }
+    
+    // Rest of the original implementation for circle-based representation...
+}
+```
+
+### 2. Missing Texture Fixes
+
+#### Card Frame Texture Fix
+
+Modified the `createBaseFrame()` method in `CardFrame.js` to use graphics rendering by default, without attempting to load textures first:
+
+```javascript
+createBaseFrame() {
+    try {
+        // Skip texture check and use graphics rendering by default
+        // This eliminates the "card-frame texture not found" warning
+        
+        // Create frame graphics directly
+        const frameGraphics = this.scene.add.graphics();
+        
+        // Draw outer border with type color
+        frameGraphics.lineStyle(this.config.borderWidth, this.typeColor, this.config.frameAlpha);
+        frameGraphics.strokeRoundedRect(
+            -this.config.width / 2,
+            -this.config.height / 2,
+            this.config.width,
+            this.config.height,
+            this.config.cornerRadius
+        );
+        
+        this.frameBase = frameGraphics;
+        
+        // Rest of the method...
+    } catch (error) {
+        console.error('CardFrame: Error creating base frame:', error);
+        this.createFallbackFrame();
+    }
+}
+```
+
+#### Nameplate Texture Fix
+
+Similarly modified the `createNameBanner()` method to use graphics rendering directly:
+
+```javascript
+createNameBanner() {
+    try {
+        // Position at the bottom of the card
+        const bannerY = this.config.nameOffsetY;
+        
+        // Create banner container
+        this.nameBannerContainer = this.scene.add.container(0, bannerY);
+        
+        // Skip texture check and use graphics rendering by default
+        // This eliminates the "nameplate texture not found" warning
+        
+        // Create nameplate using graphics
+        const nameplateBg = this.scene.add.graphics();
+        
+        // Draw decorative background
+        nameplateBg.fillStyle(this.typeColor, 0.8);
+        nameplateBg.fillRoundedRect(
+            -this.config.nameBannerWidth / 2,
+            -this.config.nameBannerHeight / 2,
+            this.config.nameBannerWidth,
+            this.config.nameBannerHeight,
+            8 // Rounded corners
+        );
+        
+        // Add bevel effect
+        nameplateBg.lineStyle(2, 0xFFFFFF, 0.3);
+        nameplateBg.strokeRoundedRect(
+            -this.config.nameBannerWidth / 2 + 1,
+            -this.config.nameBannerHeight / 2 + 1,
+            this.config.nameBannerWidth - 2,
+            this.config.nameBannerHeight - 2,
+            7
+        );
+        
+        this.nameBanner = nameplateBg;
+        
+        // Rest of the method...
+    } catch (error) {
+        console.error('CardFrame: Error creating name banner:', error);
+        this.createFallbackNameBanner();
+    }
+}
+```
+
+## Testing Results
+
+After implementing the changes, the console no longer shows any of the following errors or warnings:
+- "Background circle does not exist" errors when using card-based representations
+- "card-frame texture not found" warnings
+- "nameplate texture not found" warnings
+
+The game's interactivity continues to function normally, with card-based characters properly responding to hover and click events through the `CardFrame` component's own interactivity system.
+
+The visual appearance of the cards remains unchanged since the graphics fallback was already providing the correct visual rendering. This solution simply makes the graphics approach the primary implementation rather than a fallback.
+
+## Lessons Learned
+
+This issue highlights several important development principles:
+
+1. **Mixed Representation Handling**: When supporting multiple representation modes, it's crucial to ensure that shared methods handle both cases appropriately, with clear conditional paths for each mode.
+
+2. **Asset Availability**: Code that depends on assets like textures should have robust fallbacks, but also shouldn't generate unnecessary warnings when those fallbacks are the intended behavior.
+
+3. **Clean Console Logs**: Maintaining a clean console is important for development, as it helps identify genuine issues more easily. Console warnings should only appear for actual issues that require attention.
+
+4. **Pragmatic Refactoring**: When a fallback approach is working well, it can sometimes be better to make it the primary approach instead of fixing the original issue, especially if the original approach (texture loading) isn't necessary.
+
+## Next Steps
+
+While these fixes address the immediate console issues, a more thorough refactoring could further improve the architecture:
+
+1. **Asset Preloading System**: Implement a more robust asset preloading system that tracks which textures have been loaded and only attempts to use textures that exist.
+
+2. **Representation Strategy Pattern**: Consider implementing a cleaner separation between the different representation strategies (circle vs. card) using a formal strategy pattern.
+
+3. **Configuration-Based Approach**: Move more of the rendering details to configuration, allowing easier switching between graphics-based and texture-based rendering without code changes.
+
+4. **Documentation Update**: Update the CardFrame documentation to reflect that it now uses graphics rendering by default, with the texture-based approach noted as a potential future enhancement.
+
+
+===== CHANGELOG_0.7.0.13_CardFrameCircleErrorFix =====
+
+# CHANGELOG 0.7.0.13 - Card Frame Circle Error Fix
+
+## Problem Analysis
+
+When using the new card-based representation for characters in the AutoBattler game, numerous error messages were being logged to the console:
+
+```
+makeInteractive (CharacterName): Background circle does not exist.
+```
+
+These errors occurred because the `makeInteractive()` method in `CharacterSprite.js` was assuming that all character sprites used the traditional circle-based representation, where a background circle (`this.circle`) would be created. However, with the newer card-based representation, this circle is not created at all, as interactivity is instead handled by the `CardFrame` component.
+
+The error was purely cosmetic with no impact on functionality, as the card-based representation's interactivity was already properly implemented through the `CardFrame` component. However, the numerous error messages in the console were distracting and could potentially mask other, more important errors.
+
+## Implementation Solution
+
+The solution was to modify the `makeInteractive()` method to first check which representation is being used before trying to access `this.circle`. For card-based representations, the method now returns early, acknowledging that interactivity is already handled by the `CardFrame` component.
+
+### Code Changes
+
+```javascript
+/**
+ * Make the character sprite interactive
+ */
+makeInteractive() {
+     // Check which representation is being used
+     if (this.cardConfig.enabled && this.cardFrame) {
+         // Card representation is being used - interactivity is managed by the CardFrame component
+         // No need to do anything here as it's already handled in createCardFrameRepresentation()
+         return;
+     }
+     
+     // For circle representation, ensure circle exists before making interactive
+     if (!this.circle) {
+         console.error(`makeInteractive (${this.character.name}): Background circle does not exist in circle representation.`);
+         return;
+     }
+     
+     // Rest of the original implementation for circle-based representation...
+}
+```
+
+### Key Implementation Details
+
+1. **Representation Detection**: Added a check at the beginning of the method to detect if the card representation is being used by examining `this.cardConfig.enabled` and `this.cardFrame`.
+
+2. **Early Return**: If card representation is detected, the method returns early, bypassing the circle-specific interactivity code.
+
+3. **Improved Error Message**: Enhanced the error message to specifically mention "in circle representation" for better context.
+
+4. **Preserved Original Logic**: All the original circle-based interactivity code remains unchanged for backward compatibility with the traditional representation.
+
+## Testing Results
+
+After implementing the changes, the console no longer shows the "Background circle does not exist" errors when using card-based representations. The game's interactivity continues to function normally, with card-based characters properly responding to hover and click events through the `CardFrame` component's own interactivity system.
+
+## Lessons Learned
+
+This issue highlights the importance of handling multiple representation modes properly, especially during transitions between UI paradigms. When implementing a new visualization approach (cards) alongside an existing one (circles), it's crucial to ensure that each implementation path is cleanly separated and that shared methods properly handle both cases.
+
+In the future, when introducing alternative representations for game elements, we should:
+
+1. Use an explicit strategy pattern to isolate representation-specific code
+2. Implement representation-specific methods rather than checking representation type within shared methods
+3. Add clear documentation about which methods apply to which representation modes
+
+## Next Steps
+
+While this fix addresses the immediate issue with console errors, a more thorough refactoring could further improve the architecture:
+
+1. Consider implementing separate classes for different representation strategies
+2. Move representation-specific methods to the appropriate strategy classes
+3. Use dependency injection to provide the correct strategy based on configuration
+
+These architectural improvements would be more involved but would make the code more maintainable as the number of alternative representations potentially grows in the future.
+
+
+===== CHANGELOG_0.7.0.12_CardFrameVisualDepthRefinement =====
+
+## CHANGELOG 0.7.0.12 - Refined Card Frame Visual Depth
+
+## Overview
+This update refines the visual depth implementation for card frames, focusing on applying the glow effect to the frame itself rather than the backdrop. This creates a more cohesive visual presentation and emphasizes the card's type identity more clearly. The original implementation had the glow effect applied to the inner backdrop area, but this revision creates a more polished look by having the glow originate from the frame border.
+
+## Implementation Details
+
+### 1. Component Layering Refinement
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Modified the construction order of card components
+
+```javascript
+// Create card components in proper layer order
+this.createBackdrop();
+
+// Add inner glow effect if enabled
+if (this.config.depthEffects.enabled && this.config.depthEffects.innerGlow.enabled) {
+    this.createInnerGlowEffect();
+}
+
+// Create base frame
+this.createBaseFrame();
+
+// Add edge depth effects if enabled
+if (this.config.depthEffects.enabled && this.config.depthEffects.edgeEffects.enabled) {
+    this.addEdgeDepthEffects();
+}
+
+this.createPortraitWindow();
+```
+
+This change ensures proper visual layering with components rendered in this order:
+1. Backdrop (bottom layer)
+2. Inner glow effect (middle layer)
+3. Frame border (top layer)
+4. Edge highlights/shadows (on top of frame)
+
+### 2. Separated Backdrop Creation
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Renamed `createBackgroundElements()` to `createBackdrop()` and simplified its functionality
+
+The new `createBackdrop()` method has a single responsibility: creating the card's background rectangle. This separation allows for cleaner layering of visual components and better adheres to the single responsibility principle.
+
+Key changes:
+- Removed inner shadow effect (now handled in the glow layer)
+- Simplified to only create and store the backdrop rectangle
+- Improved naming for better code readability
+
+### 3. Enhanced Inner Glow Implementation
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Completely revised the `createInnerGlowEffect()` method
+
+The new implementation:
+- Draws the glow effect at the frame border rather than inside the backdrop
+- Creates a more visible and type-emphasizing effect
+- Scales the glow based on the border width for a more natural appearance
+- Adds the graphics object directly to the container instead of returning it
+- Stores a reference to the graphics object for proper cleanup
+
+Key code changes:
+```javascript
+// Draw glow layer - applied to frame border, not backdrop
+glowGraphics.fillStyle(this.typeColor, layerOpacity);
+glowGraphics.fillRoundedRect(
+    -width / 2 + layerPadding,
+    -height / 2 + layerPadding,
+    width - (layerPadding * 2),
+    height - (layerPadding * 2),
+    cornerRadius
+);
+```
+
+### 4. Improved Resource Management
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Updated `destroy()` method with additional cleanup for new components
+
+Added cleanup code for the new inner glow graphics object and backdrop:
+```javascript
+if (this.innerGlowGraphics) {
+    this.scene.tweens.killTweensOf(this.innerGlowGraphics);
+}
+if (this.backdrop) {
+    this.scene.tweens.killTweensOf(this.backdrop);
+}
+```
+
+This ensures proper cleanup of all resources when cards are destroyed, preventing memory leaks.
+
+## Visual Impact
+- More pronounced type-based glow that emanates from the card border
+- Clearer visual hierarchy with the card's type color highlighted at the frame
+- More cohesive overall appearance with proper layering of visual elements
+- Enhanced 3D-like appearance with the glow serving as a light source at the frame edge
+
+## Technical Benefits
+- Better separation of concerns with each method having a single responsibility
+- More maintainable code structure with clear component layering
+- Improved resource management with proper references and cleanup
+- Enhanced visual presentation without performance impact
+
+## Testing Required
+- Verify proper layering of visual components
+- Ensure glow effect is visible and properly colored for all card types
+- Check scaling behavior during hover/selection
+- Verify proper cleanup when cards are destroyed
+- Test with both light and dark type colors to ensure visibility
+
+
+===== CHANGELOG_0.7.0.11_CardFrameVisualDepthEnhancement =====
+
+## CHANGELOG 0.7.0.11 - Enhanced Visual Depth for Card Frames
+
+## Overview
+This update implements enhanced visual depth effects for the card frame system, transforming the relatively flat card appearance into a more professional, three-dimensional design. The changes focus on two key visual enhancements: inner glow effects and edge highlights/shadows.
+
+## Implementation Details
+
+### 1. Configurable Depth Effects System
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Added a new `depthEffects` configuration object structure
+
+```javascript
+depthEffects: {
+    enabled: true,           // Master toggle for all depth effects
+    innerGlow: {
+        enabled: true,       // Enable inner glow effect 
+        intensity: 0.3,      // Intensity of inner glow (0-1)
+        layers: 4            // Number of glow layers (more = smoother but more expensive)
+    },
+    edgeEffects: {
+        enabled: true,       // Enable edge highlights and shadows
+        highlightBrightness: 40, // How much brighter the highlights are (%)
+        shadowDarkness: 40,  // How much darker the shadows are (%)
+        width: 1.5,          // Width of edge effect lines
+        opacity: 0.6         // Opacity of edge effects (0-1)
+    }
+}
+```
+
+### 2. Inner Glow Effect Implementation
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Enhanced `createBackgroundElements()` method and added new `createInnerGlowEffect()` method
+
+The inner glow effect creates a soft, glowing aura on the inside edge of the card frame that matches the character's type color. This is implemented using multiple concentric rectangles with decreasing opacity to create a smooth gradient effect. Key implementation details:
+
+- Multi-layered approach with configurable number of layers for smoother appearance
+- Each layer decreases in both size and opacity to create the gradient glow effect
+- Glow color matches the character's type color for theme consistency
+- Proper layering with background, shadow, and glow elements
+- Optimized for performance with configurable intensity
+
+### 3. Edge Highlights and Shadows
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Added new `addEdgeDepthEffects()` method
+
+This effect simulates light reflecting off the edges of the card, giving it a 3D appearance with highlights on the top/left edges and shadows on the bottom/right edges. Key implementation details:
+
+- Light source appears to come from top-left (standard in UI design)
+- Highlights use brightened versions of the card's type color
+- Shadows use darkened versions of the card's type color
+- Special handling for corner radiuses to maintain consistent appearance
+- Thin, subtle lines to avoid overwhelming the design
+- Proper stroke path implementation for smooth appearance
+
+### 4. Proper Resource Management
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Enhanced `destroy()` method to clean up all graphics resources
+
+```javascript
+// Clean up any tweens for depth effects
+if (this.edgeEffects) {
+    this.scene.tweens.killTweensOf(this.edgeEffects);
+}
+```
+
+## Performance Considerations
+- Inner glow layers are configurable to balance visual quality vs. performance
+- All graphics objects are property cleaned up to prevent memory leaks
+- Edge effects use simple line drawing for optimal performance
+- All effects scale properly when the card is scaled (for hover/selection)
+
+## Visual Impact
+- Cards now appear to "pop" from the background with a subtle 3D appearance
+- Type colors are enhanced through the inner glow, creating better type identity
+- The edge highlights create a premium, polished appearance
+- Visual hierarchy is improved with the subtle depth cues
+
+## Testing Required
+- Verify depth effects display correctly on cards of all types
+- Ensure effects scale properly during hover/selection animations
+- Check performance with multiple cards on screen
+- Verify proper cleanup when cards are destroyed
+
+## Future Improvements
+- Consider adding subtle texture overlays based on character type
+- Explore adding corner accent pieces that vary by type
+- Consider dynamic lighting effects that respond to card state changes
+
+
+===== CHANGELOG_0.7.0.10_CardFrameVisualRefinements =====
+
+# CHANGELOG 0.7.0.10 - Card Frame Visual Refinements
+
+## Issue Overview
+The card frames in the Battle Scene had two primary visual issues:
+1. The frame borders were too thick (20px), making the cards appear bulky and reducing space for character art
+2. A noticeable gap appeared between the outer frame and the inner backdrop, creating an unintended "floating" effect
+
+## Implementation Details
+
+### 1. Frame Thickness Reduction
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Modified the default configuration value for `borderWidth`
+
+**Before:**
+```javascript
+borderWidth: 20,            // Width of frame border
+```
+
+**After:**
+```javascript
+borderWidth: 10,            // Width of frame border (reduced from 20px for sleeker appearance)
+```
+
+**Impact:**
+- Card frames appear sleeker and more elegant
+- Additional 10px of space available for character portraits and other elements
+- Reduced chance of card overlap in the team layout
+- Better overall proportions between frame and content
+
+### 2. Frame-Backdrop Gap Fix
+**File:** `js/phaser/components/ui/CardFrame.js`
+**Change:** Adjusted the calculations in the `createBackgroundElements()` method
+
+**Before:**
+```javascript
+const bgRect = this.scene.add.rectangle(
+    0, 0,
+    this.config.width - this.config.borderWidth * 2,
+    this.config.height - this.config.borderWidth * 2,
+    this.typeColor,
+    this.config.backgroundAlpha
+);
+```
+
+**After:**
+```javascript
+const bgRect = this.scene.add.rectangle(
+    0, 0,
+    this.config.width - (this.config.borderWidth * 2) + 2, // Adjusted to reduce gap with frame
+    this.config.height - (this.config.borderWidth * 2) + 2, // Adjusted to reduce gap with frame
+    this.typeColor,
+    this.config.backgroundAlpha
+);
+```
+
+**Impact:**
+- Eliminated the visible gap between frame and backdrop
+- Creates a more cohesive, single-piece appearance for the card
+- Backdrop now properly extends to meet the inner edge of the frame
+- Added 2px to each dimension to ensure complete coverage even with rounding differences
+
+## Technical Notes
+- The 2px adjustment value was chosen after testing to accommodate for potential rounding errors in Phaser's rendering
+- These changes are purely visual and do not impact the functional behavior of cards
+- The adjustment maintains the card's center-origin positioning, ensuring all existing animations remain properly aligned
+- Future improvements could include adding depth effects to the frame for a more 3D appearance
+
+## Testing Required
+- Verify cards display properly with thinner frames
+- Confirm no gap appears between frame and backdrop
+- Check that card animations still function correctly
+- Ensure cards with different type colors all render properly
+- Verify that the health bar and nameplate positioning still looks correct
+
 
 ===== CHANGELOG_0.7.0.9_TopBannerOptimization =====
 
@@ -366,735 +1106,5 @@ The updated code should be tested to confirm that character art now displays pro
 2. Health bar animations (especially healing glow)
 3. Proper masking of characters (they should still be clipped to the portrait area)
 4. Character fallback (first letter) visibility if a character texture is missing
-
-
-===== CHANGELOG_0.7.0.4_CardFrameZOrderingFix =====
-
-# CardFrame Z-Ordering Fix (0.7.0.4)
-
-This update addresses an issue where character art wasn't visible in the card frames despite being successfully loaded and added to the card. The problem was determined to be related to z-ordering (depth) in the Phaser rendering pipeline.
-
-## Issue
-
-Character sprites were being correctly loaded and added to the portrait container within the card frame, but they weren't visible because they were being rendered behind other card elements. This was confirmed by the debug logs showing:
-
-1. Successful texture loading: `CardFrame: Texture "character_Caste" exists: true`
-2. Correct sprite creation: `CardFrame: Creating sprite at position (-5, -35)`
-3. Successful container addition: `CardFrame: Character sprite created and added successfully for "Caste"`
-
-Yet the character images remained invisible in the actual game display, while UI elements like status effects and turn indicators remained visible.
-
-## Fix Implemented
-
-1. **Set Higher Depth for Portrait Container**: 
-   - Added `this.portraitContainer.setDepth(5)` to ensure the portrait container renders above the base frame elements
-
-2. **Set Explicit Depth for Character Sprite**:
-   - Added `this.characterSprite.setDepth(10)` to ensure the character sprite renders above other elements within the container
-
-3. **Bring Character Sprite to Top**:
-   - Added `this.portraitContainer.bringToTop(this.characterSprite)` to explicitly bring the sprite to the front of its container's display list
-
-4. **Added Debug Logging**:
-   - Added logging to show the final depth values: `console.log("Character sprite depth set to ${this.characterSprite.depth}, portrait container depth: ${this.portraitContainer.depth}")`
-
-These changes ensure proper z-ordering so that character sprites are visibly rendered in front of other card elements, while still being properly masked by the portrait window mask.
-
-## Implementation Notes
-
-This is a common issue in Phaser rendering when working with complex nested containers and masks. The Phaser rendering pipeline processes game objects based on:
-
-1. Their container hierarchy (parent-child relationships)
-2. The order in which they were added to their parent container
-3. Their explicit depth values
-
-The fix uses two complementary approaches to ensure the character images are properly rendered:
-- Explicit depth values via `setDepth()` to enforce rendering order
-- Call to `bringToTop()` to adjust the display list order within the container
-
-This implementation maintains all existing functionality while ensuring the character images are properly visible.
-
-
-===== CHANGELOG_0.7.0.3_CardFrameCharacterArtDebugging =====
-
-# CardFrame Character Art Debugging (0.7.0.3)
-
-This update addresses two issues related to the CardFrame integration:
-
-1. Updated the fallback message in CharacterSprite.js to more accurately reflect the game's implementation, changing from "falling back to circle representation" to "falling back to just using character art" since the game doesn't use circles.
-
-2. Added enhanced debug logging to the CardFrame.createCharacterSprite() method to help diagnose why character art isn't appearing in card frames. The new logging includes:
-   - Confirmation of the character key being used
-   - Verification of texture existence with explicit result logging
-   - Listing of available character textures for comparison
-   - Texture dimensions when available
-   - Position and scale information
-   - Mask application status
-   - Confirmation of adding the sprite to the portrait container
-
-These changes will help identify the root cause of the missing character art in card frames while providing a more accurate user experience through improved error messages.
-
-## Implementation Details
-
-### 1. Updated Fallback Message
-
-Changed the warning message in CharacterSprite.js from:
-```javascript
-console.warn(`CharacterSprite: CardFrame requested for ${character.name} but not available, falling back to circle representation`);
-```
-
-To:
-```javascript
-console.warn(`CharacterSprite: CardFrame requested for ${character.name} but not available, falling back to just using character art`);
-```
-
-### 2. Enhanced CardFrame Debugging
-
-Added comprehensive logging throughout the `createCharacterSprite()` method in CardFrame.js:
-
-- Added texture existence validation with detailed output
-- Added available texture listing for debugging (filtered to character textures)
-- Added texture dimension logging
-- Added positioning and scaling logs
-- Added mask application status logging
-- Added confirmation of successful sprite creation and addition
-
-## Next Steps
-
-After testing these changes, we should have enough information to determine why character sprites aren't appearing in the card frames, which will inform our next implementation phase. The logs will help identify whether:
-
-1. The textures aren't being found (naming/path issue)
-2. The sprites are being created but incorrectly positioned 
-3. The mask is incorrectly applied, potentially hiding the sprites
-4. Other issues are occurring during the sprite creation process
-
-
-===== CHANGELOG_0.7.0.2_CardFrameScriptLoadingFix =====
-
-# CardFrame Script Loading Fix
-
-## Overview
-This changelog documents a critical fix for the CardFrame integration. The CardFrame component was not being loaded properly in the game, which prevented the card-based representation from appearing.
-
-## Issue
-When testing the CardFrame integration, the following error was observed in the browser console:
-```
-CharacterSprite: CardFrame requested for [CharacterName] but not available, falling back to circle representation
-```
-
-This indicated that `window.CardFrame` was not being recognized as a function, causing the character sprites to fall back to the traditional representation.
-
-## Root Cause
-The CardFrame.js script file was not included in the index.html file, which meant:
-1. The CardFrame class was never loaded into the browser
-2. `window.CardFrame` was undefined
-3. The `this.cardFrameAvailable = (typeof window.CardFrame === 'function')` check in CharacterSprite.js resulted in false
-
-## Fix
-Added the CardFrame.js script to index.html before CharacterSprite.js is loaded:
-```html
-<!-- TurnIndicator - Must load before BattleScene -->
-<script src="js/phaser/components/battle/TurnIndicator.js"></script>
-<!-- CardFrame Component - Must load before CharacterSprite -->
-<script src="js/phaser/components/ui/CardFrame.js"></script>
-<!-- BattleScene (Module) -->
-<script type="module" src="js/phaser/scenes/BattleScene.js"></script>
-```
-
-This ensures that CardFrame is defined and registered globally before any CharacterSprite instances are created.
-
-## Implementation
-The implementation required adding the script tag in index.html in the correct order:
-1. Place it after TurnIndicator.js which is a dependency
-2. Place it before the BattleScene module which will create CharacterSprites
-3. Include a clear comment explaining the loading order requirement
-
-## Testing
-After the fix, the `window.CardFrame` global should be properly defined, allowing CharacterSprite.js to detect and use the CardFrame functionality.
-
-## Lessons Learned
-When adding new component scripts to a web application:
-1. Always ensure they are properly referenced in the HTML file
-2. Pay attention to the loading order of scripts, especially when there are dependencies
-3. Verify that global objects are properly registered before they are referenced
-
-This issue highlights the importance of properly managing script dependencies in web applications, especially as the application grows in complexity.
-
-
-===== CHANGELOG_0.7.0.1_CardFrameTestingConfiguration =====
-
-# CardFrame Integration Testing Configuration
-
-## Overview
-This small change enables the card frame representation by default for all characters in the game, allowing for testing of the Phase 1 implementation.
-
-## Change Details
-Modified the default value of `useCardFrame` in the CharacterSprite constructor from `false` to `true`:
-
-```javascript
-this.config = Object.assign({
-    x: 0,
-    y: 0,
-    scale: 1,
-    showName: true,
-    showHealth: true,
-    showStatusEffects: true,
-    useCardFrame: true,         // Changed from false to true for testing
-    cardConfig: {                
-        width: 240,              
-        height: 320,             
-        portraitOffsetY: -20,    
-        nameBannerHeight: 40,    
-        healthBarOffsetY: 90,    
-        interactive: false       
-    }
-}, config);
-```
-
-## Purpose
-This change is intended for testing purposes to evaluate the Phase 1 CardFrame integration. It enables all characters to use the card representation by default, allowing for visual inspection and functional testing of the framework we've implemented.
-
-## Testing Notes
-During testing of the card frames, users should observe:
-- The proper creation of card frames for all characters
-- Type-themed styling based on each character's element
-- Health bar updates working correctly
-- Floating text appearing in the proper position
-- Attack animations with the subtle rotation effect
-
-This is still Phase 1 implementation, so some visual elements may need further refinement in Phase 2.
-
-## Reverting
-After testing is complete, this change may be reverted to return to the default circle representation for normal gameplay, or a UI toggle can be implemented to allow players to choose their preferred representation.
-
-
-===== CHANGELOG_0.7.0.1_CardFrameIntegrationHotfix =====
-
-# CardFrame Integration Phase 1 Hotfix: Syntax Error Fix
-
-## Overview
-This changelog documents a critical hotfix for the Phase 1 CardFrame integration. A syntax error was discovered in the CharacterSprite.js file that prevented the game from running properly. This fix ensures the CardFrame integration can proceed as planned.
-
-## Issue
-The syntax error was in CharacterSprite.js and manifested as:
-```
-CharacterSprite.js:1082 Uncaught SyntaxError: Unexpected token '{'
-```
-
-## Root Cause
-The new CardFrame-related methods (`createCardFrameRepresentation()`, `setupCardFrameEvents()`, and `cleanupCardFrameEvents()`) were incorrectly added outside of the `CharacterSprite` class definition. This resulted in an invalid JavaScript class structure, causing the browser to throw a syntax error.
-
-## Fix
-The fix involved moving the CardFrame-related methods inside the `CharacterSprite` class definition, ensuring they are properly defined as class methods. Specifically:
-
-1. Moved `createCardFrameRepresentation()` method inside the class
-2. Moved `setupCardFrameEvents()` method inside the class
-3. Moved `cleanupCardFrameEvents()` method inside the class
-4. Rearranged the order of methods to maintain a logical grouping, keeping the `destroy()` method as the last method in the class
-
-## Implementation
-The implementation required restructuring the code without changing any functionality:
-
-```javascript
-// Before: Methods incorrectly placed outside class
-class CharacterSprite {
-    // ... other methods ...
-    
-    destroy() {
-        // ... method body ...
-    }
-}
-
-// These methods were incorrectly outside the class
-createCardFrameRepresentation() { ... }
-setupCardFrameEvents() { ... }
-cleanupCardFrameEvents() { ... }
-
-
-// After: All methods properly contained within class
-class CharacterSprite {
-    // ... other methods ...
-    
-    createCardFrameRepresentation() { ... }
-    setupCardFrameEvents() { ... }
-    cleanupCardFrameEvents() { ... }
-    
-    destroy() {
-        // ... method body ...
-    }
-}
-```
-
-## Testing
-After the fix, the syntax error no longer appears, and the CardFrame integration works as expected. The game loads correctly with no JavaScript errors in the console.
-
-## Lessons Learned
-When adding new methods to an existing class, it's important to ensure they are properly placed inside the class definition. When editing large JavaScript files, careful attention to the class structure is necessary to avoid syntax errors.
-
-This issue highlights the importance of thorough testing immediately after making code changes, especially when working with complex class structures.
-
-
-===== CHANGELOG_0.7.0.1_CardFrameIntegrationPhase1 =====
-
-# CardFrame Integration Phase 1: Framework & Configuration
-
-This changelog documents the implementation of Phase 1 of the CardFrame integration project, which adds the foundational framework and configuration systems needed to support card-based character representation in the game.
-
-## Overview
-
-Phase 1 focuses on establishing the groundwork for integrating the CardFrame component with the existing CharacterSprite system. This involved:
-
-1. Adding configuration options for card-based representation
-2. Implementing conditional creation logic
-3. Modifying key visual methods to support both representations
-4. Setting up proper event handling for card-specific interactions
-
-## Implementation Details
-
-### Configuration System
-
-Added a comprehensive configuration system to CharacterSprite that allows toggling between circle and card representations:
-
-```javascript
-this.config = Object.assign({
-    // Existing properties
-    showName: true,
-    showHealth: true,
-    showStatusEffects: true,
-    
-    // New card-specific options
-    useCardFrame: false,         // Whether to use card frame representation
-    cardConfig: {                // Card-specific configuration options
-        width: 240,              // Card width
-        height: 320,             // Card height
-        portraitOffsetY: -20,    // Portrait vertical offset from center
-        nameBannerHeight: 40,    // Height of name banner
-        healthBarOffsetY: 90,    // Distance from center to health bar
-        interactive: false       // Whether card is interactive
-    }
-}, config);
-```
-
-This configuration system provides flexibility for customizing card appearance while maintaining backward compatibility with the existing circle-based approach.
-
-### CardFrame Availability Detection
-
-Added a feature detection mechanism to gracefully fall back to circle representation when CardFrame is unavailable:
-
-```javascript
-// Check if CardFrame is available globally
-this.cardFrameAvailable = (typeof window.CardFrame === 'function');
-
-// Create a complete card configuration by merging defaults with provided options
-this.cardConfig = {
-    enabled: this.config.useCardFrame || false,
-    width: this.config.cardConfig?.width || 240,
-    height: this.config.cardConfig?.height || 320,
-    // ...more properties with fallbacks
-};
-
-// Validate card configuration
-if (this.cardConfig.enabled && !this.cardFrameAvailable) {
-    console.warn(`CharacterSprite: CardFrame requested but not available, falling back to circle representation`);
-    this.cardConfig.enabled = false;
-}
-```
-
-This approach ensures the game functions correctly even if the CardFrame component is missing or fails to load properly.
-
-### Conditional Creation Logic
-
-Implemented decision logic in the constructor to create either a card or circle representation based on configuration:
-
-```javascript
-// --- Determine which representation to use ---
-if (this.cardConfig.enabled && this.cardFrameAvailable) {
-    try {
-        console.log(`CharacterSprite (${character.name}): Creating card frame representation...`);
-        this.createCardFrameRepresentation();
-        console.log(`CharacterSprite (${character.name}): Card frame representation created.`);
-    } catch(error) {
-        console.error(`CharacterSprite Constructor (${character.name}): Error in createCardFrameRepresentation:`, error);
-        // Fall back to circle representation if card creation fails
-        this.cardConfig.enabled = false;
-        this.createCircleRepresentation();
-    }
-} else {
-    // Use traditional circle representation
-    try {
-        console.log(`CharacterSprite (${character.name}): Creating circle representation...`);
-        this.createCircleRepresentation();
-        console.log(`CharacterSprite (${character.name}): Circle representation created.`);
-    } catch(error) {
-        console.error(`CharacterSprite Constructor (${character.name}): Error in createCircleRepresentation:`, error);
-        // Optionally create a fallback visual here if circle creation fails
-    }
-}
-```
-
-This approach provides automatic fallback to the circle representation if card creation fails, ensuring the game remains functional even in error cases.
-
-### CardFrame Creation Method
-
-Added a new method to create and configure the CardFrame for each character:
-
-```javascript
-createCardFrameRepresentation() {
-    try {
-        // Create CardFrame instance with proper configuration
-        this.cardFrame = new window.CardFrame(this.scene, 0, 0, {
-            // Character information
-            characterKey: `character_${this.character.name}`,
-            characterName: this.character.name,
-            characterType: this.character.type,
-            characterTeam: this.character.team,
-            
-            // Health information
-            currentHealth: this.character.currentHp || 0,
-            maxHealth: this.character.stats.hp || 100,
-            showHealth: this.config.showHealth,
-            
-            // Visual customization and art positioning
-            width: this.cardConfig.width,
-            height: this.cardConfig.height,
-            portraitOffsetY: this.cardConfig.portraitOffsetY,
-            artOffsetX: parseInt(this.character.art?.left) || 0,
-            artOffsetY: parseInt(this.character.art?.top) || 0,
-            
-            // Interactivity settings with event forwarding
-            interactive: this.config.interactive,
-            onSelect: () => {
-                this.scene.events.emit('character_selected', this.character);
-            },
-            onHoverStart: () => {
-                this.scene.events.emit('character_hover_start', this.character);
-                document.body.style.cursor = 'pointer';
-            },
-            onHoverEnd: () => {
-                this.scene.events.emit('character_hover_end', this.character);
-                document.body.style.cursor = 'default';
-            }
-        });
-        
-        // Add CardFrame to main container
-        this.container.add(this.cardFrame);
-        
-        // Set up events for the card frame
-        this.setupCardFrameEvents();
-        
-        console.log(`CardFrame created successfully for ${this.character.name} of type ${this.character.type}`);
-    } catch (error) {
-        console.error(`CharacterSprite (${this.character?.name}): Error creating card frame:`, error);
-        // Fall back to circle representation
-        this.cardConfig.enabled = false;
-        this.createCircleRepresentation();
-    }
-}
-```
-
-This method creates a properly configured CardFrame instance that matches the character's type, name, and team while setting up appropriate interactivity and event handling.
-
-### Event Handling
-
-Implemented event handling for turn-based highlighting and proper cleanup:
-
-```javascript
-setupCardFrameEvents() {
-    try {
-        // Listen for scene events that need to update CardFrame
-        this.scene.events.on('turn_started', (characterId) => {
-            if (this.character.uniqueId === characterId && this.cardFrame) {
-                this.cardFrame.setHighlighted(true);
-            } else if (this.cardFrame) {
-                this.cardFrame.setHighlighted(false);
-            }
-        }, this);
-        
-        // Cleanup on shutdown/destroy
-        this.scene.events.once('shutdown', this.cleanupCardFrameEvents, this);
-        this.scene.events.once('destroy', this.cleanupCardFrameEvents, this);
-    } catch (error) {
-        console.error(`CharacterSprite (${this.character?.name}): Error setting up card frame events:`, error);
-    }
-}
-
-cleanupCardFrameEvents() {
-    try {
-        // Remove all event listeners
-        if (this.scene && this.scene.events) {
-            this.scene.events.off('turn_started', null, this);
-        }
-    } catch (error) {
-        console.error(`CharacterSprite (${this.character?.name}): Error cleaning up card frame events:`, error);
-    }
-}
-```
-
-This event system ensures that the active character's card is properly highlighted during its turn, with proper event cleanup to prevent memory leaks.
-
-### Visual Method Updates
-
-Updated key visual methods to support both circle and card representations:
-
-1. **Health Updates:** Modified `updateHealth()` to delegate to either circle's health bar or card's built-in health system:
-
-```javascript
-if (this.cardConfig.enabled && this.cardFrame) {
-    // Use the CardFrame's built-in health update system
-    this.cardFrame.updateHealth(newHealth, maxHealth);
-    // CardFrame handles its own visual effects for damage/healing
-} else {
-    // Traditional circle representation health updates
-    this.updateHealthBar(newHealth, maxHealth);
-    // ... circle-specific damage/healing effects ...
-}
-```
-
-2. **Floating Text:** Enhanced `showFloatingText()` with representation-specific positioning:
-
-```javascript
-// Adjust vertical position based on representation
-let yOffset = -50; // Default for circle representation
-
-if (this.cardConfig.enabled && this.cardFrame) {
-    // For card frames, adjust to be above the card
-    yOffset = -this.cardConfig.height/2 - 20;
-}
-
-// Create text at the correct global position with adjusted offset
-const floatingText = this.scene.add.text(
-    globalPosition.x,
-    globalPosition.y + yOffset, // Position based on representation
-    text,
-    mergedStyle
-).setOrigin(0.5);
-```
-
-3. **Attack Animation:** Implemented separate animation approaches for cards and circles:
-
-```javascript
-if (this.cardConfig.enabled && this.cardFrame) {
-    // --- CARD-BASED ANIMATION ---
-    // Uses shorter movement distance (50% vs 70%)
-    // Adds rotation based on team (5Â° for player, -5Â° for enemy)
-    // Creates impact effect at halfway point
-    // ... (card-specific animation code)
-} else {
-    // --- ORIGINAL CIRCLE-BASED ANIMATION ---
-    // ... (existing circle animation code)
-}
-```
-
-4. **Impact Effect:** Added a new method for creating visual impact effects during card attacks:
-
-```javascript
-createImpactEffect(targetSprite) {
-    try {
-        // Create flash or particle effect at target position
-        const targetPos = new Phaser.Math.Vector2();
-        targetSprite.container.getWorldTransformMatrix().transformPoint(0, 0, targetPos);
-        
-        // Create impact effect at target's position
-        const impactFlash = this.scene.add.circle(
-            targetPos.x, targetPos.y, 
-            40, 0xFFFFFF, 0.7
-        );
-        
-        // Animate impact and destroy
-        this.scene.tweens.add({
-            targets: impactFlash,
-            alpha: 0,
-            scale: 1.5,
-            duration: 200,
-            ease: 'Sine.easeOut',
-            onComplete: () => {
-                impactFlash.destroy();
-            }
-        });
-    } catch (error) {
-        console.error('Error creating impact effect:', error);
-    }
-}
-```
-
-### Resource Cleanup
-
-Enhanced the `destroy()` method to properly clean up card-specific resources:
-
-```javascript
-// Clean up card frame if it exists
-if (this.cardFrame) {
-    try {
-        // CardFrame handles its own cleanup in its destroy method
-        this.cardFrame.destroy();
-        console.log(`CharacterSprite destroy: CardFrame destroyed for ${this.character?.name || 'Unknown'}`);
-    } catch (error) {
-        console.error(`CharacterSprite destroy: Error destroying CardFrame for ${this.character?.name || 'Unknown'}:`, error);
-    }
-    this.cardFrame = null;
-    
-    // Clean up card frame events
-    this.cleanupCardFrameEvents();
-}
-```
-
-This ensures proper resource cleanup and prevents memory leaks when a CardFrame is destroyed.
-
-## Technical Considerations
-
-### Defensive Programming
-
-Implemented comprehensive error handling and fallbacks throughout the card integration:
-
-- Try/catch blocks around all card-related operations
-- Detailed error logging for easier debugging
-- Automatic fallback to circle representation when card creation fails
-- Null checks before accessing card properties
-
-### Backward Compatibility
-
-Maintained compatibility with existing systems while adding card functionality:
-
-- Circle representation remains the default
-- All existing methods continue to work for circle representation
-- New code paths only execute when card representation is explicitly enabled
-- Event system works consistently for both representations
-
-## Next Steps
-
-With Phase 1 complete, the foundation is now in place for Phase 2, which will focus on the core visual implementation:
-
-- Implement card-specific health updates
-- Create visual consistency between character displays
-- Handle status effect integration with the card layout
-- Fine-tune visual appearance of cards in the battle scene
-
-Phase 1 has successfully added the framework and configuration systems needed for a smooth transition to the card-based representation while maintaining backward compatibility with the existing circle-based approach.
-
-
-===== CHANGELOG_0.7.0.0_CardFrameImplementation =====
-
-# CardFrame Component Implementation - Technical Changelog
-
-## Overview
-This changelog documents the implementation of the new CardFrame component for the AutoBattler game. The CardFrame is a Phaser-based UI component that creates professional-looking card frames for characters with type-themed styling, portrait windows, decorative nameplates, and interactive features.
-
-## Implementation Details
-
-### Component Structure
-- Created `CardFrame.js` as a Phaser.GameObjects.Container subclass
-- Implemented a configuration-based approach with all visual parameters defined at the top
-- Used a layered component architecture:
-  - Base frame with 9-slice scaling for borders
-  - Background elements with type-themed styling
-  - Portrait window with masking for character art
-  - Decorative nameplate with beveled edges and flourishes
-  - Health bar system with visual feedback
-
-### Key Features
-
-#### 1. Type-Themed Styling
-- Integrated with the existing type colors system (fire, water, nature, etc.)
-- Applied type-specific colors to frame borders, nameplate, and glow effects
-- Supported all 22 elemental types in the game
-
-#### 2. Portrait Window with Masking
-- Implemented proper image masking for character portraits
-- Added subtle type-themed inner glow for the portrait frame
-- Supported art positioning adjustments for different characters
-
-#### 3. Decorative Nameplate
-- Created a dedicated nameplate system with beveled edges and scrollwork
-- Added support for decorative flourishes on either side of the name
-- Implemented type-themed styling for nameplates with proper contrast
-
-#### 4. Health Bar System
-- Integrated a comprehensive health bar with animated transitions
-- Added visual feedback for damage (shake, red flash) and healing (green glow, bounce)
-- Used color coding based on health percentage (green > orange > red)
-
-#### 5. Interactive Elements
-- Implemented hover and selection states with smooth animations
-- Added type-themed glow effects with adjustable intensity
-- Supported callbacks for selection events
-
-### Technical Implementation
-
-#### Modular Design
-- Each visual element is created by a dedicated method:
-  - `createBaseFrame()`: Creates the main frame structure
-  - `createBackgroundElements()`: Handles type-themed background
-  - `createPortraitWindow()`: Creates masked portrait area
-  - `createCharacterSprite()`: Handles character art
-  - `createNameBanner()`: Creates decorative nameplate
-  - `createHealthBar()`: Implements health visualization
-
-#### Animation System
-- Used Phaser tweens for smooth animations
-- Implemented different animation states:
-  - Normal state: Standard display
-  - Hover state: Slight scale increase with partial glow
-  - Selected state: Larger scale with full glow
-  - Highlighted state: Pulsing animation for active turn
-
-#### Defensive Programming
-- Added comprehensive error handling throughout the component
-- Implemented fallback visuals when textures are missing
-- Used graceful degradation to maintain functionality even in error states
-- Added detailed logging for easier debugging
-
-## Usage
-
-The CardFrame component can be used in any Phaser scene:
-
-```javascript
-// Create a card frame
-const cardFrame = new CardFrame(scene, x, y, {
-    // Basic information
-    characterKey: 'character_Drakarion',
-    characterName: 'Drakarion',
-    characterType: 'fire',
-    characterTeam: 'player',
-    
-    // Health information
-    currentHealth: 100,
-    maxHealth: 122,
-    
-    // Interactivity
-    interactive: true,
-    onSelect: (card) => {
-        console.log(`${card.config.characterName} selected!`);
-    }
-});
-```
-
-## Future Integration Plans
-
-### Phase 1: Battle UI Integration
-- Modify CharacterSprite to use the new CardFrame instead of circles
-- Update character positioning and scaling approach
-- Connect health updates to CardFrame.setHealth()
-- Connect selection events to CardFrame.setSelected()
-
-### Phase 2: TeamBuilder UI Integration
-- Create equivalent CSS styling for DOM-based TeamBuilder
-- Implement consistent card presentation across Battle and TeamBuilder
-
-## Technical Considerations
-
-### Asset Requirements
-Before full implementation, the following assets need to be created:
-- Frame template with 9-slice compatible corners
-- Type variations for all 22 elemental types
-- Decorative nameplate assets with beveled edges/scrollwork
-- Decorative flourishes for nameplates
-
-### Performance Optimization
-- Used proper object pooling and resource management
-- Implemented efficient tweening and animation
-- Added thorough cleanup in the destroy() method
-
-## Conclusion
-The CardFrame component provides a solid foundation for improving the visual presentation of characters throughout the game. It combines professional aesthetics with practical functionality while maintaining the game's type-themed design language. The next step is integration with the existing CharacterSprite system for use in the Battle UI.
 
 

@@ -41,9 +41,10 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
     createPanel() {
         try {
             // Calculate compact panel size
-            const buttonWidth = 60;
+            const buttonWidth = 45; // Reduced from 60 to make more compact
             const buttonHeight = 30;
-            const width = (buttonWidth * 6) + (this.config.buttonSpacing * 7) + (this.config.padding * 2);
+            const buttonSpacing = 5; // Reduced from 8 to make more compact
+            const width = (buttonWidth * 6) + (buttonSpacing * 7) + (this.config.padding * 2);
             const height = buttonHeight + (this.config.padding * 2) + 20; // Extra space for title
             
             // Create container for background and border
@@ -128,7 +129,7 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
             this.speedButtons = [];
             
             speeds.forEach((speed, index) => {
-                const x = startX + (index + 1) * (buttonWidth + this.config.buttonSpacing);
+                const x = startX + (index + 1) * (buttonWidth + buttonSpacing);
                 const button = this.createCompactButton(
                     x,
                     buttonsY,
@@ -146,11 +147,11 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
             });
             
             // Add a vertical divider after speed controls
-            this.addVerticalDivider(startX + 4 * (buttonWidth + this.config.buttonSpacing) - this.config.buttonSpacing/2);
+            this.addVerticalDivider(startX + 4 * (buttonWidth + buttonSpacing) - buttonSpacing/2);
             
             // Add copy log button after divider
             this.copyButton = this.createIconButton(
-                startX + 5 * (buttonWidth + this.config.buttonSpacing),
+                startX + 5 * (buttonWidth + buttonSpacing),
                 buttonsY,
                 '📋', // Clipboard icon
                 () => this.copyBattleLog(),
@@ -200,7 +201,7 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
         const buttonContainer = this.scene.add.container(x, y);
         
         // Button dimensions
-        const buttonWidth = 60;
+        const buttonWidth = 45; // Reduced from 60 to make more compact
         const buttonHeight = 30;
         
         // Create button background (rounded rectangle)
@@ -285,7 +286,7 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
         const buttonContainer = this.scene.add.container(x, y);
         
         // Button dimensions - square for icons
-        const buttonSize = 36;
+        const buttonSize = 30; // Reduced from 36 to make more compact
         
         // Create button background (rounded rectangle)
         const buttonGraphics = this.scene.add.graphics();
