@@ -1,3 +1,17 @@
+## 0.7.0.14 - Improved Card Spacing for Better Visualization (2025-05-14)
+
+### Changed
+- Increased character spacing in TeamContainer from 275px to 350px to provide adequate space for card frames
+- Reduced the additional spacing offset for 3-character teams from 40px to 20px to maintain balanced team appearance
+- Optimized card frame visualization with proper vertical separation between characters
+- Improved overall battle UI appearance with more visually distinct character positioning
+
+### Technical
+- Modified spacing config in TeamContainer.js constructor to accommodate the 320px tall card frames
+- Adjusted the special positioning logic for 3-character teams in calculatePositions() method
+- Implemented the spacing recommendation from previous card frame enhancement discussions
+- No changes to card frame appearance or size, only to team positioning
+
 ## 0.7.0.13 - Fixed Card Representation Errors (2025-05-13)
 
 ### Fixed

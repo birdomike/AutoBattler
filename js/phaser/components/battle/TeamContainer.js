@@ -158,7 +158,7 @@ class TeamContainer {
         this.config = Object.assign({
             x: isPlayerTeam ? 300 : 900,
             y: 350,
-            spacing: 275, // Original spacing
+            spacing: 350, // Increased from 275 to provide adequate space for card frames
             characterScale: 1,
             interactive: true
         }, config);
@@ -294,7 +294,7 @@ class TeamContainer {
             // Position first character higher
             positions.push({
                 x: 0,
-                y: -spacing - 40 // Move first character 40px higher
+                y: -spacing - 20 // Move first character 20px higher (reduced from 40px with increased spacing)
             });
             
             // Keep middle character in center
@@ -306,7 +306,7 @@ class TeamContainer {
             // Position last character lower
             positions.push({
                 x: 0,
-                y: spacing + 40 // Move last character 40px lower
+                y: spacing + 20 // Move last character 20px lower (reduced from 40px with increased spacing)
             });
             
             return positions;
