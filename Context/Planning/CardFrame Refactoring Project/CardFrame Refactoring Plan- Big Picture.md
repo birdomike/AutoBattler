@@ -18,10 +18,10 @@
 - ☐ Review existing CardFrame.js to categorize methods by component
 
 ### Phase 2: CardFrameManager Implementation
-- ☐ Create CardFrameManager.js base class
-- ☐ Update index.html to include the new file
-- ☐ Add stub methods for all public CardFrame methods
-- ☐ Make CardFrameManager globally available
+- ✅ Create CardFrameManager.js base class
+- ✅ Update index.html to include the new file
+- ✅ Add stub methods for all public CardFrame methods
+- ✅ Make CardFrameManager globally available
 
 ### Phase 3: Component Extraction
 - ☐ Extract CardFrameVisualComponent

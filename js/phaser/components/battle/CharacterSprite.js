@@ -231,8 +231,9 @@ class CharacterSprite {
              throw error; // Re-throw critical error
          }
 
-        // Check if CardFrame is available globally
+        // Check if CardFrame and CardFrameManager are available globally
         this.cardFrameAvailable = (typeof window.CardFrame === 'function');
+        this.cardFrameManagerAvailable = (typeof window.CardFrameManager === 'function');
         
         // Create a complete card configuration by merging defaults with provided options
         this.cardConfig = {
@@ -242,7 +243,8 @@ class CharacterSprite {
             portraitOffsetY: this.config.cardConfig?.portraitOffsetY || -20,
             nameBannerHeight: this.config.cardConfig?.nameBannerHeight || 40,
             healthBarOffsetY: this.config.cardConfig?.healthBarOffsetY || 90,
-            interactive: this.config.cardConfig?.interactive || false
+            interactive: this.config.cardConfig?.interactive || false,
+            useComponentSystem: this.config.cardConfig?.useComponentSystem || false // Flag to use the new component system
         };
         
         // Validate card configuration
@@ -1005,12 +1007,12 @@ highlight() {
     }
 
     /**
-     * Create the card-based character representation using CardFrame
+     * Create the card-based character representation using CardFrame or CardFrameManager
      */
     createCardFrameRepresentation() {
         try {
-            // Create CardFrame instance with proper configuration
-            this.cardFrame = new window.CardFrame(this.scene, 0, 0, {
+            // Prepare card configuration
+            const cardOptions = {
                 // Character information
                 characterKey: `character_${this.character.name}`,
                 characterName: this.character.name,
@@ -1046,16 +1048,35 @@ highlight() {
                     // Handle hover end
                     this.scene.events.emit('character_hover_end', this.character);
                     document.body.style.cursor = 'default';
-                }
-            });
+                },
+                
+                // Component system flag
+                useComponentSystem: this.cardConfig.useComponentSystem || false
+            };
             
-            // Add CardFrame to main container
+            // Determine which card system to use
+            const useNewSystem = this.cardConfig.enabled && this.cardConfig.useComponentSystem;
+            
+            if (useNewSystem && typeof window.CardFrameManager === 'function') {
+                console.log(`[CharacterSprite] Using CardFrameManager for ${this.character.name}`);
+                this.cardFrame = new window.CardFrameManager(this.scene, 0, 0, cardOptions);
+            } else if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
+                console.log(`[CharacterSprite] Using original CardFrame for ${this.character.name}`);
+                this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
+            } else {
+                if (this.cardConfig.enabled) {
+                    console.warn(`[CharacterSprite] Card representation enabled for ${this.character.name}, but neither CardFrameManager nor CardFrame is available.`);
+                }
+                throw new Error("Card representation unavailable");
+            }
+            
+            // Add card to main container
             this.container.add(this.cardFrame);
             
             // Set up events for the card frame
             this.setupCardFrameEvents();
             
-            console.log(`CardFrame created successfully for ${this.character.name} of type ${this.character.type}`);
+            console.log(`Card created successfully for ${this.character.name} of type ${this.character.type}`);
         } catch (error) {
             console.error(`CharacterSprite (${this.character?.name}): Error creating card frame:`, error);
             

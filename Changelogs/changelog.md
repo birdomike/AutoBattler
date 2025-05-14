@@ -1,3 +1,19 @@
+## 0.7.1.0 - CardFrame Component System Implementation Phase 1 (2025-05-14)
+
+### Added
+- Created foundation for component-based CardFrame architecture
+- Implemented CardFrameManager as the delegation layer for future components
+- Added useComponentSystem flag for controlling which system to use
+- Created directory structure for housing specialized subcomponents
+
+### Technical
+- Created CardFrameManager.js with the same API as the original CardFrame
+- Updated CharacterSprite to select between CardFrame and CardFrameManager
+- Modified index.html to ensure proper script loading order
+- Maintained backward compatibility with original CardFrame
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.1.0_CardFrameComponentSystem_Phase1.md*
+
 ## 0.7.0.18 - Health Text Visibility Fix (2025-05-14)
 
 ### Fixed

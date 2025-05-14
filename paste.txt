@@ -1,0 +1,150 @@
+Context Injection for AutoBattler CardFrame Refactoring
+Project Files Examined and Modified
+
+Key Planning Documents Created/Modified:
+
+C:\Personal\AutoBattler\Context\Planning\CardFrame Refactoring Plan- Big Picture.md - Main refactoring plan for ComponentManager approach
+C:\Personal\AutoBattler\Context\Planning\CardFrame Refactoring Plan- Granular.md - Detailed integration plan for CharacterSprite
+Created archive directory at C:\Personal\AutoBattler\Context\Planning\_Archive\ for document history
+
+
+Core Files to Refactor:
+
+C:\Personal\AutoBattler\js\phaser\components\ui\CardFrame.js - 1300+ line monolithic component to be split
+C:\Personal\AutoBattler\js\phaser\components\battle\CharacterSprite.js - Will integrate with CardFrame
+C:\Personal\AutoBattler\js\phaser\components\battle\TeamContainer.js - Requires updates for card layout
+
+
+Reference Files:
+
+C:\Personal\AutoBattler\js\managers\BattleManager.js - Previously refactored example
+C:\Personal\AutoBattler\js\phaser\scenes\BattleScene.js - Previously refactored scene
+index.html - Will need updates for new component scripts
+
+
+
+Refactoring Approach and Architecture
+
+Component Architecture Designed:
+js/phaser/components/ui/
+├── CardFrameManager.js         (main delegating class)
+├── cardframe/                  (subcomponents folder)
+   ├── CardFrameVisualComponent.js
+   ├── CardFrameHealthComponent.js 
+   ├── CardFrameContentComponent.js
+   └── CardFrameInteractionComponent.js
+
+Core Principles Established:
+
+"Extract. Verify. Remove." - Complete each extraction fully before next
+Single-Path Implementation - Clear delegation immediately
+Defensive Programming - Parameter validation and fallbacks
+Thorough GameObject Destruction - Prevent memory leaks
+Index.html Management - Critical for proper loading order
+
+
+Five-Phase Approach Planned:
+
+Phase 1: Planning and Component Structure (Completed)
+Phase 2: CardFrameManager Implementation (Completed)
+Phase 3: Component Extraction Process (Visual → Health → Content → Interaction)
+Phase 4: Bridge Implementation (Original CardFrame becomes thin wrapper)
+Phase 5: Component Communication (Mediated through CardFrameManager)
+
+
+Component Responsibilities Defined:
+
+CardFrameManager: Thin delegation layer implementing original CardFrame API
+CardFrameVisualComponent: Frame, backdrop, visual effects
+CardFrameHealthComponent: Health bar creation, updates, animations
+CardFrameContentComponent: Character sprite, nameplate
+CardFrameInteractionComponent: Hover, selection handling
+
+
+
+Integration Plan Developed
+
+Integration Architecture:
+
+Dual representation system in CharacterSprite (circle and card)
+CardFrame accessed via global window object
+Configuration system for card frames
+Eight-phase integration approach
+
+
+Critical Implementation Considerations:
+
+Proper index.html updates for all component files
+Resource cleanup for GameObject destruction
+Cross-component communication patterns
+Event handling and cleanup
+
+
+Key Integration Tasks:
+
+Add detection for CardFrame availability
+Create dual health update system
+Implement card-specific animation system
+Adapt status effect positioning
+Ensure proper event propagation
+
+
+
+Current Status and Next Steps
+
+Completed:
+
+Planning and component structure
+Responsibility definition for components
+Documented implementation approach
+Created detailed integration plan
+Created CardFrameManager.js base framework
+Updated index.html with initial files
+Enhanced CharacterSprite to detect both systems and choose appropriately
+Added configuration system for card representation choice
+Added proper conditional creation logic
+Updated changelogs
+
+
+Immediate Next Steps:
+
+Begin Phase 3 - Component Extraction
+Extract CardFrameVisualComponent as first component
+Set up proper delegation in CardFrameManager
+Follow Extract-Verify-Remove pattern for visual component
+
+
+Verification Approach:
+
+Test each component individually after extraction
+Verify no visual changes from user perspective
+Ensure proper resource cleanup
+Monitor console for errors
+
+
+
+Key Development Challenges
+
+Memory Management:
+
+Ensure all Phaser GameObjects get properly destroyed
+Prevent memory leaks from tweens and event listeners
+Implement thorough cleanup in destroy methods
+
+
+Component Communication:
+
+Manage inter-component dependencies without tight coupling
+Use CardFrameManager as mediator for component communication
+Consider event-based communication for complex interactions
+
+
+Integration Complexity:
+
+Support both circle and card representations simultaneously
+Ensure seamless transition between representation types
+Maintain compatibility with existing systems (TeamContainer, etc.)
+
+
+
+This refactoring effort follows established patterns from previous successful refactorings, particularly the BattleManager component extraction approach that proved effective earlier in the project.
