@@ -129,7 +129,7 @@ class TeamDisplayManager {
                     this.scene,
                     this.playerTeam,
                     true, // isPlayerTeam
-                    { x: 800, y: 600 } // Correct position from original BattleScene
+                    { x: 600, y: 600 } // Correct position from original BattleScene
                 );
                 
                 // Track for cleanup
@@ -153,7 +153,7 @@ class TeamDisplayManager {
                     this.scene,
                     this.enemyTeam,
                     false, // not player team
-                    { x: 1200, y: 600 } // Correct position from original BattleScene
+                    { x: 1400, y: 600 } // Correct position from original BattleScene
                 );
                 
                 // Track for cleanup

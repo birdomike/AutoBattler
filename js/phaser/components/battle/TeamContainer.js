@@ -155,8 +155,12 @@ class TeamContainer {
         this.isPlayerTeam = isPlayerTeam;
 
         // Set up default config
+        // NOTE: These are default positions that will be overridden by parent components like TeamDisplayManager
+        // To adjust team spacing in battle, modify the x-positions in TeamDisplayManager.js (createTeams method)
+        // For example, to increase horizontal team separation, adjust the x values in TeamDisplayManager.js
+        // Current battle positions: player team at x=600, enemy team at x=1400 (as of v0.7.0.17)
         this.config = Object.assign({
-            x: isPlayerTeam ? 300 : 900,
+            x: isPlayerTeam ? 300 : 900,  // Default positions - usually overridden by TeamDisplayManager
             y: 350,
             spacing: 350, // Increased from 275 to provide adequate space for card frames
             characterScale: 1,

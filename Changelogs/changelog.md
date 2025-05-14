@@ -1,3 +1,34 @@
+## 0.7.0.17 - Team Horizontal Spacing Optimization (2025-05-14)
+
+### Changed
+- Increased horizontal spacing between player and enemy teams for better visual separation
+- Moved player team position from x=800 to x=600 (shifted left by 200px)
+- Moved enemy team position from x=1200 to x=1400 (shifted right by 200px)
+- Maintained the center point between teams at x=1000 for balanced layout
+- Doubled the gap between teams from 400px to 800px for clearer visual distinction
+
+### Technical
+- Modified team positions in TeamDisplayManager.js rather than in TeamContainer.js
+- Preserved vertical positioning and other team display parameters
+- Improved overall battle UI appearance with clearer team separation
+
+*Note: For detailed information on implementation and visual design improvements, see CHANGELOG_0.7.0.17_TeamHorizontalSpacingOptimization.md*
+
+## 0.7.0.16 - Card Layout Optimization (2025-05-14)
+
+### Changed
+- Moved health bar from below card center to the top of the card (healthBarOffsetY: 90 → -148)
+- Repositioned nameplate to be flush with bottom edge (nameOffsetY: 110 → 135)
+- Reduced nameplate height from 40px to 25px for better space efficiency
+- Maximized visible character art area by moving UI elements to card edges
+
+### Technical
+- Adjusted card layout parameters in CardFrame.js configuration object
+- Created clearer visual hierarchy with stats at top and identification at bottom
+- Improved overall card aesthetics by following standard card game design patterns
+
+*Note: For detailed information on implementation and visual design considerations, see CHANGELOG_0.7.0.16_CardFrameLayoutOptimization.md*
+
 ## 0.7.0.15 - Battle Controls UI Repositioning and Resizing (2025-05-14)
 
 ### Changed
