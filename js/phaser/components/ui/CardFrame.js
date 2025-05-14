@@ -847,13 +847,15 @@ class CardFrame extends Phaser.GameObjects.Container {
                         strokeThickness: 2
                     }
                 ).setOrigin(0.5);
-                
-                // Add to health bar container
-                this.healthBarContainer.add(this.healthText);
             }
             
-            // Add components to health bar container
+            // Add components to health bar container - background and health bar first
             this.healthBarContainer.add([this.healthBarBg, this.healthBar, healthBarFrame]);
+            
+            // Add health text last so it renders on top of other elements
+            if (this.config.showHealthText && this.healthText) {
+                this.healthBarContainer.add(this.healthText);
+            }
             
             // Add health bar container to main container
             this.add(this.healthBarContainer);

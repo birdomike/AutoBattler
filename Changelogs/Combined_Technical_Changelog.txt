@@ -1,4 +1,286 @@
-﻿Combined Technical Changelog  (generated 2025-05-14 00:36)
+﻿Combined Technical Changelog  (generated 2025-05-14 18:05)
+
+===== CHANGELOG_0.7.0.18_HealthTextVisibilityFix =====
+
+# CHANGELOG 0.7.0.18 - Health Text Visibility Fix
+
+## Problem Analysis
+
+The health text on character cards was not visible when the health bar was at full health. This issue occurred because:
+
+1. The health text was being rendered **behind** the health bar fill in the Phaser display hierarchy
+2. When health was full, the health bar fill completely covered the text
+3. When health was depleted, the text would become visible in the "empty" portion of the health bar
+
+This was purely a rendering order issue related to how components were added to the health bar container in the CardFrame component.
+
+## Root Cause
+
+In the `createHealthBar()` method in `CardFrame.js`, components were being added to the container in the wrong order:
+
+```javascript
+// Create health text if enabled
+if (this.config.showHealthText) {
+    this.healthText = this.scene.add.text(/* ... */);
+    // Add to health bar container
+    this.healthBarContainer.add(this.healthText);
+}
+
+// Add components to health bar container
+this.healthBarContainer.add([this.healthBarBg, this.healthBar, healthBarFrame]);
+```
+
+In Phaser, objects added later to a container are rendered on top of objects added earlier. This meant the health text was being rendered first (at the bottom layer), followed by the background rectangle, health bar fill, and frame on top.
+
+## Implementation Solution
+
+The solution was simple but architecturally sound - reorder how components are added to the container so the health text is added last:
+
+```javascript
+// Create health text if enabled
+if (this.config.showHealthText) {
+    this.healthText = this.scene.add.text(/* ... */);
+}
+
+// Add components to health bar container - background and health bar first
+this.healthBarContainer.add([this.healthBarBg, this.healthBar, healthBarFrame]);
+
+// Add health text last so it renders on top of other elements
+if (this.config.showHealthText && this.healthText) {
+    this.healthBarContainer.add(this.healthText);
+}
+```
+
+This change:
+1. Creates the health text object first
+2. Adds the health bar background, fill, and frame to the container
+3. Adds the health text to the container last, ensuring it's rendered on top
+
+## Technical Considerations
+
+### Why This Approach?
+
+Several options were considered to solve this issue:
+
+1. **Reordering component addition (chosen solution)**: Simplest approach that leverages Phaser's built-in rendering system
+2. **Setting explicit depth values**: More complex and adds unnecessary management overhead
+3. **Moving text position**: Could cause alignment issues and wouldn't address the root cause
+4. **Using a separate container for text**: Overly complex for this simple issue
+
+The chosen solution maintains the existing component architecture while ensuring correct visual hierarchy.
+
+### Implementation Details
+
+1. **Separation of Creation and Addition**: 
+   - Created the health text object first, but didn't immediately add it to the container
+   - Added it after all other components for proper layering
+
+2. **Enhanced Null Checking**:
+   - Added `&& this.healthText` to prevent errors if text creation failed
+   - Makes the code more robust against potential errors
+
+3. **Improved Comments**:
+   - Added clearer comments explaining the rendering order intention
+   - Makes the design decision explicit for future maintenance
+
+## Testing Results
+
+After implementing the change:
+- Health text is now visible at all health levels, including full health
+- Text appears above the health bar fill as expected
+- No visual artifacts or alignment issues observed
+- Text remains properly centered in the health bar
+
+## Visual Improvements
+
+This change yields several visual improvements:
+
+1. **Consistent Information Display**: Health values are always visible, improving player experience
+2. **Better Readability**: Text with black outline stands out clearly against all health bar states
+3. **More Professional Appearance**: Matches industry standards where health text is typically on top of health bars
+
+## Lessons Learned
+
+This issue highlights several important development principles:
+
+1. **Rendering Order Awareness**: In layered UI systems like Phaser, component addition order directly affects visual hierarchy
+2. **Defensive Programming**: Adding extra null checks improves robustness, even when failures seem unlikely
+3. **Comment Clarity**: Explicit comments about rendering order intentions help prevent future regressions
+4. **Architectural Integrity**: Using built-in systems as intended (container layering) is better than adding complexity (depth management)
+
+## Next Steps
+
+While this change fixes the immediate issue, some future enhancements could include:
+
+1. **Text Contrast Improvement**: Potentially adjust text color or shadow based on health bar color for even better visibility
+2. **Consistent Pattern Documentation**: Document this pattern for other team members to follow in similar UI components
+3. **Component Refactoring**: Consider more explicit handling of Z-ordering in larger UI refactors
+
+This fix should integrate seamlessly with recent card layout optimizations (v0.7.0.16) and team spacing improvements (v0.7.0.17).
+
+
+===== CHANGELOG_0.7.0.17_TeamHorizontalSpacingOptimization =====
+
+# CHANGELOG 0.7.0.17 - Team Horizontal Spacing Optimization
+
+## Problem Analysis
+
+The player and enemy teams were positioned too close together horizontally on the battle screen, creating visual crowding and making it difficult to distinguish between the two teams. The previous configuration placed:
+
+- Player team at x-position 800
+- Enemy team at x-position 1200
+
+This created a gap of only 400 pixels between team center points, which was insufficient with the new card-based representation that requires more visual space for proper display and clarity.
+
+## Implementation Solution
+
+The solution involved adjusting the team positions in `TeamDisplayManager.js` to increase horizontal spacing while maintaining the center point of the battle area (x=1000):
+
+1. **Moved Player Team Further Left**:
+   - Changed player team's x-position from 800 to 600 (moved 200px to the left)
+
+2. **Moved Enemy Team Further Right**:
+   - Changed enemy team's x-position from 1200 to 1400 (moved 200px to the right)
+
+### Code Changes
+
+```javascript
+// Previous positions in TeamDisplayManager.js
+this.playerTeamContainer = new window.TeamContainer(
+    this.scene,
+    this.playerTeam,
+    true, // isPlayerTeam
+    { x: 800, y: 600 } // Original position
+);
+
+this.enemyTeamContainer = new window.TeamContainer(
+    this.scene,
+    this.enemyTeam,
+    false, // not player team
+    { x: 1200, y: 600 } // Original position
+);
+
+// Updated positions in TeamDisplayManager.js
+this.playerTeamContainer = new window.TeamContainer(
+    this.scene,
+    this.playerTeam,
+    true, // isPlayerTeam
+    { x: 600, y: 600 } // Moved left from 800 to 600
+);
+
+this.enemyTeamContainer = new window.TeamContainer(
+    this.scene,
+    this.enemyTeam,
+    false, // not player team
+    { x: 1400, y: 600 } // Moved right from 1200 to 1400
+);
+```
+
+## Technical Details
+
+- Changed positions in `TeamDisplayManager.js`, not in `TeamContainer.js`, because the TeamDisplayManager overrides the default positions defined in TeamContainer
+- Maintained the center point of the battle area at x=1000 to keep the overall layout balanced
+- Doubled the gap between teams from 400px to 800px for clearer visual separation
+- Preserved all other positioning aspects such as y-coordinates and vertical spacing
+
+## Visual Improvements
+
+This adjustment yields several key improvements:
+
+1. **Clearer Team Distinction**: Greater horizontal separation makes it immediately obvious which team is which
+2. **Reduced Visual Crowding**: More space between teams prevents visual overlap during attack animations
+3. **Better Focus on Active Team**: With more separation, highlighting the active team becomes more effective
+4. **Improved Card Visibility**: Each card has more room to be viewed without competing visually with the opposing team
+
+## Testing Results
+
+The increased team spacing provides a more balanced and visually distinct battle layout. Teams are now clearly separated while maintaining the center point of the battle area. This change complements the previous card layout optimizations (moving health bar to top and nameplate to bottom) by giving the cards more room to be properly displayed.
+
+## Next Steps
+
+While this change significantly improves the horizontal team spacing, additional enhancements that could be considered include:
+
+1. **Responsive Positioning**: Implementing dynamic positioning based on screen size for better support across different devices
+2. **Configuration Option**: Adding a configurable spacing parameter to easily adjust the gap between teams based on the number of characters
+3. **Visual Connection**: Adding subtle visual elements to reinforce team identity, such as team-colored platforms or background elements
+
+
+===== CHANGELOG_0.7.0.16_CardFrameLayoutOptimization =====
+
+# CHANGELOG 0.7.0.16 - Card Frame Layout Optimization
+
+## Problem Analysis
+
+The card frame layout had two key issues that limited the visibility of character artwork:
+
+1. **Health Bar Positioning**: The health bar was positioned at the center-bottom (`healthBarOffsetY: 90`) of the card, taking up valuable space in the middle of the character art.
+
+2. **Nameplate Height and Positioning**: The nameplate was too tall (`nameBannerHeight: 40px`) and positioned too high in the card (`nameOffsetY: 110`), causing it to overlap with the bottom portion of character artwork. This was particularly noticeable in full-body character art like Nyria and Sylvanna shown in the examples.
+
+These positioning issues resulted in character artwork being partially obscured by UI elements, reducing the visual impact and clarity of character representations.
+
+## Implementation Solution
+
+The solution involved repositioning both elements to maximize the visible art area:
+
+1. **Health Bar Repositioning**:
+   - Moved the health bar from below the center to the top of the card
+   - Changed `healthBarOffsetY` from 90 to -148 (positioning it near the top edge)
+
+2. **Nameplate Adjustments**:
+   - Repositioned the nameplate to be flush with the bottom edge of the card
+   - Changed `nameOffsetY` from 110 to 135
+   - Reduced nameplate height from 40px to 25px to be more space-efficient
+
+### Code Changes
+
+```javascript
+// Health display - Changed values
+healthBarOffsetY: -148,  // Previously 90 - moved from below center to top of card
+
+// Nameplate - Changed values
+nameBannerHeight: 25,    // Previously 40 - reduced height
+nameOffsetY: 135,        // Previously 110 - moved closer to bottom edge
+```
+
+## Visual Improvements
+
+This layout optimization yields several key improvements:
+
+1. **Maximized Art Display**: More of the character art is visible without UI element overlaps
+2. **Improved Visual Hierarchy**: Health at top and name at bottom creates a natural framing for the character art
+3. **Consistent with Card Game Standards**: Matches common layouts in digital card games where stats are at the top and identification at the bottom
+4. **Better Visual Balance**: Health and name elements now have clear dedicated spaces rather than competing with the main artwork
+
+## Card Layout Calculation Details
+
+The optimized positioning was calculated based on the card dimensions:
+
+- **Card Height**: 320px (total height, with center at 0)
+- **Card Frame**: 10px border width
+- **Visible Area**: ~300px height for content
+
+For the health bar:
+- Positioned at -148px from center (near top of card)
+- With card height of 320px, this places it ~12px from the top edge
+
+For the nameplate:
+- Reduced height to 25px (from 40px)
+- Positioned at 135px from center
+- With card height of 320px and nameplate height of 25px, this places it flush with the bottom edge of the card (center of nameplate ~22.5px from bottom edge)
+
+## Testing Results
+
+Cards now display character art more prominently with UI elements properly positioned at the top and bottom edges. Names are clearly legible without overlapping artwork, and health bars are visible at a glance at the top of each card.
+
+## Next Steps
+
+While this change significantly improves the card layout, a few additional enhancements could be considered in the future:
+
+1. **Dynamic Health Bar**: The health bar could be made even more compact or transparent when at full health
+2. **Text Styling**: Further nameplate text improvements could enhance readability on all card types
+3. **Card Boundaries**: With UI elements now at the edges, consider adding subtle padding to prevent elements from appearing too close to the card border
+
 
 ===== CHANGELOG_0.7.0.15_BattleControlsRepositioning =====
 
@@ -960,151 +1242,5 @@ The CardFrame component now displays characters correctly with:
 4. **Depth Value Refinement**: Gradually reduce depth value from 1000 to more reasonable 100 once other visualization issues are resolved.
 
 While the masking functionality is currently disabled, this approach maintains component usability while providing clear documentation of the known issue for future resolution.
-
-
-===== CHANGELOG_0.7.0.7_CardFrameCircularReferenceFix =====
-
-# CHANGELOG 0.7.0.7 - CardFrame Circular Reference Fix
-
-## Issue
-When debugging the CardFrame character sprite rendering, the console displayed an error: "TypeError: Converting circular structure to JSON" due to an attempt to stringify Phaser objects that contain circular references.
-
-## Root Cause Analysis
-In CardFrame.js, specifically within the `createCharacterSprite` method, we were using `JSON.stringify` to log the default frame properties of a texture. Phaser objects inherently contain circular references (sprites reference scenes which reference sprites), making them unsuitable for direct JSON stringification.
-
-The error occurred on this line:
-```javascript
-console.log(`- Default frame: ${JSON.stringify(texture.frames.__BASE)}`);
-```
-
-This is a common issue when working with Phaser objects, as their internal structure often contains back-references that create circular dependencies.
-
-## Changes Made
-Modified the logging approach to avoid using `JSON.stringify` on Phaser objects. Instead, we now log specific properties of the frame directly:
-
-```javascript
-if (texture.frames && texture.frames.__BASE) {
-    const baseFrame = texture.frames.__BASE;
-    console.log(`- Default frame properties: width=${baseFrame.width || 'unknown'}, height=${baseFrame.height || 'unknown'}, x=${baseFrame.x || 0}, y=${baseFrame.y || 0}`);
-} else {
-    console.log(`- Default frame: Not available`);
-}
-```
-
-This approach:
-1. Safely accesses individual properties of the frame object
-2. Includes fallback values to prevent undefined errors
-3. Provides the same useful information without causing circular reference errors
-4. Uses proper null/undefined checking for robustness
-
-## Testing
-This fix should eliminate the circular reference error in the console, allowing the debugging process to continue without interruption. The console output now shows specific frame properties rather than attempting to serialize the entire object.
-
-## Next Steps
-With this debugging error fixed, we can now:
-1. Review the complete console logs without interruption
-2. Focus on the actual character art visibility issues
-3. Address asset loading for card frames and nameplates
-
-
-===== CHANGELOG_0.7.0.6_CardFrameFocusedDebugging =====
-
-# CHANGELOG 0.7.0.6 - CardFrame Focused Debugging Implementation
-
-## Purpose
-Implement a comprehensive debugging approach to isolate and identify the exact cause of character sprites not appearing in CardFrame components.
-
-## Changes Made
-- Completely rewrote the `createCharacterSprite()` method in CardFrame.js with a focused, step-by-step debugging approach
-- Implemented seven discrete debugging stages with detailed logging at each step:
-  1. Texture validation
-  2. Texture dimensions and frame data verification
-  3. Sprite creation with minimal configuration
-  4. Forced visibility settings (alpha, scale, tint)
-  5. Sprite dimensions verification
-  6. Container hierarchy inspection
-  7. Container addition without masking
-
-## Technical Details
-- Created sprite at center position (0,0) to eliminate positioning issues
-- Applied extreme visibility settings:
-  - Doubled scale (2.0)
-  - Bright red tint (0xFF0000)
-  - Maximum alpha (1.0)
-  - Explicit visibility (true)
-- Set extremely high depth value (1000) to ensure z-order priority
-- Deliberately skipped mask application to eliminate masking as a potential cause
-- Added detailed logging of container hierarchy and dimensions
-- Disabled fallback creation to prevent interference with debugging
-- Added comprehensive frame data inspection to verify texture integrity
-
-## Expected Outcomes
-This diagnostic version should:
-1. Produce a large, bright red character sprite at the center of each card
-2. Generate extensive console logs showing exactly what's happening during sprite creation
-3. Provide clear data about texture existence, dimensions, and frame structures
-4. Eliminate masking and positioning as potential issues
-
-## Diagnosis Process
-The console logs produced by this version should be analyzed to determine:
-1. If textures are being properly located and loaded
-2. If sprites have valid dimensions or are being created as zero-width objects
-3. If container hierarchy or visibility settings are interfering with rendering
-4. Whether sprites are actually being created and added to the container
-
-These insights will guide the next step in resolving the sprite visibility issue.
-
-
-===== CHANGELOG_0.7.0.5_CardFrameHierarchyFix =====
-
-# CHANGELOG 0.7.0.5 - CardFrame Character Art Structural Fix
-
-## Issue
-Character art sprites were not appearing in the CardFrame component despite being correctly loaded and available. Previous z-ordering fix in 0.7.0.4 did not resolve the issue.
-
-## Root Cause Analysis
-The issue stemmed from how Phaser handles nested container hierarchies. When a sprite is nested inside a container (portraitContainer), the parent container's rendering properties can override child depth settings. Even though we tried setting z-order depths with `setDepth()` and `bringToTop()`, the parent-child relationship was preventing proper rendering.
-
-## Changes Made
-- Modified `CardFrame.js` to restructure the component hierarchy
-- Changed character sprites to be direct children of the main CardFrame container rather than nested inside portraitContainer
-- Positioned sprites relative to the portrait area while maintaining the same visual position
-- Adjusted masking to work with the flattened hierarchy (positioning mask with the sprite)
-- Added additional diagnostic logging to track rendering positioning
-- Updated healing effect to work with the new structure (heal glow now added to CardFrame directly)
-- Updated character fallback creation to follow the same pattern
-
-## Technical Details
-The key architectural change was flattening the hierarchy from:
-```
-CardFrame
-  â””â”€â”€ portraitContainer
-       â””â”€â”€ characterSprite (nested)
-```
-To:
-```
-CardFrame
-  â”œâ”€â”€ portraitContainer  
-  â””â”€â”€ characterSprite (siblings at same level)
-```
-
-This structural change ensures depth values work as expected and prevents container nesting from interfering with sprite visibility. Additional key changes:
-
-1. Character positioning was adjusted to account for the portrait container's offset, allowing the sprite to appear in the same position visually while being a direct child of CardFrame
-2. Increased depth value from 10 to 100 to ensure clear z-ordering 
-3. Added explicit visibility settings (`setAlpha(1)`, `setVisible(true)`) for diagnostic purposes
-4. Modified mask positioning to match where the portrait would be
-5. Updated logging to provide more comprehensive visibility diagnostics
-
-## Implementation Notes
-Phaser's container system works well for grouping objects, but when nested containers with masks and complex depth requirements are involved, flattening the hierarchy often provides better results. This is especially true when trying to manage multiple layers with different rendering priorities.
-
-## Testing
-The updated code should be tested to confirm that character art now displays properly in card frames with appropriate masking and positioning. Focus should be on:
-
-1. Character art visibility
-2. Health bar animations (especially healing glow)
-3. Proper masking of characters (they should still be clipped to the portrait area)
-4. Character fallback (first letter) visibility if a character texture is missing
 
 

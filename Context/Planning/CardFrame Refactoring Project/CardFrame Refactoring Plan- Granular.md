@@ -1,11 +1,59 @@
-# CardFrame Integration Plan
+# CardFrame Integration Plan- Granular
 
 ## Overview
-This document outlines the plan for integrating the new `CardFrame` component into the existing `CharacterSprite` system for the AutoBattler game. This integration will replace the current circular character representations with professional card-based visuals while maintaining backward compatibility.
+This document outlines the detailed plan for integrating the new `CardFrame` component into the existing `CharacterSprite` system for the AutoBattler game. This integration will replace the current circular character representations with professional card-based visuals while maintaining backward compatibility.
+
+## Phase Summary
+
+### Phase 1: Framework & Configuration
+- ☐ Add CardFrame availability detection to CharacterSprite
+- ☐ Implement configuration system for card options
+- ☐ Add conditional creation logic
+- ☐ Update index.html to include required component files
+
+### Phase 2: Core Visual Implementation
+- ☐ Implement createCardFrameRepresentation method
+- ☐ Adapt health update system for both representations
+- ☐ Create proper error handling and fallbacks
+- ☐ Test basic visual appearance
+
+### Phase 3: Animation System
+- ☐ Implement card-specific attack animations
+- ☐ Create impact effects for attacks
+- ☐ Update floating text handling for cards
+- ☐ Ensure proper GameObject cleanup
+
+### Phase 4: Status Effect Integration
+- ☐ Modify StatusEffectContainer for card layout
+- ☐ Update status effect positioning
+- ☐ Pass configuration from CharacterSprite
+- ☐ Test with multiple status effects
+
+### Phase 5: Event System & Performance
+- ☐ Implement bidirectional event handling
+- ☐ Add visibility culling for offscreen cards
+- ☐ Setup proper event cleanup
+- ☐ Add texture atlas support
+
+### Phase 6: Transition System
+- ☐ Create toggleRepresentation method
+- ☐ Implement animated transitions between representations
+- ☐ Ensure proper resource cleanup during transitions
+
+### Phase 7: TeamContainer Integration
+- ☐ Update team layout logic for cards
+- ☐ Add card detection to TeamContainer
+- ☐ Implement team-specific adjustments
+
+### Phase 8: Testing & Refinement
+- ☐ Create comprehensive testing strategy
+- ☐ Test edge cases
+- ☐ Performance optimization
+- ☐ Visual refinement
 
 ## Integration Approach
 
-### Phase 1: Framework & Configuration (Est. 2 days)
+### Phase 1: Framework & Configuration
 
 #### Component Access Strategy
 The `CardFrame` component will be accessed through the global `window` object, consistent with the game's current architecture:
@@ -67,7 +115,24 @@ if (this.cardConfig.enabled && this.cardFrameAvailable) {
 }
 ```
 
-### Phase 2: Core Visual Implementation (Est. 3 days)
+#### Update index.html (CRITICAL STEP)
+
+This step is essential to ensure the CardFrame components are properly loaded:
+
+```html
+<!-- Add to index.html in proper order -->
+<!-- Card Frame Component System -->
+<script src="js/phaser/components/ui/cardframe/CardFrameVisualComponent.js"></script>
+<script src="js/phaser/components/ui/cardframe/CardFrameHealthComponent.js"></script>
+<script src="js/phaser/components/ui/cardframe/CardFrameContentComponent.js"></script>
+<script src="js/phaser/components/ui/cardframe/CardFrameInteractionComponent.js"></script>
+<script src="js/phaser/components/ui/CardFrameManager.js"></script>
+<script src="js/phaser/components/ui/CardFrame.js"></script>
+```
+
+**Note**: The loading order is critical - subcomponents must be loaded before the CardFrameManager, which must be loaded before CardFrame itself.
+
+### Phase 2: Core Visual Implementation
 
 #### CardFrame Creation
 Implement the `createCardFrameRepresentation()` method:
@@ -75,6 +140,13 @@ Implement the `createCardFrameRepresentation()` method:
 ```javascript
 createCardFrameRepresentation() {
     try {
+        // Validate essential dependencies
+        if (!this.scene || !this.character) {
+            console.error('CharacterSprite: Cannot create card frame without scene or character data');
+            this.createCircleRepresentation();
+            return;
+        }
+        
         // Create CardFrame instance with proper configuration
         this.cardFrame = new window.CardFrame(this.scene, 0, 0, {
             // Character information
@@ -117,6 +189,9 @@ createCardFrameRepresentation() {
         
         // Add CardFrame to main container
         this.container.add(this.cardFrame);
+        
+        // Setup events for proper lifecycle management
+        this.setupCardFrameEvents();
     } catch (error) {
         console.error(`CharacterSprite (${this.character?.name}): Error creating card frame:`, error);
         // Fall back to circle representation
@@ -132,6 +207,12 @@ Update the `updateHealth()` method to support both representations:
 ```javascript
 updateHealth(newHealth, maxHealth) {
     try {
+        // Validate inputs
+        if (newHealth === undefined || newHealth === null) {
+            console.error('CharacterSprite.updateHealth: Invalid health value');
+            return;
+        }
+        
         // Update internal health tracking
         this.currentHealth = newHealth;
         
@@ -177,7 +258,7 @@ updateHealth(newHealth, maxHealth) {
 }
 ```
 
-### Phase 3: Animation System (Est. 2 days)
+### Phase 3: Animation System
 
 #### Attack Animation
 Implement card-specific attack animations in `showAttackAnimation()`:
@@ -249,19 +330,31 @@ showAttackAnimation(targetSprite, onComplete, actionContext) {
         
         // Add impact effect at halfway point
         let hasTriggeredImpact = false;
+        let impactEffect = null;
+        
         timeline.on('update', () => {
             const progress = timeline.progress;
             if (progress > 0.45 && progress < 0.55 && !hasTriggeredImpact) {
                 hasTriggeredImpact = true;
-                this.createImpactEffect(targetSprite);
+                impactEffect = this.createImpactEffect(targetSprite);
             }
         });
         
-        // Play timeline and handle completion
-        timeline.play();
+        // Cleanup when done
         timeline.once('complete', () => {
+            // Kill any tweens associated with the timeline
+            this.scene.tweens.killTweensOf(this.cardFrame);
+            
+            // Make sure impact effect is properly cleaned up
+            if (impactEffect && impactEffect.scene) {
+                impactEffect.destroy();
+            }
+            
             if (onComplete) onComplete();
         });
+        
+        // Play timeline
+        timeline.play();
     } else {
         // ORIGINAL CIRCLE-BASED ANIMATION
         // ...existing animation code...
@@ -289,11 +382,16 @@ createImpactEffect(targetSprite) {
             duration: 200,
             ease: 'Sine.easeOut',
             onComplete: () => {
-                impactFlash.destroy();
+                if (impactFlash && impactFlash.scene) {
+                    impactFlash.destroy();
+                }
             }
         });
+        
+        return impactFlash; // Return reference for potential external cleanup
     } catch (error) {
         console.error('Error creating impact effect:', error);
+        return null;
     }
 }
 ```
@@ -304,6 +402,12 @@ Update floating text handling for both representations:
 ```javascript
 showFloatingText(text, style = {}) {
     try {
+        // Validate text
+        if (!text) {
+            console.warn('CharacterSprite.showFloatingText: Empty text, skipping');
+            return null;
+        }
+        
         // Get global position - works for both card and circle
         let globalPosition = new Phaser.Math.Vector2();
         this.container.getWorldTransformMatrix().transformPoint(0, 0, globalPosition);
@@ -316,7 +420,13 @@ showFloatingText(text, style = {}) {
             globalPosition.x,
             globalPosition.y + yOffset,
             text,
-            {...style}
+            Object.assign({
+                fontFamily: 'Arial',
+                fontSize: 20,
+                color: '#ffffff',
+                stroke: '#000000',
+                strokeThickness: 3
+            }, style)
         ).setOrigin(0.5);
         
         // Set high depth to ensure visibility
@@ -335,13 +445,16 @@ showFloatingText(text, style = {}) {
                 }
             }
         });
+        
+        return floatingText; // Return reference for potential external cleanup
     } catch (error) {
         console.error(`Error showing floating text:`, error);
+        return null;
     }
 }
 ```
 
-### Phase 4: Status Effect Integration (Est. 2 days)
+### Phase 4: Status Effect Integration
 
 #### Status Effect Container Modifications
 Update StatusEffectContainer to support card frames:
@@ -349,6 +462,12 @@ Update StatusEffectContainer to support card frames:
 ```javascript
 // In StatusEffectContainer.js
 constructor(scene, characterSprite, config = {}) {
+    // Validate essential dependencies
+    if (!scene || !characterSprite) {
+        console.error('StatusEffectContainer: Missing required parameters');
+        return;
+    }
+    
     this.characterSprite = characterSprite;
     this.scene = scene;
     
@@ -379,6 +498,10 @@ constructor(scene, characterSprite, config = {}) {
     this.icons = [];
     this.statusEffects = {};
     this.tooltips = {};
+    
+    // Set up cleanup on scene shutdown
+    this.scene.events.once('shutdown', this.destroy, this);
+    this.scene.events.once('destroy', this.destroy, this);
 }
 
 updateIconPositions() {
@@ -398,6 +521,40 @@ updateIconPositions() {
         // ...existing positioning code...
     }
 }
+
+// Proper resource cleanup
+destroy() {
+    // Remove event listeners
+    if (this.scene) {
+        this.scene.events.off('shutdown', this.destroy, this);
+        this.scene.events.off('destroy', this.destroy, this);
+    }
+    
+    // Destroy all icons
+    this.icons.forEach(icon => {
+        if (icon && icon.scene) {
+            icon.destroy();
+        }
+    });
+    this.icons = [];
+    
+    // Destroy all tooltips
+    Object.values(this.tooltips).forEach(tooltip => {
+        if (tooltip && tooltip.destroy) {
+            tooltip.destroy();
+        }
+    });
+    this.tooltips = {};
+    
+    // Clear status effects
+    this.statusEffects = {};
+    
+    // Destroy container
+    if (this.container && this.container.scene) {
+        this.container.destroy();
+        this.container = null;
+    }
+}
 ```
 
 #### Modify CharacterSprite to pass configuration:
@@ -414,7 +571,7 @@ if (this.config.showStatusEffects) {
 }
 ```
 
-### Phase 5: Event System & Performance (Est. 2 days)
+### Phase 5: Event System & Performance
 
 #### Event Propagation
 Setup bidirectional events between CharacterSprite and CardFrame:
@@ -423,21 +580,41 @@ Setup bidirectional events between CharacterSprite and CardFrame:
 // In createCardFrameRepresentation
 setupCardFrameEvents() {
     // Listen for scene events that need to update CardFrame
-    this.scene.events.on('turn_started', (characterId) => {
-        if (this.character.uniqueId === characterId && this.cardFrame) {
-            this.cardFrame.setHighlighted(true);
-        } else if (this.cardFrame) {
-            this.cardFrame.setHighlighted(false);
-        }
-    }, this);
+    this.scene.events.on('turn_started', this.handleTurnStarted, this);
+    this.scene.events.on('character_selected', this.handleCharacterSelected, this);
     
     // Cleanup on shutdown/destroy
     this.scene.events.once('shutdown', this.cleanupCardFrameEvents, this);
     this.scene.events.once('destroy', this.cleanupCardFrameEvents, this);
 }
 
+handleTurnStarted(characterId) {
+    if (!this.cardFrame || !this.character) return;
+    
+    if (this.character.uniqueId === characterId) {
+        this.cardFrame.setHighlighted(true);
+    } else {
+        this.cardFrame.setHighlighted(false);
+    }
+}
+
+handleCharacterSelected(character) {
+    if (!this.cardFrame || !this.character) return;
+    
+    if (this.character.uniqueId === character.uniqueId) {
+        this.cardFrame.setSelected(true);
+    } else {
+        this.cardFrame.setSelected(false);
+    }
+}
+
 cleanupCardFrameEvents() {
-    this.scene.events.off('turn_started', null, this);
+    if (!this.scene) return;
+    
+    this.scene.events.off('turn_started', this.handleTurnStarted, this);
+    this.scene.events.off('character_selected', this.handleCharacterSelected, this);
+    this.scene.events.off('shutdown', this.cleanupCardFrameEvents, this);
+    this.scene.events.off('destroy', this.cleanupCardFrameEvents, this);
 }
 ```
 
@@ -483,7 +660,7 @@ update(time, delta) {
 }
 ```
 
-### Phase 6: Transition System (Est. 1 day)
+### Phase 6: Transition System 
 
 #### Representation Transition
 Implement transition animations between circle and card:
@@ -542,8 +719,14 @@ transitionToCardFrame(animate = true) {
                     // Clean up circle elements
                     if (this.circle && this.circle.scene) {
                         this.circle.destroy();
+                        this.circle = null;
                     }
+                    
                     // Don't destroy characterImage if card frame is using it
+                    // but null the reference if we're not using it 
+                    if (this.characterImage && !this.cardFrame.usesOriginalImage) {
+                        this.characterImage = null;
+                    }
                 }
             });
         }
@@ -551,6 +734,7 @@ transitionToCardFrame(animate = true) {
         // Instant transition
         if (this.circle && this.circle.scene) {
             this.circle.destroy();
+            this.circle = null;
         }
     }
 }
@@ -596,6 +780,12 @@ transitionToCircle(animate = true) {
                     // Clean up card elements
                     if (this.cardFrame && this.cardFrame.scene) {
                         this.cardFrame.destroy();
+                        this.cardFrame = null;
+                    }
+                    
+                    // Kill any lingering tweens
+                    if (this.scene) {
+                        this.scene.tweens.killTweensOf(this.cardFrame);
                     }
                 }
             });
@@ -604,29 +794,83 @@ transitionToCircle(animate = true) {
         // Instant transition
         if (this.cardFrame && this.cardFrame.scene) {
             this.cardFrame.destroy();
+            this.cardFrame = null;
         }
     }
 }
 ```
 
-### Phase 7: Integration with TeamContainer (Est. 2 days)
+### Phase 7: Integration with TeamContainer 
 
 Update TeamContainer to handle card-based positioning:
 
 ```javascript
 // In TeamContainer.js
+constructor(scene, config = {}) {
+    // ...existing code...
+    
+    // Add card-specific spacing configuration
+    this.circleSpacing = config.spacing || 275;
+    this.cardSpacing = config.cardSpacing || 350; // More space for cards
+}
+
 layoutTeam() {
+    // Validate team exists
+    if (!this.characterSprites || this.characterSprites.length === 0) {
+        return;
+    }
+    
     // Different spacing for cards vs circles
     const spacing = this.containsCardFrames() ? this.cardSpacing : this.circleSpacing;
+    const teamSize = this.characterSprites.length;
     
-    // Position sprites
+    // Calculate positions
+    let positions = [];
+    
+    // For 3 character teams, use a special positioning
+    if (teamSize === 3) {
+        // Adjust offset based on representation
+        const offsetY = this.containsCardFrames() ? 20 : 40;
+        
+        // Position first character higher
+        positions.push({
+            x: 0,
+            y: -spacing - offsetY
+        });
+        
+        // Keep middle character in center
+        positions.push({
+            x: 0,
+            y: 0
+        });
+        
+        // Position last character lower
+        positions.push({
+            x: 0,
+            y: spacing + offsetY
+        });
+    } else {
+        // For other team sizes, calculate positions normally
+        for (let i = 0; i < teamSize; i++) {
+            positions.push({
+                x: 0,
+                y: (i - Math.floor(teamSize / 2)) * spacing
+            });
+        }
+    }
+    
+    // Apply positions
     this.characterSprites.forEach((sprite, index) => {
-        const x = index * spacing;
-        sprite.container.setPosition(x, 0);
+        if (index < positions.length) {
+            sprite.container.setPosition(positions[index].x, positions[index].y);
+        }
         
         // Apply team-specific adjustments
-        if (this.teamType === 'enemy') {
+        if (this.teamType === 'enemy' && this.containsCardFrames()) {
             // Apply flipping for enemy cards if needed
+            if (sprite.cardFrame) {
+                sprite.cardFrame.setScale(-1, 1); // Horizontal flip
+            }
         }
     });
 }
@@ -637,9 +881,33 @@ containsCardFrames() {
         sprite.cardConfig && sprite.cardConfig.enabled
     );
 }
+
+destroy() {
+    // Clean up sprites
+    if (this.characterSprites) {
+        this.characterSprites.forEach(sprite => {
+            if (sprite && sprite.destroy) {
+                sprite.destroy();
+            }
+        });
+        this.characterSprites = [];
+    }
+    
+    // Clean up container
+    if (this.container && this.container.scene) {
+        this.container.destroy();
+        this.container = null;
+    }
+    
+    // Remove event listeners
+    if (this.scene) {
+        this.scene.events.off('shutdown', this.destroy, this);
+        this.scene.events.off('destroy', this.destroy, this);
+    }
+}
 ```
 
-### Phase 8: Testing & Refinement (Est. 3 days)
+### Phase 8: Testing & Refinement
 
 #### Testing Strategy
 1. **Unit Testing:**
@@ -660,23 +928,18 @@ containsCardFrames() {
    - Missing character art
    - Missing card frame assets
 
+4. **Resource Management Testing:**
+   - Verify all GameObjects are properly destroyed
+   - Check for memory leaks in animations
+   - Test destruction during scene transitions
+   - Monitor frame rate with multiple cards
+
 #### Refinement Areas
 - Animation timing and effects
 - Type theming consistency
 - Text and health bar visibility/readability
 - Status effect positioning and clarity
 - Performance optimization for multiple cards
-
-## Timeline
-- **Total Estimated Time:** 15 days
-- **Phase 1 (Framework):** Days 1-2
-- **Phase 2 (Core Visual):** Days 3-5
-- **Phase 3 (Animation):** Days 6-7
-- **Phase 4 (Status Effects):** Days 8-9
-- **Phase 5 (Events & Performance):** Days 10-11
-- **Phase 6 (Transitions):** Day 12
-- **Phase 7 (TeamContainer):** Days 13-14
-- **Phase 8 (Testing & Refinement):** Days 15-17
 
 ## Implementation Dependencies
 
@@ -686,11 +949,18 @@ containsCardFrames() {
 3. Nameplate textures with scrollwork
 4. Decorative flourish elements
 
-### Optional Enhancements
-1. Card-specific sound effects
-2. Transition animations between states
-3. Card-specific animations for abilities
-4. Texture compression for performance
+### JavaScript Dependencies
+1. CardFrame component system files in index.html
+2. Properly refactored CardFrame with subcomponents
+3. Phaser 3 (already included in project)
 
 ## Conclusion
-This integration plan provides a structured approach to implementing the CardFrame component within the existing CharacterSprite system while maintaining backward compatibility. The phased approach allows for testing at each stage and flexible adjustment as needed.
+This integration plan provides a granular, structured approach to implementing the CardFrame component within the existing CharacterSprite system while maintaining backward compatibility. The plan incorporates:
+
+1. Proper resource management with thorough GameObject destruction
+2. Critical index.html updates for component loading
+3. Defensive programming practices throughout
+4. Detailed event management and cleanup
+5. Clear testing strategy for integration success
+
+Following this plan will ensure a smooth transition from the current circle-based representations to the new card-based system while minimizing bugs and memory leaks.

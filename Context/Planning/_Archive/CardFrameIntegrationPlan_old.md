@@ -5,7 +5,7 @@ This document outlines the plan for integrating the new `CardFrame` component in
 
 ## Integration Approach
 
-### Phase 1: Framework & Configuration (Est. 2 days)
+### Phase 1: Framework & Configuration
 
 #### Component Access Strategy
 The `CardFrame` component will be accessed through the global `window` object, consistent with the game's current architecture:
@@ -67,7 +67,7 @@ if (this.cardConfig.enabled && this.cardFrameAvailable) {
 }
 ```
 
-### Phase 2: Core Visual Implementation (Est. 3 days)
+### Phase 2: Core Visual Implementation
 
 #### CardFrame Creation
 Implement the `createCardFrameRepresentation()` method:
@@ -177,7 +177,7 @@ updateHealth(newHealth, maxHealth) {
 }
 ```
 
-### Phase 3: Animation System (Est. 2 days)
+### Phase 3: Animation System
 
 #### Attack Animation
 Implement card-specific attack animations in `showAttackAnimation()`:
@@ -341,7 +341,7 @@ showFloatingText(text, style = {}) {
 }
 ```
 
-### Phase 4: Status Effect Integration (Est. 2 days)
+### Phase 4: Status Effect Integration
 
 #### Status Effect Container Modifications
 Update StatusEffectContainer to support card frames:
@@ -414,7 +414,7 @@ if (this.config.showStatusEffects) {
 }
 ```
 
-### Phase 5: Event System & Performance (Est. 2 days)
+### Phase 5: Event System & Performance
 
 #### Event Propagation
 Setup bidirectional events between CharacterSprite and CardFrame:
@@ -483,7 +483,7 @@ update(time, delta) {
 }
 ```
 
-### Phase 6: Transition System (Est. 1 day)
+### Phase 6: Transition System 
 
 #### Representation Transition
 Implement transition animations between circle and card:
@@ -609,7 +609,7 @@ transitionToCircle(animate = true) {
 }
 ```
 
-### Phase 7: Integration with TeamContainer (Est. 2 days)
+### Phase 7: Integration with TeamContainer 
 
 Update TeamContainer to handle card-based positioning:
 
@@ -639,7 +639,7 @@ containsCardFrames() {
 }
 ```
 
-### Phase 8: Testing & Refinement (Est. 3 days)
+### Phase 8: Testing & Refinement
 
 #### Testing Strategy
 1. **Unit Testing:**
@@ -666,17 +666,6 @@ containsCardFrames() {
 - Text and health bar visibility/readability
 - Status effect positioning and clarity
 - Performance optimization for multiple cards
-
-## Timeline
-- **Total Estimated Time:** 15 days
-- **Phase 1 (Framework):** Days 1-2
-- **Phase 2 (Core Visual):** Days 3-5
-- **Phase 3 (Animation):** Days 6-7
-- **Phase 4 (Status Effects):** Days 8-9
-- **Phase 5 (Events & Performance):** Days 10-11
-- **Phase 6 (Transitions):** Day 12
-- **Phase 7 (TeamContainer):** Days 13-14
-- **Phase 8 (Testing & Refinement):** Days 15-17
 
 ## Implementation Dependencies
 
