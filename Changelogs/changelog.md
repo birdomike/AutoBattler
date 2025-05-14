@@ -1,4 +1,14 @@
+## 0.7.0.13 - Fixed Card Representation Circle Error (2025-05-13)
 
+### Fixed
+- Fixed error messages "Background circle does not exist" when using card-based character representation
+- Modified CharacterSprite.makeInteractive() to check which representation is being used before trying to access background circle
+- Improved error message to be more specific about the representation context
+
+### Technical
+- Added early return in makeInteractive() for card-based representation where interactivity is already handled by the CardFrame component
+- No changes to visual appearance or functionality - purely error message elimination
+- *Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.0.13_CardFrameCircleErrorFix.md*
 ## Version 0.7.0.12 - Card Frame Visual Depth Refinement (2025-05-13)
 ### Changed
 - Refined card frame visual depth implementation for more professional appearance

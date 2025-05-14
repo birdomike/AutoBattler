@@ -568,9 +568,16 @@ class CharacterSprite {
      * Make the character sprite interactive
      */
     makeInteractive() {
-         // Ensure circle exists before making interactive
+         // Check which representation is being used
+         if (this.cardConfig.enabled && this.cardFrame) {
+             // Card representation is being used - interactivity is managed by the CardFrame component
+             // No need to do anything here as it's already handled in createCardFrameRepresentation()
+             return;
+         }
+         
+         // For circle representation, ensure circle exists before making interactive
          if (!this.circle) {
-             console.error(`makeInteractive (${this.character.name}): Background circle does not exist.`);
+             console.error(`makeInteractive (${this.character.name}): Background circle does not exist in circle representation.`);
              return;
          }
          try {
