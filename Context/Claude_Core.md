@@ -122,7 +122,13 @@ C:\Personal\AutoBattler\
 │   │   │   │   └── TurnIndicator.js       # Visual indicator for active character turns
 │   │   │   │
 │   │   │   ├── ui/                  # UI-specific components
-│   │   │   │   └── CardFrame.js           # Card-based character representation
+│   │   │   │   ├── CardFrame.js           # Card frame wrapper (delegates to manager)
+│   │   │   │   ├── CardFrameManager.js    # Manages card frame components
+│   │   │   │   └── cardframe/             # Card frame component system
+│   │   │   │       ├── CardFrameVisualComponent.js    # Handles frame, backdrop, and visual effects
+│   │   │   │       ├── CardFrameHealthComponent.js    # Handles health bar and animations
+│   │   │   │       ├── CardFrameContentComponent.js   # Handles character sprite and nameplate
+│   │   │   │       └── CardFrameInteractionComponent.js # Handles hover and selection
 │   │   │   │
 │   │   │   ├── effects/             # Visual effects components
 │   │   │   ├── Button.js             # Reusable button component
@@ -476,6 +482,12 @@ This dual approach ensures both quick reference for general changes and detailed
 - Character representation now uses card frames with enhanced visual effects
 - Optimized team spacing (both vertical and horizontal) for better visibility
 - Repositioned UI elements for cleaner gameplay view
+- **CardFrame Refactoring**: Completed
+  - Converted monolithic CardFrame into component-based architecture following EDRV methodology
+  - Implemented CardFrameManager as central coordinator
+  - Extracted specialized components: Visual, Health, Content, and Interaction
+  - Added tiered configuration system with single source of truth
+  - Maintained backward compatibility through defensive programming
 - Character progression system (leveling, ability unlocking) not yet implemented
 - Character art implemented for all characters with optimized battle versions
 - Core data structures and classes are defined and working

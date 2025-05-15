@@ -18,7 +18,7 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     get selected() {
         // Delegate to manager if available (single source of truth)
-        if (this.config.useComponentSystem && this.manager) {
+        if (this.getConfig('useComponentSystem', true) && this.manager) {
             return this.manager._selected;
         }
         // Fallback to local state if manager not available
@@ -31,7 +31,7 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     get highlighted() {
         // Delegate to manager if available (single source of truth)
-        if (this.config.useComponentSystem && this.manager) {
+        if (this.getConfig('useComponentSystem', true) && this.manager) {
             return this.manager._highlighted;
         }
         // Fallback to local state if manager not available
@@ -78,9 +78,26 @@ class CardFrame extends Phaser.GameObjects.Container {
         // Store reference to scene
         this.scene = scene;
 
+        // Store only essential config in CardFrame
+        this.localConfig = {
+            useComponentSystem: config.useComponentSystem !== false,
+            characterName: config.characterName || 'Character',
+            characterType: config.characterType || 'neutral',
+            interactive: config.interactive || false,
+            hoverEnabled: config.hoverEnabled || false,
+            debugMode: config.debugMode || false,
+            selected: config.selected || false,
+            highlighted: config.highlighted || false
+        };
+        
+        // Keep a reference to the original config for backward compatibility
+        // during the transition (will be removed in a future update)
+        this._originalConfig = config;
+
         /**
         * Configuration options with sensible defaults
         * All visual parameters are explicitly defined here for easy adjustment
+        * @deprecated Use getConfig() and updateConfig() methods instead
         */
         this.config = Object.assign({
         // Core dimensions (3:4 aspect ratio)
@@ -201,12 +218,12 @@ class CardFrame extends Phaser.GameObjects.Container {
         }, config);
         
         // Auto-detect type color if not provided
-        this.typeColor = this.getTypeColor(this.config.characterType);
+        this.typeColor = this.getTypeColor(this.getConfig('characterType', 'neutral'));
         
         // Note: We don't initialize local state variables (_selected, _highlighted)
         // when using the component system, as these are managed by CardFrameManager
         // Local state is only used as fallback when manager is unavailable
-        if (!this.config.useComponentSystem || !this.manager) {
+        if (!this.getConfig('useComponentSystem', true) || !this.manager) {
             // Initialize local state variables only if not using component system
             // This provides a fallback mechanism when the manager is unavailable
             this._highlighted = false;
@@ -214,8 +231,8 @@ class CardFrame extends Phaser.GameObjects.Container {
         }
         
         // Delegate initialization to manager if available
-        if (this.config.useComponentSystem && this.manager) {
-            console.log(`CardFrame (${this.config.characterName || 'Unknown'}): Delegating initialization to CardFrameManager`);
+        if (this.getConfig('useComponentSystem', true) && this.manager) {
+            console.log(`CardFrame (${this.getConfig('characterName', 'Unknown')}): Delegating initialization to CardFrameManager`);
             
             // The manager already initializes its components in its constructor,
             // but we'll call initializeComponents explicitly in case that changes in the future
@@ -229,15 +246,15 @@ class CardFrame extends Phaser.GameObjects.Container {
                 this.add(this.glowContainer);
             }
         } else {
-            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Component system not available, card will have limited functionality`);
+            console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): Component system not available, card will have limited functionality`);
         }
         
         // Set initial state
-        if (this.config.selected) {
+        if (this.getConfig('selected', false)) {
             this.setSelected(true, false); // Set selected without animation
         }
         
-        if (this.config.highlighted) {
+        if (this.getConfig('highlighted', false)) {
             this.setHighlighted(true, false); // Set highlighted without animation
         }
         
@@ -245,7 +262,7 @@ class CardFrame extends Phaser.GameObjects.Container {
         scene.add.existing(this);
         
         // Add debug visuals if enabled
-        if (this.config.debugMode) {
+        if (this.getConfig('debugMode', false)) {
             this.createDebugVisuals();
         }
     }
@@ -257,7 +274,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createBaseFrame() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager
                 const frameBase = this.manager.createBaseFrame();
                 
@@ -272,7 +289,7 @@ class CardFrame extends Phaser.GameObjects.Container {
                     }
                     
                     // Convert to interactive area if needed
-                    if (this.config.interactive || this.config.hoverEnabled) {
+                    if (this.getConfig('interactive', false) || this.getConfig('hoverEnabled', false)) {
                         // Create a full-size hit area
                         const hitArea = new Phaser.Geom.Rectangle(
                             -this.config.width / 2,
@@ -305,7 +322,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createFallbackFrame() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.createFallbackFrame === 'function') {
                     const fallbackFrame = this.manager.createFallbackFrame();
@@ -321,12 +338,12 @@ class CardFrame extends Phaser.GameObjects.Container {
                         return fallbackFrame;
                     }
                 } else {
-                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no createFallbackFrame method`);
+                    console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): Manager exists but has no createFallbackFrame method`);
                 }
             }
             
             // Log warning for delegation failure
-            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): createFallbackFrame delegation failed, frame will be missing.`);
+            console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): createFallbackFrame delegation failed, frame will be missing.`);
             return null;
         } catch (error) {
             console.error('CardFrame: Error delegating createFallbackFrame:', error);
@@ -340,11 +357,11 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     addEdgeDepthEffects() {
         // Skip if edge effects are disabled
-        if (!this.config.depthEffects.edgeEffects.enabled) return;
+        if (!this.getConfig('depthEffects', {edgeEffects: {enabled: true}}).edgeEffects.enabled) return;
         
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager
                 const edgeEffects = this.manager.addEdgeDepthEffects();
                 
@@ -370,7 +387,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createBackdrop() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager
                 const backdrop = this.manager.createBackdrop();
                 
@@ -397,7 +414,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createInnerGlowEffect() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager
                 const innerGlowGraphics = this.manager.createInnerGlowEffect();
                 
@@ -424,7 +441,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createPortraitWindow() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager
                 const portraitContainer = this.manager.createPortraitWindow();
                 
@@ -452,7 +469,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createCharacterSprite() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager
                 const characterSprite = this.manager.createCharacterSprite ? 
                     this.manager.createCharacterSprite() : null;
@@ -484,7 +501,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createCharacterFallback() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.createCharacterFallback === 'function') {
                     const fallbackText = this.manager.createCharacterFallback();
@@ -510,7 +527,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createNameBanner() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 const nameBannerContainer = this.manager.createNameBanner ? 
                     this.manager.createNameBanner() : null;
@@ -541,7 +558,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createFallbackNameBanner() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 const fallbackBanner = this.manager.createFallbackNameBanner ? 
                     this.manager.createFallbackNameBanner() : null;
@@ -568,7 +585,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createHealthBar() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager
                 const healthBarContainer = this.manager.createHealthBar();
                 
@@ -595,7 +612,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     setupInteractivity() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.setupInteractivity === 'function') {
                     const result = this.manager.setupInteractivity();
@@ -622,7 +639,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     addGlowEffect(intensity) {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.addGlowEffect === 'function') {
                     const result = this.manager.addGlowEffect(intensity);
@@ -648,7 +665,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     removeGlowEffect() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.removeGlowEffect === 'function') {
                     const result = this.manager.removeGlowEffect();
@@ -682,14 +699,14 @@ class CardFrame extends Phaser.GameObjects.Container {
             }
             
             // Update stored health values
-            this.config.currentHealth = currentHealth;
+            this.updateConfig('currentHealth', currentHealth);
             
             if (maxHealth !== null) {
-                this.config.maxHealth = maxHealth;
+                this.updateConfig('maxHealth', maxHealth);
             }
             
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 if (typeof this.manager.updateHealth === 'function') {
                     this.manager.updateHealth(currentHealth, maxHealth, animate);
                     return;
@@ -715,7 +732,7 @@ class CardFrame extends Phaser.GameObjects.Container {
         try {
             // If component system is active, delegate to manager
             // The manager acts as the single source of truth for state
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.setSelected === 'function') {
                     return this.manager.setSelected(selected, animate);
@@ -746,7 +763,7 @@ class CardFrame extends Phaser.GameObjects.Container {
         try {
             // If component system is active, delegate to manager
             // The manager acts as the single source of truth for state
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.setHighlighted === 'function') {
                     return this.manager.setHighlighted(highlighted, animate);
@@ -774,7 +791,7 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     getHealthBarColor(percent) {
         // If component system is active, delegate to manager
-        if (this.config.useComponentSystem && this.manager) {
+        if (this.getConfig('useComponentSystem', true) && this.manager) {
             if (typeof this.manager.getHealthBarColor === 'function') {
                 return this.manager.getHealthBarColor(percent);
             }
@@ -794,7 +811,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     getTypeColor(type) {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.getTypeColor === 'function') {
                     return this.manager.getTypeColor(type);
@@ -821,10 +838,10 @@ class CardFrame extends Phaser.GameObjects.Container {
         if (!name) return;
         
         // Update stored name value
-        this.config.characterName = name;
+        this.updateConfig('characterName', name);
         
         // If component system is active, delegate to manager
-        if (this.config.useComponentSystem && this.manager) {
+        if (this.getConfig('useComponentSystem', true) && this.manager) {
             if (typeof this.manager.updateName === 'function') {
                 this.manager.updateName(name);
                 return;
@@ -834,7 +851,7 @@ class CardFrame extends Phaser.GameObjects.Container {
         }
         
         // If delegation failed or is disabled, log warning
-        console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): updateName delegation failed, name will not be updated.`);
+        console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): updateName delegation failed, name will not be updated.`);
     }
     
     /**
@@ -843,7 +860,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     createDebugVisuals() {
         try {
             // If component system is active, delegate to manager
-            if (this.config.useComponentSystem && this.manager) {
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
                 // Debug visuals don't need to return a value, but we'll check if method exists
                 const debugMethodExists = typeof this.manager.createDebugVisuals === 'function';
                 if (debugMethodExists) {
@@ -867,7 +884,7 @@ class CardFrame extends Phaser.GameObjects.Container {
     destroy() {
         try {
             // Delegate to manager first if available
-            if (this.config && this.config.useComponentSystem && this.manager && typeof this.manager.destroy === 'function') {
+            if (this.getConfig('useComponentSystem', true) && this.manager && typeof this.manager.destroy === 'function') {
                 console.log('CardFrame: Delegating destroy to CardFrameManager');
                 this.manager.destroy();
                 this.manager = null; // Nullify reference after destroying
@@ -898,7 +915,7 @@ class CardFrame extends Phaser.GameObjects.Container {
             }
             
             // Reset cursor if interactive
-            if (this.config && this.config.interactive) {
+            if (this.getConfig('interactive', false)) {
                 document.body.style.cursor = 'default';
             }
             
@@ -925,4 +942,59 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // Make available globally
+/**
+ * Get configuration value with fallback mechanism
+ * @param {string} property - The configuration property to get
+ * @param {*} defaultValue - Default value if property doesn't exist
+ * @returns {*} The configuration value
+ */
+CardFrame.prototype.getConfig = function(property, defaultValue) {
+    // Try to get from manager first (primary source of truth)
+    if (this.localConfig.useComponentSystem && this.manager && this.manager.config) {
+        if (this.manager.config[property] !== undefined) {
+            return this.manager.config[property];
+        }
+    }
+    
+    // Try local config next (for essential properties)
+    if (this.localConfig && this.localConfig[property] !== undefined) {
+        return this.localConfig[property];
+    }
+    
+    // During transition period, check original config (will be removed later)
+    if (this._originalConfig && this._originalConfig[property] !== undefined) {
+        return this._originalConfig[property];
+    }
+    
+    // Return default value if property not found
+    return defaultValue;
+};
+
+/**
+ * Update configuration value
+ * @param {string} property - The configuration property to update
+ * @param {*} value - The new value
+ */
+CardFrame.prototype.updateConfig = function(property, value) {
+    // Update in manager first (primary source of truth)
+    if (this.localConfig.useComponentSystem && this.manager && this.manager.config) {
+        this.manager.config[property] = value;
+    }
+    
+    // Update in local config if it's an essential property
+    if (this.localConfig && Object.prototype.hasOwnProperty.call(this.localConfig, property)) {
+        this.localConfig[property] = value;
+    }
+    
+    // During transition period, update original config (will be removed later)
+    if (this._originalConfig) {
+        this._originalConfig[property] = value;
+    }
+    
+    // Also update this.config for backward compatibility
+    if (this.config) {
+        this.config[property] = value;
+    }
+};
+
 window.CardFrame = CardFrame;
