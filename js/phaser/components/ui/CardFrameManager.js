@@ -156,8 +156,8 @@ class CardFrameManager extends Phaser.GameObjects.Container {
 
         // Component references
         this.visualComponent = null;
-        this.healthComponent = null;
-        this.contentComponent = null;
+        this.healthComponent = null; 
+        this.contentComponent = null; // Will be initialized for content functionality
         this.interactionComponent = null;
 
         // Initialize components
@@ -232,8 +232,12 @@ class CardFrameManager extends Phaser.GameObjects.Container {
         
         this.config.characterName = name;
         
-        // STUB: Will be implemented in Phase 3 with ContentComponent
-        console.log(`CardFrameManager.updateName: Will delegate to ContentComponent in future (${name})`);
+        // Delegate to content component if available
+        if (this.contentComponent && typeof this.contentComponent.updateName === 'function') {
+            this.contentComponent.updateName(name);
+        } else {
+            console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): updateName called but contentComponent is not available or lacks method.`);
+        }
     }
     
     /**
@@ -264,6 +268,18 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             return this.healthComponent.createHealthBar();
         }
         console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createHealthBar called but healthComponent is not available or lacks method.`);
+        return null;
+    }
+    
+    /**
+     * Create the portrait window with proper masking
+     * Delegated to ContentComponent
+     */
+    createPortraitWindow() {
+        if (this.contentComponent && typeof this.contentComponent.createPortraitWindow === 'function') {
+            return this.contentComponent.createPortraitWindow();
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createPortraitWindow called but contentComponent is not available or lacks method.`);
         return null;
     }
     
@@ -311,8 +327,10 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             // Initialize health component for health bar and updates
             this.initializeHealthComponent();
             
+            // Initialize content component for portrait and name display
+            this.initializeContentComponent();
+            
             // Other components will be initialized in future phases
-            // this.initializeContentComponent();
             // this.initializeInteractionComponent();
         } catch (error) {
             console.error('CardFrameManager: Error initializing components:', error);
@@ -348,6 +366,38 @@ class CardFrameManager extends Phaser.GameObjects.Container {
         } catch (error) {
             console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): Error initializing health component:`, error);
             this.healthComponent = null; // Explicitly nullify on error
+        }
+    }
+    
+    /**
+     * Initialize the content component for portrait window, character sprite, and name banner
+     */
+    initializeContentComponent() {
+        this.contentComponent = null; // Ensure it's null before attempting initialization
+        try {
+            if (typeof window.CardFrameContentComponent !== 'function') {
+                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CardFrameContentComponent class not found in global scope. Portrait and name will be missing.`);
+                return; // Exit if the class definition isn't loaded
+            }
+            
+            // Create content component
+            this.contentComponent = new window.CardFrameContentComponent(
+                this.scene,
+                this, // CardFrameManager is the container for contentComponent's elements
+                this.typeColor,
+                this.config // Pass the full config, ContentComponent will pick what it needs
+            );
+            
+            // Verify successful instantiation
+            if (this.contentComponent && typeof this.contentComponent.createPortraitWindow === 'function') {
+                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Content component initialized successfully.`);
+            } else {
+                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - CardFrameContentComponent instantiation failed or is invalid. ContentComponent:`, this.contentComponent);
+                this.contentComponent = null; // Ensure it's null if something went wrong
+            }
+        } catch (error) {
+            console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): Error initializing content component:`, error);
+            this.contentComponent = null; // Explicitly nullify on error
         }
     }
     
@@ -468,7 +518,8 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             }
             
             if (this.contentComponent) {
-                console.log("CardFrameManager.destroy: Will destroy contentComponent in future");
+                console.log("CardFrameManager.destroy: Destroying contentComponent");
+                this.contentComponent.destroy();
                 this.contentComponent = null;
             }
             
