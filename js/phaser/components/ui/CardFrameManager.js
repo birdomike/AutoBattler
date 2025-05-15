@@ -296,13 +296,13 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     initializeVisualComponent() {
         try {
             // Check if CardFrameVisualComponent is available
-            if (typeof CardFrameVisualComponent !== 'function') {
-                console.error('CardFrameManager: CardFrameVisualComponent not found');
+            if (typeof window.CardFrameVisualComponent !== 'function') {
+                console.error('CardFrameManager: CardFrameVisualComponent not found in global scope. Ensure it is loaded and correctly assigned to window.CardFrameVisualComponent.');
                 return;
             }
             
             // Create visual component
-            this.visualComponent = new CardFrameVisualComponent(
+            this.visualComponent = new window.CardFrameVisualComponent(
                 this.scene,
                 this,
                 this.typeColor,
