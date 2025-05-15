@@ -1,3 +1,21 @@
+## 0.7.1.2 - CardFrame Visual Method Delegation (Phase 3.1) (2025-05-14)
+
+### Changed
+- Added proper delegation from CardFrame to CardFrameManager before removal of original code
+- Implemented robust object reference management between CardFrame and CardFrameManager
+- Ensured interactivity works correctly by maintaining frameBase references
+- Followed Extract-Verify-Remove methodology with verification stage
+- Created fallback system ensuring backward compatibility during transition
+
+### Technical
+- Applied a consistent delegation pattern to five visual methods in CardFrame.js
+- Maintained proper hit area and interactive behavior during delegation
+- Enhanced CardFrame constructor to create and manage CardFrameManager instance
+- Added detailed logging for tracking delegation issues
+- Implemented comprehensive error handling and fallbacks
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.1.2_CardFrameDelegation_Phase3_1.md*
+
 ## 0.7.1.1 - CardFrame Component Extraction - Phase 3 (Visual Component) (2025-05-14)
 
 ### Added

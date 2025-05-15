@@ -17,35 +17,42 @@ This document outlines the detailed plan for integrating the new `CardFrame` com
 - ☐ Create proper error handling and fallbacks
 - ☐ Test basic visual appearance
 
-### Phase 3: Animation System
+### Phase 3: Component Extraction Process
+For each component extraction, follow this refined process:
+1. **Extract**: Move code to the new component file
+2. **Delegation Setup**: Update original file to delegate to new component while maintaining all object references
+3. **Verify**: Test that the delegated implementation works correctly
+4. **Remove**: Delete original implementation code, leaving only delegation
+
+### Phase 4: Animation System
 - ☐ Implement card-specific attack animations
 - ☐ Create impact effects for attacks
 - ☐ Update floating text handling for cards
 - ☐ Ensure proper GameObject cleanup
 
-### Phase 4: Status Effect Integration
+### Phase 5: Status Effect Integration
 - ☐ Modify StatusEffectContainer for card layout
 - ☐ Update status effect positioning
 - ☐ Pass configuration from CharacterSprite
 - ☐ Test with multiple status effects
 
-### Phase 5: Event System & Performance
+### Phase 6: Event System & Performance
 - ☐ Implement bidirectional event handling
 - ☐ Add visibility culling for offscreen cards
 - ☐ Setup proper event cleanup
 - ☐ Add texture atlas support
 
-### Phase 6: Transition System
+### Phase 7: Transition System
 - ☐ Create toggleRepresentation method
 - ☐ Implement animated transitions between representations
 - ☐ Ensure proper resource cleanup during transitions
 
-### Phase 7: TeamContainer Integration
+### Phase 8: TeamContainer Integration
 - ☐ Update team layout logic for cards
 - ☐ Add card detection to TeamContainer
 - ☐ Implement team-specific adjustments
 
-### Phase 8: Testing & Refinement
+### Phase 9: Testing & Refinement
 - ☐ Create comprehensive testing strategy
 - ☐ Test edge cases
 - ☐ Performance optimization
@@ -131,6 +138,86 @@ This step is essential to ensure the CardFrame components are properly loaded:
 ```
 
 **Note**: The loading order is critical - subcomponents must be loaded before the CardFrameManager, which must be loaded before CardFrame itself.
+
+### Phase 3: Component Extraction Process
+
+For each component to be extracted from CardFrame.js (Visual, Health, Content, Interaction), follow these steps:
+
+#### 1. Extract
+- Create the new component file (e.g., `CardFrameVisualComponent.js`)
+- Copy the relevant methods from CardFrame.js to the new component
+- Implement a clean constructor and proper initialization in the component
+- Export and make the component available globally (if needed)
+- Update index.html to load the new component file in proper order
+
+#### 2. Delegation Setup (CRITICAL STEP)
+- Modify the original methods in CardFrame.js to delegate to the new component
+- Maintain all critical object references needed by other methods
+- Implement a delegation pattern that includes fallbacks:
+
+```javascript
+// Example delegation pattern for a visual method in CardFrame.js
+createBaseFrame() {
+    try {
+        // If component system is active, delegate to manager
+        if (this.config.useComponentSystem && this.manager) {
+            // Delegate to manager
+            const frameBase = this.manager.createBaseFrame();
+            
+            // If manager's method returned a valid object, store it
+            if (frameBase) {
+                this.frameBase = frameBase; // CRITICAL: Maintain object reference
+                
+                // Create container for glow effect if not already created
+                if (!this.glowContainer) {
+                    this.glowContainer = this.scene.add.container(0, 0);
+                    this.add(this.glowContainer);
+                }
+                
+                // Set up any additional properties needed
+                // (e.g., make interactive if needed)
+                if (this.config.interactive || this.config.hoverEnabled) {
+                    this.frameBase.setInteractive(...);
+                }
+                
+                return frameBase;
+            } else {
+                console.warn('CardFrame.createBaseFrame: Manager did not return frameBase, falling back to direct implementation');
+            }
+        }
+        
+        // Original implementation as fallback
+        // ...original code...
+        
+    } catch (error) {
+        console.error('CardFrame: Error creating base frame:', error);
+        
+        // Create minimal fallback frame
+        this.createFallbackFrame();
+    }
+}
+```
+
+**Important Object References to Maintain**:
+- `this.frameBase` - Used by setupInteractivity() for event handling
+- `this.glowContainer` - Used for selection and hover effects
+- `this.backdrop` - Used in visual methods for styling
+- `this.innerGlowGraphics` - Used in visual effects and cleanup
+- `this.edgeEffects` - Used in visual effects and cleanup
+- `this.healthBar` - Used by updateHealth()
+- `this.healthText` - Used by updateHealth()
+- `this.characterSprite` - Used in multiple places
+
+#### 3. Verify
+- Test that the component functions correctly through the delegation chain
+- Ensure all dependencies and references work correctly
+- Verify visual appearance and functionality is unchanged
+- Test edge cases and error handling
+
+#### 4. Remove
+- Once verification is complete, remove the original implementation from CardFrame.js
+- Leave only the delegation code and proper error handling
+- Maintain backward compatibility through the delegation pattern
 
 ### Phase 2: Core Visual Implementation
 

@@ -22,6 +22,28 @@ class CardFrame extends Phaser.GameObjects.Container {
     constructor(scene, x, y, config = {}) {
         super(scene, x, y);
         
+        // Add component system flag to configuration
+        config.useComponentSystem = config.useComponentSystem !== false; // Default to true if not specified
+        
+        // If component system is enabled, create a manager instance
+        if (config.useComponentSystem && typeof window.CardFrameManager === 'function') {
+            try {
+                // Create manager instance with same config
+                this.manager = new window.CardFrameManager(scene, 0, 0, config);
+                // Add manager to this container
+                this.add(this.manager);
+                console.log('CardFrame: Using component system with CardFrameManager');
+            } catch (error) {
+                console.error('CardFrame: Error creating CardFrameManager:', error);
+                this.manager = null;
+                config.useComponentSystem = false; // Disable component system on failure
+                console.log('CardFrame: Falling back to direct implementation');
+            }
+        } else {
+            this.manager = null;
+            config.useComponentSystem = false; // Ensure flag is off if manager creation failed
+        }
+        
         // Store reference to scene
         this.scene = scene;
 
@@ -211,6 +233,42 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     createBaseFrame() {
         try {
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager
+                const frameBase = this.manager.createBaseFrame();
+                
+                // If manager's method returned a valid object, store it
+                if (frameBase) {
+                    this.frameBase = frameBase;
+                    
+                    // Create container for glow effect if not already created
+                    if (!this.glowContainer) {
+                        this.glowContainer = this.scene.add.container(0, 0);
+                        this.add(this.glowContainer);
+                    }
+                    
+                    // Convert to interactive area if needed
+                    if (this.config.interactive || this.config.hoverEnabled) {
+                        // Create a full-size hit area
+                        const hitArea = new Phaser.Geom.Rectangle(
+                            -this.config.width / 2,
+                            -this.config.height / 2,
+                            this.config.width,
+                            this.config.height
+                        );
+                        
+                        // Make frame interactive with proper hit area
+                        this.frameBase.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+                    }
+                    
+                    return frameBase;
+                } else {
+                    console.warn('CardFrame.createBaseFrame: Manager did not return frameBase, falling back to direct implementation');
+                }
+            }
+            
+            // Original implementation as fallback
             // Skip texture check and use graphics rendering by default
             // This eliminates the "card-frame texture not found" warning
             
@@ -289,6 +347,21 @@ class CardFrame extends Phaser.GameObjects.Container {
         if (!this.config.depthEffects.edgeEffects.enabled) return;
         
         try {
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager
+                const edgeEffects = this.manager.addEdgeDepthEffects();
+                
+                // If manager's method returned a valid object, store it
+                if (edgeEffects) {
+                    this.edgeEffects = edgeEffects;
+                    return edgeEffects;
+                } else {
+                    console.warn('CardFrame.addEdgeDepthEffects: Manager did not return edgeEffects, falling back to direct implementation');
+                }
+            }
+            
+            // Original implementation as fallback
             // Get configuration options
             const {
                 highlightBrightness,
@@ -372,6 +445,21 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     createBackdrop() {
         try {
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager
+                const backdrop = this.manager.createBackdrop();
+                
+                // If manager's method returned a valid object, store it
+                if (backdrop) {
+                    this.backdrop = backdrop;
+                    return backdrop;
+                } else {
+                    console.warn('CardFrame.createBackdrop: Manager did not return backdrop, falling back to direct implementation');
+                }
+            }
+            
+            // Original implementation as fallback
             // Create semi-transparent background fill
             const bgRect = this.scene.add.rectangle(
                 0, 0,
@@ -397,6 +485,21 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     createInnerGlowEffect() {
         try {
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager
+                const innerGlowGraphics = this.manager.createInnerGlowEffect();
+                
+                // If manager's method returned a valid object, store it
+                if (innerGlowGraphics) {
+                    this.innerGlowGraphics = innerGlowGraphics;
+                    return innerGlowGraphics;
+                } else {
+                    console.warn('CardFrame.createInnerGlowEffect: Manager did not return innerGlowGraphics, falling back to direct implementation');
+                }
+            }
+            
+            // Original implementation as fallback
             // Get configuration options
             const {
                 intensity,
@@ -1271,6 +1374,19 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     createDebugVisuals() {
         try {
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Debug visuals don't need to return a value, but we'll check if method exists
+                const debugMethodExists = typeof this.manager.createDebugVisuals === 'function';
+                if (debugMethodExists) {
+                    this.manager.createDebugVisuals();
+                    return; // No need to continue with original implementation
+                } else {
+                    console.warn('CardFrame.createDebugVisuals: Manager does not have createDebugVisuals method, falling back to direct implementation');
+                }
+            }
+            
+            // Original implementation as fallback
             const debug = this.scene.add.graphics();
             debug.lineStyle(1, 0xFF00FF, 1);
             

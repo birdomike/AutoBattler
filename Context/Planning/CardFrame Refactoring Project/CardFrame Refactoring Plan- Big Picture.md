@@ -2,13 +2,14 @@
 
 ## Core Principles from Lessons Learned
 
-1. **Extract. Verify. Remove.** - Complete each extraction fully before moving to the next
+1. **Extract. Delegate. Verify. Remove.** - Complete each extraction fully before moving to the next
 2. **Single-Path Implementation** - Create a clean delegation path immediately 
 3. **Component Boundaries** - Clearly define responsibilities for each component
 4. **Defensive Programming** - Add robust parameter validation and fallbacks
 5. **Method Signature Consistency** - Match original signatures for seamless delegation
 6. **Complete Implementation** - Ensure all dependencies and methods are completely implemented
 7. **Line Reduction Metrics** - Track code reduction as a key success metric
+8. **Reference Preservation** - Maintain critical object references during delegation
 
 ## Phase Summary
 
@@ -24,14 +25,62 @@
 - ✅ Make CardFrameManager globally available
 
 ### Phase 3: Component Extraction
-- ☐ Extract CardFrameVisualComponent
-  - Create file, update index.html, implement delegation, verify, remove from original
-- ☐ Extract CardFrameHealthComponent
-  - Create file, update index.html, implement delegation, verify, remove from original
-- ☐ Extract CardFrameContentComponent
-  - Create file, update index.html, implement delegation, verify, remove from original
-- ☐ Extract CardFrameInteractionComponent
-  - Create file, update index.html, implement delegation, verify, remove from original
+For each component, follow the refined **Extract-Delegate-Verify-Remove** process:
+
+1. **Extract**:
+   - Create the component file (e.g., `CardFrameVisualComponent.js`)
+   - Copy the relevant logic from the *original* `CardFrame.js` into this new component
+   - Implement proper constructor, methods, and error handling
+   - Make component available globally if needed
+   - Update index.html to load the component file
+
+2. **Delegate** (CRITICAL STEP):
+   - Update original methods in CardFrame.js to delegate to the manager
+   - Maintain all critical object references that other methods depend on
+   - Use a consistent delegation pattern with fallbacks:
+   ```javascript
+   methodName() {
+     try {
+       // If component system is active, delegate to manager
+       if (this.config.useComponentSystem && this.manager) {
+         // Delegate to manager
+         const result = this.manager.methodName();
+         
+         // If manager's method returned a valid object, store it locally
+         if (result) {
+           this.resultReference = result; // CRITICAL: Maintain object reference
+           return result;
+         } else {
+           console.warn('Fall back to direct implementation');
+         }
+       }
+       
+       // Original implementation as fallback
+       // ...original code...
+     } catch (error) {
+       console.error('Error in delegated method:', error);
+       // Fallback or error handling
+     }
+   }
+   ```
+   - Keep the original implementation code as fallback during transition
+
+3. **Verify**:
+   - Test the component's functionality through the delegation chain
+   - Verify same visual outcome and behavior as original implementation
+   - Check for console errors and memory leaks
+   - Confirm CardFrame -> CardFrameManager -> Component delegation chain works
+
+4. **Remove**:
+   - After verification, delete the extracted implementation code from CardFrame.js
+   - Leave only the delegation methods pointing to CardFrameManager
+   - Update changelogs with lines of code removed
+
+**Components to Extract**:
+- CardFrameVisualComponent (handles frame, backdrop, visual effects)
+- CardFrameHealthComponent (handles health bar and animations) 
+- CardFrameContentComponent (handles character sprite and nameplate)
+- CardFrameInteractionComponent (handles interaction and selection)
 
 ### Phase 4: Bridge Implementation
 - ☐ Convert original CardFrame.js to thin wrapper
@@ -114,46 +163,67 @@ js/phaser/components/ui/
 
 ### Step 2: Extract Each Component Individually
 
-For each component (Visual, Health, Content, Interaction):
+For each component (Visual, Health, Content, Interaction), follow the EDRV process:
 
-1. **Extract**:
+#### 1. Extract:
    - Create the new sub-component file (e.g., `CardFrameVisualComponent.js`)
    - Copy the relevant logic from the *original* `CardFrame.js` into this new sub-component
    - Sub-components are NOT Containers themselves, but classes that create/manage Phaser GameObjects
    - Each component receives references to `scene` and parent container from CardFrameManager
    - Update CardFrameManager to initialize the component and add delegation methods
+   - Update index.html to load the new component file
 
-2. **Update index.html** (CRITICAL STEP):
-   - Add each new component file to index.html as it's created
-   - Ensure proper loading order (sub-components BEFORE CardFrameManager)
-   ```html
-   <!-- CardFrame component system -->
-   <script src="js/phaser/components/ui/cardframe/CardFrameVisualComponent.js"></script>
-   <!-- Additional components added here as they're created -->
-   <script src="js/phaser/components/ui/CardFrameManager.js"></script>
+#### 2. Delegate:
+   - In the *original* CardFrame.js, modify the relevant methods to delegate to `this.manager`
+   - Maintain critical object references (like frameBase) that other methods depend on
+   - Use a consistent delegation pattern with proper error handling and fallbacks
+   - Keep the original implementation code as fallback for now
+   - Example:
+   ```javascript
+   createBaseFrame() {
+     try {
+       // If component system is active, delegate to manager
+       if (this.config.useComponentSystem && this.manager) {
+         // Delegate to manager
+         const frameBase = this.manager.createBaseFrame();
+         
+         // If manager's method returned a valid object, store it
+         if (frameBase) {
+           this.frameBase = frameBase; // CRITICAL: Maintain object reference
+           
+           // Set up any additional properties or configurations
+           if (this.config.interactive) {
+             this.frameBase.setInteractive(...);
+           }
+           
+           return frameBase;
+         } else {
+           console.warn('Fallback to direct implementation');
+         }
+       }
+       
+       // Original implementation as fallback
+       // ...original code...
+       
+     } catch (error) {
+       console.error('Error using delegated method:', error);
+       // Fallback or error handling
+     }
+   }
    ```
 
-3. **Implement in CardFrameManager**:
-   - Instantiate the new sub-component in CardFrameManager
-   - Add methods to delegate to the sub-component 
-   - Ensure proper error handling for failed component initialization
-
-4. **Modify CardFrame.js**:
-   - In the *original* CardFrame.js, modify the relevant methods to delegate to `this.manager`
-   - The original implementation code stays temporarily for fallback during testing
-
-5. **Verify**:
+#### 3. Verify:
    - Test the component's functionality through CardFrameManager
    - Verify same visual outcome and behavior as original implementation
    - Check for console errors and memory leaks
    - Confirm CardFrame -> CardFrameManager -> Component delegation chain works
 
-6. **Remove**:
+#### 4. Remove:
    - After verification, delete the extracted implementation code from CardFrame.js
    - Leave only the delegation methods pointing to CardFrameManager
    - Update changelogs with lines of code removed
 
-7. **Document**:
+#### 5. Document:
    - Create a detailed technical changelog
    - Document all component methods and parameters
    - Include key decisions and approach
@@ -283,13 +353,31 @@ For each component (Visual, Health, Content, Interaction):
    - Third: CardFrameContentComponent (character sprite and nameplate)
    - Fourth: CardFrameInteractionComponent (interaction handling)
 
-2. **Verification on Each Step**:
-   - Test each component after extraction
+2. **Reference Preservation** (CRITICAL):
+   - Identify all critical object references BEFORE extraction
+   - Key references to maintain:
+     - `frameBase` - Used by setupInteractivity
+     - `glowContainer` - Used by selection and hover effects
+     - `healthBar` - Used by updateHealth
+     - `healthText` - Used by updateHealth
+     - `characterSprite` - Used in multiple places
+   - When delegating, ensure these references are properly set in the original object
+   - Use a consistent pattern for reference management:
+     ```javascript
+     // Example: Delegate while preserving references
+     const result = this.manager.someMethod();
+     if (result) {
+       this.importantReference = result; // Maintain the reference
+     }
+     ```
+
+3. **Verification on Each Step**:
+   - Test each component after extraction AND delegation
    - Verify original functionality remains intact
    - Measure code reduction metrics
    - Document any issues or bugs encountered
 
-3. **Careful Reference Management**:
+4. **Careful Reference Management**:
    - Manage references properly between components
    - Maintain proper destruction sequences
    - Avoid circular references
