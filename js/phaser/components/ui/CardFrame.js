@@ -26,22 +26,32 @@ class CardFrame extends Phaser.GameObjects.Container {
         config.useComponentSystem = config.useComponentSystem !== false; // Default to true if not specified
         
         // If component system is enabled, create a manager instance
+        console.log(`[DEBUG-VC-INIT] CardFrame constructor: Entered for character (config.characterName): ${config.characterName || 'Unknown'}. Trying to use component system.`);
         if (config.useComponentSystem && typeof window.CardFrameManager === 'function') {
+            console.log(`[DEBUG-VC-INIT] CardFrame constructor: window.CardFrameManager is a function. Attempting to instantiate CardFrameManager.`);
             try {
                 // Create manager instance with same config
                 this.manager = new window.CardFrameManager(scene, 0, 0, config);
-                // Add manager to this container
-                this.add(this.manager);
+                console.log(`[DEBUG-VC-INIT] CardFrame constructor: CardFrameManager instantiation attempted. this.manager is now: ${this.manager ? 'defined' : 'undefined'}. Type: ${typeof this.manager}`);
+                if (this.manager) {
+                    // Add manager to this container
+                    this.add(this.manager);
+                    console.log('[DEBUG-VC-INIT] CardFrame constructor: CardFrameManager added to CardFrame container.');
+                } else {
+                    console.error('[DEBUG-VC-INIT] CardFrame constructor: CRITICAL - CardFrameManager was NOT created successfully, this.manager is falsy.');
+                    config.useComponentSystem = false; // Force fallback
+                }
                 console.log('CardFrame: Using component system with CardFrameManager');
             } catch (error) {
-                console.error('CardFrame: Error creating CardFrameManager:', error);
+                console.error('[DEBUG-VC-INIT] CardFrame constructor: ERROR caught during CardFrameManager instantiation:', error);
                 this.manager = null;
                 config.useComponentSystem = false; // Disable component system on failure
                 console.log('CardFrame: Falling back to direct implementation');
             }
         } else {
+            console.warn(`[DEBUG-VC-INIT] CardFrame constructor: NOT using CardFrameManager. config.useComponentSystem: ${config.useComponentSystem}, typeof window.CardFrameManager: ${typeof window.CardFrameManager}`);
             this.manager = null;
-            config.useComponentSystem = false; // Ensure flag is off if manager creation failed
+            config.useComponentSystem = false; // Ensure flag is off
         }
         
         // Store reference to scene

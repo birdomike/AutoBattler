@@ -1011,6 +1011,8 @@ highlight() {
      */
     createCardFrameRepresentation() {
         try {
+            console.log(`[DEBUG-VC-INIT] CharacterSprite.createCardFrameRepresentation: Entered for ${this.character.name}`);
+            
             // Prepare card configuration
             const cardOptions = {
                 // Character information
@@ -1054,30 +1056,36 @@ highlight() {
                 useComponentSystem: this.cardConfig.useComponentSystem || false
             };
             
+            console.log(`[DEBUG-VC-INIT] CharacterSprite: CardOptions prepared, useComponentSystem=${cardOptions.useComponentSystem}`);
+            
             // Determine which card system to use
             const useNewSystem = this.cardConfig.enabled && this.cardConfig.useComponentSystem;
             
             if (useNewSystem && typeof window.CardFrameManager === 'function') {
-                console.log(`[CharacterSprite] Using CardFrameManager for ${this.character.name}`);
+                console.log(`[DEBUG-VC-INIT] CharacterSprite: Using CardFrameManager for ${this.character.name}. CardFrameManager exists: ${!!window.CardFrameManager}, type: ${typeof window.CardFrameManager}`);
                 this.cardFrame = new window.CardFrameManager(this.scene, 0, 0, cardOptions);
+                console.log(`[DEBUG-VC-INIT] CharacterSprite: CardFrameManager created. Result is ${!!this.cardFrame}`);
             } else if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
-                console.log(`[CharacterSprite] Using original CardFrame for ${this.character.name}`);
+                console.log(`[DEBUG-VC-INIT] CharacterSprite: Using original CardFrame for ${this.character.name}. CardFrame exists: ${!!window.CardFrame}, type: ${typeof window.CardFrame}`);
                 this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
+                console.log(`[DEBUG-VC-INIT] CharacterSprite: CardFrame created. Result is ${!!this.cardFrame}`);
             } else {
                 if (this.cardConfig.enabled) {
-                    console.warn(`[CharacterSprite] Card representation enabled for ${this.character.name}, but neither CardFrameManager nor CardFrame is available.`);
+                    console.warn(`[DEBUG-VC-INIT] CharacterSprite: Card representation enabled for ${this.character.name}, but neither CardFrameManager (${typeof window.CardFrameManager}) nor CardFrame (${typeof window.CardFrame}) is available.`);
                 }
                 throw new Error("Card representation unavailable");
             }
             
             // Add card to main container
+            console.log(`[DEBUG-VC-INIT] CharacterSprite: Adding cardFrame to container for ${this.character.name}`);
             this.container.add(this.cardFrame);
             
             // Set up events for the card frame
             this.setupCardFrameEvents();
             
-            console.log(`Card created successfully for ${this.character.name} of type ${this.character.type}`);
+            console.log(`[DEBUG-VC-INIT] CharacterSprite: Card created successfully for ${this.character.name} of type ${this.character.type}`);
         } catch (error) {
+            console.error(`[DEBUG-VC-INIT] CharacterSprite: Error creating card frame for ${this.character?.name}:`, error);
             console.error(`CharacterSprite (${this.character?.name}): Error creating card frame:`, error);
             
             // Fall back to circle representation

@@ -1,3 +1,14 @@
+## 0.7.1.4 - CardFrame Component System Debugging (2025-05-14)
+
+### Technical
+- Added comprehensive diagnostic logging to track the CardFrame component delegation chain
+- Implemented detailed error tracking in CardFrame, CardFrameManager, and CardFrameVisualComponent
+- Enhanced constructor and initialization method logging to identify instantiation issues
+- Added validation checks for critical method references and parameters
+- Improved error handling with explicit null assignments on failure
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.1.4_CardFrameComponentDebug.md*
+
 ## 0.7.1.3 - CardFrame Visual Method Removal (Phase 3.1 "Remove" Step) (2025-05-14)
 
 ### Changed

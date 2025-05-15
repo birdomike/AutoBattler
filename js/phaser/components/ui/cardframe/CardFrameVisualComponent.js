@@ -12,6 +12,10 @@ class CardFrameVisualComponent {
      * @param {Object} config - Configuration options
      */
     constructor(scene, container, typeColor, config = {}) {
+        console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent constructor: Entered. Scene valid: ${!!scene}, Container valid: ${!!container}, TypeColor: ${typeColor}, Config keys: ${config ? Object.keys(config).join(', ') : 'null'}`);
+        if (!scene) { console.error('[DEBUG-VC-INIT] CardFrameVisualComponent constructor: SCENE IS FALSY!'); }
+        if (!container) { console.error('[DEBUG-VC-INIT] CardFrameVisualComponent constructor: CONTAINER IS FALSY!'); }
+        
         // Validate required parameters
         if (!scene || !container) {
             console.error('CardFrameVisualComponent: Missing required parameters (scene or container)');
@@ -74,27 +78,42 @@ class CardFrameVisualComponent {
      */
     initialize() {
         try {
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: Entered.`);
+            
             // Create components in proper layer order for visual depth
-            this.createBackdrop();
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: Attempting this.createBackdrop().`);
+            const backdrop = this.createBackdrop();
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: this.createBackdrop() result is ${backdrop ? 'defined' : 'undefined'}.`);
             
             // Add inner glow effect if enabled
             if (this.config.depthEffects.enabled && this.config.depthEffects.innerGlow.enabled) {
-                this.createInnerGlowEffect();
+                console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: Attempting this.createInnerGlowEffect().`);
+                const innerGlow = this.createInnerGlowEffect();
+                console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: this.createInnerGlowEffect() result is ${innerGlow ? 'defined' : 'undefined'}.`);
             }
             
             // Create base frame
-            this.createBaseFrame();
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: Attempting this.createBaseFrame().`);
+            const baseFrame = this.createBaseFrame();
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: this.createBaseFrame() result is ${baseFrame ? 'defined' : 'undefined'}.`);
             
             // Add edge depth effects if enabled
             if (this.config.depthEffects.enabled && this.config.depthEffects.edgeEffects.enabled) {
-                this.addEdgeDepthEffects();
+                console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: Attempting this.addEdgeDepthEffects().`);
+                const edgeEffects = this.addEdgeDepthEffects();
+                console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: this.addEdgeDepthEffects() result is ${edgeEffects ? 'defined' : 'undefined'}.`);
             }
             
             // Add debug visuals if enabled
             if (this.config.debugMode) {
-                this.createDebugVisuals();
+                console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: Attempting this.createDebugVisuals().`);
+                const debugVisuals = this.createDebugVisuals();
+                console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: this.createDebugVisuals() result is ${debugVisuals ? 'defined' : 'undefined'}.`);
             }
+            
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: Completed successfully.`);
         } catch (error) {
+            console.error('[DEBUG-VC-INIT] CardFrameVisualComponent.initialize: ERROR caught:', error);
             console.error('CardFrameVisualComponent: Error during initialization:', error);
             // Continue with partial initialization rather than throwing
         }
@@ -106,6 +125,8 @@ class CardFrameVisualComponent {
      */
     createBackdrop() {
         try {
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.createBackdrop: Entered. Scene valid: ${!!this.scene}, Container valid: ${!!this.container}`);
+            
             // Create semi-transparent background fill
             const bgRect = this.scene.add.rectangle(
                 0, 0,
@@ -115,14 +136,19 @@ class CardFrameVisualComponent {
                 this.config.backgroundAlpha
             );
             
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.createBackdrop: Created bgRect: ${!!bgRect}, adding to container`);
+            
             // Add to parent container
             this.container.add(bgRect);
             
             // Store reference for later use
             this.backdrop = bgRect;
             
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.createBackdrop: Successfully added to container and stored reference`);
+            
             return bgRect;
         } catch (error) {
+            console.error('[DEBUG-VC-INIT] CardFrameVisualComponent.createBackdrop: ERROR caught:', error);
             console.error('CardFrameVisualComponent: Error creating backdrop:', error);
             return null;
         }
@@ -187,10 +213,14 @@ class CardFrameVisualComponent {
      */
     createBaseFrame() {
         try {
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.createBaseFrame: Entered. Scene valid: ${!!this.scene}, Container valid: ${!!this.container}`);
+            
             // Skip texture check and use graphics rendering by default
             
             // Create frame graphics directly
             const frameGraphics = this.scene.add.graphics();
+            
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.createBaseFrame: Created graphics: ${!!frameGraphics}`);
             
             // Draw outer border with type color
             frameGraphics.lineStyle(this.config.borderWidth, this.typeColor, this.config.frameAlpha);
@@ -202,13 +232,18 @@ class CardFrameVisualComponent {
                 this.config.cornerRadius
             );
             
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.createBaseFrame: Drew border, storing reference`);
+            
             this.frameBase = frameGraphics;
             
             // Add frame to container
             this.container.add(this.frameBase);
             
+            console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent.createBaseFrame: Successfully added to container`);
+            
             return frameGraphics;
         } catch (error) {
+            console.error('[DEBUG-VC-INIT] CardFrameVisualComponent.createBaseFrame: ERROR caught:', error);
             console.error('CardFrameVisualComponent: Error creating base frame:', error);
             
             // Create minimal fallback frame

@@ -12,6 +12,9 @@ class CardFrameManager extends Phaser.GameObjects.Container {
      * @param {Object} config - Configuration options
      */
     constructor(scene, x, y, config = {}) {
+        console.log(`[DEBUG-VC-INIT] CardFrameManager constructor: Entered. Scene valid: ${!!scene}, Config keys: ${config ? Object.keys(config).join(', ') : 'null'}`);
+        if (!scene) { console.error('[DEBUG-VC-INIT] CardFrameManager constructor: SCENE IS FALSY!'); }
+        
         super(scene, x, y);
         
         // Store reference to scene
@@ -301,6 +304,8 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 return;
             }
             
+            console.log(`[DEBUG-VC-INIT] CardFrameManager: Attempting to create CardFrameVisualComponent. Scene valid: ${!!this.scene}, Container (this manager) valid: ${!!this}, TypeColor: ${this.typeColor}, Config keys: ${this.config ? Object.keys(this.config).join(', ') : 'null'}`);
+            
             // Create visual component
             this.visualComponent = new window.CardFrameVisualComponent(
                 this.scene,
@@ -309,8 +314,15 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 this.config
             );
             
+            console.log(`[DEBUG-VC-INIT] CardFrameManager: CardFrameVisualComponent instantiation attempted. this.visualComponent is now: ${this.visualComponent ? 'defined' : 'undefined'}. Type: ${typeof this.visualComponent}`);
+            if (this.visualComponent && typeof this.visualComponent.initialize !== 'function') {
+                console.error('[DEBUG-VC-INIT] CardFrameManager: CRITICAL - visualComponent exists but has no initialize method!');
+            }
+            
             console.log('CardFrameManager: Visual component initialized successfully');
         } catch (error) {
+            console.error('[DEBUG-VC-INIT] CardFrameManager.initializeVisualComponent: ERROR caught:', error); // Added prefix
+            this.visualComponent = null; // Explicitly nullify on error
             console.error('CardFrameManager: Error initializing visual component:', error);
         }
     }
@@ -320,7 +332,12 @@ class CardFrameManager extends Phaser.GameObjects.Container {
      * Delegated to VisualComponent
      */
     createBaseFrame() {
+        console.log(`[DEBUG-VC-INIT] CardFrameManager.createBaseFrame: Called. this.visualComponent is ${this.visualComponent ? 'defined' : 'undefined'}.`);
         if (this.visualComponent) {
+            if (typeof this.visualComponent.createBaseFrame !== 'function') {
+                console.error('[DEBUG-VC-INIT] CardFrameManager.createBaseFrame: CRITICAL - visualComponent exists but has no createBaseFrame method!');
+                return null;
+            }
             return this.visualComponent.createBaseFrame();
         }
         return null;
@@ -331,7 +348,12 @@ class CardFrameManager extends Phaser.GameObjects.Container {
      * Delegated to VisualComponent
      */
     createBackdrop() {
+        console.log(`[DEBUG-VC-INIT] CardFrameManager.createBackdrop: Called. this.visualComponent is ${this.visualComponent ? 'defined' : 'undefined'}.`);
         if (this.visualComponent) {
+            if (typeof this.visualComponent.createBackdrop !== 'function') {
+                console.error('[DEBUG-VC-INIT] CardFrameManager.createBackdrop: CRITICAL - visualComponent exists but has no createBackdrop method!');
+                return null;
+            }
             return this.visualComponent.createBackdrop();
         }
         return null;
