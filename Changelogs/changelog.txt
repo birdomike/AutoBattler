@@ -1,3 +1,71 @@
+## 0.7.1.3 - CardFrame Visual Method Removal (Phase 3.1 "Remove" Step) (2025-05-14)
+
+### Changed
+- Completed Phase 3.1 of CardFrame refactoring by removing all original visual method implementations
+- Maintained full functionality through delegation to CardFrameVisualComponent
+- Implemented proper fallback mechanisms for critical methods like createBaseFrame()
+- Improved error handling throughout all visual methods
+- Significantly reduced code size and complexity in CardFrame.js
+
+### Technical
+- Applied consistent delegation pattern across all visual methods
+- Maintained critical object references like this.frameBase to ensure interactivity works
+- Added appropriate warning messages when delegation fails
+- Simplified error handling with consistent return value approach (valid object or null)
+- Reduced visual methods from ~350 lines to ~100 lines (71% reduction)
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.1.3_CardFrameVisual_Remove_Phase.md*
+
+## 0.7.1.2 - CardFrame Visual Method Delegation (Phase 3.1) (2025-05-14)
+
+### Changed
+- Added proper delegation from CardFrame to CardFrameManager before removal of original code
+- Implemented robust object reference management between CardFrame and CardFrameManager
+- Ensured interactivity works correctly by maintaining frameBase references
+- Followed Extract-Verify-Remove methodology with verification stage
+- Created fallback system ensuring backward compatibility during transition
+
+### Technical
+- Applied a consistent delegation pattern to five visual methods in CardFrame.js
+- Maintained proper hit area and interactive behavior during delegation
+- Enhanced CardFrame constructor to create and manage CardFrameManager instance
+- Added detailed logging for tracking delegation issues
+- Implemented comprehensive error handling and fallbacks
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.1.2_CardFrameDelegation_Phase3_1.md*
+
+## 0.7.1.1 - CardFrame Component Extraction - Phase 3 (Visual Component) (2025-05-14)
+
+### Added
+- Implemented Phase 3 of CardFrame refactoring by extracting first component: CardFrameVisualComponent
+- Created dedicated component for handling frame, backdrop, and visual effects
+- Updated CardFrameManager to use component-based delegation pattern
+- Maintained full backward compatibility with original implementation
+
+### Technical
+- Extracted all visual-related methods to CardFrameVisualComponent.js
+- Implemented proper resource management in both component and manager
+- Added comprehensive error handling throughout the component chain
+- Updated index.html to load components in the correct order
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.1.1_CardFrameComponentExtraction_Phase3_VisualComponent.md*
+
+## 0.7.1.0 - CardFrame Component System Implementation Phase 1 (2025-05-14)
+
+### Added
+- Created foundation for component-based CardFrame architecture
+- Implemented CardFrameManager as the delegation layer for future components
+- Added useComponentSystem flag for controlling which system to use
+- Created directory structure for housing specialized subcomponents
+
+### Technical
+- Created CardFrameManager.js with the same API as the original CardFrame
+- Updated CharacterSprite to select between CardFrame and CardFrameManager
+- Modified index.html to ensure proper script loading order
+- Maintained backward compatibility with original CardFrame
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.1.0_CardFrameComponentSystem_Phase1.md*
+
 ## 0.7.0.18 - Health Text Visibility Fix (2025-05-14)
 
 ### Fixed
