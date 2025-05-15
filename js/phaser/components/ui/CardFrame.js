@@ -13,6 +13,31 @@
  */
 class CardFrame extends Phaser.GameObjects.Container {
     /**
+     * Getter for selected state
+     * @returns {boolean} Whether the card is currently selected
+     */
+    get selected() {
+        // Delegate to manager if available (single source of truth)
+        if (this.config.useComponentSystem && this.manager) {
+            return this.manager._selected;
+        }
+        // Fallback to local state if manager not available
+        return this._selected || false;
+    }
+    
+    /**
+     * Getter for highlighted state
+     * @returns {boolean} Whether the card is currently highlighted
+     */
+    get highlighted() {
+        // Delegate to manager if available (single source of truth)
+        if (this.config.useComponentSystem && this.manager) {
+            return this.manager._highlighted;
+        }
+        // Fallback to local state if manager not available
+        return this._highlighted || false;
+    }
+    /**
      * Create a new card frame
      * @param {Phaser.Scene} scene - The scene this card belongs to
      * @param {number} x - X position
@@ -175,12 +200,18 @@ class CardFrame extends Phaser.GameObjects.Container {
         debugMode: false            // Show debug information/boundaries
         }, config);
         
-        // Store internal state
-        this._highlighted = false;
-        this._selected = false;
-        
         // Auto-detect type color if not provided
         this.typeColor = this.getTypeColor(this.config.characterType);
+        
+        // Note: We don't initialize local state variables (_selected, _highlighted)
+        // when using the component system, as these are managed by CardFrameManager
+        // Local state is only used as fallback when manager is unavailable
+        if (!this.config.useComponentSystem || !this.manager) {
+            // Initialize local state variables only if not using component system
+            // This provides a fallback mechanism when the manager is unavailable
+            this._highlighted = false;
+            this._selected = false;
+        }
         
         // Create card components in proper layer order
         this.createBackdrop();
@@ -709,10 +740,8 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     setSelected(selected, animate = true) {
         try {
-            // Store selection state
-            this._selected = selected;
-            
             // If component system is active, delegate to manager
+            // The manager acts as the single source of truth for state
             if (this.config.useComponentSystem && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.setSelected === 'function') {
@@ -722,7 +751,10 @@ class CardFrame extends Phaser.GameObjects.Container {
                 }
             }
             
-            // If delegation failed or is disabled, log warning
+            // Only update local state if manager not available (fallback)
+            // This maintains the ability to work without the component system
+            this._selected = selected;
+            
             console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): setSelected delegation failed, selection will not be animated`);
             return false;
         } catch (error) {
@@ -739,10 +771,8 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     setHighlighted(highlighted, animate = true) {
         try {
-            // Store highlight state
-            this._highlighted = highlighted;
-            
             // If component system is active, delegate to manager
+            // The manager acts as the single source of truth for state
             if (this.config.useComponentSystem && this.manager) {
                 // Delegate to manager if method exists
                 if (typeof this.manager.setHighlighted === 'function') {
@@ -752,7 +782,10 @@ class CardFrame extends Phaser.GameObjects.Container {
                 }
             }
             
-            // If delegation failed or is disabled, log warning
+            // Only update local state if manager not available (fallback)
+            // This maintains the ability to work without the component system
+            this._highlighted = highlighted;
+            
             console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): setHighlighted delegation failed, highlighting will not be animated`);
             return false;
         } catch (error) {
