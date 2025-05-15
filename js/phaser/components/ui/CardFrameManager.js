@@ -284,6 +284,30 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     }
     
     /**
+     * Create and add character sprite
+     * Delegated to ContentComponent
+     */
+    createCharacterSprite() {
+        if (this.contentComponent && typeof this.contentComponent.createCharacterSprite === 'function') {
+            return this.contentComponent.createCharacterSprite();
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createCharacterSprite called but contentComponent is not available or lacks method.`);
+        return null;
+    }
+    
+    /**
+     * Create a fallback visual if character sprite cannot be created
+     * Delegated to ContentComponent
+     */
+    createCharacterFallback() {
+        if (this.contentComponent && typeof this.contentComponent.createCharacterFallback === 'function') {
+            return this.contentComponent.createCharacterFallback();
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createCharacterFallback called but contentComponent is not available or lacks method.`);
+        return null;
+    }
+    
+    /**
      * Get the color for a character type
      * @param {string} type - The character's type
      * @returns {number} - The color as a hex number

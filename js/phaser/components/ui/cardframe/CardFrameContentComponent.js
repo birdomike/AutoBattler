@@ -150,89 +150,42 @@ class CardFrameContentComponent {
     
     /**
      * Create and add character sprite
+     * @returns {Phaser.GameObjects.Sprite|null} The created character sprite or null if failed
      */
     createCharacterSprite() {
         try {
-            console.log(`==== CARD FRAME CONTENT DEBUG [START] ====`);
-            console.log(`CardFrameContentComponent (${this.config.characterName}): Creating character sprite`);
-            
-            // STEP 1: Validate character key and texture
-            console.log(`1. TEXTURE VALIDATION:`);
+            // Validate character key and texture
             if (!this.config.characterKey) {
-                console.warn(`- No character key provided, aborting`);
-                return null;
+                console.warn(`CardFrameContentComponent: No character key provided for ${this.config.characterName}, creating fallback.`);
+                return this.createCharacterFallback();
             }
             
             // Check if texture exists
             const textureExists = this.scene.textures.exists(this.config.characterKey);
-            console.log(`- Texture key: "${this.config.characterKey}" exists: ${textureExists}`);
             
             if (!textureExists) {
-                console.warn(`- Character texture not found, listing available textures:`);
-                const characterTextures = Object.keys(this.scene.textures.list)
-                    .filter(key => key.startsWith('character_'));
-                console.log(`- Available character textures (${characterTextures.length}): ${characterTextures.join(', ')}`);
+                console.warn(`CardFrameContentComponent: Texture '${this.config.characterKey}' not found for ${this.config.characterName}, creating fallback.`);
                 return this.createCharacterFallback();
             }
             
-            // STEP 2: Verify texture dimensions and frame data
-            console.log(`2. TEXTURE DIMENSIONS:`);
-            const texture = this.scene.textures.get(this.config.characterKey);
-            if (texture && texture.source && texture.source[0]) {
-                const source = texture.source[0];
-                console.log(`- Texture dimensions: ${source.width}x${source.height}`);
-                console.log(`- Frames in texture: ${Object.keys(texture.frames).length}`);
-                // Log specific frame properties instead of using JSON.stringify to avoid circular references
-                if (texture.frames && texture.frames.__BASE) {
-                    const baseFrame = texture.frames.__BASE;
-                    console.log(`- Default frame properties: width=${baseFrame.width || 'unknown'}, height=${baseFrame.height || 'unknown'}, x=${baseFrame.x || 0}, y=${baseFrame.y || 0}`);
-                } else {
-                    console.log(`- Default frame: Not available`);
-                }
-            } else {
-                console.warn(`- Texture exists but structure is invalid or unexpected`);
-            }
-            
-            // STEP 3: Create sprite with minimal configuration
-            console.log(`3. CREATING SPRITE:`);
-            // Create sprite at CENTER of container for maximum visibility during testing
+            // Create sprite at CENTER of container for maximum visibility
             this.characterSprite = this.scene.add.sprite(0, 0, this.config.characterKey);
-            console.log(`- Sprite created at position (0, 0)`);
             
-            // STEP 4: Force visibility settings
-            console.log(`4. FORCING VISIBILITY:`);
+            // Apply visibility settings
             this.characterSprite.setAlpha(1);
             this.characterSprite.setVisible(true);
-            this.characterSprite.setScale(this.config.artScale); // Using config scale instead of fixed value
-            console.log(`- Applied: alpha=1, visible=true, scale=${this.config.artScale}`);
+            this.characterSprite.setScale(this.config.artScale);
             
-            // STEP 5: Verify sprite dimensions
-            console.log(`5. SPRITE DIMENSIONS:`);
-            console.log(`- Sprite width: ${this.characterSprite.width}, height: ${this.characterSprite.height}`);
-            console.log(`- Sprite displayWidth: ${this.characterSprite.displayWidth}, displayHeight: ${this.characterSprite.displayHeight}`);
-            
-            // STEP 6: Container hierarchy check
-            console.log(`6. CONTAINER HIERARCHY:`);
-            console.log(`- CardFrameContentComponent (${this.config.characterName}): Adding sprite to container`);
-            console.log(`- Portrait position: (0, ${this.config.portraitOffsetY})`);
-            console.log(`- Portrait dimensions: ${this.config.portraitWidth}x${this.config.portraitHeight}`);
-            
-            // STEP 7: Add to container WITHOUT mask for testing
-            console.log(`7. ADDING TO CONTAINER:`);
-            // DELIBERATELY NOT APPLYING MASK FOR TESTING
-            console.log(`- Skipping mask application for testing (will be addressed in future updates)`);
+            // Important: DELIBERATELY NOT APPLYING MASK to ensure character is visible
+            // This was determined to be the solution in version 0.7.0.8
             
             // Add directly to main container for maximum visibility
             this.container.add(this.characterSprite);
-            this.characterSprite.setDepth(1000); // EXTREMELY high depth to ensure visibility
-            
-            console.log(`- Added to container with depth: ${this.characterSprite.depth}`);
-            console.log(`- Final visibility state: visible=${this.characterSprite.visible}, alpha=${this.characterSprite.alpha}`);
-            console.log(`==== CARD FRAME CONTENT DEBUG [END] ====`);
+            this.characterSprite.setDepth(1000); // High depth to ensure visibility
             
             return this.characterSprite;
         } catch (error) {
-            console.error('CardFrameContentComponent: Error creating character sprite:', error);
+            console.error(`CardFrameContentComponent: Error creating character sprite for ${this.config.characterName}:`, error);
             return this.createCharacterFallback();
         }
     }
