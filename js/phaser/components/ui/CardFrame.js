@@ -314,25 +314,38 @@ class CardFrame extends Phaser.GameObjects.Container {
     
     /**
      * Create a fallback frame if the normal frame creation fails
-     * Simple rectangular frame with type color
+     * @returns {Phaser.GameObjects.Graphics} A simple rectangular frame
      */
     createFallbackFrame() {
-        // Create basic rectangular frame
-        const fallbackFrame = this.scene.add.graphics();
-        fallbackFrame.lineStyle(4, this.typeColor, 1);
-        fallbackFrame.strokeRect(
-            -this.config.width / 2,
-            -this.config.height / 2,
-            this.config.width,
-            this.config.height
-        );
-        
-        this.frameBase = fallbackFrame;
-        this.add(this.frameBase);
-        
-        // Create container for glow effect (used for selection/hover)
-        this.glowContainer = this.scene.add.container(0, 0);
-        this.add(this.glowContainer);
+        try {
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.createFallbackFrame === 'function') {
+                    const fallbackFrame = this.manager.createFallbackFrame();
+                    if (fallbackFrame) {
+                        this.frameBase = fallbackFrame;
+                        
+                        // Create container for glow effect if not already created
+                        if (!this.glowContainer) {
+                            this.glowContainer = this.scene.add.container(0, 0);
+                            this.add(this.glowContainer);
+                        }
+                        
+                        return fallbackFrame;
+                    }
+                } else {
+                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no createFallbackFrame method`);
+                }
+            }
+            
+            // Log warning for delegation failure
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): createFallbackFrame delegation failed, frame will be missing.`);
+            return null;
+        } catch (error) {
+            console.error('CardFrame: Error delegating createFallbackFrame:', error);
+            return null;
+        }
     }
     
     /**
@@ -480,52 +493,26 @@ class CardFrame extends Phaser.GameObjects.Container {
     /**
      * Create a fallback visual if character sprite cannot be created
      * Delegated to CardFrameManager
+     * @returns {Phaser.GameObjects.Text | null} The fallback character representation or null
      */
     createCharacterFallback() {
         try {
             // If component system is active, delegate to manager
             if (this.config.useComponentSystem && this.manager) {
                 // Delegate to manager if method exists
-                const fallbackText = this.manager.createCharacterFallback ? 
-                    this.manager.createCharacterFallback() : null;
-                
-                // If manager's method returned a valid fallback, return it
-                if (fallbackText) {
+                if (typeof this.manager.createCharacterFallback === 'function') {
+                    const fallbackText = this.manager.createCharacterFallback();
                     return fallbackText;
+                } else {
+                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no createCharacterFallback method`);
                 }
             }
             
-            // If delegation failed or is disabled, create minimal fallback implementation
-            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): createCharacterFallback delegation failed, using minimal fallback.`);
-            
-            // Create minimal fallback text
-            try {
-                // Create a text placeholder with character's first letter
-                const firstLetter = this.config.characterName.charAt(0).toUpperCase();
-                const portraitY = this.config.portraitOffsetY;
-                
-                const fallbackText = this.scene.add.text(
-                    0, portraitY, firstLetter,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: 48,
-                        color: '#FFFFFF',
-                        stroke: '#000000',
-                        strokeThickness: 4
-                    }
-                ).setOrigin(0.5);
-                
-                // Add directly to CardFrame container
-                this.add(fallbackText);
-                fallbackText.setDepth(100);
-                
-                return fallbackText;
-            } catch (fallbackError) {
-                console.error('CardFrame: Error creating minimal fallback:', fallbackError);
-                return null;
-            }
+            // Log warning for delegation failure
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): createCharacterFallback delegation failed, character fallback will be missing.`);
+            return null;
         } catch (error) {
-            console.error('CardFrame: Error delegating character fallback creation:', error);
+            console.error('CardFrame: Error delegating createCharacterFallback:', error);
             return null;
         }
     }
@@ -819,31 +806,24 @@ class CardFrame extends Phaser.GameObjects.Container {
      * @returns {number} - The color as a hex number
      */
     getTypeColor(type) {
-        // If type color explicitly provided in config, use that
-        if (this.config.typeColors && this.config.typeColors[type]) {
-            return this.config.typeColors[type];
+        try {
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.getTypeColor === 'function') {
+                    return this.manager.getTypeColor(type);
+                } else {
+                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no getTypeColor method`);
+                }
+            }
+            
+            // Log warning for delegation failure
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): getTypeColor delegation failed, using neutral color.`);
+            return 0xAAAAAA; // Neutral gray as fallback
+        } catch (error) {
+            console.error('CardFrame: Error delegating getTypeColor:', error);
+            return 0xAAAAAA; // Neutral gray as fallback
         }
-        
-        // Default type colors if not in config
-        const typeColors = {
-            fire: 0xFF4757, water: 0x1E90FF, nature: 0x2ED573,
-            electric: 0xF7DF1E, ice: 0xADD8E6, rock: 0x8B4513,
-            air: 0x70A1FF, light: 0xFFD700, dark: 0x9900CC,
-            metal: 0xC0C0C0, psychic: 0xDA70D6, poison: 0x8A2BE2,
-            physical: 0xCD5C5C, arcane: 0x7B68EE, mechanical: 0x778899,
-            void: 0x2F4F4F, crystal: 0xAFEEEE, storm: 0x4682B4,
-            ethereal: 0xE6E6FA, blood: 0x8B0000, plague: 0x556B2F,
-            gravity: 0x36454F, neutral: 0xAAAAAA // Added neutral for placeholder
-        };
-        
-        // Handle multi-type (uses first type for color)
-        let primaryType = type;
-        if (type && type.includes('/')) {
-            primaryType = type.split('/')[0].trim();
-        }
-        
-        // Return color or neutral fallback
-        return typeColors[primaryType.toLowerCase()] || typeColors.neutral;
     }
     
     /**

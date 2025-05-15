@@ -613,6 +613,27 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     }
     
     /**
+     * Create a fallback frame if the normal frame creation fails
+     * Delegated to VisualComponent
+     * @returns {Phaser.GameObjects.Graphics} A simple rectangular frame
+     */
+    createFallbackFrame() {
+        try {
+            // Delegate to visual component if available
+            if (this.visualComponent && typeof this.visualComponent.createFallbackFrame === 'function') {
+                const fallbackFrame = this.visualComponent.createFallbackFrame();
+                return fallbackFrame;
+            } else {
+                console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createFallbackFrame called but visualComponent is not available or lacks method.`);
+                return null;
+            }
+        } catch (error) {
+            console.error('CardFrameManager: Error delegating createFallbackFrame:', error);
+            return null;
+        }
+    }
+    
+    /**
      * Create the backdrop rectangle for the card
      * Delegated to VisualComponent
      */
