@@ -3,9 +3,12 @@
  * Handles health bar rendering and updating for CardFrame.
  * Part of the component-based CardFrame refactoring project.
  * 
- * IMPORTANT: This component is the source of truth for all health bar styling, dimensions,
- * and positioning. To modify any aspect of the health bar, edit the configuration options 
- * in this file rather than in CardFrameManager.js.
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all health bar styling,
+ * dimensions, and positioning. To modify ANY aspect of the health bar, edit the
+ * configuration options in THIS file rather than in CardFrameManager.js.
+ * 
+ * CODE REVIEW GUIDELINE: Any PR that adds health-related configuration to
+ * CardFrameManager.js should be rejected. All such configuration belongs here.
  */
 class CardFrameHealthComponent {
     /**
@@ -26,8 +29,8 @@ class CardFrameHealthComponent {
         this.container = container; // This is the CardFrameManager instance
         this.typeColor = typeColor || 0xAAAAAA; // Default to neutral gray if no type color provided
         
-        // Store configuration - define OUR defaults first, then merge with any externally provided config
-        // This ensures OUR defaults take precedence over CardFrameManager values
+        // Store configuration - define OUR defaults first
+        // CardFrameManager's config will override these defaults when specified
         const ourDefaults = {
             // Health display configuration
             currentHealth: 100,
@@ -43,13 +46,14 @@ class CardFrameHealthComponent {
             // Health text styling
             healthTextColor: '#FFFFFF',
             healthTextFontFamily: "'Cinzel', serif",
-            healthTextFontSize: '20px', // Increased to 11px for better legibility
+            healthTextFontSize: '15px', // Increased to 11px for better legibility
             healthTextStrokeColor: '#000000',
             healthTextStrokeThickness: 2
         };
         
-        // Merge our defaults with the provided config, with our defaults taking precedence
-        this.config = Object.assign({}, config, ourDefaults);
+        // Merge our defaults with the provided config
+        // This ensures CardFrameManager can override our defaults when needed
+        this.config = Object.assign({}, ourDefaults, config);
         
         // Object references for Phaser GameObjects managed by this component
         this.healthBarContainer = null; // This will be a new container, added to the parent `this.container` (CardFrameManager)
@@ -188,7 +192,7 @@ class CardFrameHealthComponent {
                     `${Math.round(this.config.currentHealth)}/${this.config.maxHealth}`,
                     {
                         fontFamily: this.config.healthTextFontFamily,
-                        fontSize: '11px', // Increased from 10px for better legibility with Cinzel
+                        fontSize: this.config.healthTextFontSize, // Use the configured font size
                         fontStyle: 'bold', // Added to make Cinzel more readable at small sizes
                         color: this.config.healthTextColor,
                         stroke: this.config.healthTextStrokeColor,

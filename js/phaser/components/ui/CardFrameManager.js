@@ -57,16 +57,13 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             portraitOffsetY: -20,       // Portrait vertical offset from center (layout positioning remains here)
             // portraitMask: true,         // Whether to mask the portrait
             
-            // Health display
+            // Health display - BASIC values only
             currentHealth: 100,         // Current health value
             maxHealth: 100,             // Maximum health value
             showHealth: true,           // Whether to show health bar
-            // NOTE: The following health bar properties have been moved to CardFrameHealthComponent.js
-            // Look there to modify health bar styling, dimensions and positioning
-            // healthBarWidth: 180,        // Width of health bar
-            // healthBarHeight: 20,        // Height of health bar
-            // healthBarOffsetY: -148,     // Distance from center to health bar
-            // showHealthText: true,       // Whether to show health text
+            // NOTE: ALL health bar styling, dimensions, and appearance properties
+            // should be configured ONLY in CardFrameHealthComponent.js.
+            // DO NOT add any health styling/dimensions properties here.
             
             // Nameplate
             // NOTE: The following nameplate properties have been moved to CardFrameContentComponent.js
@@ -486,6 +483,8 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     
     /**
      * Initialize the health component for health bar and health updates.
+     * IMPORTANT: All health bar styling, dimensions, and behavior should be configured
+     * in CardFrameHealthComponent.js, not here in CardFrameManager.js.
      */
     initializeHealthComponent() {
         this.healthComponent = null; // Ensure it's null before attempting initialization

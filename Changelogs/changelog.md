@@ -1,3 +1,21 @@
+## 0.7.2.9 - Health Component Single Source of Truth (2025-05-15)
+
+### Fixed
+- Fixed configuration hierarchy in CardFrameHealthComponent to properly serve as single source of truth
+- Corrected Object.assign order to allow CardFrameManager values to override defaults when specified
+- Removed hardcoded font size in health text creation, now using configured value
+
+### Improved
+- Enhanced documentation to clearly indicate that all health bar styling belongs in CardFrameHealthComponent
+- Added code review guideline for properly maintaining component boundaries
+- Removed all commented-out health properties from CardFrameManager.js
+
+### Technical
+- Improved component modularization by ensuring clean separation of concerns
+- Added warning comments to help prevent future configuration drift
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.2.9_HealthComponentSingleSourceOfTruth.md*
+
 ## 0.7.2.8 - Health Bar Visual Enhancements (2025-05-15)
 
 ### Improved
