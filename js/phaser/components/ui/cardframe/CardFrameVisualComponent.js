@@ -2,7 +2,15 @@
  * CardFrameVisualComponent.js
  * Handles the visual aspects of the card frame including frame, backdrop, and visual effects
  * Part of the component-based CardFrame refactoring project
+ * 
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all visual styling,
+ * dimensions, and effects. To modify ANY aspect of the card's visual appearance,
+ * edit the configuration options in THIS file rather than in CardFrameManager.js.
+ * 
+ * CODE REVIEW GUIDELINE: Any PR that adds visual-related configuration to
+ * CardFrameManager.js should be rejected. All such configuration belongs here.
  */
+
 class CardFrameVisualComponent {
     /**
      * Create a new CardFrameVisualComponent

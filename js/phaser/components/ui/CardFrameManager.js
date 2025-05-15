@@ -2,6 +2,19 @@
  * CardFrameManager.js
  * Manages a component-based implementation of the card frame system
  * Acts as a delegation layer to coordinate visual, health, content, and interaction components
+ *
+ * IMPORTANT ARCHITECTURE NOTE: CardFrameManager serves as a coordinator/orchestrator
+ * for specialized components. It should NOT define component-specific configuration.
+ * Each component is the SINGLE SOURCE OF TRUTH for its domain:
+ *
+ * - CardFrameVisualComponent: ALL visual styling, dimensions, and effects
+ * - CardFrameHealthComponent: ALL health bar styling and behavior
+ * - CardFrameContentComponent: ALL character content, portrait window, and nameplate styling
+ * - CardFrameInteractionComponent: ALL interaction behaviors and animations
+ *
+ * CODE REVIEW GUIDELINE: Any PR that adds component-specific configuration to
+ * CardFrameManager.js should be rejected. Such configuration belongs in the respective
+ * component files.
  */
 class CardFrameManager extends Phaser.GameObjects.Container {
     /**
@@ -50,8 +63,10 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             artScale: 1,                // Scaling factor for character art
             
             // Portrait window
-            // NOTE: The following portrait properties have been moved to CardFrameContentComponent.js
-            // Look there to modify portrait window styling and dimensions
+            // NOTE: ALL portrait window styling, dimensions, and masking properties
+            // should be configured ONLY in CardFrameContentComponent.js.
+            // DO NOT add any portrait styling properties here.
+            // This violates the SINGLE SOURCE OF TRUTH principle.
             // portraitWidth: 200,         // Width of portrait area
             // portraitHeight: 240,        // Height of portrait area
             portraitOffsetY: -20,       // Portrait vertical offset from center (layout positioning remains here)
@@ -64,10 +79,13 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             // NOTE: ALL health bar styling, dimensions, and appearance properties
             // should be configured ONLY in CardFrameHealthComponent.js.
             // DO NOT add any health styling/dimensions properties here.
+            // This violates the SINGLE SOURCE OF TRUTH principle.
             
             // Nameplate
-            // NOTE: The following nameplate properties have been moved to CardFrameContentComponent.js
-            // Look there to modify name banner styling and dimensions
+            // NOTE: ALL content styling, portrait, and nameplate properties 
+            // should be configured ONLY in CardFrameContentComponent.js.
+            // DO NOT add any content-related properties here.
+            // This violates the SINGLE SOURCE OF TRUTH principle.
             // nameBannerHeight: 25,       // Height of name banner
             // nameBannerWidth: 210,       // Width of name banner (slightly less than card width)
             // nameFontSize: 16,           // Font size for name text
@@ -76,8 +94,10 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             // showDecorativeFlourishes: true, // Whether to show flourishes around name
             
             // Appearance
-            // NOTE: The following appearance properties have been moved to CardFrameVisualComponent.js
-            // Look there to modify visual styling and effects
+            // NOTE: ALL visual styling, dimensions, and effects properties
+            // should be configured ONLY in CardFrameVisualComponent.js.
+            // DO NOT add any visual styling/appearance properties here.
+            // This violates the SINGLE SOURCE OF TRUTH principle.
             // frameTexture: 'card-frame', // Base texture for card frame
             // nameplateTexture: 'nameplate', // Base texture for nameplate
             typeColors: {               // Type-specific colors (needed by multiple components, so stays here)
@@ -133,14 +153,19 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             // Interaction
             interactive: false,         // Whether card is interactive - needed by multiple components, so stays here
             onSelect: null,             // Callback when card is selected - needed by multiple components, so stays here
-            // NOTE: The following interaction properties have been moved to CardFrameInteractionComponent.js
-            // Look there to modify hover behavior and animations
+            // NOTE: ALL interaction, hover, and animation properties
+            // should be configured ONLY in CardFrameInteractionComponent.js.
+            // DO NOT add any interaction-related properties here.
+            // This violates the SINGLE SOURCE OF TRUTH principle.
             // hoverEnabled: true,         // Whether hover effects are enabled
             // onHoverStart: null,         // Callback when hover starts
             // onHoverEnd: null,           // Callback when hover ends
             
             // Animation 
-            // NOTE: The following animation properties have been moved to CardFrameInteractionComponent.js
+            // NOTE: ALL animation and state transition properties
+            // should be configured ONLY in CardFrameInteractionComponent.js.
+            // DO NOT add any animation properties here.
+            // This violates the SINGLE SOURCE OF TRUTH principle.
             // hoverScale: 1.05,           // Scale factor when hovering
             // selectedScale: 1.1,         // Scale factor when selected
             // animationDuration: 150,     // Duration of animations in ms

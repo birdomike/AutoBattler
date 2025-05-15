@@ -2,6 +2,13 @@
  * CardFrameInteractionComponent.js
  * Handles interaction behavior for the CardFrame component
  * Part of the component-based CardFrame refactoring project (Phase 3.4)
+ * 
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all interaction behaviors,
+ * hover effects, and selection/highlight animations. To modify ANY aspect of card
+ * interaction, edit the configuration options in THIS file rather than in CardFrameManager.js.
+ * 
+ * CODE REVIEW GUIDELINE: Any PR that adds interaction-related configuration to
+ * CardFrameManager.js should be rejected. All such configuration belongs here.
  */
 class CardFrameInteractionComponent {
     /**

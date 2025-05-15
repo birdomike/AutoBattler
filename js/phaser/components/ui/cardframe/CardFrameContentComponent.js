@@ -2,6 +2,13 @@
  * CardFrameContentComponent.js
  * Handles character sprite and nameplate rendering for CardFrame.
  * Part of the component-based CardFrame refactoring project.
+ * 
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all character content,
+ * portrait window, and nameplate styling/behavior. To modify ANY aspect of these elements,
+ * edit the configuration options in THIS file rather than in CardFrameManager.js.
+ * 
+ * CODE REVIEW GUIDELINE: Any PR that adds content-related configuration to
+ * CardFrameManager.js should be rejected. All such configuration belongs here.
  */
 class CardFrameContentComponent {
     /**
