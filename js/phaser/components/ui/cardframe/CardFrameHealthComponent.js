@@ -29,9 +29,12 @@ class CardFrameHealthComponent {
             maxHealth: 100,
             showHealth: true,
             healthBarWidth: 180,
-            healthBarHeight: 12,
+            healthBarHeight: 14, // Slightly increased height to accommodate text better
             healthBarOffsetY: -148, // Default from recent card layout optimization
             showHealthText: true,
+            // Health bar styling
+            healthBarBorderRadius: 4, // Rounded corners for health bar
+            healthBarBevelWidth: 1, // Width of the bevel effect
             // Health text styling
             healthTextColor: '#FFFFFF',
             healthTextFontFamily: 'Arial',
@@ -66,43 +69,109 @@ class CardFrameHealthComponent {
                 this.config.healthBarOffsetY
             );
             
-            // Create health bar background
-            this.healthBarBg = this.scene.add.rectangle(
-                0, 0, 
-                this.config.healthBarWidth, 
+            // Get configuration values
+            const radius = this.config.healthBarBorderRadius || 3;
+            const bevelWidth = this.config.healthBarBevelWidth || 1;
+            
+            // Create health bar background with rounded corners
+            this.healthBarBg = this.scene.add.graphics();
+            this.healthBarBg.fillStyle(0x000000, 0.7);
+            this.healthBarBg.fillRoundedRect(
+                -this.config.healthBarWidth / 2,
+                -this.config.healthBarHeight / 2,
+                this.config.healthBarWidth,
                 this.config.healthBarHeight,
-                0x000000, 0.7
-            ).setOrigin(0.5);
+                radius
+            );
             
             // Calculate health percentage
             const healthPercent = Math.max(0, Math.min(1, 
                 this.config.currentHealth / this.config.maxHealth
             ));
             
-            // Create health bar fill
+            // Create health bar fill with rounded corners
             const barWidth = this.config.healthBarWidth - 4; // Slight padding
+            const barHeight = this.config.healthBarHeight - 4; // Slight padding
+            const healthColor = this.getHealthBarColor(healthPercent);
             
-            this.healthBar = this.scene.add.rectangle(
-                -barWidth / 2, // Left-aligned
-                0,
-                barWidth * healthPercent, // Width based on health percentage
-                this.config.healthBarHeight - 4, // Slight padding
-                this.getHealthBarColor(healthPercent), // Color based on health
-                1
-            ).setOrigin(0, 0.5); // Origin at left center
+            this.healthBar = this.scene.add.graphics();
+            this.healthBar.fillStyle(healthColor, 1);
             
-            // Create frame around health bar
+            // Only use rounded corners if percentage isn't too low
+            const adjustedWidth = Math.max(barWidth * healthPercent, radius * 2);
+            
+            if (healthPercent > 0) {
+                this.healthBar.fillRoundedRect(
+                    -barWidth / 2,
+                    -barHeight / 2,
+                    adjustedWidth,
+                    barHeight,
+                    healthPercent < 0.1 ? radius / 2 : radius
+                );
+            }
+            
+            // Add beveled edges for dimensionality
+            // Convert health color to RGB components
+            const colorObj = Phaser.Display.Color.ValueToColor(healthColor);
+            const darkerColor = Phaser.Display.Color.GetColor(
+                Math.max(0, colorObj.r - 50),
+                Math.max(0, colorObj.g - 50),
+                Math.max(0, colorObj.b - 50)
+            );
+            const lighterColor = Phaser.Display.Color.GetColor(
+                Math.min(255, colorObj.r + 50),
+                Math.min(255, colorObj.g + 50),
+                Math.min(255, colorObj.b + 50)
+            );
+            
+            // Create inner bevel (highlight at top, shadow at bottom)
+            const innerBevel = this.scene.add.graphics().setName('innerBevel');
+            
+            // Top/left highlight (inner bevel light edge)
+            innerBevel.lineStyle(bevelWidth, lighterColor, 0.7);
+            // Draw top line with rounded corners
+            innerBevel.beginPath();
+            innerBevel.moveTo(-barWidth / 2 + radius, -barHeight / 2 + bevelWidth / 2);
+            innerBevel.lineTo((-barWidth / 2) + Math.min(adjustedWidth, barWidth) - radius, -barHeight / 2 + bevelWidth / 2);
+            innerBevel.strokePath();
+            
+            // Left line with rounded corner
+            if (healthPercent > 0) {
+                innerBevel.beginPath();
+                innerBevel.moveTo(-barWidth / 2 + bevelWidth / 2, -barHeight / 2 + radius);
+                innerBevel.lineTo(-barWidth / 2 + bevelWidth / 2, barHeight / 2 - radius);
+                innerBevel.strokePath();
+            }
+            
+            // Bottom/right shadow (inner bevel dark edge)
+            innerBevel.lineStyle(bevelWidth, darkerColor, 0.7);
+            // Draw bottom line with rounded corners
+            innerBevel.beginPath();
+            innerBevel.moveTo(-barWidth / 2 + radius, barHeight / 2 - bevelWidth / 2);
+            innerBevel.lineTo((-barWidth / 2) + Math.min(adjustedWidth, barWidth) - radius, barHeight / 2 - bevelWidth / 2);
+            innerBevel.strokePath();
+            
+            // Right line (only if health is visible)
+            if (healthPercent > 0.05) {
+                innerBevel.beginPath();
+                innerBevel.moveTo((-barWidth / 2) + adjustedWidth - bevelWidth / 2, -barHeight / 2 + radius);
+                innerBevel.lineTo((-barWidth / 2) + adjustedWidth - bevelWidth / 2, barHeight / 2 - radius);
+                innerBevel.strokePath();
+            }
+            
+            // Create outer frame
             const healthBarFrame = this.scene.add.graphics();
             healthBarFrame.lineStyle(1, 0xFFFFFF, 0.4);
-            healthBarFrame.strokeRect(
+            healthBarFrame.strokeRoundedRect(
                 -this.config.healthBarWidth / 2 - 1, 
                 -this.config.healthBarHeight / 2 - 1,
                 this.config.healthBarWidth + 2, 
-                this.config.healthBarHeight + 2
+                this.config.healthBarHeight + 2,
+                radius + 1
             );
             
-            // Add components to health bar container - background and health bar first
-            this.healthBarContainer.add([this.healthBarBg, this.healthBar, healthBarFrame]);
+            // Add components to health bar container
+            this.healthBarContainer.add([this.healthBarBg, this.healthBar, innerBevel, healthBarFrame]);
             
             // Create health text if enabled - added AFTER other elements for proper rendering order
             if (this.config.showHealthText) {
@@ -181,16 +250,36 @@ class CardFrameHealthComponent {
             
             // Decide whether to animate
             if (animate && this.scene && this.scene.tweens) {
-                // Stop any existing tweens
-                this.scene.tweens.killTweensOf(this.healthBar);
+                // Store animation values for redrawing
+                this._animatingHealth = true;
+                this._targetHealthPercent = healthPercent;
+                this._startHealthPercent = oldWidth / barWidth;
+                this._healthAnimStartTime = this.scene.time.now;
+                this._healthAnimDuration = 300; // Duration in ms
                 
-                // Animate health bar width
+                // Create a tween on a dummy object to track progress
+                const dummyObj = { progress: 0 };
                 this.scene.tweens.add({
-                    targets: this.healthBar,
-                    width: newWidth,
-                    fillColor: { from: this.healthBar.fillColor, to: newColor },
-                    duration: 300,
-                    ease: 'Sine.easeOut'
+                    targets: dummyObj,
+                    progress: 1,
+                    duration: this._healthAnimDuration,
+                    ease: 'Sine.easeOut',
+                    onUpdate: () => {
+                        // Calculate interpolated values
+                        const currentPercent = Phaser.Math.Linear(
+                            this._startHealthPercent,
+                            this._targetHealthPercent,
+                            dummyObj.progress
+                        );
+                        
+                        // Redraw health bar with current values
+                        this._updateHealthBarGraphics(currentPercent);
+                    },
+                    onComplete: () => {
+                        // Ensure final state is correct
+                        this._updateHealthBarGraphics(this._targetHealthPercent);
+                        this._animatingHealth = false;
+                    }
                 });
                 
                 // Add visual feedback based on health change
@@ -249,8 +338,7 @@ class CardFrameHealthComponent {
                 }
             } else {
                 // Direct update without animation
-                this.healthBar.width = newWidth;
-                this.healthBar.fillColor = newColor;
+                this._updateHealthBarGraphics(healthPercent);
             }
         } catch (error) {
             console.error('CardFrameHealthComponent: Error updating health:', error);
@@ -276,6 +364,100 @@ class CardFrameHealthComponent {
         if (clampedPercent < 0.3) return 0xFF0000; // Red (low health)
         if (clampedPercent < 0.6) return 0xFFAA00; // Orange (medium health)
         return 0x00FF00; // Green (high health)
+    }
+    
+    /**
+     * Clean up all resources managed by this component.
+     */
+    /**
+     * Updates the health bar graphics with the current health percentage
+     * @param {number} healthPercent - Health percentage (0-1)
+     * @private
+     */
+    _updateHealthBarGraphics(healthPercent) {
+        try {
+            if (!this.healthBar || !this.healthBar.scene) return;
+            
+            // Clear existing graphics
+            this.healthBar.clear();
+            
+            // Get configuration values
+            const radius = this.config.healthBarBorderRadius || 3;
+            const barWidth = this.config.healthBarWidth - 4; // Slight padding
+            const barHeight = this.config.healthBarHeight - 4; // Slight padding
+            const healthColor = this.getHealthBarColor(healthPercent);
+            
+            // Fill the health bar
+            this.healthBar.fillStyle(healthColor, 1);
+            
+            // Only use rounded corners if percentage isn't too low
+            const adjustedWidth = Math.max(barWidth * healthPercent, radius * 2);
+            
+            if (healthPercent > 0) {
+                this.healthBar.fillRoundedRect(
+                    -barWidth / 2,
+                    -barHeight / 2,
+                    adjustedWidth,
+                    barHeight,
+                    healthPercent < 0.1 ? radius / 2 : radius
+                );
+            }
+            
+            // If there's an innerBevel, update it too
+            const innerBevel = this.healthBarContainer.getByName('innerBevel');
+            if (innerBevel && innerBevel.scene) {
+                // Convert health color to RGB components
+                const colorObj = Phaser.Display.Color.ValueToColor(healthColor);
+                const darkerColor = Phaser.Display.Color.GetColor(
+                    Math.max(0, colorObj.r - 50),
+                    Math.max(0, colorObj.g - 50),
+                    Math.max(0, colorObj.b - 50)
+                );
+                const lighterColor = Phaser.Display.Color.GetColor(
+                    Math.min(255, colorObj.r + 50),
+                    Math.min(255, colorObj.g + 50),
+                    Math.min(255, colorObj.b + 50)
+                );
+                
+                // Update bevel graphics
+                innerBevel.clear();
+                const bevelWidth = this.config.healthBarBevelWidth || 1;
+                
+                // Top/left highlight (inner bevel light edge)
+                innerBevel.lineStyle(bevelWidth, lighterColor, 0.7);
+                // Draw top line with rounded corners
+                innerBevel.beginPath();
+                innerBevel.moveTo(-barWidth / 2 + radius, -barHeight / 2 + bevelWidth / 2);
+                innerBevel.lineTo((-barWidth / 2) + Math.min(adjustedWidth, barWidth) - radius, -barHeight / 2 + bevelWidth / 2);
+                innerBevel.strokePath();
+                
+                // Left line with rounded corner
+                if (healthPercent > 0) {
+                    innerBevel.beginPath();
+                    innerBevel.moveTo(-barWidth / 2 + bevelWidth / 2, -barHeight / 2 + radius);
+                    innerBevel.lineTo(-barWidth / 2 + bevelWidth / 2, barHeight / 2 - radius);
+                    innerBevel.strokePath();
+                }
+                
+                // Bottom/right shadow (inner bevel dark edge)
+                innerBevel.lineStyle(bevelWidth, darkerColor, 0.7);
+                // Draw bottom line with rounded corners
+                innerBevel.beginPath();
+                innerBevel.moveTo(-barWidth / 2 + radius, barHeight / 2 - bevelWidth / 2);
+                innerBevel.lineTo((-barWidth / 2) + Math.min(adjustedWidth, barWidth) - radius, barHeight / 2 - bevelWidth / 2);
+                innerBevel.strokePath();
+                
+                // Right line (only if health is visible)
+                if (healthPercent > 0.05) {
+                    innerBevel.beginPath();
+                    innerBevel.moveTo((-barWidth / 2) + adjustedWidth - bevelWidth / 2, -barHeight / 2 + radius);
+                    innerBevel.lineTo((-barWidth / 2) + adjustedWidth - bevelWidth / 2, barHeight / 2 - radius);
+                    innerBevel.strokePath();
+                }
+            }
+        } catch (error) {
+            console.error('CardFrameHealthComponent: Error updating health bar graphics:', error);
+        }
     }
     
     /**
