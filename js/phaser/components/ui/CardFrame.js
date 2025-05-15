@@ -213,37 +213,23 @@ class CardFrame extends Phaser.GameObjects.Container {
             this._selected = false;
         }
         
-        // Create card components in proper layer order
-        this.createBackdrop();
-        
-        // Add inner glow effect if enabled
-        if (this.config.depthEffects.enabled && this.config.depthEffects.innerGlow.enabled) {
-            this.createInnerGlowEffect();
-        }
-        
-        // Create base frame
-        this.createBaseFrame();
-        
-        // Add edge depth effects if enabled
-        if (this.config.depthEffects.enabled && this.config.depthEffects.edgeEffects.enabled) {
-            this.addEdgeDepthEffects();
-        }
-        
-        this.createPortraitWindow();
-        
-        if (this.config.characterKey) {
-            this.createCharacterSprite();
-        }
-        
-        this.createNameBanner();
-        
-        if (this.config.showHealth) {
-            this.createHealthBar();
-        }
-        
-        // Setup interactivity if enabled
-        if (this.config.interactive) {
-            this.setupInteractivity();
+        // Delegate initialization to manager if available
+        if (this.config.useComponentSystem && this.manager) {
+            console.log(`CardFrame (${this.config.characterName || 'Unknown'}): Delegating initialization to CardFrameManager`);
+            
+            // The manager already initializes its components in its constructor,
+            // but we'll call initializeComponents explicitly in case that changes in the future
+            if (typeof this.manager.initializeComponents === 'function') {
+                this.manager.initializeComponents();
+            }
+            
+            // Create container for glow effect if needed (used by interaction component)
+            if (!this.glowContainer) {
+                this.glowContainer = this.scene.add.container(0, 0);
+                this.add(this.glowContainer);
+            }
+        } else {
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Component system not available, card will have limited functionality`);
         }
         
         // Set initial state

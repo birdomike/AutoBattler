@@ -1,3 +1,21 @@
+## 0.7.2.6 - CardFrame Constructor Simplification (Phase 4.5) (2025-05-15)
+
+### Changed
+- Completed Phase 4.5 of CardFrame refactoring by simplifying the constructor
+- Removed all direct component creation calls from the constructor
+- Added explicit delegation to CardFrameManager for initialization
+- Maintained backward compatibility with appropriate warning messages
+- Added clear documentation for delegation process
+
+### Technical
+- Reduced constructor code by approximately 25 lines
+- Established single point of initialization through the manager
+- Provided clear warning messages when component system is unavailable
+- Further separated concerns between CardFrame and CardFrameManager
+- Maintained minimal compatibility code for core functionality
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.2.6_CardFrameConstructorSimplification.md*
+
 ## 0.7.2.5 - CardFrame Fallback Implementation Removal (Phase 4.4) (2025-05-15)
 
 ### Changed
