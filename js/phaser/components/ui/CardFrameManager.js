@@ -296,6 +296,30 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     }
     
     /**
+     * Create the decorative nameplate banner with beveled edges/scrollwork
+     * Delegated to ContentComponent
+     */
+    createNameBanner() {
+        if (this.contentComponent && typeof this.contentComponent.createNameBanner === 'function') {
+            return this.contentComponent.createNameBanner();
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createNameBanner called but contentComponent is not available or lacks method.`);
+        return null;
+    }
+    
+    /**
+     * Create a simple fallback name banner if the decorative one fails
+     * Delegated to ContentComponent
+     */
+    createFallbackNameBanner() {
+        if (this.contentComponent && typeof this.contentComponent.createFallbackNameBanner === 'function') {
+            return this.contentComponent.createFallbackNameBanner();
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createFallbackNameBanner called but contentComponent is not available or lacks method.`);
+        return null;
+    }
+    
+    /**
      * Create a fallback visual if character sprite cannot be created
      * Delegated to ContentComponent
      */

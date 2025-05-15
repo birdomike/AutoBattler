@@ -505,164 +505,60 @@ class CardFrame extends Phaser.GameObjects.Container {
     
     /**
      * Create the decorative nameplate banner with beveled edges/scrollwork
+     * Delegated to ContentComponent 
      */
     createNameBanner() {
         try {
-            // Position at the bottom of the card
-            const bannerY = this.config.nameOffsetY;
-            
-            // Create banner container
-            this.nameBannerContainer = this.scene.add.container(0, bannerY);
-            
-            // Skip texture check and use graphics rendering by default
-            // This eliminates the "nameplate texture not found" warning
-            
-            // Create nameplate using graphics
-            const nameplateBg = this.scene.add.graphics();
-            
-            // Draw decorative background
-            nameplateBg.fillStyle(this.typeColor, 0.8);
-            nameplateBg.fillRoundedRect(
-                -this.config.nameBannerWidth / 2,
-                -this.config.nameBannerHeight / 2,
-                this.config.nameBannerWidth,
-                this.config.nameBannerHeight,
-                8 // Rounded corners
-            );
-            
-            // Add bevel effect
-            nameplateBg.lineStyle(2, 0xFFFFFF, 0.3);
-            nameplateBg.strokeRoundedRect(
-                -this.config.nameBannerWidth / 2 + 1,
-                -this.config.nameBannerHeight / 2 + 1,
-                this.config.nameBannerWidth - 2,
-                this.config.nameBannerHeight - 2,
-                7
-            );
-            
-            this.nameBanner = nameplateBg;
-            
-            // Create name text with shadow for depth
-            this.nameText = this.scene.add.text(
-                0, 0,
-                this.config.characterName,
-                {
-                    fontFamily: this.config.nameFontFamily,
-                    fontSize: this.config.nameFontSize,
-                    color: '#FFFFFF',
-                    stroke: '#000000',
-                    strokeThickness: 3,
-                    align: 'center',
-                    shadow: {
-                        offsetX: 2,
-                        offsetY: 2,
-                        color: '#000000',
-                        blur: 2,
-                        fill: true
-                    }
-                }
-            ).setOrigin(0.5);
-            
-            // Add decorative flourishes on sides of name if enabled
-            if (this.config.showDecorativeFlourishes) {
-                // Check if flourish textures exist
-                const leftFlourish = 'nameplate-flourish-left';
-                const rightFlourish = 'nameplate-flourish-right';
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                const nameBannerContainer = this.manager.createNameBanner ? 
+                    this.manager.createNameBanner() : null;
                 
-                // Calculate spacing based on text width
-                const flourishSpacing = Math.min(45, this.config.nameBannerWidth / 2 - this.nameText.width / 2 - 15);
-                
-                if (this.scene.textures.exists(leftFlourish) && this.scene.textures.exists(rightFlourish)) {
-                    this.leftFlourish = this.scene.add.image(-flourishSpacing, 0, leftFlourish)
-                        .setOrigin(1, 0.5)
-                        .setTint(this.typeColor);
-                        
-                    this.rightFlourish = this.scene.add.image(flourishSpacing, 0, rightFlourish)
-                        .setOrigin(0, 0.5)
-                        .setTint(this.typeColor);
-                        
-                    // Add flourishes to banner container
-                    this.nameBannerContainer.add([this.leftFlourish, this.rightFlourish]);
-                } else {
-                    // Fallback decorative elements if textures don't exist
-                    const leftDeco = this.scene.add.text(-flourishSpacing, 0, '✦', {
-                        fontFamily: 'serif',
-                        fontSize: this.config.nameFontSize,
-                        color: '#FFFFFF'
-                    }).setOrigin(0.5);
-                    
-                    const rightDeco = this.scene.add.text(flourishSpacing, 0, '✦', {
-                        fontFamily: 'serif',
-                        fontSize: this.config.nameFontSize,
-                        color: '#FFFFFF'
-                    }).setOrigin(0.5);
-                    
-                    // Add fallback flourishes to banner container
-                    this.nameBannerContainer.add([leftDeco, rightDeco]);
+                // If manager's method returned a valid container, store it for backward compatibility
+                if (nameBannerContainer) {
+                    this.nameBannerContainer = nameBannerContainer;
+                    return nameBannerContainer;
                 }
             }
             
-            // Add team indicator if specified
-            if (this.config.characterTeam) {
-                const teamSymbol = this.config.characterTeam === 'player' ? '♦' : '♢';
-                const teamColor = this.config.characterTeam === 'player' ? '#55FF55' : '#FF5555';
-                
-                const teamIndicator = this.scene.add.text(
-                    -this.config.nameBannerWidth / 2 + 15, 
-                    0,
-                    teamSymbol,
-                    {
-                        fontFamily: 'serif',
-                        fontSize: this.config.nameFontSize,
-                        color: teamColor
-                    }
-                ).setOrigin(0.5);
-                
-                this.nameBannerContainer.add(teamIndicator);
-            }
+            // If delegation failed or is disabled, log warning and try fallback
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): createNameBanner delegation failed.`);
             
-            // Add elements to banner container
-            this.nameBannerContainer.add([this.nameBanner, this.nameText]);
-            
-            // Add banner container to main container
-            this.add(this.nameBannerContainer);
+            // Use fallback banner as last resort
+            return this.createFallbackNameBanner();
         } catch (error) {
-            console.error('CardFrame: Error creating name banner:', error);
-            this.createFallbackNameBanner();
+            console.error('CardFrame: Error delegating name banner creation:', error);
+            // Attempt fallback in case of error
+            return this.createFallbackNameBanner();
         }
     }
     
     /**
      * Create a simple fallback name banner if the decorative one fails
+     * Delegated to ContentComponent
      */
     createFallbackNameBanner() {
         try {
-            // Position at the bottom of the card
-            const bannerY = this.config.nameOffsetY;
-            
-            // Create banner container
-            this.nameBannerContainer = this.scene.add.container(0, bannerY);
-            
-            // Create simple name text
-            this.nameText = this.scene.add.text(
-                0, 0,
-                this.config.characterName,
-                {
-                    fontFamily: 'Arial',
-                    fontSize: this.config.nameFontSize,
-                    color: '#FFFFFF',
-                    stroke: '#000000',
-                    strokeThickness: 2
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                const fallbackBanner = this.manager.createFallbackNameBanner ? 
+                    this.manager.createFallbackNameBanner() : null;
+                
+                // If manager's method returned a valid container, store it for backward compatibility
+                if (fallbackBanner) {
+                    this.nameBannerContainer = fallbackBanner;
+                    return fallbackBanner;
                 }
-            ).setOrigin(0.5);
+            }
             
-            // Add to banner container
-            this.nameBannerContainer.add(this.nameText);
-            
-            // Add banner container to main container
-            this.add(this.nameBannerContainer);
+            // If delegation failed or is disabled, log warning
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): createFallbackNameBanner delegation failed, no banner will be created.`);
+            return null;
         } catch (error) {
-            console.error('CardFrame: Error creating fallback name banner:', error);
+            console.error('CardFrame: Error delegating fallback name banner creation:', error);
+            return null;
         }
     }
     
@@ -990,15 +886,26 @@ class CardFrame extends Phaser.GameObjects.Container {
     /**
      * Update the character's name
      * @param {string} name - New character name
+     * Delegated to ContentComponent
      */
     updateName(name) {
         if (!name) return;
         
+        // Update stored name value
         this.config.characterName = name;
         
-        if (this.nameText) {
-            this.nameText.setText(name);
+        // If component system is active, delegate to manager
+        if (this.config.useComponentSystem && this.manager) {
+            if (typeof this.manager.updateName === 'function') {
+                this.manager.updateName(name);
+                return;
+            } else {
+                console.warn('CardFrame.updateName: Manager exists but has no updateName method');
+            }
         }
+        
+        // If delegation failed or is disabled, log warning
+        console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): updateName delegation failed, name will not be updated.`);
     }
     
     /**
