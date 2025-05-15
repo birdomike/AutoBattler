@@ -2,6 +2,10 @@
  * CardFrameHealthComponent.js
  * Handles health bar rendering and updating for CardFrame.
  * Part of the component-based CardFrame refactoring project.
+ * 
+ * IMPORTANT: This component is the source of truth for all health bar styling, dimensions,
+ * and positioning. To modify any aspect of the health bar, edit the configuration options 
+ * in this file rather than in CardFrameManager.js.
  */
 class CardFrameHealthComponent {
     /**
@@ -22,26 +26,30 @@ class CardFrameHealthComponent {
         this.container = container; // This is the CardFrameManager instance
         this.typeColor = typeColor || 0xAAAAAA; // Default to neutral gray if no type color provided
         
-        // Store configuration with defaults relevant to health
-        this.config = Object.assign({
+        // Store configuration - define OUR defaults first, then merge with any externally provided config
+        // This ensures OUR defaults take precedence over CardFrameManager values
+        const ourDefaults = {
             // Health display configuration
             currentHealth: 100,
             maxHealth: 100,
             showHealth: true,
-            healthBarWidth: 180,
-            healthBarHeight: 14, // Slightly increased height to accommodate text better
-            healthBarOffsetY: -148, // Default from recent card layout optimization
+            healthBarWidth: 180, // Controls the width of the health bar (increased from 180)
+            healthBarHeight: 18, // Slightly increased height to accommodate text better
+            healthBarOffsetY: -145, // Vertical position of health bar - MODIFY THIS VALUE TO MOVE THE BAR UP/DOWN
             showHealthText: true,
             // Health bar styling
             healthBarBorderRadius: 4, // Rounded corners for health bar
             healthBarBevelWidth: 1, // Width of the bevel effect
             // Health text styling
             healthTextColor: '#FFFFFF',
-            healthTextFontFamily: 'Arial',
-            healthTextFontSize: '10px',
+            healthTextFontFamily: "'Cinzel', serif",
+            healthTextFontSize: '11px', // Increased to 11px for better legibility
             healthTextStrokeColor: '#000000',
             healthTextStrokeThickness: 2
-        }, config);
+        };
+        
+        // Merge our defaults with the provided config, with our defaults taking precedence
+        this.config = Object.assign({}, config, ourDefaults);
         
         // Object references for Phaser GameObjects managed by this component
         this.healthBarContainer = null; // This will be a new container, added to the parent `this.container` (CardFrameManager)
@@ -180,10 +188,11 @@ class CardFrameHealthComponent {
                     `${Math.round(this.config.currentHealth)}/${this.config.maxHealth}`,
                     {
                         fontFamily: this.config.healthTextFontFamily,
-                        fontSize: this.config.healthTextFontSize,
+                        fontSize: '11px', // Increased from 10px for better legibility with Cinzel
+                        fontStyle: 'bold', // Added to make Cinzel more readable at small sizes
                         color: this.config.healthTextColor,
                         stroke: this.config.healthTextStrokeColor,
-                        strokeThickness: this.config.healthTextStrokeThickness
+                        strokeThickness: this.config.healthTextStrokeThickness,
                     }
                 ).setOrigin(0.5);
                 
@@ -246,6 +255,16 @@ class CardFrameHealthComponent {
             // Update health text if it exists
             if (this.healthText) {
                 this.healthText.setText(`${Math.round(this.config.currentHealth)}/${this.config.maxHealth}`);
+                
+                // Ensure text uses current configuration
+                this.healthText.setStyle({
+                    fontFamily: this.config.healthTextFontFamily,
+                    fontSize: this.config.healthTextFontSize,
+                    fontStyle: 'bold',
+                    color: this.config.healthTextColor,
+                    stroke: this.config.healthTextStrokeColor,
+                    strokeThickness: this.config.healthTextStrokeThickness
+                });
             }
             
             // Decide whether to animate

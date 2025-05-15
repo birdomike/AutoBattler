@@ -22,7 +22,14 @@ class CardFrameManager extends Phaser.GameObjects.Container {
 
         /**
          * Configuration options with sensible defaults
-         * All visual parameters are explicitly defined here for easy adjustment
+         * IMPORTANT: The component-based architecture now places each component's settings in its respective component file.
+         * Most visual, health, content, and interaction properties have been moved to their respective component files:
+         * - Health bar dimensions and styling: Look in CardFrameHealthComponent.js
+         * - Visual elements and effects: Look in CardFrameVisualComponent.js
+         * - Content and text properties: Look in CardFrameContentComponent.js
+         * - Interaction animations: Look in CardFrameInteractionComponent.js
+         * 
+         * Only common properties and positioning values remain here in CardFrameManager.js
          */
         this.config = Object.assign({
             // Core dimensions (3:4 aspect ratio)
@@ -43,32 +50,40 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             artScale: 1,                // Scaling factor for character art
             
             // Portrait window
-            portraitWidth: 200,         // Width of portrait area
-            portraitHeight: 240,        // Height of portrait area
-            portraitOffsetY: -20,       // Portrait vertical offset from center
-            portraitMask: true,         // Whether to mask the portrait
+            // NOTE: The following portrait properties have been moved to CardFrameContentComponent.js
+            // Look there to modify portrait window styling and dimensions
+            // portraitWidth: 200,         // Width of portrait area
+            // portraitHeight: 240,        // Height of portrait area
+            portraitOffsetY: -20,       // Portrait vertical offset from center (layout positioning remains here)
+            // portraitMask: true,         // Whether to mask the portrait
             
             // Health display
             currentHealth: 100,         // Current health value
             maxHealth: 100,             // Maximum health value
             showHealth: true,           // Whether to show health bar
-            healthBarWidth: 180,        // Width of health bar
-            healthBarHeight: 12,        // Height of health bar
-            healthBarOffsetY: -148,     // Distance from center to health bar
-            showHealthText: true,       // Whether to show health text
+            // NOTE: The following health bar properties have been moved to CardFrameHealthComponent.js
+            // Look there to modify health bar styling, dimensions and positioning
+            // healthBarWidth: 180,        // Width of health bar
+            // healthBarHeight: 20,        // Height of health bar
+            // healthBarOffsetY: -148,     // Distance from center to health bar
+            // showHealthText: true,       // Whether to show health text
             
             // Nameplate
-            nameBannerHeight: 25,       // Height of name banner
-            nameBannerWidth: 210,       // Width of name banner (slightly less than card width)
-            nameFontSize: 16,           // Font size for name text
-            nameFontFamily: 'serif',    // Font family for name text
-            nameOffsetY: 135,           // Distance from center to nameplate
-            showDecorativeFlourishes: true, // Whether to show flourishes around name
+            // NOTE: The following nameplate properties have been moved to CardFrameContentComponent.js
+            // Look there to modify name banner styling and dimensions
+            // nameBannerHeight: 25,       // Height of name banner
+            // nameBannerWidth: 210,       // Width of name banner (slightly less than card width)
+            // nameFontSize: 16,           // Font size for name text
+            // nameFontFamily: 'serif',    // Font family for name text
+            nameOffsetY: 135,           // Distance from center to nameplate (layout positioning remains here)
+            // showDecorativeFlourishes: true, // Whether to show flourishes around name
             
             // Appearance
-            frameTexture: 'card-frame', // Base texture for card frame
-            nameplateTexture: 'nameplate', // Base texture for nameplate
-            typeColors: {               // Type-specific colors (overrides auto-detection)
+            // NOTE: The following appearance properties have been moved to CardFrameVisualComponent.js
+            // Look there to modify visual styling and effects
+            // frameTexture: 'card-frame', // Base texture for card frame
+            // nameplateTexture: 'nameplate', // Base texture for nameplate
+            typeColors: {               // Type-specific colors (needed by multiple components, so stays here)
                 fire: 0xFF4757,
                 water: 0x1E90FF,
                 nature: 0x2ED573,
@@ -93,43 +108,46 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 gravity: 0x36454F,
                 neutral: 0xAAAAAA
             },
-            frameAlpha: 1,              // Opacity of the frame
-            frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
-            backgroundAlpha: 0.2,       // Background opacity
+            // frameAlpha: 1,              // Opacity of the frame
+            // frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
+            // backgroundAlpha: 0.2,       // Background opacity
             
-            // 9-Slice specifics
-            cornerSize: 20,             // Size of corners for 9-slice scaling
-            sliceMargins: [20, 20, 20, 20], // Left, right, top, bottom margins for 9-slice
+            // 9-Slice specifics - moved to CardFrameVisualComponent.js
+            // cornerSize: 20,             // Size of corners for 9-slice scaling
+            // sliceMargins: [20, 20, 20, 20], // Left, right, top, bottom margins for 9-slice
             
-            // Depth Effects
-            depthEffects: {
-                enabled: true,           // Master toggle for all depth effects
-                innerGlow: {
-                    enabled: true,       // Enable inner glow effect
-                    intensity: 0.3,      // Intensity of inner glow (0-1)
-                    layers: 4            // Number of glow layers (more = smoother but more expensive)
-                },
-                edgeEffects: {
-                    enabled: true,       // Enable edge highlights and shadows
-                    highlightBrightness: 40, // How much brighter the highlights are (%)
-                    shadowDarkness: 40,  // How much darker the shadows are (%)
-                    width: 1.5,          // Width of edge effect lines
-                    opacity: 0.6         // Opacity of edge effects (0-1)
-                }
-            },
+            // Depth Effects - moved to CardFrameVisualComponent.js
+            // depthEffects: {
+            //     enabled: true,           // Master toggle for all depth effects
+            //     innerGlow: {
+            //         enabled: true,       // Enable inner glow effect
+            //         intensity: 0.3,      // Intensity of inner glow (0-1)
+            //         layers: 4            // Number of glow layers (more = smoother but more expensive)
+            //     },
+            //     edgeEffects: {
+            //         enabled: true,       // Enable edge highlights and shadows
+            //         highlightBrightness: 40, // How much brighter the highlights are (%)
+            //         shadowDarkness: 40,  // How much darker the shadows are (%)
+            //         width: 1.5,          // Width of edge effect lines
+            //         opacity: 0.6         // Opacity of edge effects (0-1)
+            //     }
+            // },
             
             // Interaction
-            interactive: false,         // Whether card is interactive
-            onSelect: null,             // Callback when card is selected
-            hoverEnabled: true,         // Whether hover effects are enabled
-            onHoverStart: null,         // Callback when hover starts
-            onHoverEnd: null,           // Callback when hover ends
+            interactive: false,         // Whether card is interactive - needed by multiple components, so stays here
+            onSelect: null,             // Callback when card is selected - needed by multiple components, so stays here
+            // NOTE: The following interaction properties have been moved to CardFrameInteractionComponent.js
+            // Look there to modify hover behavior and animations
+            // hoverEnabled: true,         // Whether hover effects are enabled
+            // onHoverStart: null,         // Callback when hover starts
+            // onHoverEnd: null,           // Callback when hover ends
             
-            // Animation
-            hoverScale: 1.05,           // Scale factor when hovering
-            selectedScale: 1.1,         // Scale factor when selected
-            animationDuration: 150,     // Duration of animations in ms
-            glowIntensity: 0.7,         // Intensity of glow effect (0-1)
+            // Animation 
+            // NOTE: The following animation properties have been moved to CardFrameInteractionComponent.js
+            // hoverScale: 1.05,           // Scale factor when hovering
+            // selectedScale: 1.1,         // Scale factor when selected
+            // animationDuration: 150,     // Duration of animations in ms
+            // glowIntensity: 0.7,         // Intensity of glow effect (0-1)
             
             // State
             selected: false,            // Whether card is currently selected
