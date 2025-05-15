@@ -128,7 +128,8 @@
     
     <!-- TurnIndicator - Must load before BattleScene -->
     <script src="js/phaser/components/battle/TurnIndicator.js"></script>
-    <!-- CardFrame Component System - Must load before CharacterSprite -->
+    <!-- CardFrame Component System - Load subcomponents first, then manager -->
+    <script src="js/phaser/components/ui/cardframe/CardFrameVisualComponent.js"></script>
     <script src="js/phaser/components/ui/CardFrameManager.js"></script>
     <!-- Original CardFrame Component - Must load before CharacterSprite -->
     <script src="js/phaser/components/ui/CardFrame.js"></script>

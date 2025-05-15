@@ -1,3 +1,19 @@
+## 0.7.1.1 - CardFrame Component Extraction - Phase 3 (Visual Component) (2025-05-14)
+
+### Added
+- Implemented Phase 3 of CardFrame refactoring by extracting first component: CardFrameVisualComponent
+- Created dedicated component for handling frame, backdrop, and visual effects
+- Updated CardFrameManager to use component-based delegation pattern
+- Maintained full backward compatibility with original implementation
+
+### Technical
+- Extracted all visual-related methods to CardFrameVisualComponent.js
+- Implemented proper resource management in both component and manager
+- Added comprehensive error handling throughout the component chain
+- Updated index.html to load components in the correct order
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.1.1_CardFrameComponentExtraction_Phase3_VisualComponent.md*
+
 ## 0.7.1.0 - CardFrame Component System Implementation Phase 1 (2025-05-14)
 
 ### Added

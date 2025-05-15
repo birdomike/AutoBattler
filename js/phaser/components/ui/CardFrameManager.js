@@ -151,14 +151,14 @@ class CardFrameManager extends Phaser.GameObjects.Container {
         // Auto-detect type color if not provided
         this.typeColor = this.getTypeColor(this.config.characterType);
 
-        // Component references (will be initialized in Phase 3)
+        // Component references
         this.visualComponent = null;
         this.healthComponent = null;
         this.contentComponent = null;
         this.interactionComponent = null;
 
-        // Initialize components in future phases
-        // For now, this is a stub implementation
+        // Initialize components
+        this.initializeComponents()
         
         // Add to scene
         scene.add.existing(this);
@@ -274,6 +274,92 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     }
     
     /**
+     * Initialize all components
+     */
+    initializeComponents() {
+        try {
+            // Initialize visual component first as it creates the base structure
+            this.initializeVisualComponent();
+            
+            // Other components will be initialized in future phases
+            // this.initializeHealthComponent();
+            // this.initializeContentComponent();
+            // this.initializeInteractionComponent();
+        } catch (error) {
+            console.error('CardFrameManager: Error initializing components:', error);
+        }
+    }
+    
+    /**
+     * Initialize the visual component for frame, backdrop, and visual effects
+     */
+    initializeVisualComponent() {
+        try {
+            // Check if CardFrameVisualComponent is available
+            if (typeof CardFrameVisualComponent !== 'function') {
+                console.error('CardFrameManager: CardFrameVisualComponent not found');
+                return;
+            }
+            
+            // Create visual component
+            this.visualComponent = new CardFrameVisualComponent(
+                this.scene,
+                this,
+                this.typeColor,
+                this.config
+            );
+            
+            console.log('CardFrameManager: Visual component initialized successfully');
+        } catch (error) {
+            console.error('CardFrameManager: Error initializing visual component:', error);
+        }
+    }
+
+    /**
+     * Create the base frame with 9-slice scaling
+     * Delegated to VisualComponent
+     */
+    createBaseFrame() {
+        if (this.visualComponent) {
+            return this.visualComponent.createBaseFrame();
+        }
+        return null;
+    }
+    
+    /**
+     * Create the backdrop rectangle for the card
+     * Delegated to VisualComponent
+     */
+    createBackdrop() {
+        if (this.visualComponent) {
+            return this.visualComponent.createBackdrop();
+        }
+        return null;
+    }
+    
+    /**
+     * Create inner glow effect that matches the card's type color
+     * Delegated to VisualComponent
+     */
+    createInnerGlowEffect() {
+        if (this.visualComponent) {
+            return this.visualComponent.createInnerGlowEffect();
+        }
+        return null;
+    }
+    
+    /**
+     * Add edge highlights and shadows to enhance depth perception
+     * Delegated to VisualComponent
+     */
+    addEdgeDepthEffects() {
+        if (this.visualComponent) {
+            return this.visualComponent.addEdgeDepthEffects();
+        }
+        return null;
+    }
+    
+    /**
      * Clean up all resources when card is destroyed
      */
     destroy() {
@@ -288,9 +374,10 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 document.body.style.cursor = 'default';
             }
             
-            // Destroy components (will be implemented in Phase 3)
+            // Destroy components
             if (this.visualComponent) {
-                console.log("CardFrameManager.destroy: Will destroy visualComponent in future");
+                console.log("CardFrameManager.destroy: Destroying visualComponent");
+                this.visualComponent.destroy();
                 this.visualComponent = null;
             }
             
