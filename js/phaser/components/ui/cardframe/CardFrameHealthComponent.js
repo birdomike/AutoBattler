@@ -43,7 +43,7 @@ class CardFrameHealthComponent {
             // Health text styling
             healthTextColor: '#FFFFFF',
             healthTextFontFamily: "'Cinzel', serif",
-            healthTextFontSize: '11px', // Increased to 11px for better legibility
+            healthTextFontSize: '20px', // Increased to 11px for better legibility
             healthTextStrokeColor: '#000000',
             healthTextStrokeThickness: 2
         };
