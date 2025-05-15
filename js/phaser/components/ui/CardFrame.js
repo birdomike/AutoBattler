@@ -263,55 +263,15 @@ class CardFrame extends Phaser.GameObjects.Container {
                     }
                     
                     return frameBase;
-                } else {
-                    console.warn('CardFrame.createBaseFrame: Manager did not return frameBase, falling back to direct implementation');
                 }
             }
             
-            // Original implementation as fallback
-            // Skip texture check and use graphics rendering by default
-            // This eliminates the "card-frame texture not found" warning
-            
-            // Create frame graphics directly
-            const frameGraphics = this.scene.add.graphics();
-            
-            // Draw outer border with type color
-            frameGraphics.lineStyle(this.config.borderWidth, this.typeColor, this.config.frameAlpha);
-            frameGraphics.strokeRoundedRect(
-                -this.config.width / 2,
-                -this.config.height / 2,
-                this.config.width,
-                this.config.height,
-                this.config.cornerRadius
-            );
-            
-            this.frameBase = frameGraphics;
-            
-            // Add frame to container
-            this.add(this.frameBase);
-            
-            // Create container for glow effect (used for selection/hover)
-            this.glowContainer = this.scene.add.container(0, 0);
-            this.add(this.glowContainer);
-            
-            // Convert to interactive area if needed
-            if (this.config.interactive || this.config.hoverEnabled) {
-                // Create a full-size hit area
-                const hitArea = new Phaser.Geom.Rectangle(
-                    -this.config.width / 2,
-                    -this.config.height / 2,
-                    this.config.width,
-                    this.config.height
-                );
-                
-                // Make frame interactive with proper hit area
-                this.frameBase.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
-            }
+            // If delegation failed or is disabled, fallback to minimal implementation
+            console.warn('CardFrame.createBaseFrame: Delegation failed, creating fallback frame');
+            return this.createFallbackFrame();
         } catch (error) {
             console.error('CardFrame: Error creating base frame:', error);
-            
-            // Create minimal fallback frame
-            this.createFallbackFrame();
+            return this.createFallbackFrame();
         }
     }
     
@@ -356,87 +316,15 @@ class CardFrame extends Phaser.GameObjects.Container {
                 if (edgeEffects) {
                     this.edgeEffects = edgeEffects;
                     return edgeEffects;
-                } else {
-                    console.warn('CardFrame.addEdgeDepthEffects: Manager did not return edgeEffects, falling back to direct implementation');
                 }
             }
             
-            // Original implementation as fallback
-            // Get configuration options
-            const {
-                highlightBrightness,
-                shadowDarkness,
-                width,
-                opacity
-            } = this.config.depthEffects.edgeEffects;
-            
-            // Calculate frame dimensions
-            const frameWidth = this.config.width;
-            const frameHeight = this.config.height;
-            const cornerRadius = this.config.cornerRadius;
-            
-            // Create graphics object for edge effects
-            const edgeEffects = this.scene.add.graphics();
-            
-            // Create highlight color (lighter version of type color)
-            const highlightColor = Phaser.Display.Color.ValueToColor(this.typeColor);
-            highlightColor.brighten(highlightBrightness); // Make it brighter
-            
-            // Create shadow color (darker version of type color)
-            const shadowColor = Phaser.Display.Color.ValueToColor(this.typeColor);
-            shadowColor.darken(shadowDarkness); // Make it darker
-            
-            // Draw top and left highlights (thin bright lines)
-            edgeEffects.lineStyle(width, highlightColor.color, opacity);
-            
-            // Top edge highlight
-            edgeEffects.beginPath();
-            edgeEffects.moveTo(-frameWidth / 2 + cornerRadius, -frameHeight / 2);
-            edgeEffects.lineTo(frameWidth / 2 - cornerRadius, -frameHeight / 2);
-            edgeEffects.strokePath();
-            
-            // Left edge highlight
-            edgeEffects.beginPath();
-            edgeEffects.moveTo(-frameWidth / 2, -frameHeight / 2 + cornerRadius);
-            edgeEffects.lineTo(-frameWidth / 2, frameHeight / 2 - cornerRadius);
-            edgeEffects.strokePath();
-            
-            // Draw bottom and right shadows (thin dark lines)
-            edgeEffects.lineStyle(width, shadowColor.color, opacity);
-            
-            // Bottom edge shadow
-            edgeEffects.beginPath();
-            edgeEffects.moveTo(-frameWidth / 2 + cornerRadius, frameHeight / 2);
-            edgeEffects.lineTo(frameWidth / 2 - cornerRadius, frameHeight / 2);
-            edgeEffects.strokePath();
-            
-            // Right edge shadow
-            edgeEffects.beginPath();
-            edgeEffects.moveTo(frameWidth / 2, -frameHeight / 2 + cornerRadius);
-            edgeEffects.lineTo(frameWidth / 2, frameHeight / 2 - cornerRadius);
-            edgeEffects.strokePath();
-            
-            // Add subtle corner treatments for a polished look
-            // Top-left corner (highlight)
-            edgeEffects.lineStyle(width, highlightColor.color, opacity * 0.8);
-            edgeEffects.beginPath();
-            edgeEffects.arc(-frameWidth / 2 + cornerRadius, -frameHeight / 2 + cornerRadius, cornerRadius, Math.PI, 1.5 * Math.PI);
-            edgeEffects.strokePath();
-            
-            // Bottom-right corner (shadow)
-            edgeEffects.lineStyle(width, shadowColor.color, opacity * 0.8);
-            edgeEffects.beginPath();
-            edgeEffects.arc(frameWidth / 2 - cornerRadius, frameHeight / 2 - cornerRadius, cornerRadius, 0, 0.5 * Math.PI);
-            edgeEffects.strokePath();
-            
-            // Add to container
-            this.add(edgeEffects);
-            
-            // Store reference for cleanup
-            this.edgeEffects = edgeEffects;
-            
+            // If delegation failed or is disabled, just return null without warning
+            // Edge effects are optional, so silent failure is appropriate
+            return null;
         } catch (error) {
             console.error('CardFrame: Error creating edge depth effects:', error);
+            return null;
         }
     }
     
@@ -454,28 +342,15 @@ class CardFrame extends Phaser.GameObjects.Container {
                 if (backdrop) {
                     this.backdrop = backdrop;
                     return backdrop;
-                } else {
-                    console.warn('CardFrame.createBackdrop: Manager did not return backdrop, falling back to direct implementation');
                 }
             }
             
-            // Original implementation as fallback
-            // Create semi-transparent background fill
-            const bgRect = this.scene.add.rectangle(
-                0, 0,
-                this.config.width - (this.config.borderWidth * 2) + 2, // Adjusted to reduce gap with frame
-                this.config.height - (this.config.borderWidth * 2) + 2, // Adjusted to reduce gap with frame
-                this.typeColor,
-                this.config.backgroundAlpha
-            );
-            
-            // Add to container
-            this.add(bgRect);
-            
-            // Store reference for later use
-            this.backdrop = bgRect;
+            // If delegation failed or is disabled, log warning and return null
+            console.warn('CardFrame.createBackdrop: Delegation failed, backdrop will be missing');
+            return null;
         } catch (error) {
             console.error('CardFrame: Error creating backdrop:', error);
+            return null;
         }
     }
     
@@ -494,53 +369,15 @@ class CardFrame extends Phaser.GameObjects.Container {
                 if (innerGlowGraphics) {
                     this.innerGlowGraphics = innerGlowGraphics;
                     return innerGlowGraphics;
-                } else {
-                    console.warn('CardFrame.createInnerGlowEffect: Manager did not return innerGlowGraphics, falling back to direct implementation');
                 }
             }
             
-            // Original implementation as fallback
-            // Get configuration options
-            const {
-                intensity,
-                layers
-            } = this.config.depthEffects.innerGlow;
-            
-            // Create graphics object for glow effect
-            const glowGraphics = this.scene.add.graphics();
-            
-            // Get card dimensions
-            const width = this.config.width;
-            const height = this.config.height;
-            const borderWidth = this.config.borderWidth;
-            const cornerRadius = this.config.cornerRadius;
-            
-            // Create multiple concentric rectangles with decreasing opacity
-            for (let i = 0; i < layers; i++) {
-                // Calculate padding for this layer (decreases for inner layers)
-                const layerPadding = borderWidth - (i * (borderWidth / layers));
-                
-                // Calculate opacity for this layer (decreases for inner layers)
-                const layerOpacity = intensity * (1 - (i / layers));
-                
-                // Draw glow layer - Note: This is drawn at the frame border, not the backdrop
-                glowGraphics.fillStyle(this.typeColor, layerOpacity);
-                glowGraphics.fillRoundedRect(
-                    -width / 2 + layerPadding,
-                    -height / 2 + layerPadding,
-                    width - (layerPadding * 2),
-                    height - (layerPadding * 2),
-                    cornerRadius
-                );
-            }
-            
-            // Add to container
-            this.add(glowGraphics);
-            
-            // Store reference for cleanup
-            this.innerGlowGraphics = glowGraphics;
+            // If delegation failed or is disabled, just return null without warning
+            // Inner glow is optional, so silent failure is appropriate
+            return null;
         } catch (error) {
             console.error('CardFrame: Error creating inner glow effect:', error);
+            return null;
         }
     }
     
@@ -1381,54 +1218,15 @@ class CardFrame extends Phaser.GameObjects.Container {
                 if (debugMethodExists) {
                     this.manager.createDebugVisuals();
                     return; // No need to continue with original implementation
-                } else {
-                    console.warn('CardFrame.createDebugVisuals: Manager does not have createDebugVisuals method, falling back to direct implementation');
                 }
             }
             
-            // Original implementation as fallback
-            const debug = this.scene.add.graphics();
-            debug.lineStyle(1, 0xFF00FF, 1);
-            
-            // Card boundary
-            debug.strokeRect(
-                -this.config.width / 2,
-                -this.config.height / 2,
-                this.config.width,
-                this.config.height
-            );
-            
-            // Portrait boundary
-            debug.lineStyle(1, 0x00FFFF, 1);
-            debug.strokeRect(
-                -this.config.portraitWidth / 2,
-                this.config.portraitOffsetY - this.config.portraitHeight / 2,
-                this.config.portraitWidth,
-                this.config.portraitHeight
-            );
-            
-            // Center point
-            debug.lineStyle(1, 0xFFFF00, 1);
-            debug.lineBetween(-10, 0, 10, 0);
-            debug.lineBetween(0, -10, 0, 10);
-            
-            this.add(debug);
-            
-            // Add configuration text
-            const debugText = this.scene.add.text(
-                -this.config.width / 2 + 5,
-                -this.config.height / 2 + 5,
-                `${this.config.characterName} (${this.config.characterType})`,
-                {
-                    fontFamily: 'monospace',
-                    fontSize: 8,
-                    color: '#FFFF00'
-                }
-            ).setOrigin(0);
-            
-            this.add(debugText);
+            // If delegation failed or is disabled, log warning and continue silently
+            console.warn('CardFrame.createDebugVisuals: Delegation failed, debug visuals will be missing');
+            return null;
         } catch (error) {
             console.error('CardFrame: Error creating debug visuals:', error);
+            return null;
         }
     }
     

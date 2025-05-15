@@ -1,3 +1,21 @@
+## 0.7.1.3 - CardFrame Visual Method Removal (Phase 3.1 "Remove" Step) (2025-05-14)
+
+### Changed
+- Completed Phase 3.1 of CardFrame refactoring by removing all original visual method implementations
+- Maintained full functionality through delegation to CardFrameVisualComponent
+- Implemented proper fallback mechanisms for critical methods like createBaseFrame()
+- Improved error handling throughout all visual methods
+- Significantly reduced code size and complexity in CardFrame.js
+
+### Technical
+- Applied consistent delegation pattern across all visual methods
+- Maintained critical object references like this.frameBase to ensure interactivity works
+- Added appropriate warning messages when delegation fails
+- Simplified error handling with consistent return value approach (valid object or null)
+- Reduced visual methods from ~350 lines to ~100 lines (71% reduction)
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.1.3_CardFrameVisual_Remove_Phase.md*
+
 ## 0.7.1.2 - CardFrame Visual Method Delegation (Phase 3.1) (2025-05-14)
 
 ### Changed
