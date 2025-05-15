@@ -401,13 +401,11 @@ class CardFrameVisualComponent {
     }
     
     /**
-     * Set the glow intensity of the frame
-     * @param {number} intensity - The intensity value (0-1)
-     * @param {boolean} isHighlighted - Whether the card is highlighted (for color selection)
+     * Get the frameBase object for interactivity
+     * @returns {Phaser.GameObjects.GameObject} The frame base graphics object
      */
-    setGlowIntensity(intensity, isHighlighted = false) {
-        // Will be implemented in the future if needed
-        // This would modify the existing glow effect or create a new one
+    getFrameBase() {
+        return this.frameBase;
     }
     
     /**

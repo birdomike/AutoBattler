@@ -157,7 +157,7 @@ class CardFrameManager extends Phaser.GameObjects.Container {
         // Component references
         this.visualComponent = null;
         this.healthComponent = null; 
-        this.contentComponent = null; // Will be initialized for content functionality
+        this.contentComponent = null;
         this.interactionComponent = null;
 
         // Initialize components
@@ -206,8 +206,13 @@ class CardFrameManager extends Phaser.GameObjects.Container {
         // Store selection state
         this._selected = selected;
         
-        // STUB: Will be implemented in Phase 3 with InteractionComponent
-        console.log(`CardFrameManager.setSelected: Will delegate to InteractionComponent in future (selected: ${selected})`);
+        // Delegate to interaction component if available
+        if (this.interactionComponent && typeof this.interactionComponent.setSelected === 'function') {
+            return this.interactionComponent.setSelected(selected, animate);
+        } else {
+            console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): setSelected called but interactionComponent is not available or lacks method.`);
+            return false;
+        }
     }
     
     /**
@@ -219,8 +224,13 @@ class CardFrameManager extends Phaser.GameObjects.Container {
         // Store highlight state
         this._highlighted = highlighted;
         
-        // STUB: Will be implemented in Phase 3 with InteractionComponent
-        console.log(`CardFrameManager.setHighlighted: Will delegate to InteractionComponent in future (highlighted: ${highlighted})`);
+        // Delegate to interaction component if available
+        if (this.interactionComponent && typeof this.interactionComponent.setHighlighted === 'function') {
+            return this.interactionComponent.setHighlighted(highlighted, animate);
+        } else {
+            console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): setHighlighted called but interactionComponent is not available or lacks method.`);
+            return false;
+        }
     }
     
     /**
@@ -332,6 +342,43 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     }
     
     /**
+     * Setup interactivity for hovering and selection
+     * Delegated to InteractionComponent
+     */
+    setupInteractivity() {
+        if (this.interactionComponent && typeof this.interactionComponent.setupInteractivity === 'function') {
+            return this.interactionComponent.setupInteractivity();
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): setupInteractivity called but interactionComponent is not available or lacks method.`);
+        return false;
+    }
+    
+    /**
+     * Add a glow effect around the card
+     * @param {number} intensity - Glow intensity (0-1)
+     * Delegated to InteractionComponent
+     */
+    addGlowEffect(intensity) {
+        if (this.interactionComponent && typeof this.interactionComponent.addGlowEffect === 'function') {
+            return this.interactionComponent.addGlowEffect(intensity);
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): addGlowEffect called but interactionComponent is not available or lacks method.`);
+        return null;
+    }
+    
+    /**
+     * Remove glow effect
+     * Delegated to InteractionComponent
+     */
+    removeGlowEffect() {
+        if (this.interactionComponent && typeof this.interactionComponent.removeGlowEffect === 'function') {
+            return this.interactionComponent.removeGlowEffect();
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): removeGlowEffect called but interactionComponent is not available or lacks method.`);
+        return false;
+    }
+    
+    /**
      * Get the color for a character type
      * @param {string} type - The character's type
      * @returns {number} - The color as a hex number
@@ -378,10 +425,44 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             // Initialize content component for portrait and name display
             this.initializeContentComponent();
             
-            // Other components will be initialized in future phases
-            // this.initializeInteractionComponent();
+            // Initialize interaction component for hover and selection
+            this.initializeInteractionComponent();
         } catch (error) {
             console.error('CardFrameManager: Error initializing components:', error);
+        }
+    }
+    
+    /**
+     * Initialize the visual component for frame, backdrop, and visual effects
+     */
+    initializeVisualComponent() {
+        try {
+            // Check if CardFrameVisualComponent is available
+            if (typeof window.CardFrameVisualComponent !== 'function') {
+                console.error('CardFrameManager: CardFrameVisualComponent not found in global scope. Ensure it is loaded and correctly assigned to window.CardFrameVisualComponent.');
+                return;
+            }
+            
+            console.log(`[DEBUG-VC-INIT] CardFrameManager: Attempting to create CardFrameVisualComponent. Scene valid: ${!!this.scene}, Container (this manager) valid: ${!!this}, TypeColor: ${this.typeColor}, Config keys: ${this.config ? Object.keys(this.config).join(', ') : 'null'}`);
+            
+            // Create visual component
+            this.visualComponent = new window.CardFrameVisualComponent(
+                this.scene,
+                this,
+                this.typeColor,
+                this.config
+            );
+            
+            console.log(`[DEBUG-VC-INIT] CardFrameManager: CardFrameVisualComponent instantiation attempted. this.visualComponent is now: ${this.visualComponent ? 'defined' : 'undefined'}. Type: ${typeof this.visualComponent}`);
+            if (this.visualComponent && typeof this.visualComponent.initialize !== 'function') {
+                console.error('[DEBUG-VC-INIT] CardFrameManager: CRITICAL - visualComponent exists but has no initialize method!');
+            }
+            
+            console.log('CardFrameManager: Visual component initialized successfully');
+        } catch (error) {
+            console.error('[DEBUG-VC-INIT] CardFrameManager.initializeVisualComponent: ERROR caught:', error); // Added prefix
+            this.visualComponent = null; // Explicitly nullify on error
+            console.error('CardFrameManager: Error initializing visual component:', error);
         }
     }
     
@@ -450,36 +531,68 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     }
     
     /**
-     * Initialize the visual component for frame, backdrop, and visual effects
+     * Initialize the interaction component for hover and selection
      */
-    initializeVisualComponent() {
+    initializeInteractionComponent() {
+        this.interactionComponent = null; // Ensure it's null before attempting initialization
         try {
-            // Check if CardFrameVisualComponent is available
-            if (typeof window.CardFrameVisualComponent !== 'function') {
-                console.error('CardFrameManager: CardFrameVisualComponent not found in global scope. Ensure it is loaded and correctly assigned to window.CardFrameVisualComponent.');
-                return;
+            if (typeof window.CardFrameInteractionComponent !== 'function') {
+                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CardFrameInteractionComponent class not found in global scope. Interaction features will be missing.`);
+                return; // Exit if the class definition isn't loaded
             }
             
-            console.log(`[DEBUG-VC-INIT] CardFrameManager: Attempting to create CardFrameVisualComponent. Scene valid: ${!!this.scene}, Container (this manager) valid: ${!!this}, TypeColor: ${this.typeColor}, Config keys: ${this.config ? Object.keys(this.config).join(', ') : 'null'}`);
-            
-            // Create visual component
-            this.visualComponent = new window.CardFrameVisualComponent(
+            // Create interaction component
+            this.interactionComponent = new window.CardFrameInteractionComponent(
                 this.scene,
-                this,
+                this, // CardFrameManager is the container for interactionComponent's elements
                 this.typeColor,
-                this.config
+                this.config // Pass the full config, InteractionComponent will pick what it needs
             );
             
-            console.log(`[DEBUG-VC-INIT] CardFrameManager: CardFrameVisualComponent instantiation attempted. this.visualComponent is now: ${this.visualComponent ? 'defined' : 'undefined'}. Type: ${typeof this.visualComponent}`);
-            if (this.visualComponent && typeof this.visualComponent.initialize !== 'function') {
-                console.error('[DEBUG-VC-INIT] CardFrameManager: CRITICAL - visualComponent exists but has no initialize method!');
+            // Get required references from other components
+            let frameBase = null;
+            let glowContainer = null;
+            
+            // Try to get frameBase from visual component
+            if (this.visualComponent && typeof this.visualComponent.getFrameBase === 'function') {
+                frameBase = this.visualComponent.getFrameBase();
+            } else {
+                console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): Cannot get frameBase from visualComponent.`);
             }
             
-            console.log('CardFrameManager: Visual component initialized successfully');
+            // Try to get glowContainer directly from this manager
+            glowContainer = this.glowContainer;
+            
+            // If we have a fallback, use first child as frameBase
+            if (!frameBase && this.children && this.children.length > 0) {
+                frameBase = this.children[0];
+                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Using fallback frameBase from first child.`);
+            }
+            
+            // Create glowContainer if not found
+            if (!glowContainer) {
+                glowContainer = this.scene.add.container(0, 0);
+                this.add(glowContainer);
+                this.glowContainer = glowContainer;
+                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Created new glowContainer.`);
+            }
+            
+            // Initialize the component with required references
+            if (this.interactionComponent && typeof this.interactionComponent.initialize === 'function') {
+                const success = this.interactionComponent.initialize(frameBase, glowContainer);
+                if (success) {
+                    console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Interaction component initialized successfully.`);
+                } else {
+                    console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - Failed to initialize interaction component.`);
+                    this.interactionComponent = null; // Ensure it's null if initialization failed
+                }
+            } else {
+                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - CardFrameInteractionComponent instantiation failed or is invalid.`);
+                this.interactionComponent = null; // Ensure it's null if something went wrong
+            }
         } catch (error) {
-            console.error('[DEBUG-VC-INIT] CardFrameManager.initializeVisualComponent: ERROR caught:', error); // Added prefix
-            this.visualComponent = null; // Explicitly nullify on error
-            console.error('CardFrameManager: Error initializing visual component:', error);
+            console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): Error initializing interaction component:`, error);
+            this.interactionComponent = null; // Explicitly nullify on error
         }
     }
 
@@ -572,7 +685,8 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             }
             
             if (this.interactionComponent) {
-                console.log("CardFrameManager.destroy: Will destroy interactionComponent in future");
+                console.log("CardFrameManager.destroy: Destroying interactionComponent");
+                this.interactionComponent.destroy();
                 this.interactionComponent = null;
             }
             

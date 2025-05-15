@@ -590,114 +590,86 @@ class CardFrame extends Phaser.GameObjects.Container {
     
     /**
      * Setup interactivity for hovering and selection
+     * Delegated to CardFrameManager
      */
     setupInteractivity() {
         try {
-            // Add hover effects
-            if (this.config.hoverEnabled) {
-                this.frameBase.on('pointerover', () => {
-                    if (!this._selected) {
-                        this.scene.tweens.add({
-                            targets: this,
-                            scaleX: this.config.hoverScale,
-                            scaleY: this.config.hoverScale,
-                            duration: this.config.animationDuration,
-                            ease: 'Sine.easeOut'
-                        });
-                        
-                        // Add partial glow effect
-                        this.addGlowEffect(this.config.glowIntensity / 2);
-                        
-                        // Set cursor
-                        document.body.style.cursor = 'pointer';
-                    }
-                });
-                
-                this.frameBase.on('pointerout', () => {
-                    if (!this._selected) {
-                        this.scene.tweens.add({
-                            targets: this,
-                            scaleX: 1,
-                            scaleY: 1,
-                            duration: this.config.animationDuration,
-                            ease: 'Sine.easeOut'
-                        });
-                        
-                        // Remove glow effect
-                        this.removeGlowEffect();
-                        
-                        // Reset cursor
-                        document.body.style.cursor = 'default';
-                    }
-                });
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.setupInteractivity === 'function') {
+                    const result = this.manager.setupInteractivity();
+                    return result;
+                } else {
+                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no setupInteractivity method`);
+                }
             }
             
-            // Add selection handler
-            if (this.config.interactive) {
-                this.frameBase.on('pointerdown', () => {
-                    // Toggle selection state
-                    this.setSelected(!this._selected);
-                    
-                    // Call selection callback if provided
-                    if (this.config.onSelect) {
-                        this.config.onSelect(this);
-                    }
-                });
-            }
+            // If delegation failed or is disabled, log warning
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): setupInteractivity delegation failed, using original implementation`);
+            
+            // The original implementation will be removed once delegation is verified
+            return null;
         } catch (error) {
-            console.error('CardFrame: Error setting up interactivity:', error);
+            console.error('CardFrame: Error delegating setupInteractivity:', error);
+            return null;
         }
     }
     
     /**
      * Add a glow effect around the card
      * @param {number} intensity - Glow intensity (0-1)
+     * Delegated to CardFrameManager
      */
     addGlowEffect(intensity) {
         try {
-            // Clear any existing glow
-            this.removeGlowEffect();
-            
-            // Create glow graphics
-            const glow = this.scene.add.graphics();
-            
-            // Set color based on type or status
-            const glowColor = this._highlighted ? 0xFFFFFF : this.typeColor;
-            
-            // Apply different glow intensities based on state
-            let appliedIntensity = intensity;
-            if (this._highlighted) {
-                appliedIntensity = Math.min(1, intensity * 1.5);
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.addGlowEffect === 'function') {
+                    const result = this.manager.addGlowEffect(intensity);
+                    return result;
+                } else {
+                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no addGlowEffect method`);
+                }
             }
             
-            // Draw multiple glow layers for a soft effect
-            for (let i = 0; i < 3; i++) {
-                const padding = 5 + (i * 3);
-                glow.fillStyle(glowColor, 0.2 * appliedIntensity * (1 - i * 0.2));
-                glow.fillRoundedRect(
-                    -this.config.width / 2 - padding,
-                    -this.config.height / 2 - padding,
-                    this.config.width + (padding * 2),
-                    this.config.height + (padding * 2),
-                    this.config.cornerRadius + padding / 2
-                );
-            }
+            // If delegation failed or is disabled, log warning
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): addGlowEffect delegation failed, using original implementation`);
             
-            // Add to glow container
-            this.glowContainer.add(glow);
+            // The original implementation will be removed once delegation is verified
+            return null;
         } catch (error) {
-            console.error('CardFrame: Error adding glow effect:', error);
+            console.error('CardFrame: Error delegating addGlowEffect:', error);
+            return null;
         }
     }
     
     /**
      * Remove glow effect
+     * Delegated to CardFrameManager
      */
     removeGlowEffect() {
         try {
-            this.glowContainer.removeAll(true); // Remove and destroy all children
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.removeGlowEffect === 'function') {
+                    const result = this.manager.removeGlowEffect();
+                    return result;
+                } else {
+                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no removeGlowEffect method`);
+                }
+            }
+            
+            // If delegation failed or is disabled, log warning
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): removeGlowEffect delegation failed, using original implementation`);
+            
+            // The original implementation will be removed once delegation is verified
+            return null;
         } catch (error) {
-            console.error('CardFrame: Error removing glow effect:', error);
+            console.error('CardFrame: Error delegating removeGlowEffect:', error);
+            return null;
         }
     }
     

@@ -1,0 +1,444 @@
+/**
+ * CardFrameInteractionComponent.js
+ * Handles interaction behavior for the CardFrame component
+ * Part of the component-based CardFrame refactoring project (Phase 3.4)
+ */
+class CardFrameInteractionComponent {
+    /**
+     * Create a new CardFrameInteractionComponent
+     * @param {Phaser.Scene} scene - The scene this component belongs to
+     * @param {Phaser.GameObjects.Container} container - The parent CardFrameManager container
+     * @param {number} typeColor - The type color to use for effects
+     * @param {Object} config - Configuration options
+     */
+    constructor(scene, container, typeColor, config = {}) {
+        // Validate required parameters
+        if (!scene || !container) {
+            console.error('CardFrameInteractionComponent constructor: Missing required parameters (scene or container). Component will not initialize.');
+            throw new Error('CardFrameInteractionComponent: Missing required scene or container parameters.'); // Fail fast
+        }
+        
+        this.scene = scene;
+        this.container = container; // This is the CardFrameManager instance
+        this.typeColor = typeColor || 0xAAAAAA; // Default to neutral gray if no type color provided
+        
+        // Store configuration with defaults relevant to interaction
+        this.config = Object.assign({
+            // Interaction
+            interactive: false,         // Whether card is interactive
+            onSelect: null,             // Callback when card is selected
+            hoverEnabled: true,         // Whether hover effects are enabled
+            onHoverStart: null,         // Callback when hover starts
+            onHoverEnd: null,           // Callback when hover ends
+            
+            // Animation
+            hoverScale: 1.05,           // Scale factor when hovering
+            selectedScale: 1.1,         // Scale factor when selected
+            animationDuration: 150,     // Duration of animations in ms
+            glowIntensity: 0.7,         // Intensity of glow effect (0-1)
+            
+            // State
+            selected: false,            // Whether card is currently selected
+            highlighted: false,         // Whether card is highlighted (e.g., active turn)
+        }, config);
+        
+        // Store internal state
+        this._highlighted = this.config.highlighted || false;
+        this._selected = this.config.selected || false;
+        
+        // Reference to important objects
+        this.frameBase = null; // Will be set by setupInteractivity
+        this.glowContainer = null; // Reference to the glow container
+        
+        console.log(`CardFrameInteractionComponent: Initialized for character ${this.config.characterName || 'Unknown'}`);
+    }
+    
+    /**
+     * Initialize the component with required references
+     * @param {Phaser.GameObjects.GameObject} frameBase - The main frame object for interactivity
+     * @param {Phaser.GameObjects.Container} glowContainer - Container for glow effects
+     */
+    initialize(frameBase, glowContainer) {
+        try {
+            if (!frameBase || !frameBase.scene) {
+                console.error('CardFrameInteractionComponent.initialize: Invalid frameBase provided');
+                return false;
+            }
+            
+            if (!glowContainer || !glowContainer.scene) {
+                console.error('CardFrameInteractionComponent.initialize: Invalid glowContainer provided');
+                return false;
+            }
+            
+            this.frameBase = frameBase;
+            this.glowContainer = glowContainer;
+            
+            // Setup interactions if enabled
+            if (this.config.interactive || this.config.hoverEnabled) {
+                this.setupInteractivity();
+            }
+            
+            // Set initial states
+            if (this._selected) {
+                this.setSelected(true, false); // Set selected without animation
+            }
+            
+            if (this._highlighted) {
+                this.setHighlighted(true, false); // Set highlighted without animation
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('CardFrameInteractionComponent.initialize: Error initializing component:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Setup interactivity for hovering and selection
+     */
+    setupInteractivity() {
+        try {
+            if (!this.frameBase || !this.frameBase.scene) {
+                console.error('CardFrameInteractionComponent.setupInteractivity: frameBase not set or invalid');
+                return false;
+            }
+            
+            // Ensure the frameBase is interactive
+            if (!this.frameBase.input) {
+                // If not already interactive, make it interactive with a full-size hit area
+                const hitArea = new Phaser.Geom.Rectangle(
+                    -this.config.width / 2,
+                    -this.config.height / 2,
+                    this.config.width,
+                    this.config.height
+                );
+                
+                this.frameBase.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+            }
+            
+            // Add hover effects
+            if (this.config.hoverEnabled) {
+                this.frameBase.on('pointerover', () => {
+                    if (!this._selected) {
+                        this.scene.tweens.add({
+                            targets: this.container,
+                            scaleX: this.config.hoverScale,
+                            scaleY: this.config.hoverScale,
+                            duration: this.config.animationDuration,
+                            ease: 'Sine.easeOut'
+                        });
+                        
+                        // Add partial glow effect
+                        this.addGlowEffect(this.config.glowIntensity / 2);
+                        
+                        // Set cursor
+                        document.body.style.cursor = 'pointer';
+                        
+                        // Call onHoverStart callback if provided
+                        if (typeof this.config.onHoverStart === 'function') {
+                            this.config.onHoverStart();
+                        }
+                    }
+                });
+                
+                this.frameBase.on('pointerout', () => {
+                    if (!this._selected) {
+                        this.scene.tweens.add({
+                            targets: this.container,
+                            scaleX: 1,
+                            scaleY: 1,
+                            duration: this.config.animationDuration,
+                            ease: 'Sine.easeOut'
+                        });
+                        
+                        // Remove glow effect
+                        this.removeGlowEffect();
+                        
+                        // Reset cursor
+                        document.body.style.cursor = 'default';
+                        
+                        // Call onHoverEnd callback if provided
+                        if (typeof this.config.onHoverEnd === 'function') {
+                            this.config.onHoverEnd();
+                        }
+                    }
+                });
+            }
+            
+            // Add selection handler
+            if (this.config.interactive) {
+                this.frameBase.on('pointerdown', () => {
+                    // Toggle selection state
+                    this.setSelected(!this._selected);
+                    
+                    // Call selection callback if provided
+                    if (this.config.onSelect) {
+                        this.config.onSelect(this.container);
+                    }
+                });
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('CardFrameInteractionComponent: Error setting up interactivity:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Add a glow effect around the card
+     * @param {number} intensity - Glow intensity (0-1)
+     */
+    addGlowEffect(intensity) {
+        try {
+            if (!this.glowContainer || !this.glowContainer.scene) {
+                console.error('CardFrameInteractionComponent.addGlowEffect: glowContainer not set or invalid');
+                return null;
+            }
+            
+            // Clear any existing glow
+            this.removeGlowEffect();
+            
+            // Create glow graphics
+            const glow = this.scene.add.graphics();
+            
+            // Set color based on type or status
+            const glowColor = this._highlighted ? 0xFFFFFF : this.typeColor;
+            
+            // Apply different glow intensities based on state
+            let appliedIntensity = intensity;
+            if (this._highlighted) {
+                appliedIntensity = Math.min(1, intensity * 1.5);
+            }
+            
+            // Draw multiple glow layers for a soft effect
+            for (let i = 0; i < 3; i++) {
+                const padding = 5 + (i * 3);
+                glow.fillStyle(glowColor, 0.2 * appliedIntensity * (1 - i * 0.2));
+                glow.fillRoundedRect(
+                    -this.config.width / 2 - padding,
+                    -this.config.height / 2 - padding,
+                    this.config.width + (padding * 2),
+                    this.config.height + (padding * 2),
+                    this.config.cornerRadius + padding / 2
+                );
+            }
+            
+            // Add to glow container
+            this.glowContainer.add(glow);
+            
+            return glow;
+        } catch (error) {
+            console.error('CardFrameInteractionComponent: Error adding glow effect:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Remove glow effect
+     */
+    removeGlowEffect() {
+        try {
+            if (!this.glowContainer || !this.glowContainer.scene) {
+                console.error('CardFrameInteractionComponent.removeGlowEffect: glowContainer not set or invalid');
+                return false;
+            }
+            
+            this.glowContainer.removeAll(true); // Remove and destroy all children
+            return true;
+        } catch (error) {
+            console.error('CardFrameInteractionComponent: Error removing glow effect:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Set the selection state of the card
+     * @param {boolean} selected - Whether the card is selected
+     * @param {boolean} animate - Whether to animate the change (default: true)
+     */
+    setSelected(selected, animate = true) {
+        try {
+            // Store selection state
+            this._selected = selected;
+            
+            if (!this.container || !this.container.scene) {
+                console.error('CardFrameInteractionComponent.setSelected: container not set or invalid');
+                return false;
+            }
+            
+            if (animate && this.scene && this.scene.tweens) {
+                // Animate scale change
+                this.scene.tweens.add({
+                    targets: this.container,
+                    scaleX: selected ? this.config.selectedScale : 1,
+                    scaleY: selected ? this.config.selectedScale : 1,
+                    duration: this.config.animationDuration,
+                    ease: 'Sine.easeOut'
+                });
+            } else {
+                // Direct update without animation
+                this.container.setScale(selected ? this.config.selectedScale : 1);
+            }
+            
+            // Update glow effect
+            if (selected) {
+                this.addGlowEffect(this.config.glowIntensity);
+            } else if (!this._highlighted) {
+                // Only remove glow if not highlighted
+                this.removeGlowEffect();
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('CardFrameInteractionComponent: Error setting selected state:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Set the highlight state of the card (e.g., for active turn)
+     * @param {boolean} highlighted - Whether the card is highlighted
+     * @param {boolean} animate - Whether to animate the change (default: true)
+     */
+    setHighlighted(highlighted, animate = true) {
+        try {
+            // Store highlight state
+            this._highlighted = highlighted;
+            
+            if (!this.container || !this.container.scene) {
+                console.error('CardFrameInteractionComponent.setHighlighted: container not set or invalid');
+                return false;
+            }
+            
+            // Add pulsing highlight if highlighted
+            if (highlighted) {
+                // Add strong white glow
+                this.addGlowEffect(this.config.glowIntensity);
+                
+                if (animate && this.scene && this.scene.tweens) {
+                    // Add pulsing animation
+                    this.scene.tweens.add({
+                        targets: this.container,
+                        scaleX: { from: 1, to: this.config.hoverScale },
+                        scaleY: { from: 1, to: this.config.hoverScale },
+                        duration: 600,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: 'Sine.easeInOut'
+                    });
+                }
+            } else {
+                // Stop pulsing animation
+                if (this.scene && this.scene.tweens) {
+                    this.scene.tweens.killTweensOf(this.container);
+                }
+                
+                // Reset scale unless selected
+                if (!this._selected) {
+                    if (animate && this.scene && this.scene.tweens) {
+                        this.scene.tweens.add({
+                            targets: this.container,
+                            scaleX: 1,
+                            scaleY: 1,
+                            duration: this.config.animationDuration,
+                            ease: 'Sine.easeOut'
+                        });
+                    } else {
+                        this.container.setScale(1);
+                    }
+                    
+                    // Remove glow effect
+                    this.removeGlowEffect();
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('CardFrameInteractionComponent: Error setting highlighted state:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Detach all event listeners and prepare for component destruction
+     */
+    cleanup() {
+        try {
+            // Remove event listeners if frameBase exists
+            if (this.frameBase && this.frameBase.scene) {
+                this.frameBase.off('pointerover');
+                this.frameBase.off('pointerout');
+                this.frameBase.off('pointerdown');
+                
+                // Disable interactivity to prevent further events
+                if (this.frameBase.input) {
+                    this.frameBase.disableInteractive();
+                }
+            }
+            
+            // Stop any tweens
+            if (this.scene && this.scene.tweens) {
+                // Stop animations on container
+                if (this.container) {
+                    this.scene.tweens.killTweensOf(this.container);
+                }
+                
+                // Stop animations on glow effects
+                if (this.glowContainer) {
+                    this.glowContainer.getAll().forEach(child => {
+                        this.scene.tweens.killTweensOf(child);
+                    });
+                }
+            }
+            
+            // Reset cursor if needed
+            document.body.style.cursor = 'default';
+            
+            return true;
+        } catch (error) {
+            console.error('CardFrameInteractionComponent: Error during cleanup:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Clean up all resources managed by this component
+     */
+    destroy() {
+        try {
+            console.log(`CardFrameInteractionComponent: Destroying interaction component for ${this.config.characterName || 'Unknown'}`);
+            
+            // Execute cleanup first
+            this.cleanup();
+            
+            // Remove glow effects
+            this.removeGlowEffect();
+            
+            // Clear references
+            this.frameBase = null;
+            this.glowContainer = null;
+            this.scene = null;
+            this.container = null;
+            this.config = null;
+            
+            return true;
+        } catch (error) {
+            console.error('CardFrameInteractionComponent: Error during destroy:', error);
+            return false;
+        }
+    }
+}
+
+// Export for module use (if needed)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = CardFrameInteractionComponent;
+}
+
+// Make available globally for current script loading setup
+if (typeof window !== 'undefined') {
+    window.CardFrameInteractionComponent = CardFrameInteractionComponent;
+} else {
+    console.error('CardFrameInteractionComponent: Window object not found. Cannot attach to global scope.');
+}
