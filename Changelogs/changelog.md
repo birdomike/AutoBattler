@@ -1,3 +1,14 @@
+## 0.7.1.5 - CardFrame Component System Fix (2025-05-14)
+
+### Fixed
+- Fixed CardFrame component delegation failures by ensuring proper propagation of useComponentSystem flag
+- Corrected the architectural intent to use CardFrameManager whenever card frames are enabled
+- Implemented multi-layered fallback system with comprehensive error handling
+- Added visual component validation to ensure complete component chain initialization
+- Eliminated "delegation failed" warnings by properly setting up the component chain
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.1.5_CardFrameComponentSystemFix.md*
+
 ## 0.7.1.4 - CardFrame Component System Debugging (2025-05-14)
 
 ### Technical

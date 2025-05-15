@@ -1052,38 +1052,70 @@ highlight() {
                     document.body.style.cursor = 'default';
                 },
                 
-                // Component system flag
-                useComponentSystem: this.cardConfig.useComponentSystem || false
+                // CRITICAL CHANGE: If card frames are enabled, we INTEND to use the component system
+                useComponentSystem: this.cardConfig.enabled
             };
             
             console.log(`[DEBUG-VC-INIT] CharacterSprite: CardOptions prepared, useComponentSystem=${cardOptions.useComponentSystem}`);
             
-            // Determine which card system to use
-            const useNewSystem = this.cardConfig.enabled && this.cardConfig.useComponentSystem;
-            
-            if (useNewSystem && typeof window.CardFrameManager === 'function') {
-                console.log(`[DEBUG-VC-INIT] CharacterSprite: Using CardFrameManager for ${this.character.name}. CardFrameManager exists: ${!!window.CardFrameManager}, type: ${typeof window.CardFrameManager}`);
-                this.cardFrame = new window.CardFrameManager(this.scene, 0, 0, cardOptions);
-                console.log(`[DEBUG-VC-INIT] CharacterSprite: CardFrameManager created. Result is ${!!this.cardFrame}`);
-            } else if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
-                console.log(`[DEBUG-VC-INIT] CharacterSprite: Using original CardFrame for ${this.character.name}. CardFrame exists: ${!!window.CardFrame}, type: ${typeof window.CardFrame}`);
-                this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
-                console.log(`[DEBUG-VC-INIT] CharacterSprite: CardFrame created. Result is ${!!this.cardFrame}`);
-            } else {
-                if (this.cardConfig.enabled) {
-                    console.warn(`[DEBUG-VC-INIT] CharacterSprite: Card representation enabled for ${this.character.name}, but neither CardFrameManager (${typeof window.CardFrameManager}) nor CardFrame (${typeof window.CardFrame}) is available.`);
+            // Prioritize CardFrameManager instantiation
+            if (this.cardConfig.enabled && cardOptions.useComponentSystem && typeof window.CardFrameManager === 'function') {
+                console.log(`[DEBUG-VC-INIT] CharacterSprite: Attempting to use CardFrameManager for ${this.character.name}`);
+                try {
+                    this.cardFrame = new window.CardFrameManager(this.scene, 0, 0, cardOptions);
+                    // Add a check to see if the manager's visual component was successfully initialized
+                    if (this.cardFrame && this.cardFrame.visualComponent) {
+                        console.log(`[DEBUG-VC-INIT] CharacterSprite: CardFrameManager and its visualComponent initialized for ${this.character.name}.`);
+                    } else {
+                        console.error(`[DEBUG-VC-INIT] CharacterSprite: CardFrameManager for ${this.character.name} created, BUT its visualComponent is MISSING/NULL. Manager's visual component state: ${this.cardFrame ? this.cardFrame.visualComponent : 'manager_is_null'}.`);
+                        // Fallback if manager or its visual component failed
+                        console.warn(`[DEBUG-VC-INIT] CharacterSprite: FALLING BACK to original CardFrame for ${this.character.name} due to CardFrameManager/visualComponent issue.`);
+                        if (typeof window.CardFrame === 'function') {
+                            // Ensure the fallback CardFrame also knows to try its component system
+                            cardOptions.useComponentSystem = true; // So CardFrame's internal logic also tries manager
+                            this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
+                        } else {
+                            console.error(`[DEBUG-VC-INIT] CharacterSprite: CardFrameManager failed AND CardFrame global is not a function for ${this.character.name}.`);
+                            this.cardFrame = null; // Or handle error appropriately
+                        }
+                    }
+                } catch (error) {
+                    console.error(`[DEBUG-VC-INIT] CharacterSprite: ERROR caught during CardFrameManager instantiation for ${this.character.name}:`, error);
+                    // Fallback to original CardFrame on error
+                    console.warn(`[DEBUG-VC-INIT] CharacterSprite: FALLING BACK to original CardFrame for ${this.character.name} due to CardFrameManager instantiation error.`);
+                    if (typeof window.CardFrame === 'function') {
+                        cardOptions.useComponentSystem = true; // So CardFrame's internal logic also tries manager
+                        this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
+                    } else {
+                        console.error(`[DEBUG-VC-INIT] CharacterSprite: CardFrameManager failed AND CardFrame global is not a function for ${this.character.name}.`);
+                        this.cardFrame = null;
+                    }
                 }
-                throw new Error("Card representation unavailable");
+            } else if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
+                // This path is now a secondary fallback if CardFrameManager isn't available or cardConfig.enabled is false initially.
+                console.warn(`[DEBUG-VC-INIT] CharacterSprite: Using original CardFrame for ${this.character.name} (CardFrameManager not viable or cardConfig.enabled initially false).`);
+                cardOptions.useComponentSystem = true; // Still instruct CardFrame to try its manager
+                this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
+            } else {
+                console.error(`[DEBUG-VC-INIT] CharacterSprite: Cannot create card frame for ${this.character.name}. Card display disabled or CardFrame/CardFrameManager not available.`);
+                this.cardFrame = null; // Or create a very basic fallback graphics
             }
             
-            // Add card to main container
-            console.log(`[DEBUG-VC-INIT] CharacterSprite: Adding cardFrame to container for ${this.character.name}`);
-            this.container.add(this.cardFrame);
-            
-            // Set up events for the card frame
-            this.setupCardFrameEvents();
-            
-            console.log(`[DEBUG-VC-INIT] CharacterSprite: Card created successfully for ${this.character.name} of type ${this.character.type}`);
+            // Log the final outcome of cardFrame creation
+            if (this.cardFrame) {
+                console.log(`[DEBUG-VC-INIT] CharacterSprite: Final cardFrame for ${this.character.name} is of type: ${this.cardFrame.constructor.name}. Manager exists: ${!!this.cardFrame.manager}, VisualComponent in manager: ${this.cardFrame.manager ? !!this.cardFrame.manager.visualComponent : 'N/A'}`);
+                // Add card to main container
+                this.container.add(this.cardFrame);
+                console.log(`[DEBUG-VC-INIT] CharacterSprite: Adding cardFrame to container for ${this.character.name}`);
+                
+                // Set up events for the card frame
+                this.setupCardFrameEvents();
+                
+                console.log(`[DEBUG-VC-INIT] CharacterSprite: Card created successfully for ${this.character.name} of type ${this.character.type}`);
+            } else {
+                console.error(`[DEBUG-VC-INIT] CharacterSprite: CardFrame for ${this.character.name} was NOT created successfully.`);
+                throw new Error("Card frame creation failed");
+            }
         } catch (error) {
             console.error(`[DEBUG-VC-INIT] CharacterSprite: Error creating card frame for ${this.character?.name}:`, error);
             console.error(`CharacterSprite (${this.character?.name}): Error creating card frame:`, error);
