@@ -189,8 +189,12 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             this.config.maxHealth = maxHealth;
         }
         
-        // STUB: Will be implemented in Phase 3 with HealthComponent
-        console.log(`CardFrameManager.updateHealth: Will delegate to HealthComponent in future (${currentHealth}/${maxHealth || this.config.maxHealth})`);
+        // Delegate to health component if available
+        if (this.healthComponent && typeof this.healthComponent.updateHealth === 'function') {
+            this.healthComponent.updateHealth(currentHealth, maxHealth, animate);
+        } else {
+            console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): updateHealth called but healthComponent is not available or lacks method.`);
+        }
     }
     
     /**
@@ -238,9 +242,29 @@ class CardFrameManager extends Phaser.GameObjects.Container {
      * @returns {number} - Color as hex number
      */
     getHealthBarColor(percent) {
+        // Delegate to health component if available
+        if (this.healthComponent && typeof this.healthComponent.getHealthBarColor === 'function') {
+            return this.healthComponent.getHealthBarColor(percent);
+        }
+        
+        // Fallback implementation if component not available
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): getHealthBarColor called but healthComponent is not available or lacks method. Using fallback color.`);
         if (percent < 0.3) return 0xFF0000; // Red (low health)
         if (percent < 0.6) return 0xFFAA00; // Orange (medium health)
         return 0x00FF00; // Green (high health)
+    }
+    
+    /**
+     * Create health bar with animated transitions.
+     * Delegated to HealthComponent.
+     * @returns {Phaser.GameObjects.Container | null} The healthBarContainer or null if not created.
+     */
+    createHealthBar() {
+        if (this.healthComponent && typeof this.healthComponent.createHealthBar === 'function') {
+            return this.healthComponent.createHealthBar();
+        }
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createHealthBar called but healthComponent is not available or lacks method.`);
+        return null;
     }
     
     /**
@@ -284,12 +308,46 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             // Initialize visual component first as it creates the base structure
             this.initializeVisualComponent();
             
+            // Initialize health component for health bar and updates
+            this.initializeHealthComponent();
+            
             // Other components will be initialized in future phases
-            // this.initializeHealthComponent();
             // this.initializeContentComponent();
             // this.initializeInteractionComponent();
         } catch (error) {
             console.error('CardFrameManager: Error initializing components:', error);
+        }
+    }
+    
+    /**
+     * Initialize the health component for health bar and health updates.
+     */
+    initializeHealthComponent() {
+        this.healthComponent = null; // Ensure it's null before attempting initialization
+        try {
+            if (typeof window.CardFrameHealthComponent !== 'function') {
+                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CardFrameHealthComponent class not found in global scope. Health bar will be missing.`);
+                return; // Exit if the class definition isn't loaded
+            }
+            
+            // Create health component
+            this.healthComponent = new window.CardFrameHealthComponent(
+                this.scene,
+                this, // CardFrameManager is the container for healthComponent's elements
+                this.typeColor,
+                this.config // Pass the full config, HealthComponent will pick what it needs
+            );
+            
+            // Verify successful instantiation
+            if (this.healthComponent && typeof this.healthComponent.createHealthBar === 'function') {
+                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Health component initialized successfully.`);
+            } else {
+                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - CardFrameHealthComponent instantiation failed or is invalid. HealthComponent:`, this.healthComponent);
+                this.healthComponent = null; // Ensure it's null if something went wrong
+            }
+        } catch (error) {
+            console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): Error initializing health component:`, error);
+            this.healthComponent = null; // Explicitly nullify on error
         }
     }
     
@@ -404,7 +462,8 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             }
             
             if (this.healthComponent) {
-                console.log("CardFrameManager.destroy: Will destroy healthComponent in future");
+                console.log("CardFrameManager.destroy: Destroying healthComponent");
+                this.healthComponent.destroy();
                 this.healthComponent = null;
             }
             

@@ -743,74 +743,24 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     createHealthBar() {
         try {
-            // Create health bar container
-            this.healthBarContainer = this.scene.add.container(
-                0, 
-                this.config.healthBarOffsetY
-            );
-            
-            // Create health bar background
-            this.healthBarBg = this.scene.add.rectangle(
-                0, 0, 
-                this.config.healthBarWidth, 
-                this.config.healthBarHeight,
-                0x000000, 0.7
-            ).setOrigin(0.5);
-            
-            // Calculate health percentage
-            const healthPercent = Math.max(0, Math.min(1, 
-                this.config.currentHealth / this.config.maxHealth
-            ));
-            
-            // Create health bar fill
-            const barWidth = this.config.healthBarWidth - 4; // Slight padding
-            
-            this.healthBar = this.scene.add.rectangle(
-                -barWidth / 2, // Left-aligned
-                0,
-                barWidth * healthPercent, // Width based on health percentage
-                this.config.healthBarHeight - 4, // Slight padding
-                this.getHealthBarColor(healthPercent), // Color based on health
-                1
-            ).setOrigin(0, 0.5); // Origin at left center
-            
-            // Create frame around health bar
-            const healthBarFrame = this.scene.add.graphics();
-            healthBarFrame.lineStyle(1, 0xFFFFFF, 0.4);
-            healthBarFrame.strokeRect(
-                -this.config.healthBarWidth / 2 - 1, 
-                -this.config.healthBarHeight / 2 - 1,
-                this.config.healthBarWidth + 2, 
-                this.config.healthBarHeight + 2
-            );
-            
-            // Create health text if enabled
-            if (this.config.showHealthText) {
-                this.healthText = this.scene.add.text(
-                    0, 0,
-                    `${Math.round(this.config.currentHealth)}/${this.config.maxHealth}`,
-                    {
-                        fontFamily: 'Arial',
-                        fontSize: 10,
-                        color: '#FFFFFF',
-                        stroke: '#000000',
-                        strokeThickness: 2
-                    }
-                ).setOrigin(0.5);
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager
+                const healthBarContainer = this.manager.createHealthBar();
+                
+                // If manager's method returned a valid object, store it
+                if (healthBarContainer) {
+                    this.healthBarContainer = healthBarContainer;
+                    return healthBarContainer;
+                }
             }
             
-            // Add components to health bar container - background and health bar first
-            this.healthBarContainer.add([this.healthBarBg, this.healthBar, healthBarFrame]);
-            
-            // Add health text last so it renders on top of other elements
-            if (this.config.showHealthText && this.healthText) {
-                this.healthBarContainer.add(this.healthText);
-            }
-            
-            // Add health bar container to main container
-            this.add(this.healthBarContainer);
+            // If delegation failed or is disabled, log warning
+            console.warn('CardFrame.createHealthBar: Delegation failed, health bar will be missing');
+            return null;
         } catch (error) {
             console.error('CardFrame: Error creating health bar:', error);
+            return null;
         }
     }
     
@@ -948,119 +898,18 @@ class CardFrame extends Phaser.GameObjects.Container {
                 this.config.maxHealth = maxHealth;
             }
             
-            // Make sure health bar exists
-            if (!this.healthBar || !this.healthBarContainer) {
-                console.warn('CardFrame: Health bar not found, cannot update');
-                return;
-            }
-            
-            // Calculate health percentage
-            const healthPercent = Math.max(0, Math.min(1, 
-                this.config.currentHealth / this.config.maxHealth
-            ));
-            
-            // Calculate new width
-            const barWidth = this.config.healthBarWidth - 4; // Slight padding
-            const newWidth = barWidth * healthPercent;
-            
-            // Get color based on health percentage
-            const newColor = this.getHealthBarColor(healthPercent);
-            
-            // Store previous width for animation
-            const oldWidth = this.healthBar.width;
-            
-            // Update health text if it exists
-            if (this.healthText) {
-                this.healthText.setText(`${Math.round(this.config.currentHealth)}/${this.config.maxHealth}`);
-            }
-            
-            // Decide whether to animate
-            if (animate && this.scene && this.scene.tweens) {
-                // Stop any existing tweens
-                this.scene.tweens.killTweensOf(this.healthBar);
-                
-                // Animate health bar width
-                this.scene.tweens.add({
-                    targets: this.healthBar,
-                    width: newWidth,
-                    fillColor: { from: this.healthBar.fillColor, to: newColor },
-                    duration: 300,
-                    ease: 'Sine.easeOut'
-                });
-                
-                // Add visual feedback based on health change
-                if (oldWidth > newWidth) {
-                    // Taking damage - flash red
-                    if (this.characterSprite) {
-                        this.scene.tweens.add({
-                            targets: this.characterSprite,
-                            alpha: 0.5,
-                            yoyo: true,
-                            duration: 100,
-                            repeat: 1,
-                            ease: 'Sine.easeOut'
-                        });
-                    }
-                    
-                    // Shake health text
-                    if (this.healthText) {
-                        this.scene.tweens.add({
-                            targets: this.healthText,
-                            x: { from: -2, to: 0 },
-                            duration: 100,
-                            repeat: 1,
-                            yoyo: true,
-                            ease: 'Sine.easeInOut'
-                        });
-                    }
-                } else if (oldWidth < newWidth) {
-                    // Being healed - green flash
-                    if (this.characterSprite) {
-                        // Add healing glow overlay positioned at the portrait's position
-                        const portraitY = this.config.portraitOffsetY;
-                        
-                        const healGlow = this.scene.add.rectangle(
-                            0, // Center horizontally
-                            portraitY, // Position at portrait vertical position
-                            this.config.portraitWidth,
-                            this.config.portraitHeight,
-                            0x00FF00, 0.3
-                        );
-                        
-                        // Add directly to CardFrame (not portraitContainer)
-                        this.add(healGlow);
-                        
-                        // Ensure it's below the character sprite
-                        healGlow.setDepth(90);
-                        
-                        // Animate and remove the glow
-                        this.scene.tweens.add({
-                            targets: healGlow,
-                            alpha: 0,
-                            duration: 400,
-                            ease: 'Sine.easeOut',
-                            onComplete: () => {
-                                healGlow.destroy();
-                            }
-                        });
-                    }
-                    
-                    // Bounce health text
-                    if (this.healthText) {
-                        this.scene.tweens.add({
-                            targets: this.healthText,
-                            y: { from: -2, to: 0 },
-                            duration: 150,
-                            yoyo: true,
-                            ease: 'Bounce'
-                        });
-                    }
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                if (typeof this.manager.updateHealth === 'function') {
+                    this.manager.updateHealth(currentHealth, maxHealth, animate);
+                    return;
+                } else {
+                    console.warn('CardFrame.updateHealth: Manager exists but has no updateHealth method');
                 }
-            } else {
-                // Direct update without animation
-                this.healthBar.width = newWidth;
-                this.healthBar.fillColor = newColor;
             }
+            
+            // If delegation failed or is disabled, log warning
+            console.warn('CardFrame.updateHealth: Delegation failed, health bar will not be updated');
         } catch (error) {
             console.error('CardFrame: Error updating health:', error);
         }
@@ -1164,6 +1013,14 @@ class CardFrame extends Phaser.GameObjects.Container {
      * @returns {number} - Color as hex number
      */
     getHealthBarColor(percent) {
+        // If component system is active, delegate to manager
+        if (this.config.useComponentSystem && this.manager) {
+            if (typeof this.manager.getHealthBarColor === 'function') {
+                return this.manager.getHealthBarColor(percent);
+            }
+        }
+        
+        // Fallback colors if delegation fails
         if (percent < 0.3) return 0xFF0000; // Red (low health)
         if (percent < 0.6) return 0xFFAA00; // Orange (medium health)
         return 0x00FF00; // Green (high health)
