@@ -26,30 +26,26 @@ class CardFrame extends Phaser.GameObjects.Container {
         config.useComponentSystem = config.useComponentSystem !== false; // Default to true if not specified
         
         // If component system is enabled, create a manager instance
-        console.log(`[DEBUG-VC-INIT] CardFrame constructor: Entered for character (config.characterName): ${config.characterName || 'Unknown'}. Trying to use component system.`);
         if (config.useComponentSystem && typeof window.CardFrameManager === 'function') {
-            console.log(`[DEBUG-VC-INIT] CardFrame constructor: window.CardFrameManager is a function. Attempting to instantiate CardFrameManager.`);
             try {
                 // Create manager instance with same config
                 this.manager = new window.CardFrameManager(scene, 0, 0, config);
-                console.log(`[DEBUG-VC-INIT] CardFrame constructor: CardFrameManager instantiation attempted. this.manager is now: ${this.manager ? 'defined' : 'undefined'}. Type: ${typeof this.manager}`);
                 if (this.manager) {
                     // Add manager to this container
                     this.add(this.manager);
-                    console.log('[DEBUG-VC-INIT] CardFrame constructor: CardFrameManager added to CardFrame container.');
                 } else {
-                    console.error('[DEBUG-VC-INIT] CardFrame constructor: CRITICAL - CardFrameManager was NOT created successfully, this.manager is falsy.');
+                    console.error('CardFrame: CardFrameManager was NOT created successfully');                    
                     config.useComponentSystem = false; // Force fallback
                 }
                 console.log('CardFrame: Using component system with CardFrameManager');
             } catch (error) {
-                console.error('[DEBUG-VC-INIT] CardFrame constructor: ERROR caught during CardFrameManager instantiation:', error);
+                console.error('CardFrame: Error during CardFrameManager instantiation:', error);
                 this.manager = null;
                 config.useComponentSystem = false; // Disable component system on failure
                 console.log('CardFrame: Falling back to direct implementation');
             }
         } else {
-            console.warn(`[DEBUG-VC-INIT] CardFrame constructor: NOT using CardFrameManager. config.useComponentSystem: ${config.useComponentSystem}, typeof window.CardFrameManager: ${typeof window.CardFrameManager}`);
+            console.warn(`CardFrame: Not using component system. useComponentSystem: ${config.useComponentSystem}, CardFrameManager available: ${typeof window.CardFrameManager === 'function'}`);
             this.manager = null;
             config.useComponentSystem = false; // Ensure flag is off
         }
@@ -871,28 +867,39 @@ class CardFrame extends Phaser.GameObjects.Container {
      */
     destroy() {
         try {
-            // Stop any active tweens
+            // Delegate to manager first if available
+            if (this.config && this.config.useComponentSystem && this.manager && typeof this.manager.destroy === 'function') {
+                console.log('CardFrame: Delegating destroy to CardFrameManager');
+                this.manager.destroy();
+                this.manager = null; // Nullify reference after destroying
+            }
+            
+            // Stop any active tweens for CardFrame itself
             if (this.scene && this.scene.tweens) {
+                // Kill tweens for the container itself
                 this.scene.tweens.killTweensOf(this);
-                this.scene.tweens.killTweensOf(this.healthBar);
-                this.scene.tweens.killTweensOf(this.characterSprite);
-                this.scene.tweens.killTweensOf(this.nameText);
-                this.scene.tweens.killTweensOf(this.healthText);
                 
-                // Clean up any tweens for depth effects
-                if (this.edgeEffects) {
-                    this.scene.tweens.killTweensOf(this.edgeEffects);
-                }
-                if (this.innerGlowGraphics) {
-                    this.scene.tweens.killTweensOf(this.innerGlowGraphics);
-                }
-                if (this.backdrop) {
-                    this.scene.tweens.killTweensOf(this.backdrop);
-                }
+                // Health-related objects
+                if (this.healthBar) this.scene.tweens.killTweensOf(this.healthBar);
+                if (this.healthText) this.scene.tweens.killTweensOf(this.healthText);
+                if (this.healthBarContainer) this.scene.tweens.killTweensOf(this.healthBarContainer);
+                
+                // Content-related objects
+                if (this.characterSprite) this.scene.tweens.killTweensOf(this.characterSprite);
+                if (this.portraitContainer) this.scene.tweens.killTweensOf(this.portraitContainer);
+                if (this.nameText) this.scene.tweens.killTweensOf(this.nameText);
+                if (this.nameBannerContainer) this.scene.tweens.killTweensOf(this.nameBannerContainer);
+                
+                // Visual effects
+                if (this.edgeEffects) this.scene.tweens.killTweensOf(this.edgeEffects);
+                if (this.innerGlowGraphics) this.scene.tweens.killTweensOf(this.innerGlowGraphics);
+                if (this.backdrop) this.scene.tweens.killTweensOf(this.backdrop);
+                if (this.frameBase) this.scene.tweens.killTweensOf(this.frameBase);
+                if (this.glowContainer) this.scene.tweens.killTweensOf(this.glowContainer);
             }
             
             // Reset cursor if interactive
-            if (this.config.interactive) {
+            if (this.config && this.config.interactive) {
                 document.body.style.cursor = 'default';
             }
             
@@ -900,8 +907,15 @@ class CardFrame extends Phaser.GameObjects.Container {
             super.destroy(true);
         } catch (error) {
             console.error('CardFrame: Error during destroy:', error);
-            // Try parent destroy as fallback
-            super.destroy(true);
+            try {
+                // Still try to do critical cleanup
+                if (this.config && this.config.interactive) {
+                    document.body.style.cursor = 'default';
+                }
+                super.destroy(true);
+            } catch (fallbackError) {
+                console.error('CardFrame: Critical error during destroy fallback:', fallbackError);
+            }
         }
     }
 }

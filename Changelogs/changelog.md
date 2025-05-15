@@ -1,3 +1,40 @@
+## 0.7.2.3 - CardFrame Destroy Method Refinement (Phase 4.2) (2025-05-15)
+
+### Changed
+- Completed Phase 4.2 of CardFrame refactoring by improving the destroy method
+- Added proper delegation to CardFrameManager for cleanup
+- Implemented comprehensive null-checking for all object references
+- Improved error handling with nested try/catch for fallback logic
+- Organized cleanup code with logical grouping of related objects
+- Added additional object references to tween cleanup process
+
+### Technical
+- Followed consistent delegation pattern across all methods
+- Grouped related objects for better code organization and readability
+- Added manager reference nullification after destruction
+- Implemented defensive programming principles with thorough null checking
+- Enhanced error recovery for more robust cleanup in all scenarios
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.2.3_CardFrameDestroyMethodRefinement.md*
+
+## 0.7.2.2 - CardFrame Debug Code Cleanup (Phase 4.1) (2025-05-15)
+
+### Changed
+- Completed Phase 4.1 of CardFrame refactoring project by removing debug code
+- Removed all `[DEBUG-VC-INIT]` prefixed console logs from CardFrame.js
+- Improved the readability of remaining error and warning messages
+- Standardized log formatting for better troubleshooting
+- Maintained essential error reporting while removing excessive debugging
+
+### Technical
+- Reduced console noise during normal game operation
+- Improved code readability and maintainability
+- Preserved important error and warning messages for runtime diagnostics
+- Simplified verbose error messages for better clarity
+- Followed first step in Phase 4 (Bridge Implementation) of the CardFrame refactoring project
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.2.2_CardFrameDebugCodeCleanup.md*
+
 ## 0.7.2.1 - CardFrameInteractionComponent Cleanup (Phase 3.4 Completion) (2025-05-15)
 
 ### Changed
