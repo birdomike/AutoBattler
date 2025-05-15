@@ -606,13 +606,11 @@ class CardFrame extends Phaser.GameObjects.Container {
             }
             
             // If delegation failed or is disabled, log warning
-            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): setupInteractivity delegation failed, using original implementation`);
-            
-            // The original implementation will be removed once delegation is verified
-            return null;
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): setupInteractivity delegation failed, interactivity will be missing`);
+            return false;
         } catch (error) {
             console.error('CardFrame: Error delegating setupInteractivity:', error);
-            return null;
+            return false;
         }
     }
     
@@ -635,9 +633,7 @@ class CardFrame extends Phaser.GameObjects.Container {
             }
             
             // If delegation failed or is disabled, log warning
-            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): addGlowEffect delegation failed, using original implementation`);
-            
-            // The original implementation will be removed once delegation is verified
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): addGlowEffect delegation failed, glow effect will be missing`);
             return null;
         } catch (error) {
             console.error('CardFrame: Error delegating addGlowEffect:', error);
@@ -663,13 +659,11 @@ class CardFrame extends Phaser.GameObjects.Container {
             }
             
             // If delegation failed or is disabled, log warning
-            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): removeGlowEffect delegation failed, using original implementation`);
-            
-            // The original implementation will be removed once delegation is verified
-            return null;
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): removeGlowEffect delegation failed, glow effect will not be removed`);
+            return false;
         } catch (error) {
             console.error('CardFrame: Error delegating removeGlowEffect:', error);
-            return null;
+            return false;
         }
     }
     
@@ -715,35 +709,29 @@ class CardFrame extends Phaser.GameObjects.Container {
      * Set the selection state of the card
      * @param {boolean} selected - Whether the card is selected
      * @param {boolean} animate - Whether to animate the change (default: true)
+     * Delegated to CardFrameManager
      */
     setSelected(selected, animate = true) {
         try {
             // Store selection state
             this._selected = selected;
             
-            if (animate && this.scene && this.scene.tweens) {
-                // Animate scale change
-                this.scene.tweens.add({
-                    targets: this,
-                    scaleX: selected ? this.config.selectedScale : 1,
-                    scaleY: selected ? this.config.selectedScale : 1,
-                    duration: this.config.animationDuration,
-                    ease: 'Sine.easeOut'
-                });
-            } else {
-                // Direct update without animation
-                this.setScale(selected ? this.config.selectedScale : 1);
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.setSelected === 'function') {
+                    return this.manager.setSelected(selected, animate);
+                } else {
+                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no setSelected method`);
+                }
             }
             
-            // Update glow effect
-            if (selected) {
-                this.addGlowEffect(this.config.glowIntensity);
-            } else if (!this._highlighted) {
-                // Only remove glow if not highlighted
-                this.removeGlowEffect();
-            }
+            // If delegation failed or is disabled, log warning
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): setSelected delegation failed, selection will not be animated`);
+            return false;
         } catch (error) {
-            console.error('CardFrame: Error setting selected state:', error);
+            console.error('CardFrame: Error delegating setSelected:', error);
+            return false;
         }
     }
     
@@ -751,55 +739,29 @@ class CardFrame extends Phaser.GameObjects.Container {
      * Set the highlight state of the card (e.g., for active turn)
      * @param {boolean} highlighted - Whether the card is highlighted
      * @param {boolean} animate - Whether to animate the change (default: true)
+     * Delegated to CardFrameManager
      */
     setHighlighted(highlighted, animate = true) {
         try {
             // Store highlight state
             this._highlighted = highlighted;
             
-            // Add pulsing highlight if highlighted
-            if (highlighted) {
-                // Add strong white glow
-                this.addGlowEffect(this.config.glowIntensity);
-                
-                if (animate && this.scene && this.scene.tweens) {
-                    // Add pulsing animation
-                    this.scene.tweens.add({
-                        targets: this,
-                        scaleX: { from: 1, to: this.config.hoverScale },
-                        scaleY: { from: 1, to: this.config.hoverScale },
-                        duration: 600,
-                        yoyo: true,
-                        repeat: -1,
-                        ease: 'Sine.easeInOut'
-                    });
-                }
-            } else {
-                // Stop pulsing animation
-                if (this.scene && this.scene.tweens) {
-                    this.scene.tweens.killTweensOf(this);
-                }
-                
-                // Reset scale unless selected
-                if (!this._selected) {
-                    if (animate && this.scene && this.scene.tweens) {
-                        this.scene.tweens.add({
-                            targets: this,
-                            scaleX: 1,
-                            scaleY: 1,
-                            duration: this.config.animationDuration,
-                            ease: 'Sine.easeOut'
-                        });
-                    } else {
-                        this.setScale(1);
-                    }
-                    
-                    // Remove glow effect
-                    this.removeGlowEffect();
+            // If component system is active, delegate to manager
+            if (this.config.useComponentSystem && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.setHighlighted === 'function') {
+                    return this.manager.setHighlighted(highlighted, animate);
+                } else {
+                    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no setHighlighted method`);
                 }
             }
+            
+            // If delegation failed or is disabled, log warning
+            console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): setHighlighted delegation failed, highlighting will not be animated`);
+            return false;
         } catch (error) {
-            console.error('CardFrame: Error setting highlighted state:', error);
+            console.error('CardFrame: Error delegating setHighlighted:', error);
+            return false;
         }
     }
     
