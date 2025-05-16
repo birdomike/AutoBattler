@@ -238,8 +238,8 @@ class CharacterSprite {
         // Create a complete card configuration by merging defaults with provided options
         this.cardConfig = {
             enabled: this.config.useCardFrame || false,
-            width: this.config.cardConfig?.width || 500,
-            height: this.config.cardConfig?.height || 500,
+            // No hardcoded width/height - rely on CardFrameVisualComponent variants
+            cardVariant: this.config.cardConfig?.cardVariant || 'standard', // Request standard variant by default
             portraitOffsetY: this.config.cardConfig?.portraitOffsetY || -20,
             nameBannerHeight: this.config.cardConfig?.nameBannerHeight || 40,
             healthBarOffsetY: this.config.cardConfig?.healthBarOffsetY || 90,
@@ -1024,9 +1024,8 @@ highlight() {
                 maxHealth: this.character.stats.hp || 100,
                 showHealth: this.config.showHealth,
                 
-                // Visual customization
-                width: this.cardConfig.width,
-                height: this.cardConfig.height,
+                // Visual customization - use card variant instead of direct dimensions
+                cardVariant: this.cardConfig.cardVariant || 'standard',
                 portraitOffsetY: this.cardConfig.portraitOffsetY,
                 
                 // Art positioning from character data

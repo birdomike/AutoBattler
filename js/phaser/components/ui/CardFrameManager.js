@@ -45,11 +45,9 @@ class CardFrameManager extends Phaser.GameObjects.Container {
          * Only common properties and positioning values remain here in CardFrameManager.js
          */
         this.config = Object.assign({
-            // Core dimensions (3:4 aspect ratio)
-            width: 240,                 // Width of card frame
-            height: 320,                // Height of card frame
-            borderWidth: 10,            // Width of frame border (reduced from 20px for sleeker appearance)
-            cornerRadius: 12,           // Corner radius for frame
+            // Core dimensions now come from CardFrameVisualComponent variants
+            // This component no longer defines width, height, borderWidth, or cornerRadius
+            // Use cardVariant property to request specific dimensions
 
             // Character information
             characterKey: null,         // Texture key for character sprite
@@ -69,7 +67,7 @@ class CardFrameManager extends Phaser.GameObjects.Container {
             // This violates the SINGLE SOURCE OF TRUTH principle.
             // portraitWidth: 200,         // Width of portrait area
             // portraitHeight: 240,        // Height of portrait area
-            portraitOffsetY: -20,       // Portrait vertical offset from center (layout positioning remains here)
+            // portraitOffsetY: -20,       // Portrait vertical offset from center (layout positioning remains here)
             // portraitMask: true,         // Whether to mask the portrait
             
             // Health display - BASIC values only
@@ -543,12 +541,26 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 return; // Exit if the class definition isn't loaded
             }
             
-            // Create content component
+            // Get final dimensions from visualComponent if available
+            let contentConfig = { ...this.config };
+            
+            // If visualComponent is available, get the correct dimensions from it
+            if (this.visualComponent) {
+                // Get width and height from the visualComponent (the true source of truth)
+                contentConfig.width = this.visualComponent.config.width;
+                contentConfig.height = this.visualComponent.config.height;
+                
+                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Using dimensions from visualComponent: ${contentConfig.width}x${contentConfig.height}`);
+            } else {
+                console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): visualComponent not available, content component may have incorrect dimensions.`);
+            }
+            
+            // Create content component with correct dimensions
             this.contentComponent = new window.CardFrameContentComponent(
                 this.scene,
                 this, // CardFrameManager is the container for contentComponent's elements
                 this.typeColor,
-                this.config // Pass the full config, ContentComponent will pick what it needs
+                contentConfig // Pass config with correct dimensions from visualComponent
             );
             
             // Verify successful instantiation

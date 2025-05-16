@@ -1,3 +1,30 @@
+## 0.7.4.2 - CardFrame Configuration System Refactoring (2025-05-16)
+
+### Added
+- Implemented CARD_VARIANTS system in CardFrameVisualComponent.js with 'standard', 'large', and 'compact' presets
+- Added static getCardVariants() method for external variant access
+- Created global access to variants via window.CardFrameVisualComponent.CARD_VARIANTS
+
+### Changed
+- Revised configuration merging logic to establish CardFrameVisualComponent as true Single Source of Truth
+- Updated configuration priority to use VISUAL_DEFAULTS as base, then apply variant overrides, then specific config overrides
+- Removed duplicate dimension definitions from CardFrameManager.js and CharacterSprite.js
+- Modified CardFrameManager to retrieve final dimensions from the visualComponent for proper component communication
+
+### Improved
+- Made visual styling changes more predictable and centralized
+- Enhanced dimension management through standardized variant system
+- Streamlined configuration flow with explicit priority order
+- Added detailed documentation for the variant system
+
+### Technical
+- Identified and fixed the configuration override issue in Object.assign ordering
+- Changed CharacterSprite.js to request card variants instead of specifying direct dimensions
+- Added proper communication channel between components for consistent dimension use
+- Fixed confusion about where to modify card dimensions (now clearly in CardFrameVisualComponent.js)
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.4.2_CardFrameConfigRefactoring.md*
+
 ## 0.7.4.1 - CardFrameHealthComponent Animation Fix (2025-05-16)
 
 ### Fixed
