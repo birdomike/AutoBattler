@@ -56,10 +56,7 @@ const VISUAL_DEFAULTS = {
         decorative: true,       // Whether to show decorative flourishes
     },
     
-    // Health Display Position
-    healthDisplay: {
-        offsetY: 200,            // Distance from center to health bar
-    },
+    // Health Bar: Styling, dimensions, and positioning are managed by CardFrameHealthComponent.js.
     
     // Art Positioning
     artPositioning: {
@@ -130,9 +127,7 @@ const CARD_VARIANTS = {
             width: 210,
             offsetY: 135,
         },
-        healthDisplay: {
-            offsetY: -140,
-        },
+        // Health bar styling and positioning managed by CardFrameHealthComponent.js
         statusEffects: {
             offsetY: -130,
         }
@@ -150,9 +145,7 @@ const CARD_VARIANTS = {
             width: 450,
             offsetY: 135,
         },
-        healthDisplay: {
-            offsetY: 90,
-        },
+        // Health bar styling and positioning managed by CardFrameHealthComponent.js
         statusEffects: {
             offsetY: -130,
         }
@@ -172,9 +165,7 @@ const CARD_VARIANTS = {
             fontSize: 14,
             offsetY: 100,
         },
-        healthDisplay: {
-            offsetY: 70,
-        },
+        // Health bar styling and positioning managed by CardFrameHealthComponent.js
         statusEffects: {
             scale: 0.6,
             spacing: 20,

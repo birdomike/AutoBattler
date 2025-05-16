@@ -1,3 +1,23 @@
+## 0.7.5.0 - Health Bar Single Source of Truth Implementation (2025-05-16)
+
+### Fixed
+- Fixed inconsistent health bar positioning architecture where multiple components controlled positioning
+- Eliminated positioning conflicts between CardFrameVisualComponent and CardFrameHealthComponent
+- Removed healthDisplay.offsetY from CardFrameVisualComponent's VISUAL_DEFAULTS and all CARD_VARIANTS
+
+### Changed
+- Made CardFrameHealthComponent the true Single Source of Truth for health bar positioning
+- Removed code in CardFrameManager that passed healthBarOffsetY from VisualComponent
+- Added clear comments directing developers to CardFrameHealthComponent for health bar styling
+
+### Technical
+- Fixed architectural drift that violated the Single Source of Truth principle
+- Simplified configuration management by centralizing health bar settings
+- Improved code comments and architectural documentation
+- Made the architecture match the stated design principles
+
+*Note: For detailed implementation information, see CHANGELOG_0.7.5.0_HealthBarSingleSourceOfTruth.md*
+
 ## 0.7.4.6 - CardFrame Component Chain Initialization Fix (2025-05-16)
 
 ### Fixed

@@ -431,17 +431,12 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 return; // Exit if the class definition isn't loaded
             }
             
-            // Get health display configuration from visualComponent if available
+            // Health display configuration should come directly from CardFrameHealthComponent
+            // as it is the Single Source of Truth for health bar styling and positioning
             let healthConfig = { ...this.config };
             
-            if (this.visualComponent) {
-                // Pass health display positioning from visualComponent
-                healthConfig.healthBarOffsetY = this.visualComponent.config.healthDisplay.offsetY;
-                
-                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Using health display positioning from visualComponent`);
-            } else {
-                console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): visualComponent not available, health component may have incorrect positioning.`);
-            }
+            // Pass only relevant health data (currentHealth, maxHealth, showHealth, typeColor)
+            // Note: We no longer pass healthBarOffsetY from visualComponent - this is managed by CardFrameHealthComponent
             
             // Create health component with correct positioning
             this.healthComponent = new window.CardFrameHealthComponent(
