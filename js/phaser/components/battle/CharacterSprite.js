@@ -238,10 +238,8 @@ class CharacterSprite {
         // Create a complete card configuration by merging defaults with provided options
         this.cardConfig = {
             enabled: this.config.useCardFrame || false,
-            // No hardcoded dimensions - rely on CardFrameVisualComponent variants
-            cardVariant: this.config.cardConfig?.cardVariant || 'standard', // Request standard variant by default
             interactive: this.config.cardConfig?.interactive || false,
-            useComponentSystem: this.config.cardConfig?.useComponentSystem || false // Flag to use the new component system
+            useComponentSystem: true  // Always use component system
         };
         
         // Validate card configuration
@@ -1036,11 +1034,7 @@ highlight() {
                 maxHealth: this.character.stats.hp || 100,
                 showHealth: this.config.showHealth,
                 
-                // Visual customization - use card variant for all visual styling
-                cardVariant: this.cardConfig.cardVariant || 'standard',
-                
-                // Character-specific art positioning can still be provided
-                // as a character-specific override to the variant defaults
+                // Character-specific art positioning
                 artOffsetX: parseInt(this.character.art?.left) || 0,
                 artOffsetY: parseInt(this.character.art?.top) || 0,
                 
@@ -1061,8 +1055,8 @@ highlight() {
                     document.body.style.cursor = 'default';
                 },
                 
-                // If card frames are enabled, we intend to use the component system
-                useComponentSystem: this.cardConfig.enabled
+                // Component system flag
+                useComponentSystem: true
             };
             
             // Determine which card system to use - ALWAYS create CardFrame, never directly create CardFrameManager
