@@ -1,3 +1,19 @@
+## 0.7.4.6 - CardFrame Component Chain Initialization Fix (2025-05-16)
+
+### Fixed
+- Fixed critical errors in card dimension caching system
+- Resolved "CRITICAL - Failed to cache card dimensions" errors for all characters
+- Ensured consistent component hierarchy during CardFrame initialization
+- Fixed architectural inconsistency in component instantiation
+
+### Technical
+- Unified initialization path to always create CardFrame instances, never directly create CardFrameManager
+- Ensured proper component chain (CardFrame → CardFrameManager → CardFrameVisualComponent)
+- Maintained consistent error handling for unavailable CardFrame classes
+- Fixed both critical caching errors and original animation issues with one architectural improvement
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.4.6_CardFrameComponentChainInitializationFix.md*
+
 ## 0.7.4.5 - Card Animation Dimension Caching (2025-05-16)
 
 ### Fixed

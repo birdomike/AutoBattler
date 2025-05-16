@@ -32,9 +32,9 @@ const HEALTH_DEFAULTS = {
     
     // Health bar dimensions and position
     healthBar: {
-        width: 180,             // Width of the health bar
+        width: 200,             // Width of the health bar
         height: 18,             // Height of the health bar
-        offsetY: -145,          // Vertical position of health bar
+        offsetY: 100,          // Vertical position of health bar
         borderRadius: 4,        // Rounded corners for health bar
         bevelWidth: 1,          // Width of the bevel effect
         padding: 4              // Padding inside background (calculated as barWidth - 4)

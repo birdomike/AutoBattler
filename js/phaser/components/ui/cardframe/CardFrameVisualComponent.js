@@ -58,7 +58,7 @@ const VISUAL_DEFAULTS = {
     
     // Health Display Position
     healthDisplay: {
-        offsetY: 90,            // Distance from center to health bar
+        offsetY: 200,            // Distance from center to health bar
     },
     
     // Art Positioning
@@ -131,7 +131,7 @@ const CARD_VARIANTS = {
             offsetY: 135,
         },
         healthDisplay: {
-            offsetY: 90,
+            offsetY: -140,
         },
         statusEffects: {
             offsetY: -130,

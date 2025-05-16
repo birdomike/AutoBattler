@@ -1065,12 +1065,11 @@ highlight() {
                 useComponentSystem: this.cardConfig.enabled
             };
             
-            // Determine which card system to use
-            if (this.cardConfig.enabled && cardOptions.useComponentSystem && typeof window.CardFrameManager === 'function') {
-                this.cardFrame = new window.CardFrameManager(this.scene, 0, 0, cardOptions);
-            } else if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
-                // Fallback to original CardFrame
-                cardOptions.useComponentSystem = true; // Still instruct CardFrame to try its manager
+            // Determine which card system to use - ALWAYS create CardFrame, never directly create CardFrameManager
+            if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
+                // Ensure useComponentSystem flag is set if that's the intent
+                // This will make CardFrame create its own CardFrameManager internally
+                cardOptions.useComponentSystem = true;
                 this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
             } else {
                 if (this.cardConfig.enabled) {
