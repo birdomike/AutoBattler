@@ -771,9 +771,24 @@ class CharacterSprite {
                 // Use shorter distance for cards (50% instead of 70% for circles)
                 const moveDistance = 0.5;
                 
+                // Get current card dimensions from visualComponent or use defaults
+                let currentCardWidth = 240; // Fallback default
+                let currentCardHeight = 320; // Fallback default
+                
+                if (this.cardFrame && this.cardFrame.manager && 
+                    this.cardFrame.manager.visualComponent && 
+                    this.cardFrame.manager.visualComponent.config) {
+                    // Get dimensions from the visual component (single source of truth)
+                    currentCardWidth = this.cardFrame.manager.visualComponent.config.width;
+                    currentCardHeight = this.cardFrame.manager.visualComponent.config.height;
+                    console.log(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Using card dimensions from visualComponent: ${currentCardWidth}x${currentCardHeight}`);
+                } else {
+                    console.warn(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Could not get card dimensions from visualComponent for animation. Using fallback.`);
+                }
+                
                 // Calculate move destination in local space
-                const moveToX = direction.x * this.cardConfig.width * moveDistance;
-                const moveToY = direction.y * this.cardConfig.height * moveDistance;
+                const moveToX = direction.x * currentCardWidth * moveDistance;
+                const moveToY = direction.y * currentCardHeight * moveDistance;
                 
                 // Add slight rotation based on team
                 const rotation = this.character.team === 'player' ? 5 : -5;
@@ -951,8 +966,19 @@ class CharacterSprite {
             let yOffset = -50; // Default for circle representation
             
             if (this.cardConfig.enabled && this.cardFrame) {
-                // For card frames, adjust to be above the card
-                yOffset = -this.cardConfig.height/2 - 20;
+                // For card frames, get height from visualComponent if available
+                let cardHeight = 320; // Fallback default
+                
+                if (this.cardFrame && this.cardFrame.manager && 
+                    this.cardFrame.manager.visualComponent && 
+                    this.cardFrame.manager.visualComponent.config) {
+                    cardHeight = this.cardFrame.manager.visualComponent.config.height;
+                } else {
+                    console.warn(`showFloatingText (${this.character?.name}): Could not get card height from visualComponent. Using fallback.`);
+                }
+                
+                // Position text above the card
+                yOffset = -cardHeight/2 - 20;
             }
 
             // Create text at the correct global position

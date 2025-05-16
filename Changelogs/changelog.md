@@ -1,3 +1,19 @@
+## 0.7.4.4 - Card Animation Fix (2025-05-16)
+
+### Fixed
+- Fixed card attack animation issue where cards would disappear during attack
+- Updated attack animation code to properly reference card dimensions from visualComponent
+- Added defensive null checks to prevent errors if visualComponent isn't available
+- Fixed floating text positioning to use visualComponent dimensions
+
+### Technical
+- Added proper error handling with fallback to default dimensions
+- Replaced direct references to cardConfig.width/height with visualComponent values
+- Ensured consistent dimension usage across all visual operations
+- Verified fixed attack animation with tilting motion and impact effect
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.4.4_CardAnimationFix.md*
+
 ## 0.7.4.3 - Complete CardFrame Visual Properties Centralization (2025-05-16)
 
 ### Added
