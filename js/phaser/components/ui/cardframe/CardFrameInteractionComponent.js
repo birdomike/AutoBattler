@@ -30,6 +30,8 @@ class CardFrameInteractionComponent {
         this.typeColor = typeColor || 0xAAAAAA; // Default to neutral gray if no type color provided
         
         // Store configuration with defaults relevant to interaction
+        // IMPORTANT: Object.assign pattern ensures config values override defaults
+        // (defaults are first, config is second, so config values take precedence)
         this.config = Object.assign({
             // Interaction
             interactive: false,         // Whether card is interactive

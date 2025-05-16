@@ -1,3 +1,17 @@
+## 0.7.3.1 - Component Configuration Cleanup (2025-05-15)
+
+### Improved
+- Removed all debug logging from CardFrameVisualComponent for cleaner console output
+- Improved Object.assign documentation across all components for consistent configuration pattern
+- Added explicit comments clarifying that configuration values override defaults
+
+### Technical
+- Completed Phase 2 of the Component Single Source of Truth refactoring plan
+- Enhanced component architecture documentation for better maintainability
+- Improved code readability by removing extensive debug messages
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.3.1_ComponentConfigurationCleanup.md*
+
 ## 0.7.3.0 - Component Single Source of Truth Implementation (2025-05-15)
 
 ### Improved
