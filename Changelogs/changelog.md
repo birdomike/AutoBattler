@@ -1,3 +1,18 @@
+## 0.7.4.5 - Card Animation Dimension Caching (2025-05-16)
+
+### Fixed
+- Resolved console warnings about missing visualComponent references during animations
+- Improved reliability of card animations and floating text with dimension caching
+- Eliminated edge cases where cards could still display incorrectly during animations
+
+### Technical
+- Implemented dimension caching in CharacterSprite after successful card initialization
+- Replaced runtime lookups with cached values for animations and floating text
+- Added diagnostic logging for dimension caching
+- Enhanced fallback handling for animation dimensions
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.4.5_CardAnimationDimensionCaching.md*
+
 ## 0.7.4.4 - Card Animation Fix (2025-05-16)
 
 ### Fixed

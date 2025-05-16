@@ -771,19 +771,12 @@ class CharacterSprite {
                 // Use shorter distance for cards (50% instead of 70% for circles)
                 const moveDistance = 0.5;
                 
-                // Get current card dimensions from visualComponent or use defaults
-                let currentCardWidth = 240; // Fallback default
-                let currentCardHeight = 320; // Fallback default
+                // Get card dimensions from cached values or fallback to defaults
+                let currentCardWidth = this.cachedCardWidth || 240; // Use cached value with fallback
+                let currentCardHeight = this.cachedCardHeight || 320; // Use cached value with fallback
                 
-                if (this.cardFrame && this.cardFrame.manager && 
-                    this.cardFrame.manager.visualComponent && 
-                    this.cardFrame.manager.visualComponent.config) {
-                    // Get dimensions from the visual component (single source of truth)
-                    currentCardWidth = this.cardFrame.manager.visualComponent.config.width;
-                    currentCardHeight = this.cardFrame.manager.visualComponent.config.height;
-                    console.log(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Using card dimensions from visualComponent: ${currentCardWidth}x${currentCardHeight}`);
-                } else {
-                    console.warn(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Could not get card dimensions from visualComponent for animation. Using fallback.`);
+                if (!this.cachedCardWidth || !this.cachedCardHeight) {
+                    console.warn(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Using fallback dimensions for animation as cached dimensions not found.`);
                 }
                 
                 // Calculate move destination in local space
@@ -966,15 +959,11 @@ class CharacterSprite {
             let yOffset = -50; // Default for circle representation
             
             if (this.cardConfig.enabled && this.cardFrame) {
-                // For card frames, get height from visualComponent if available
-                let cardHeight = 320; // Fallback default
+                // For card frames, get height from cached value or fallback
+                let cardHeight = this.cachedCardHeight || 320; // Use cached value with fallback
                 
-                if (this.cardFrame && this.cardFrame.manager && 
-                    this.cardFrame.manager.visualComponent && 
-                    this.cardFrame.manager.visualComponent.config) {
-                    cardHeight = this.cardFrame.manager.visualComponent.config.height;
-                } else {
-                    console.warn(`showFloatingText (${this.character?.name}): Could not get card height from visualComponent. Using fallback.`);
+                if (!this.cachedCardHeight) {
+                    console.warn(`[CharacterSprite.showFloatingText] (${this.character?.name}): Using fallback card height for floating text as cached dimension not found.`);
                 }
                 
                 // Position text above the card
@@ -1092,6 +1081,23 @@ highlight() {
             
             // Add card to main container
             this.container.add(this.cardFrame);
+            
+            // Cache card dimensions for animation and floating text
+            if (this.cardFrame && this.cardFrame.manager && 
+                this.cardFrame.manager.visualComponent && 
+                this.cardFrame.manager.visualComponent.config) {
+                
+                this.cachedCardWidth = this.cardFrame.manager.visualComponent.config.width;
+                this.cachedCardHeight = this.cardFrame.manager.visualComponent.config.height;
+                
+                console.log(`[CharacterSprite (${this.character.name})]: Cached card dimensions: ${this.cachedCardWidth}x${this.cachedCardHeight}`);
+            } else {
+                // This case should ideally not happen if cardFrame creation is robust.
+                // If it does, it means there's a deeper issue in cardFrame initialization.
+                console.error(`[CharacterSprite (${this.character.name})]: CRITICAL - Failed to cache card dimensions as visualComponent.config was not available post-creation.`);
+                this.cachedCardWidth = 240; // Fallback, but indicates a problem
+                this.cachedCardHeight = 320; // Fallback, but indicates a problem
+            }
             
             // Set up events for the card frame
             this.setupCardFrameEvents();
