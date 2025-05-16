@@ -19,7 +19,7 @@
  */
 const VISUAL_DEFAULTS = {
     // Core dimensions
-    width: 240,                 // Width of card frame
+    width: 500,                 // Width of card frame
     height: 320,                // Height of card frame
     borderWidth: 10,            // Width of frame border
     cornerRadius: 12,           // Corner radius for frame
@@ -28,7 +28,7 @@ const VISUAL_DEFAULTS = {
     frameTexture: 'card-frame', // Base texture for card frame
     frameAlpha: 1,              // Opacity of the frame
     frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
-    backgroundAlpha: 0.2,       // Background opacity
+    backgroundAlpha: .2,       // Background opacity
     
     // Depth Effects
     depthEffects: {
@@ -40,7 +40,7 @@ const VISUAL_DEFAULTS = {
         },
         edgeEffects: {
             enabled: true,      // Enable edge highlights and shadows
-            highlightBrightness: 40, // How much brighter the highlights are (%)
+            highlightBrightness: 100, // How much brighter the highlights are (%)
             shadowDarkness: 40, // How much darker the shadows are (%)
             width: 1.5,         // Width of edge effect lines
             opacity: 0.6,       // Opacity of edge effects (0-1)

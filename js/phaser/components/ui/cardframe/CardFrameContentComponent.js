@@ -27,7 +27,7 @@ const CONTENT_DEFAULTS = {
     // Art positioning
     artOffsetX: 0,              // Fine-tune character art horizontal position
     artOffsetY: 0,              // Fine-tune character art vertical position
-    artScale: 1,                // Scaling factor for character art
+    artScale: 2,                // Scaling factor for character art
     
     // Portrait window
     portrait: {

@@ -238,8 +238,8 @@ class CharacterSprite {
         // Create a complete card configuration by merging defaults with provided options
         this.cardConfig = {
             enabled: this.config.useCardFrame || false,
-            width: this.config.cardConfig?.width || 240,
-            height: this.config.cardConfig?.height || 320,
+            width: this.config.cardConfig?.width || 500,
+            height: this.config.cardConfig?.height || 500,
             portraitOffsetY: this.config.cardConfig?.portraitOffsetY || -20,
             nameBannerHeight: this.config.cardConfig?.nameBannerHeight || 40,
             healthBarOffsetY: this.config.cardConfig?.healthBarOffsetY || 90,

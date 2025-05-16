@@ -125,6 +125,11 @@ class CardFrameHealthComponent {
         this.healthBar = null;
         this.healthText = null;
         
+        // Track current health percentage for smooth animations
+        this._currentHealthPercent = Math.max(0, Math.min(1, 
+            this.config.values.current / Math.max(1, this.config.values.max)
+        ));
+        
         // Initialize if health should be shown
         if (this.config.display.show) {
             this.createHealthBar(); // This will create and add elements to this.healthBarContainer, then add that to this.container
@@ -160,10 +165,13 @@ class CardFrameHealthComponent {
                 radius
             );
             
-            // Calculate health percentage
+            // Calculate health percentage (clamped 0-1)
             const healthPercent = Math.max(0, Math.min(1, 
-                this.config.values.current / this.config.values.max
+                this.config.values.current / Math.max(1, this.config.values.max) // Prevent division by zero
             ));
+            
+            // Store initial health percentage for future animations
+            this._currentHealthPercent = healthPercent;
             
             // Create health bar fill with rounded corners
             const barWidth = this.config.healthBar.width - this.config.healthBar.padding; // Slight padding
@@ -299,26 +307,29 @@ class CardFrameHealthComponent {
                 this.config.values.max = maxHealth;
             }
             
+            // Calculate the new health percentage
+            const newHealthPercent = Math.max(0, Math.min(1, 
+                this.config.values.current / Math.max(1, this.config.values.max) // Prevent division by zero
+            ));
+            
             // Make sure health bar exists
             if (!this.healthBar || !this.healthBarContainer) {
                 console.warn('CardFrameHealthComponent: Health bar not found, cannot update');
                 return;
             }
             
-            // Calculate health percentage
-            const healthPercent = Math.max(0, Math.min(1, 
-                this.config.values.current / this.config.values.max
-            ));
+            // Previous calculation already done above
+            // We'll use newHealthPercent instead
             
             // Calculate new width
             const barWidth = this.config.healthBar.width - this.config.healthBar.padding; // Slight padding
-            const newWidth = barWidth * healthPercent;
+            const newWidth = barWidth * newHealthPercent;
             
             // Get color based on health percentage
-            const newColor = this.getHealthBarColor(healthPercent);
+            const newColor = this.getHealthBarColor(newHealthPercent);
             
-            // Store previous width for animation
-            const oldWidth = this.healthBar.width;
+            // Store previous health percentage for animation
+            const previousHealthPercent = this._currentHealthPercent;
             
             // Update health text if it exists
             if (this.healthText) {
@@ -339,10 +350,13 @@ class CardFrameHealthComponent {
             if (animate && this.scene && this.scene.tweens) {
                 // Store animation values for redrawing
                 this._animatingHealth = true;
-                this._targetHealthPercent = healthPercent;
-                this._startHealthPercent = oldWidth / barWidth;
+                this._targetHealthPercent = newHealthPercent;
+                this._startHealthPercent = previousHealthPercent; // Use tracked percentage instead of width
                 this._healthAnimStartTime = this.scene.time.now;
                 this._healthAnimDuration = this.config.animation.duration; // Duration in ms
+                
+                // Update the current percentage for next animation
+                this._currentHealthPercent = newHealthPercent;
                 
                 // Create a tween on a dummy object to track progress
                 const dummyObj = { progress: 0 };
@@ -370,7 +384,7 @@ class CardFrameHealthComponent {
                 });
                 
                 // Add visual feedback based on health change
-                if (oldWidth > newWidth) {
+                if (previousHealthPercent > newHealthPercent) {
                     // Taking damage - shake health text
                     if (this.healthText) {
                         this.scene.tweens.add({
@@ -382,7 +396,7 @@ class CardFrameHealthComponent {
                             ease: 'Sine.easeInOut'
                         });
                     }
-                } else if (oldWidth < newWidth) {
+                } else if (previousHealthPercent < newHealthPercent) {
                     // Being healed - green flash
                     // Create healing glow overlay positioned at the portrait's position
                     const portraitY = this.config.portrait ? this.config.portrait.offsetY : 0;
@@ -426,7 +440,10 @@ class CardFrameHealthComponent {
                 }
             } else {
                 // Direct update without animation
-                this._updateHealthBarGraphics(healthPercent);
+                this._updateHealthBarGraphics(newHealthPercent);
+                
+                // Update the current percentage for next animation
+                this._currentHealthPercent = newHealthPercent;
             }
         } catch (error) {
             console.error('CardFrameHealthComponent: Error updating health:', error);
@@ -439,14 +456,17 @@ class CardFrameHealthComponent {
      * @returns {number} - Color as hex number.
      */
     getHealthBarColor(percent) {
-        // Validate percent is a number and in range
-        if (typeof percent !== 'number' || isNaN(percent)) {
-            console.warn('CardFrameHealthComponent.getHealthBarColor: Invalid percentage value');
-            return 0x00FF00; // Default to green
+        // Enhanced validation for percent - catches NaN, undefined, null, and non-numbers
+        if (percent === undefined || percent === null || typeof percent !== 'number' || isNaN(percent)) {
+            console.warn('CardFrameHealthComponent.getHealthBarColor: Invalid percentage value, using current health percentage');
+            // Use tracked health percentage as fallback instead of defaulting to 100%
+            percent = this._currentHealthPercent || 0;
         }
         
-        // Clamp to valid range
-        const clampedPercent = Math.max(0, Math.min(1, percent));
+        // Clamp to valid range using Phaser's Math utility if available
+        const clampedPercent = this.scene && this.scene.math ? 
+            this.scene.math.clamp(percent, 0, 1) : 
+            Math.max(0, Math.min(1, percent));
         
         // Return color based on health percentage
         if (clampedPercent < this.config.healthStatus.thresholds.low) return this.config.healthStatus.colors.low; // Red (low health)
@@ -465,6 +485,15 @@ class CardFrameHealthComponent {
     _updateHealthBarGraphics(healthPercent) {
         try {
             if (!this.healthBar || !this.healthBar.scene) return;
+            
+            // Validate the health percent (defensive programming)
+            if (healthPercent === undefined || healthPercent === null || typeof healthPercent !== 'number' || isNaN(healthPercent)) {
+                console.warn('CardFrameHealthComponent._updateHealthBarGraphics: Invalid percentage value, using current tracked percentage');
+                healthPercent = this._currentHealthPercent || 0;
+            }
+            
+            // Ensure healthPercent is properly clamped
+            healthPercent = Math.max(0, Math.min(1, healthPercent));
             
             // Clear existing graphics
             this.healthBar.clear();

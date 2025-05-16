@@ -1,3 +1,20 @@
+## 0.7.4.1 - CardFrameHealthComponent Animation Fix (2025-05-16)
+
+### Fixed
+- Fixed issue causing "Invalid percentage value" warnings in the console during health bar animations
+- Resolved NaN values in health animations by tracking health percentage directly instead of relying on Graphics width
+- Added robust validation to prevent errors in health bar percentage calculations
+- Improved health animation transitions with reliable percentage tracking
+
+### Technical
+- Identified root cause: Phaser Graphics objects don't maintain width property automatically
+- Added explicit health percentage tracking for animation start/end points
+- Implemented defensive programming with validation at multiple levels
+- Added division by zero protection for all percentage calculations
+- Ensured smooth and reliable health bar animations in all scenarios
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.4.1_CardFrameHealthComponent_Animation_Fix.md*
+
 ## 0.7.4.0 - Component Configuration Defaults (2025-05-16)
 
 ### Added
