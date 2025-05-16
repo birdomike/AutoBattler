@@ -1,3 +1,23 @@
+## 0.7.4.0 - Component Configuration Defaults (2025-05-16)
+
+### Added
+- Added comprehensive CONFIGURATION DEFAULTS sections to all CardFrame components
+- Created clearly labeled configuration constants at the top of each component file
+- Added detailed documentation for each configuration option
+
+### Changed
+- Replaced all hardcoded values with references to configuration options throughout components
+- Organized configuration values into logical groups for better organization
+- Added backward compatibility with legacy property names through mapping system
+- Improved consistency of configuration access patterns across all components
+
+### Technical
+- This update completes Phase 3 of the CardFrame refactoring project (Hardcoded Values Check)
+- Implemented Single Source of Truth principle across all components
+- Added legacy property mapping for backward compatibility
+- Made configuration values immediately visible and easy to modify
+- Full implementation details in CHANGELOG_0.7.4.0_ComponentConfigurationDefaults.md
+
 ## 0.7.3.1 - Component Configuration Cleanup (2025-05-15)
 
 ### Improved

@@ -11,6 +11,60 @@
  * CardFrameManager.js should be rejected. All such configuration belongs here.
  */
 
+/**
+ * ===========================================
+ * VISUAL COMPONENT CONFIGURATION DEFAULTS
+ * Modify these values to customize visual appearance.
+ * ===========================================
+ */
+const VISUAL_DEFAULTS = {
+    // Core dimensions
+    width: 240,                 // Width of card frame
+    height: 320,                // Height of card frame
+    borderWidth: 10,            // Width of frame border
+    cornerRadius: 12,           // Corner radius for frame
+    
+    // Appearance
+    frameTexture: 'card-frame', // Base texture for card frame
+    frameAlpha: 1,              // Opacity of the frame
+    frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
+    backgroundAlpha: 0.2,       // Background opacity
+    
+    // Depth Effects
+    depthEffects: {
+        enabled: true,          // Master toggle for all depth effects
+        innerGlow: {
+            enabled: true,      // Enable inner glow effect
+            intensity: 0.3,     // Intensity of inner glow (0-1)
+            layers: 4           // Number of glow layers (more = smoother but more expensive)
+        },
+        edgeEffects: {
+            enabled: true,      // Enable edge highlights and shadows
+            highlightBrightness: 40, // How much brighter the highlights are (%)
+            shadowDarkness: 40, // How much darker the shadows are (%)
+            width: 1.5,         // Width of edge effect lines
+            opacity: 0.6,       // Opacity of edge effects (0-1)
+            cornerOpacityReduction: 0.8 // Opacity reduction for corner effects
+        }
+    },
+    
+    // Fallback frame options
+    fallback: {
+        lineWidth: 4,           // Line width for fallback frame
+        frameAlpha: 1           // Opacity of fallback frame
+    },
+    
+    // Debug visualization
+    debug: {
+        enabled: false,         // Show debug information/boundaries
+        colors: {
+            boundary: 0xFF00FF, // Color for card boundary visualization
+            centerPoint: 0xFFFF00 // Color for center point visualization
+        },
+        centerPointSize: 10     // Size of center point indicator lines
+    }
+};
+
 class CardFrameVisualComponent {
     /**
      * Create a new CardFrameVisualComponent
@@ -30,42 +84,14 @@ class CardFrameVisualComponent {
         this.container = container;
         this.typeColor = typeColor || 0xAAAAAA; // Default to neutral gray if no type color provided
         
-        // Configuration with defaults (only visual properties relevant to this component)
+        // Configuration with defaults - reference the top-level defaults
         // IMPORTANT: Object.assign pattern ensures config values override defaults
-        // (defaults are first, config is second, so config values take precedence)
-        this.config = Object.assign({
-            // Core dimensions (3:4 aspect ratio)
-            width: 240,                 // Width of card frame
-            height: 320,                // Height of card frame
-            borderWidth: 10,            // Width of frame border
-            cornerRadius: 12,           // Corner radius for frame
-            
-            // Appearance
-            frameTexture: 'card-frame', // Base texture for card frame
-            frameAlpha: 1,              // Opacity of the frame
-            frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
-            backgroundAlpha: 0.2,       // Background opacity
-            
-            // Depth Effects
-            depthEffects: {
-                enabled: true,           // Master toggle for all depth effects
-                innerGlow: {
-                    enabled: true,       // Enable inner glow effect
-                    intensity: 0.3,      // Intensity of inner glow (0-1)
-                    layers: 4            // Number of glow layers (more = smoother but more expensive)
-                },
-                edgeEffects: {
-                    enabled: true,       // Enable edge highlights and shadows
-                    highlightBrightness: 40, // How much brighter the highlights are (%)
-                    shadowDarkness: 40,  // How much darker the shadows are (%)
-                    width: 1.5,          // Width of edge effect lines
-                    opacity: 0.6         // Opacity of edge effects (0-1)
-                }
-            },
-            
-            // Debug
-            debugMode: false            // Show debug information/boundaries
-        }, config);
+        this.config = Object.assign({}, VISUAL_DEFAULTS, config);
+        
+        // Map legacy debugMode property to new structure for backward compatibility
+        if (config.debugMode !== undefined) {
+            this.config.debug.enabled = config.debugMode;
+        }
         
         // Object references for created GameObjects
         this.frameBase = null;
@@ -101,7 +127,7 @@ class CardFrameVisualComponent {
             }
             
             // Add debug visuals if enabled
-            if (this.config.debugMode) {
+            if (this.config.debug.enabled) {
                 const debugVisuals = this.createDebugVisuals();
             }
         } catch (error) {
@@ -234,7 +260,7 @@ class CardFrameVisualComponent {
         try {
             // Create basic rectangular frame
             const fallbackFrame = this.scene.add.graphics();
-            fallbackFrame.lineStyle(4, this.typeColor, 1);
+            fallbackFrame.lineStyle(this.config.fallback.lineWidth, this.typeColor, this.config.fallback.frameAlpha);
             fallbackFrame.strokeRect(
                 -this.config.width / 2,
                 -this.config.height / 2,
@@ -323,7 +349,7 @@ class CardFrameVisualComponent {
             edgeEffects.strokePath();
             
             // Bottom-right corner (shadow)
-            edgeEffects.lineStyle(width, shadowColor.color, opacity * 0.8);
+            edgeEffects.lineStyle(width, shadowColor.color, opacity * this.config.depthEffects.edgeEffects.cornerOpacityReduction);
             edgeEffects.beginPath();
             edgeEffects.arc(frameWidth / 2 - cornerRadius, frameHeight / 2 - cornerRadius, cornerRadius, 0, 0.5 * Math.PI);
             edgeEffects.strokePath();
@@ -348,7 +374,7 @@ class CardFrameVisualComponent {
     createDebugVisuals() {
         try {
             const debug = this.scene.add.graphics();
-            debug.lineStyle(1, 0xFF00FF, 1);
+            debug.lineStyle(1, this.config.debug.colors.boundary, 1);
             
             // Card boundary
             debug.strokeRect(
@@ -359,9 +385,10 @@ class CardFrameVisualComponent {
             );
             
             // Center point
-            debug.lineStyle(1, 0xFFFF00, 1);
-            debug.lineBetween(-10, 0, 10, 0);
-            debug.lineBetween(0, -10, 0, 10);
+            debug.lineStyle(1, this.config.debug.colors.centerPoint, 1);
+            const pointSize = this.config.debug.centerPointSize;
+            debug.lineBetween(-pointSize, 0, pointSize, 0);
+            debug.lineBetween(0, -pointSize, 0, pointSize);
             
             this.container.add(debug);
             

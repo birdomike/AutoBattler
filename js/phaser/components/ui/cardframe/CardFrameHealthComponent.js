@@ -10,6 +10,76 @@
  * CODE REVIEW GUIDELINE: Any PR that adds health-related configuration to
  * CardFrameManager.js should be rejected. All such configuration belongs here.
  */
+
+/**
+ * ===========================================
+ * HEALTH COMPONENT CONFIGURATION DEFAULTS
+ * Modify these values to customize health bar appearance and animations.
+ * ===========================================
+ */
+const HEALTH_DEFAULTS = {
+    // Health values
+    values: {
+        current: 100,           // Current health value
+        max: 100,               // Maximum health value
+    },
+    
+    // Display options
+    display: {
+        show: true,             // Whether to show health bar
+        showText: true,         // Whether to show health text
+    },
+    
+    // Health bar dimensions and position
+    healthBar: {
+        width: 180,             // Width of the health bar
+        height: 18,             // Height of the health bar
+        offsetY: -145,          // Vertical position of health bar
+        borderRadius: 4,        // Rounded corners for health bar
+        bevelWidth: 1,          // Width of the bevel effect
+        padding: 4              // Padding inside background (calculated as barWidth - 4)
+    },
+    
+    // Health text styling
+    text: {
+        color: '#FFFFFF',       // Color of health text
+        fontFamily: "'Cinzel', serif", // Font family for health text
+        fontSize: '15px',       // Font size for health text
+        stroke: '#000000',      // Stroke color for health text
+        strokeThickness: 2,     // Stroke thickness for health text
+        fontStyle: 'bold'       // Font style for better readability
+    },
+    
+    // Animations
+    animation: {
+        duration: 300,          // Duration of health change animations
+        damage: {
+            shakeAmount: 2,     // Amount of shake for damage animation
+            shakeDuration: 100  // Duration of shake for damage animation
+        },
+        healing: {
+            bounceAmount: 2,    // Amount of bounce for healing animation
+            bounceDuration: 150, // Duration of bounce for healing animation
+            glowWidth: 200,     // Width of healing glow effect
+            glowHeight: 240,    // Height of healing glow effect
+            glowColor: 0x00FF00, // Color of healing glow effect
+            glowOpacity: 0.3    // Initial opacity of healing glow
+        }
+    },
+    
+    // Health status thresholds and colors
+    healthStatus: {
+        thresholds: {
+            low: 0.3,           // Threshold for low health (0-1)
+            medium: 0.6         // Threshold for medium health (0-1)
+        },
+        colors: {
+            low: 0xFF0000,      // Color for low health
+            medium: 0xFFAA00,   // Color for medium health
+            high: 0x00FF00      // Color for high health
+        }
+    }
+};
 class CardFrameHealthComponent {
     /**
      * Create a new CardFrameHealthComponent.
@@ -29,31 +99,25 @@ class CardFrameHealthComponent {
         this.container = container; // This is the CardFrameManager instance
         this.typeColor = typeColor || 0xAAAAAA; // Default to neutral gray if no type color provided
         
-        // Store configuration - define OUR defaults first
-        // CardFrameManager's config will override these defaults when specified
-        const ourDefaults = {
-            // Health display configuration
-            currentHealth: 100,
-            maxHealth: 100,
-            showHealth: true,
-            healthBarWidth: 180, // Controls the width of the health bar (increased from 180)
-            healthBarHeight: 18, // Slightly increased height to accommodate text better
-            healthBarOffsetY: -145, // Vertical position of health bar - MODIFY THIS VALUE TO MOVE THE BAR UP/DOWN
-            showHealthText: true,
-            // Health bar styling
-            healthBarBorderRadius: 4, // Rounded corners for health bar
-            healthBarBevelWidth: 1, // Width of the bevel effect
-            // Health text styling
-            healthTextColor: '#FFFFFF',
-            healthTextFontFamily: "'Cinzel', serif",
-            healthTextFontSize: '15px', // Increased to 11px for better legibility
-            healthTextStrokeColor: '#000000',
-            healthTextStrokeThickness: 2
-        };
+        // Configuration with defaults - reference the top-level defaults
+        // IMPORTANT: Object.assign pattern ensures config values override defaults
+        this.config = Object.assign({}, HEALTH_DEFAULTS, config);
         
-        // Merge our defaults with the provided config
-        // This ensures CardFrameManager can override our defaults when needed
-        this.config = Object.assign({}, ourDefaults, config);
+        // Handle legacy property mapping for backward compatibility
+        if (config.currentHealth !== undefined) this.config.values.current = config.currentHealth;
+        if (config.maxHealth !== undefined) this.config.values.max = config.maxHealth;
+        if (config.showHealth !== undefined) this.config.display.show = config.showHealth;
+        if (config.showHealthText !== undefined) this.config.display.showText = config.showHealthText;
+        if (config.healthBarWidth !== undefined) this.config.healthBar.width = config.healthBarWidth;
+        if (config.healthBarHeight !== undefined) this.config.healthBar.height = config.healthBarHeight;
+        if (config.healthBarOffsetY !== undefined) this.config.healthBar.offsetY = config.healthBarOffsetY;
+        if (config.healthBarBorderRadius !== undefined) this.config.healthBar.borderRadius = config.healthBarBorderRadius;
+        if (config.healthBarBevelWidth !== undefined) this.config.healthBar.bevelWidth = config.healthBarBevelWidth;
+        if (config.healthTextColor !== undefined) this.config.text.color = config.healthTextColor;
+        if (config.healthTextFontFamily !== undefined) this.config.text.fontFamily = config.healthTextFontFamily;
+        if (config.healthTextFontSize !== undefined) this.config.text.fontSize = config.healthTextFontSize;
+        if (config.healthTextStrokeColor !== undefined) this.config.text.stroke = config.healthTextStrokeColor;
+        if (config.healthTextStrokeThickness !== undefined) this.config.text.strokeThickness = config.healthTextStrokeThickness;
         
         // Object references for Phaser GameObjects managed by this component
         this.healthBarContainer = null; // This will be a new container, added to the parent `this.container` (CardFrameManager)
@@ -62,7 +126,7 @@ class CardFrameHealthComponent {
         this.healthText = null;
         
         // Initialize if health should be shown
-        if (this.config.showHealth) {
+        if (this.config.display.show) {
             this.createHealthBar(); // This will create and add elements to this.healthBarContainer, then add that to this.container
         }
         
@@ -78,32 +142,32 @@ class CardFrameHealthComponent {
             // Create health bar container
             this.healthBarContainer = this.scene.add.container(
                 0, 
-                this.config.healthBarOffsetY
+                this.config.healthBar.offsetY
             );
             
             // Get configuration values
-            const radius = this.config.healthBarBorderRadius || 3;
-            const bevelWidth = this.config.healthBarBevelWidth || 1;
+            const radius = this.config.healthBar.borderRadius || 3;
+            const bevelWidth = this.config.healthBar.bevelWidth || 1;
             
             // Create health bar background with rounded corners
             this.healthBarBg = this.scene.add.graphics();
             this.healthBarBg.fillStyle(0x000000, 0.7);
             this.healthBarBg.fillRoundedRect(
-                -this.config.healthBarWidth / 2,
-                -this.config.healthBarHeight / 2,
-                this.config.healthBarWidth,
-                this.config.healthBarHeight,
+                -this.config.healthBar.width / 2,
+                -this.config.healthBar.height / 2,
+                this.config.healthBar.width,
+                this.config.healthBar.height,
                 radius
             );
             
             // Calculate health percentage
             const healthPercent = Math.max(0, Math.min(1, 
-                this.config.currentHealth / this.config.maxHealth
+                this.config.values.current / this.config.values.max
             ));
             
             // Create health bar fill with rounded corners
-            const barWidth = this.config.healthBarWidth - 4; // Slight padding
-            const barHeight = this.config.healthBarHeight - 4; // Slight padding
+            const barWidth = this.config.healthBar.width - this.config.healthBar.padding; // Slight padding
+            const barHeight = this.config.healthBar.height - this.config.healthBar.padding; // Slight padding
             const healthColor = this.getHealthBarColor(healthPercent);
             
             this.healthBar = this.scene.add.graphics();
@@ -143,8 +207,8 @@ class CardFrameHealthComponent {
             innerBevel.lineStyle(bevelWidth, lighterColor, 0.7);
             // Draw top line with rounded corners
             innerBevel.beginPath();
-            innerBevel.moveTo(-barWidth / 2 + radius, -barHeight / 2 + bevelWidth / 2);
-            innerBevel.lineTo((-barWidth / 2) + Math.min(adjustedWidth, barWidth) - radius, -barHeight / 2 + bevelWidth / 2);
+            innerBevel.moveTo(-barWidth / 2 + radius, -barHeight / 2 + this.config.healthBar.bevelWidth / 2);
+            innerBevel.lineTo((-barWidth / 2) + Math.min(adjustedWidth, barWidth) - radius, -barHeight / 2 + this.config.healthBar.bevelWidth / 2);
             innerBevel.strokePath();
             
             // Left line with rounded corner
@@ -186,17 +250,17 @@ class CardFrameHealthComponent {
             this.healthBarContainer.add([this.healthBarBg, this.healthBar, innerBevel, healthBarFrame]);
             
             // Create health text if enabled - added AFTER other elements for proper rendering order
-            if (this.config.showHealthText) {
+            if (this.config.display.showText) {
                 this.healthText = this.scene.add.text(
                     0, 0,
-                    `${Math.round(this.config.currentHealth)}/${this.config.maxHealth}`,
+                    `${Math.round(this.config.values.current)}/${this.config.values.max}`,
                     {
-                        fontFamily: this.config.healthTextFontFamily,
-                        fontSize: this.config.healthTextFontSize, // Use the configured font size
-                        fontStyle: 'bold', // Added to make Cinzel more readable at small sizes
-                        color: this.config.healthTextColor,
-                        stroke: this.config.healthTextStrokeColor,
-                        strokeThickness: this.config.healthTextStrokeThickness,
+                        fontFamily: this.config.text.fontFamily,
+                        fontSize: this.config.text.fontSize,
+                        fontStyle: this.config.text.fontStyle,
+                        color: this.config.text.color,
+                        stroke: this.config.text.stroke,
+                        strokeThickness: this.config.text.strokeThickness,
                     }
                 ).setOrigin(0.5);
                 
@@ -229,10 +293,10 @@ class CardFrameHealthComponent {
             }
             
             // Update stored health values
-            this.config.currentHealth = currentHealth;
+            this.config.values.current = currentHealth;
             
             if (maxHealth !== null) {
-                this.config.maxHealth = maxHealth;
+                this.config.values.max = maxHealth;
             }
             
             // Make sure health bar exists
@@ -243,11 +307,11 @@ class CardFrameHealthComponent {
             
             // Calculate health percentage
             const healthPercent = Math.max(0, Math.min(1, 
-                this.config.currentHealth / this.config.maxHealth
+                this.config.values.current / this.config.values.max
             ));
             
             // Calculate new width
-            const barWidth = this.config.healthBarWidth - 4; // Slight padding
+            const barWidth = this.config.healthBar.width - this.config.healthBar.padding; // Slight padding
             const newWidth = barWidth * healthPercent;
             
             // Get color based on health percentage
@@ -258,16 +322,16 @@ class CardFrameHealthComponent {
             
             // Update health text if it exists
             if (this.healthText) {
-                this.healthText.setText(`${Math.round(this.config.currentHealth)}/${this.config.maxHealth}`);
+                this.healthText.setText(`${Math.round(this.config.values.current)}/${this.config.values.max}`);
                 
                 // Ensure text uses current configuration
                 this.healthText.setStyle({
-                    fontFamily: this.config.healthTextFontFamily,
-                    fontSize: this.config.healthTextFontSize,
-                    fontStyle: 'bold',
-                    color: this.config.healthTextColor,
-                    stroke: this.config.healthTextStrokeColor,
-                    strokeThickness: this.config.healthTextStrokeThickness
+                    fontFamily: this.config.text.fontFamily,
+                    fontSize: this.config.text.fontSize,
+                    fontStyle: this.config.text.fontStyle,
+                    color: this.config.text.color,
+                    stroke: this.config.text.stroke,
+                    strokeThickness: this.config.text.strokeThickness
                 });
             }
             
@@ -278,7 +342,7 @@ class CardFrameHealthComponent {
                 this._targetHealthPercent = healthPercent;
                 this._startHealthPercent = oldWidth / barWidth;
                 this._healthAnimStartTime = this.scene.time.now;
-                this._healthAnimDuration = 300; // Duration in ms
+                this._healthAnimDuration = this.config.animation.duration; // Duration in ms
                 
                 // Create a tween on a dummy object to track progress
                 const dummyObj = { progress: 0 };
@@ -311,8 +375,8 @@ class CardFrameHealthComponent {
                     if (this.healthText) {
                         this.scene.tweens.add({
                             targets: this.healthText,
-                            x: { from: -2, to: 0 },
-                            duration: 100,
+                            x: { from: -this.config.animation.damage.shakeAmount, to: 0 },
+                            duration: this.config.animation.damage.shakeDuration,
                             repeat: 1,
                             yoyo: true,
                             ease: 'Sine.easeInOut'
@@ -321,14 +385,15 @@ class CardFrameHealthComponent {
                 } else if (oldWidth < newWidth) {
                     // Being healed - green flash
                     // Create healing glow overlay positioned at the portrait's position
-                    const portraitY = this.config.portraitOffsetY || 0;
+                    const portraitY = this.config.portrait ? this.config.portrait.offsetY : 0;
                     
                     const healGlow = this.scene.add.rectangle(
                         0, // Center horizontally
                         portraitY, // Position at portrait vertical position
-                        200, // Use width/height similar to portrait dimensions
-                        240,
-                        0x00FF00, 0.3
+                        this.config.animation.healing.glowWidth, // Use width/height from config
+                        this.config.animation.healing.glowHeight,
+                        this.config.animation.healing.glowColor, 
+                        this.config.animation.healing.glowOpacity
                     );
                     
                     // Add directly to container
@@ -352,8 +417,8 @@ class CardFrameHealthComponent {
                     if (this.healthText) {
                         this.scene.tweens.add({
                             targets: this.healthText,
-                            y: { from: -2, to: 0 },
-                            duration: 150,
+                            y: { from: -this.config.animation.healing.bounceAmount, to: 0 },
+                            duration: this.config.animation.healing.bounceDuration,
                             yoyo: true,
                             ease: 'Bounce'
                         });
@@ -384,9 +449,9 @@ class CardFrameHealthComponent {
         const clampedPercent = Math.max(0, Math.min(1, percent));
         
         // Return color based on health percentage
-        if (clampedPercent < 0.3) return 0xFF0000; // Red (low health)
-        if (clampedPercent < 0.6) return 0xFFAA00; // Orange (medium health)
-        return 0x00FF00; // Green (high health)
+        if (clampedPercent < this.config.healthStatus.thresholds.low) return this.config.healthStatus.colors.low; // Red (low health)
+        if (clampedPercent < this.config.healthStatus.thresholds.medium) return this.config.healthStatus.colors.medium; // Orange (medium health)
+        return this.config.healthStatus.colors.high; // Green (high health)
     }
     
     /**
@@ -405,9 +470,9 @@ class CardFrameHealthComponent {
             this.healthBar.clear();
             
             // Get configuration values
-            const radius = this.config.healthBarBorderRadius || 3;
-            const barWidth = this.config.healthBarWidth - 4; // Slight padding
-            const barHeight = this.config.healthBarHeight - 4; // Slight padding
+            const radius = this.config.healthBar.borderRadius || 3;
+            const barWidth = this.config.healthBar.width - this.config.healthBar.padding; // Slight padding
+            const barHeight = this.config.healthBar.height - this.config.healthBar.padding; // Slight padding
             const healthColor = this.getHealthBarColor(healthPercent);
             
             // Fill the health bar

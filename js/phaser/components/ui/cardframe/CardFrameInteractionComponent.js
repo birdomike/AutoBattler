@@ -10,6 +10,50 @@
  * CODE REVIEW GUIDELINE: Any PR that adds interaction-related configuration to
  * CardFrameManager.js should be rejected. All such configuration belongs here.
  */
+
+/**
+ * ===========================================
+ * INTERACTION COMPONENT CONFIGURATION DEFAULTS
+ * Modify these values to customize hover and selection effects.
+ * ===========================================
+ */
+const INTERACTION_DEFAULTS = {
+    // Interaction behavior
+    interactive: false,         // Whether card is interactive
+    hoverEnabled: true,         // Whether hover effects are enabled
+    
+    // Callbacks
+    callbacks: {
+        onSelect: null,         // Callback when card is selected
+        onHoverStart: null,     // Callback when hover starts
+        onHoverEnd: null        // Callback when hover ends
+    },
+    
+    // Animation settings
+    animation: {
+        hoverScale: 1.05,       // Scale factor when hovering
+        selectedScale: 1.1,     // Scale factor when selected
+        duration: 150,          // Duration of animations in ms
+        pulseDuration: 600      // Duration of pulse animation in ms
+    },
+    
+    // Glow effects
+    glow: {
+        intensity: 0.7,         // Base intensity of glow effect (0-1)
+        highlightMultiplier: 1.5, // Intensity multiplier for highlighted state
+        layers: 3,              // Number of glow layers for effect smoothness
+        paddingBase: 5,         // Base padding for glow effect
+        paddingIncrement: 3,    // Padding increment per layer
+        opacityBase: 0.2,       // Base opacity for glow effect
+        opacityDecrement: 0.2   // Opacity reduction per layer
+    },
+    
+    // Initial state
+    state: {
+        selected: false,        // Whether card is initially selected
+        highlighted: false      // Whether card is initially highlighted
+    }
+};
 class CardFrameInteractionComponent {
     /**
      * Create a new CardFrameInteractionComponent
@@ -29,31 +73,24 @@ class CardFrameInteractionComponent {
         this.container = container; // This is the CardFrameManager instance
         this.typeColor = typeColor || 0xAAAAAA; // Default to neutral gray if no type color provided
         
-        // Store configuration with defaults relevant to interaction
+        // Configuration with defaults - reference the top-level defaults
         // IMPORTANT: Object.assign pattern ensures config values override defaults
-        // (defaults are first, config is second, so config values take precedence)
-        this.config = Object.assign({
-            // Interaction
-            interactive: false,         // Whether card is interactive
-            onSelect: null,             // Callback when card is selected
-            hoverEnabled: true,         // Whether hover effects are enabled
-            onHoverStart: null,         // Callback when hover starts
-            onHoverEnd: null,           // Callback when hover ends
-            
-            // Animation
-            hoverScale: 1.05,           // Scale factor when hovering
-            selectedScale: 1.1,         // Scale factor when selected
-            animationDuration: 150,     // Duration of animations in ms
-            glowIntensity: 0.7,         // Intensity of glow effect (0-1)
-            
-            // State
-            selected: false,            // Whether card is currently selected
-            highlighted: false,         // Whether card is highlighted (e.g., active turn)
-        }, config);
+        this.config = Object.assign({}, INTERACTION_DEFAULTS, config);
+        
+        // Handle legacy property mapping for backward compatibility
+        if (config.onSelect !== undefined) this.config.callbacks.onSelect = config.onSelect;
+        if (config.onHoverStart !== undefined) this.config.callbacks.onHoverStart = config.onHoverStart;
+        if (config.onHoverEnd !== undefined) this.config.callbacks.onHoverEnd = config.onHoverEnd;
+        if (config.hoverScale !== undefined) this.config.animation.hoverScale = config.hoverScale;
+        if (config.selectedScale !== undefined) this.config.animation.selectedScale = config.selectedScale;
+        if (config.animationDuration !== undefined) this.config.animation.duration = config.animationDuration;
+        if (config.glowIntensity !== undefined) this.config.glow.intensity = config.glowIntensity;
+        if (config.selected !== undefined) this.config.state.selected = config.selected;
+        if (config.highlighted !== undefined) this.config.state.highlighted = config.highlighted;
         
         // Store internal state
-        this._highlighted = this.config.highlighted || false;
-        this._selected = this.config.selected || false;
+        this._highlighted = this.config.state.highlighted || false;
+        this._selected = this.config.state.selected || false;
         
         // Reference to important objects
         this.frameBase = null; // Will be set by setupInteractivity
@@ -132,21 +169,21 @@ class CardFrameInteractionComponent {
                     if (!this._selected) {
                         this.scene.tweens.add({
                             targets: this.container,
-                            scaleX: this.config.hoverScale,
-                            scaleY: this.config.hoverScale,
-                            duration: this.config.animationDuration,
+                            scaleX: this.config.animation.hoverScale,
+                            scaleY: this.config.animation.hoverScale,
+                            duration: this.config.animation.duration,
                             ease: 'Sine.easeOut'
                         });
                         
                         // Add partial glow effect
-                        this.addGlowEffect(this.config.glowIntensity / 2);
+                        this.addGlowEffect(this.config.glow.intensity / 2);
                         
                         // Set cursor
                         document.body.style.cursor = 'pointer';
                         
                         // Call onHoverStart callback if provided
-                        if (typeof this.config.onHoverStart === 'function') {
-                            this.config.onHoverStart();
+                        if (typeof this.config.callbacks.onHoverStart === 'function') {
+                            this.config.callbacks.onHoverStart();
                         }
                     }
                 });
@@ -157,7 +194,7 @@ class CardFrameInteractionComponent {
                             targets: this.container,
                             scaleX: 1,
                             scaleY: 1,
-                            duration: this.config.animationDuration,
+                            duration: this.config.animation.duration,
                             ease: 'Sine.easeOut'
                         });
                         
@@ -168,8 +205,8 @@ class CardFrameInteractionComponent {
                         document.body.style.cursor = 'default';
                         
                         // Call onHoverEnd callback if provided
-                        if (typeof this.config.onHoverEnd === 'function') {
-                            this.config.onHoverEnd();
+                        if (typeof this.config.callbacks.onHoverEnd === 'function') {
+                            this.config.callbacks.onHoverEnd();
                         }
                     }
                 });
@@ -182,8 +219,8 @@ class CardFrameInteractionComponent {
                     this.setSelected(!this._selected);
                     
                     // Call selection callback if provided
-                    if (this.config.onSelect) {
-                        this.config.onSelect(this.container);
+                    if (this.config.callbacks.onSelect) {
+                        this.config.callbacks.onSelect(this.container);
                     }
                 });
             }
@@ -218,13 +255,13 @@ class CardFrameInteractionComponent {
             // Apply different glow intensities based on state
             let appliedIntensity = intensity;
             if (this._highlighted) {
-                appliedIntensity = Math.min(1, intensity * 1.5);
+                appliedIntensity = Math.min(1, intensity * this.config.glow.highlightMultiplier);
             }
             
             // Draw multiple glow layers for a soft effect
-            for (let i = 0; i < 3; i++) {
-                const padding = 5 + (i * 3);
-                glow.fillStyle(glowColor, 0.2 * appliedIntensity * (1 - i * 0.2));
+            for (let i = 0; i < this.config.glow.layers; i++) {
+                const padding = this.config.glow.paddingBase + (i * this.config.glow.paddingIncrement);
+                glow.fillStyle(glowColor, this.config.glow.opacityBase * appliedIntensity * (1 - i * this.config.glow.opacityDecrement));
                 glow.fillRoundedRect(
                     -this.config.width / 2 - padding,
                     -this.config.height / 2 - padding,
@@ -281,19 +318,19 @@ class CardFrameInteractionComponent {
                 // Animate scale change
                 this.scene.tweens.add({
                     targets: this.container,
-                    scaleX: selected ? this.config.selectedScale : 1,
-                    scaleY: selected ? this.config.selectedScale : 1,
-                    duration: this.config.animationDuration,
+                    scaleX: selected ? this.config.animation.selectedScale : 1,
+                    scaleY: selected ? this.config.animation.selectedScale : 1,
+                    duration: this.config.animation.duration,
                     ease: 'Sine.easeOut'
                 });
             } else {
                 // Direct update without animation
-                this.container.setScale(selected ? this.config.selectedScale : 1);
+                this.container.setScale(selected ? this.config.animation.selectedScale : 1);
             }
             
             // Update glow effect
             if (selected) {
-                this.addGlowEffect(this.config.glowIntensity);
+                this.addGlowEffect(this.config.glow.intensity);
             } else if (!this._highlighted) {
                 // Only remove glow if not highlighted
                 this.removeGlowEffect();
@@ -324,15 +361,15 @@ class CardFrameInteractionComponent {
             // Add pulsing highlight if highlighted
             if (highlighted) {
                 // Add strong white glow
-                this.addGlowEffect(this.config.glowIntensity);
+                this.addGlowEffect(this.config.glow.intensity);
                 
                 if (animate && this.scene && this.scene.tweens) {
                     // Add pulsing animation
                     this.scene.tweens.add({
                         targets: this.container,
-                        scaleX: { from: 1, to: this.config.hoverScale },
-                        scaleY: { from: 1, to: this.config.hoverScale },
-                        duration: 600,
+                        scaleX: { from: 1, to: this.config.animation.hoverScale },
+                        scaleY: { from: 1, to: this.config.animation.hoverScale },
+                        duration: this.config.animation.pulseDuration,
                         yoyo: true,
                         repeat: -1,
                         ease: 'Sine.easeInOut'
@@ -351,7 +388,7 @@ class CardFrameInteractionComponent {
                             targets: this.container,
                             scaleX: 1,
                             scaleY: 1,
-                            duration: this.config.animationDuration,
+                            duration: this.config.animation.duration,
                             ease: 'Sine.easeOut'
                         });
                     } else {

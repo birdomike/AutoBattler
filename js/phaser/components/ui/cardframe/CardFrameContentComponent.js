@@ -10,6 +10,80 @@
  * CODE REVIEW GUIDELINE: Any PR that adds content-related configuration to
  * CardFrameManager.js should be rejected. All such configuration belongs here.
  */
+
+/**
+ * ===========================================
+ * CONTENT COMPONENT CONFIGURATION DEFAULTS
+ * Modify these values to customize character and name display.
+ * ===========================================
+ */
+const CONTENT_DEFAULTS = {
+    // Character information
+    characterKey: null,         // Texture key for character sprite
+    characterName: 'Character', // Name to display on card
+    characterType: 'neutral',   // Type for themed styling
+    characterTeam: null,        // Team identifier
+    
+    // Art positioning
+    artOffsetX: 0,              // Fine-tune character art horizontal position
+    artOffsetY: 0,              // Fine-tune character art vertical position
+    artScale: 1,                // Scaling factor for character art
+    
+    // Portrait window
+    portrait: {
+        width: 200,             // Width of portrait area
+        height: 240,            // Height of portrait area
+        offsetY: -20,           // Portrait vertical offset from center
+        mask: true,             // Whether to mask the portrait
+        cornerRadius: 8,        // Corner radius for portrait area
+        innerGlow: {
+            width: 2,           // Width of portrait inner glow line
+            opacity: 0.3        // Opacity of portrait inner glow
+        }
+    },
+    
+    // Nameplate
+    nameBanner: {
+        height: 25,             // Height of name banner
+        width: 210,             // Width of name banner
+        offsetY: 135,           // Distance from center to nameplate
+        opacity: 0.8,           // Opacity of name banner background
+        cornerRadius: 8,        // Corner radius for name banner
+        bevel: {
+            width: 2,           // Width of name banner bevel line
+            opacity: 0.3,       // Opacity of name banner bevel
+            color: 0xFFFFFF     // Color of name banner bevel
+        }
+    },
+    
+    // Name text
+    nameText: {
+        fontSize: 16,           // Font size for name text
+        fontFamily: 'serif',    // Font family for name text
+        color: '#FFFFFF',       // Text color
+        stroke: '#000000',      // Stroke color
+        strokeThickness: 3      // Stroke thickness
+    },
+    
+    // Decorative elements
+    decorative: {
+        showFlourishes: true,   // Whether to show flourishes around name
+        flourishSpacing: {
+            maxWidth: 45,       // Maximum spacing between name and flourish
+            margin: 15          // Margin to maintain between name and flourish
+        },
+        teamIndicatorOffset: 15 // Offset from edge for team indicator
+    },
+    
+    // Fallback character
+    fallback: {
+        fontSize: 48,           // Font size for fallback character
+        fontFamily: 'Arial',    // Font family for fallback character
+        color: '#FFFFFF',       // Text color for fallback
+        stroke: '#000000',      // Stroke color for fallback
+        strokeThickness: 4      // Stroke thickness for fallback
+    }
+};
 class CardFrameContentComponent {
     /**
      * Create a new CardFrameContentComponent.
@@ -29,35 +103,21 @@ class CardFrameContentComponent {
         this.container = container; // This is the CardFrameManager instance
         this.typeColor = typeColor || 0xAAAAAA; // Default to neutral gray if no type color provided
         
-        // Store configuration with defaults relevant to content
+        // Configuration with defaults - reference the top-level defaults
         // IMPORTANT: Object.assign pattern ensures config values override defaults
-        // (defaults are first, config is second, so config values take precedence)
-        this.config = Object.assign({
-            // Character information
-            characterKey: null,         // Texture key for character sprite
-            characterName: 'Character', // Name to display on card
-            characterType: 'neutral',   // Type for themed styling (e.g., 'fire', 'water')
-            characterTeam: null,        // Team identifier (e.g., 'player', 'enemy')
-            
-            // Art positioning adjustments
-            artOffsetX: 0,              // Fine-tune character art horizontal position
-            artOffsetY: 0,              // Fine-tune character art vertical position
-            artScale: 1,                // Scaling factor for character art
-            
-            // Portrait window
-            portraitWidth: 200,         // Width of portrait area
-            portraitHeight: 240,        // Height of portrait area
-            portraitOffsetY: -20,       // Portrait vertical offset from center
-            portraitMask: true,         // Whether to mask the portrait
-            
-            // Nameplate
-            nameBannerHeight: 25,       // Height of name banner
-            nameBannerWidth: 210,       // Width of name banner (slightly less than card width)
-            nameFontSize: 16,           // Font size for name text
-            nameFontFamily: 'serif',    // Font family for name text
-            nameOffsetY: 135,           // Distance from center to nameplate
-            showDecorativeFlourishes: true, // Whether to show flourishes around name
-        }, config);
+        this.config = Object.assign({}, CONTENT_DEFAULTS, config);
+        
+        // Handle legacy property mapping for backward compatibility
+        if (config.portraitWidth !== undefined) this.config.portrait.width = config.portraitWidth;
+        if (config.portraitHeight !== undefined) this.config.portrait.height = config.portraitHeight;
+        if (config.portraitOffsetY !== undefined) this.config.portrait.offsetY = config.portraitOffsetY;
+        if (config.portraitMask !== undefined) this.config.portrait.mask = config.portraitMask;
+        if (config.nameBannerHeight !== undefined) this.config.nameBanner.height = config.nameBannerHeight;
+        if (config.nameBannerWidth !== undefined) this.config.nameBanner.width = config.nameBannerWidth;
+        if (config.nameFontSize !== undefined) this.config.nameText.fontSize = config.nameFontSize;
+        if (config.nameFontFamily !== undefined) this.config.nameText.fontFamily = config.nameFontFamily;
+        if (config.nameOffsetY !== undefined) this.config.nameBanner.offsetY = config.nameOffsetY;
+        if (config.showDecorativeFlourishes !== undefined) this.config.decorative.showFlourishes = config.showDecorativeFlourishes;
         
         // Object references for Phaser GameObjects managed by this component
         this.portraitContainer = null;
@@ -105,14 +165,14 @@ class CardFrameContentComponent {
             // Create portrait container with offset
             this.portraitContainer = this.scene.add.container(
                 0, 
-                this.config.portraitOffsetY
+                this.config.portrait.offsetY
             );
             
             // Create portrait background/frame
             this.portraitFrame = this.scene.add.rectangle(
                 0, 0,
-                this.config.portraitWidth,
-                this.config.portraitHeight,
+                this.config.portrait.width,
+                this.config.portrait.height,
                 0x000000,
                 0.1
             );
@@ -121,25 +181,29 @@ class CardFrameContentComponent {
             const innerGlow = this.scene.add.graphics();
             const glowColor = this.typeColor;
             
-            innerGlow.lineStyle(2, glowColor, 0.3);
+            innerGlow.lineStyle(
+                this.config.portrait.innerGlow.width, 
+                glowColor, 
+                this.config.portrait.innerGlow.opacity
+            );
             innerGlow.strokeRoundedRect(
-                -this.config.portraitWidth / 2,
-                -this.config.portraitHeight / 2,
-                this.config.portraitWidth,
-                this.config.portraitHeight,
-                8
+                -this.config.portrait.width / 2,
+                -this.config.portrait.height / 2,
+                this.config.portrait.width,
+                this.config.portrait.height,
+                this.config.portrait.cornerRadius
             );
             
             // Create mask for portrait window if enabled
-            if (this.config.portraitMask) {
+            if (this.config.portrait.mask) {
                 this.portraitMask = this.scene.make.graphics();
                 this.portraitMask.fillStyle(0xffffff);
                 this.portraitMask.fillRoundedRect(
-                    -this.config.portraitWidth / 2,
-                    -this.config.portraitHeight / 2,
-                    this.config.portraitWidth,
-                    this.config.portraitHeight,
-                    8 // Rounded corners
+                    -this.config.portrait.width / 2,
+                    -this.config.portrait.height / 2,
+                    this.config.portrait.width,
+                    this.config.portrait.height,
+                    this.config.portrait.cornerRadius
                 );
             }
             
@@ -208,18 +272,18 @@ class CardFrameContentComponent {
             const firstLetter = this.config.characterName.charAt(0).toUpperCase();
             
             // Get portrait container position for consistency with sprite positioning
-            const portraitY = this.config.portraitOffsetY;
+            const portraitY = this.config.portrait.offsetY;
             
             const fallbackText = this.scene.add.text(
                 0, // Center horizontally
                 portraitY, // Position at portrait vertical position
                 firstLetter,
                 {
-                    fontFamily: 'Arial',
-                    fontSize: 48,
-                    color: '#FFFFFF',
-                    stroke: '#000000',
-                    strokeThickness: 4
+                    fontFamily: this.config.fallback.fontFamily,
+                    fontSize: this.config.fallback.fontSize,
+                    color: this.config.fallback.color,
+                    stroke: this.config.fallback.stroke,
+                    strokeThickness: this.config.fallback.strokeThickness
                 }
             ).setOrigin(0.5);
             
@@ -245,7 +309,7 @@ class CardFrameContentComponent {
     createNameBanner() {
         try {
             // Position at the bottom of the card
-            const bannerY = this.config.nameOffsetY;
+            const bannerY = this.config.nameBanner.offsetY;
             
             // Create banner container
             this.nameBannerContainer = this.scene.add.container(0, bannerY);
@@ -256,23 +320,27 @@ class CardFrameContentComponent {
             const nameplateBg = this.scene.add.graphics();
             
             // Draw decorative background
-            nameplateBg.fillStyle(this.typeColor, 0.8);
+            nameplateBg.fillStyle(this.typeColor, this.config.nameBanner.opacity);
             nameplateBg.fillRoundedRect(
-                -this.config.nameBannerWidth / 2,
-                -this.config.nameBannerHeight / 2,
-                this.config.nameBannerWidth,
-                this.config.nameBannerHeight,
-                8 // Rounded corners
+                -this.config.nameBanner.width / 2,
+                -this.config.nameBanner.height / 2,
+                this.config.nameBanner.width,
+                this.config.nameBanner.height,
+                this.config.nameBanner.cornerRadius
             );
             
             // Add bevel effect
-            nameplateBg.lineStyle(2, 0xFFFFFF, 0.3);
+            nameplateBg.lineStyle(
+                this.config.nameBanner.bevel.width, 
+                this.config.nameBanner.bevel.color, 
+                this.config.nameBanner.bevel.opacity
+            );
             nameplateBg.strokeRoundedRect(
-                -this.config.nameBannerWidth / 2 + 1,
-                -this.config.nameBannerHeight / 2 + 1,
-                this.config.nameBannerWidth - 2,
-                this.config.nameBannerHeight - 2,
-                7
+                -this.config.nameBanner.width / 2 + 1,
+                -this.config.nameBanner.height / 2 + 1,
+                this.config.nameBanner.width - 2,
+                this.config.nameBanner.height - 2,
+                this.config.nameBanner.cornerRadius - 1
             );
             
             this.nameBanner = nameplateBg;
@@ -282,11 +350,11 @@ class CardFrameContentComponent {
                 0, 0,
                 this.config.characterName,
                 {
-                    fontFamily: this.config.nameFontFamily,
-                    fontSize: this.config.nameFontSize,
-                    color: '#FFFFFF',
-                    stroke: '#000000',
-                    strokeThickness: 3,
+                    fontFamily: this.config.nameText.fontFamily,
+                    fontSize: this.config.nameText.fontSize,
+                    color: this.config.nameText.color,
+                    stroke: this.config.nameText.stroke,
+                    strokeThickness: this.config.nameText.strokeThickness,
                     align: 'center',
                     shadow: {
                         offsetX: 2,
@@ -299,13 +367,16 @@ class CardFrameContentComponent {
             ).setOrigin(0.5);
             
             // Add decorative flourishes on sides of name if enabled
-            if (this.config.showDecorativeFlourishes) {
+            if (this.config.decorative.showFlourishes) {
                 // Check if flourish textures exist
                 const leftFlourish = 'nameplate-flourish-left';
                 const rightFlourish = 'nameplate-flourish-right';
                 
                 // Calculate spacing based on text width
-                const flourishSpacing = Math.min(45, this.config.nameBannerWidth / 2 - this.nameText.width / 2 - 15);
+                const flourishSpacing = Math.min(
+                    this.config.decorative.flourishSpacing.maxWidth, 
+                    this.config.nameBanner.width / 2 - this.nameText.width / 2 - this.config.decorative.flourishSpacing.margin
+                );
                 
                 if (this.scene.textures.exists(leftFlourish) && this.scene.textures.exists(rightFlourish)) {
                     this.leftFlourish = this.scene.add.image(-flourishSpacing, 0, leftFlourish)
@@ -347,12 +418,12 @@ class CardFrameContentComponent {
                 const teamColor = this.config.characterTeam === 'player' ? '#55FF55' : '#FF5555';
                 
                 const teamIndicator = this.scene.add.text(
-                    -this.config.nameBannerWidth / 2 + 15, 
+                    -this.config.nameBanner.width / 2 + this.config.decorative.teamIndicatorOffset, 
                     0,
                     teamSymbol,
                     {
-                        fontFamily: 'serif',
-                        fontSize: this.config.nameFontSize,
+                        fontFamily: this.config.nameText.fontFamily,
+                        fontSize: this.config.nameText.fontSize,
                         color: teamColor
                     }
                 ).setOrigin(0.5);
@@ -380,7 +451,7 @@ class CardFrameContentComponent {
     createFallbackNameBanner() {
         try {
             // Position at the bottom of the card
-            const bannerY = this.config.nameOffsetY;
+            const bannerY = this.config.nameBanner.offsetY;
             
             // Create banner container
             this.nameBannerContainer = this.scene.add.container(0, bannerY);
@@ -391,9 +462,9 @@ class CardFrameContentComponent {
                 this.config.characterName,
                 {
                     fontFamily: 'Arial',
-                    fontSize: this.config.nameFontSize,
-                    color: '#FFFFFF',
-                    stroke: '#000000',
+                    fontSize: this.config.nameText.fontSize,
+                    color: this.config.nameText.color,
+                    stroke: this.config.nameText.stroke,
                     strokeThickness: 2
                 }
             ).setOrigin(0.5);
