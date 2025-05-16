@@ -3,12 +3,9 @@
  * Handles the visual aspects of the card frame including frame, backdrop, and visual effects
  * Part of the component-based CardFrame refactoring project
  * 
- * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all visual styling,
- * dimensions, and effects. To modify ANY aspect of the card's visual appearance,
- * edit the configuration options in THIS file rather than in CardFrameManager.js.
- * 
- * Card variants system provides standardized card dimensions for different use cases.
- * To modify the dimensions of a card variant, edit the CARD_VARIANTS static property.
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for the card's overall dimensions,
+ * frame, backdrop, and visual effects ONLY. It does NOT control the layout of internal
+ * elements (portrait, nameplate, health bar).
  * 
  * CODE REVIEW GUIDELINE: Any PR that adds visual-related configuration to
  * CardFrameManager.js should be rejected. All such configuration belongs here.
@@ -23,10 +20,9 @@
  * ===========================================
  */
 const VISUAL_DEFAULTS = {
-    // Core dimensions - Base values that variants will override
-    // Important: The actual dimensions used will come from CARD_VARIANTS
-    width: 240,                 // Base width (use variants to customize dimensions)
-    height: 320,                // Base height (use variants to customize dimensions)
+    // Core dimensions (one standard size)
+    width: 240,                 // Standard card width
+    height: 320,                // Standard card height
     borderWidth: 10,            // Width of frame border
     cornerRadius: 12,           // Corner radius for frame
     
@@ -36,49 +32,13 @@ const VISUAL_DEFAULTS = {
     frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
     backgroundAlpha: .2,        // Background opacity
     
-    // Portrait Window
-    portrait: {
-        width: 200,             // Width of portrait area
-        height: 240,            // Height of portrait area
-        offsetX: 0,             // Horizontal offset from center
-        offsetY: -20,           // Vertical offset from center
-        mask: true,             // Whether to mask the portrait
-        cornerRadius: 8,        // Corner radius for portrait area
-    },
-    
-    // Nameplate
-    nameplate: {
-        width: 210,             // Width of name banner
-        height: 25,             // Height of name banner
-        offsetY: 135,           // Distance from center to nameplate
-        fontSize: 16,           // Font size for name text
-        fontFamily: 'serif',    // Font family for name text
-        decorative: true,       // Whether to show decorative flourishes
-    },
-    
-    // Health Bar: Styling, dimensions, and positioning are managed by CardFrameHealthComponent.js.
-    
-    // Art Positioning
-    artPositioning: {
-        offsetX: 0,             // Fine-tune character art horizontal position
-        offsetY: 0,             // Fine-tune character art vertical position
-        scale: 1,               // Scaling factor for character art
-    },
-    
-    // Status Effects Layout
-    statusEffects: {
-        scale: 0.7,             // Scale factor for status effect icons
-        spacing: 24,            // Spacing between status effect icons
-        offsetY: -130,          // Vertical position of status effect icons
-    },
-    
     // Depth Effects
     depthEffects: {
         enabled: true,          // Master toggle for all depth effects
         innerGlow: {
             enabled: true,      // Enable inner glow effect
             intensity: 0.3,     // Intensity of inner glow (0-1)
-            layers: 4           // Number of glow layers (more = smoother but more expensive)
+            layers: 4           // Number of glow layers
         },
         edgeEffects: {
             enabled: true,      // Enable edge highlights and shadows
@@ -107,72 +67,6 @@ const VISUAL_DEFAULTS = {
     }
 };
 
-/**
- * ===========================================
- * CARD VARIANTS
- * Predefined card size configurations for different use cases.
- *Michael, this is where you will tweak sizes
- * ===========================================
- */
-const CARD_VARIANTS = {
-    'standard': { 
-        width: 240, 
-        height: 320,
-        portrait: {
-            width: 200,
-            height: 240,
-            offsetY: -20,
-        },
-        nameplate: {
-            width: 210,
-            offsetY: 135,
-        },
-        // Health bar styling and positioning managed by CardFrameHealthComponent.js
-        statusEffects: {
-            offsetY: -130,
-        }
-    },  // Standard card size
-    
-    'large': { 
-        width: 500, 
-        height: 320,
-        portrait: {
-            width: 450,
-            height: 240,
-            offsetY: -20,
-        },
-        nameplate: {
-            width: 450,
-            offsetY: 135,
-        },
-        // Health bar styling and positioning managed by CardFrameHealthComponent.js
-        statusEffects: {
-            offsetY: -130,
-        }
-    },     // Larger, wider card variant
-    
-    'compact': { 
-        width: 180, 
-        height: 240,
-        portrait: {
-            width: 150,
-            height: 180,
-            offsetY: -15,
-        },
-        nameplate: {
-            width: 160,
-            height: 20,
-            fontSize: 14,
-            offsetY: 100,
-        },
-        // Health bar styling and positioning managed by CardFrameHealthComponent.js
-        statusEffects: {
-            scale: 0.6,
-            spacing: 20,
-            offsetY: -100,
-        }
-    }    // Smaller card for restricted spaces
-};
 
 class CardFrameVisualComponent {
     /**
@@ -195,25 +89,7 @@ class CardFrameVisualComponent {
         
         // Configuration merging logic to establish this component as the Single Source of Truth
         // for visual styling, while allowing specific overrides where needed
-        
-        // Get the requested variant name from config, defaulting to 'standard'
-        const variantName = config.cardVariant || 'standard';
-        
-        // Get the variant configuration from CARD_VARIANTS
-        const variantConfig = CARD_VARIANTS[variantName] || CARD_VARIANTS['standard'];
-        
-        // Merge configuration in correct priority order:
-        // 1. Start with VISUAL_DEFAULTS as base
-        // 2. Apply variant-specific overrides
-        // 3. Apply any specific config overrides
-        let finalConfig = { ...VISUAL_DEFAULTS };
-        finalConfig = { ...finalConfig, ...variantConfig };
-        finalConfig = { ...finalConfig, ...config };
-        
-        this.config = finalConfig;
-        
-        // Store the variant name for reference
-        this.variantName = variantName;
+        this.config = { ...VISUAL_DEFAULTS, ...config };
         
         // Map legacy debugMode property to new structure for backward compatibility
         if (config.debugMode !== undefined) {
@@ -596,13 +472,7 @@ class CardFrameVisualComponent {
         }
     }
     
-    /**
-     * Get the card variants for external reference
-     * @returns {Object} The card variants object
-     */
-    static getCardVariants() {
-        return CARD_VARIANTS;
-    }
+
 }
 
 // Export for module use
@@ -613,6 +483,4 @@ if (typeof module !== 'undefined' && module.exports) {
 // Make available globally (dev mode only)
 if (typeof window !== 'undefined') {
     window.CardFrameVisualComponent = CardFrameVisualComponent;
-    // Also expose card variants globally for easy access
-    window.CardFrameVisualComponent.CARD_VARIANTS = CARD_VARIANTS;
 }
