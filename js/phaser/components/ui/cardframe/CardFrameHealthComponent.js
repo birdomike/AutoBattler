@@ -4,8 +4,8 @@
  * Part of the component-based CardFrame refactoring project.
  * 
  * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all health bar styling,
- * dimensions, and positioning. To modify ANY aspect of the health bar, edit the
- * configuration options in THIS file rather than in CardFrameManager.js.
+ * dimensions, and animations. To modify ANY aspect of the health display, edit the
+ * configuration options in THIS file rather than in CardFrameVisualComponent.js.
  * 
  * CODE REVIEW GUIDELINE: Any PR that adds health-related configuration to
  * CardFrameManager.js should be rejected. All such configuration belongs here.

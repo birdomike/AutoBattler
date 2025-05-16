@@ -23,7 +23,7 @@ const VISUAL_DEFAULTS = {
     // Core dimensions (one standard size)
     width: 240,                 // Standard card width
     height: 320,                // Standard card height
-    borderWidth: 10,            // Width of frame border
+    borderWidth: 6,            // Width of frame border
     cornerRadius: 12,           // Corner radius for frame
     
     // Appearance

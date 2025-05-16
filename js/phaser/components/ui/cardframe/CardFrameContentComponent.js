@@ -5,7 +5,7 @@
  * 
  * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all character content,
  * portrait window, and nameplate styling/behavior. To modify ANY aspect of these elements,
- * edit the configuration options in THIS file rather than in CardFrameManager.js.
+ * edit the configuration options in THIS file rather than in CardFrameVisualComponent.js.
  * 
  * CODE REVIEW GUIDELINE: Any PR that adds content-related configuration to
  * CardFrameManager.js should be rejected. All such configuration belongs here.
@@ -31,9 +31,9 @@ const CONTENT_DEFAULTS = {
     
     // Portrait window
     portrait: {
-        width: 200,             // Width of portrait area
-        height: 240,            // Height of portrait area
-        offsetY: -20,           // Portrait vertical offset from center
+        width: 205,             // Width of portrait area
+        height: 280,            // Height of portrait area
+        offsetY: 10,           // Portrait vertical offset from center smaller numbers are lower
         mask: true,             // Whether to mask the portrait
         cornerRadius: 8,        // Corner radius for portrait area
         innerGlow: {
@@ -44,9 +44,9 @@ const CONTENT_DEFAULTS = {
     
     // Nameplate
     nameBanner: {
-        height: 25,             // Height of name banner
+        height: 20,             // Height of name banner
         width: 210,             // Width of name banner
-        offsetY: 135,           // Distance from center to nameplate
+        offsetY: 142,           // Distance from center to nameplate
         opacity: 0.8,           // Opacity of name banner background
         cornerRadius: 8,        // Corner radius for name banner
         bevel: {
