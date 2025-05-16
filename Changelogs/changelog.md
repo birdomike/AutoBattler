@@ -1,3 +1,30 @@
+## 0.7.4.3 - Complete CardFrame Visual Properties Centralization (2025-05-16)
+
+### Added
+- Added portrait, nameplate, health display, art positioning, and status effects sections to VISUAL_DEFAULTS in CardFrameVisualComponent.js
+- Enhanced CARD_VARIANTS system to include layout adjustments for all inner elements
+- Created comprehensive variant configurations for 'standard', 'large', and 'compact' card styles
+
+### Changed
+- Removed all visual positioning properties from CardFrameManager.js config
+- Updated CardFrameManager's component initialization methods to pass visual properties from visualComponent
+- Removed redundant inner element positioning properties from CharacterSprite.js
+- Streamlined CharacterSprite.js to rely exclusively on card variants for all visual styling
+
+### Improved
+- Completed the Single Source of Truth architecture for ALL visual styling and positioning
+- Enhanced component communication with explicit property passing
+- Made variant-based customization more powerful with full inner element control
+- Simplified configuration management across the component system
+
+### Technical
+- Identified and centralized 20+ visual properties that were previously scattered across files
+- Created clean delegation channels for passing visual properties between components
+- Enhanced error handling with informative warning messages when visualComponent is unavailable
+- Improved code clarity with consolidated configuration sections and better comments
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.4.3_CompleteCardFrameVisualCentralization.md*
+
 ## 0.7.4.2 - CardFrame Configuration System Refactoring (2025-05-16)
 
 ### Added

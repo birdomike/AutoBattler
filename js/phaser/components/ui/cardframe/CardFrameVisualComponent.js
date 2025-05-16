@@ -34,7 +34,46 @@ const VISUAL_DEFAULTS = {
     frameTexture: 'card-frame', // Base texture for card frame
     frameAlpha: 1,              // Opacity of the frame
     frameColorIntensity: 0.7,   // Intensity of type coloring (0-1)
-    backgroundAlpha: .2,       // Background opacity
+    backgroundAlpha: .2,        // Background opacity
+    
+    // Portrait Window
+    portrait: {
+        width: 200,             // Width of portrait area
+        height: 240,            // Height of portrait area
+        offsetX: 0,             // Horizontal offset from center
+        offsetY: -20,           // Vertical offset from center
+        mask: true,             // Whether to mask the portrait
+        cornerRadius: 8,        // Corner radius for portrait area
+    },
+    
+    // Nameplate
+    nameplate: {
+        width: 210,             // Width of name banner
+        height: 25,             // Height of name banner
+        offsetY: 135,           // Distance from center to nameplate
+        fontSize: 16,           // Font size for name text
+        fontFamily: 'serif',    // Font family for name text
+        decorative: true,       // Whether to show decorative flourishes
+    },
+    
+    // Health Display Position
+    healthDisplay: {
+        offsetY: 90,            // Distance from center to health bar
+    },
+    
+    // Art Positioning
+    artPositioning: {
+        offsetX: 0,             // Fine-tune character art horizontal position
+        offsetY: 0,             // Fine-tune character art vertical position
+        scale: 1,               // Scaling factor for character art
+    },
+    
+    // Status Effects Layout
+    statusEffects: {
+        scale: 0.7,             // Scale factor for status effect icons
+        spacing: 24,            // Spacing between status effect icons
+        offsetY: -130,          // Vertical position of status effect icons
+    },
     
     // Depth Effects
     depthEffects: {
@@ -79,9 +118,69 @@ const VISUAL_DEFAULTS = {
  * ===========================================
  */
 const CARD_VARIANTS = {
-    'standard': { width: 240, height: 320 },  // Standard card size
-    'large': { width: 500, height: 320 },     // Larger, wider card variant
-    'compact': { width: 180, height: 240 }    // Smaller card for restricted spaces
+    'standard': { 
+        width: 240, 
+        height: 320,
+        portrait: {
+            width: 200,
+            height: 240,
+            offsetY: -20,
+        },
+        nameplate: {
+            width: 210,
+            offsetY: 135,
+        },
+        healthDisplay: {
+            offsetY: 90,
+        },
+        statusEffects: {
+            offsetY: -130,
+        }
+    },  // Standard card size
+    
+    'large': { 
+        width: 500, 
+        height: 320,
+        portrait: {
+            width: 450,
+            height: 240,
+            offsetY: -20,
+        },
+        nameplate: {
+            width: 450,
+            offsetY: 135,
+        },
+        healthDisplay: {
+            offsetY: 90,
+        },
+        statusEffects: {
+            offsetY: -130,
+        }
+    },     // Larger, wider card variant
+    
+    'compact': { 
+        width: 180, 
+        height: 240,
+        portrait: {
+            width: 150,
+            height: 180,
+            offsetY: -15,
+        },
+        nameplate: {
+            width: 160,
+            height: 20,
+            fontSize: 14,
+            offsetY: 100,
+        },
+        healthDisplay: {
+            offsetY: 70,
+        },
+        statusEffects: {
+            scale: 0.6,
+            spacing: 20,
+            offsetY: -100,
+        }
+    }    // Smaller card for restricted spaces
 };
 
 class CardFrameVisualComponent {
