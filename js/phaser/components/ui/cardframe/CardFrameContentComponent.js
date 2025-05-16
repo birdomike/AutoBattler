@@ -38,7 +38,7 @@ const CONTENT_DEFAULTS = {
         cornerRadius: 8,        // Corner radius for portrait area
         innerGlow: {
             width: 2,           // Width of portrait inner glow line
-            opacity: 0.3        // Opacity of portrait inner glow
+            opacity: .2       // Opacity of portrait inner glow
         }
     },
     

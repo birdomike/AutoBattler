@@ -7,7 +7,7 @@
  * for specialized components. It should NOT define component-specific configuration.
  * Each component is the SINGLE SOURCE OF TRUTH for its domain:
  *
- * - CardFrameVisualComponent: ALL visual styling, dimensions, and effects
+ * - CardFrameVisualComponent: Card frame dimensions, border, backdrop, and effects ONLY
  * - CardFrameHealthComponent: ALL health bar styling and behavior
  * - CardFrameContentComponent: ALL character content, portrait window, and nameplate styling
  * - CardFrameInteractionComponent: ALL interaction behaviors and animations
@@ -431,26 +431,32 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 return; // Exit if the class definition isn't loaded
             }
             
-            // Health display configuration should come directly from CardFrameHealthComponent
-            // as it is the Single Source of Truth for health bar styling and positioning
-            let healthConfig = { ...this.config };
+            // ONLY pass relevant health data - NO layout/styling properties!
+            let healthConfig = {
+                // Character data
+                characterName: this.config.characterName,
+                characterType: this.config.characterType,
+                characterTeam: this.config.characterTeam,
+                
+                // Health values only
+                currentHealth: this.config.currentHealth,
+                maxHealth: this.config.maxHealth,
+                showHealth: this.config.showHealth
+            };
             
-            // Pass only relevant health data (currentHealth, maxHealth, showHealth, typeColor)
-            // Note: We no longer pass healthBarOffsetY from visualComponent - this is managed by CardFrameHealthComponent
-            
-            // Create health component with correct positioning
+            // Create health component with MINIMAL config
             this.healthComponent = new window.CardFrameHealthComponent(
                 this.scene,
-                this, // CardFrameManager is the container for healthComponent's elements
+                this, // CardFrameManager is the container
                 this.typeColor,
-                healthConfig // Pass config with correct values from visualComponent
+                healthConfig // Minimal config with no layout properties
             );
             
             // Verify successful instantiation
             if (this.healthComponent && typeof this.healthComponent.createHealthBar === 'function') {
                 console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Health component initialized successfully.`);
             } else {
-                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - CardFrameHealthComponent instantiation failed or is invalid. HealthComponent:`, this.healthComponent);
+                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - CardFrameHealthComponent instantiation failed or is invalid.`);
                 this.healthComponent = null; // Ensure it's null if something went wrong
             }
         } catch (error) {
@@ -470,54 +476,33 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 return; // Exit if the class definition isn't loaded
             }
             
-            // Get final dimensions and visual properties from visualComponent if available
-            let contentConfig = { ...this.config };
+            // ONLY pass relevant character data - NO layout properties!
+            let contentConfig = {
+                // Character data only
+                characterKey: this.config.characterKey,
+                characterName: this.config.characterName,
+                characterType: this.config.characterType,
+                characterTeam: this.config.characterTeam,
+                
+                // Character-specific art positioning (from character data)
+                artOffsetX: this.config.artOffsetX,
+                artOffsetY: this.config.artOffsetY,
+                artScale: this.config.artScale
+            };
             
-            // If visualComponent is available, get the correct dimensions and visual properties from it
-            if (this.visualComponent) {
-                // Get core dimensions
-                contentConfig.width = this.visualComponent.config.width;
-                contentConfig.height = this.visualComponent.config.height;
-                
-                // Get portrait configuration
-                contentConfig.portraitWidth = this.visualComponent.config.portrait.width;
-                contentConfig.portraitHeight = this.visualComponent.config.portrait.height;
-                contentConfig.portraitOffsetX = this.visualComponent.config.portrait.offsetX;
-                contentConfig.portraitOffsetY = this.visualComponent.config.portrait.offsetY;
-                contentConfig.portraitMask = this.visualComponent.config.portrait.mask;
-                contentConfig.portraitCornerRadius = this.visualComponent.config.portrait.cornerRadius;
-                
-                // Get nameplate configuration
-                contentConfig.nameBannerWidth = this.visualComponent.config.nameplate.width;
-                contentConfig.nameBannerHeight = this.visualComponent.config.nameplate.height;
-                contentConfig.nameOffsetY = this.visualComponent.config.nameplate.offsetY;
-                contentConfig.nameFontSize = this.visualComponent.config.nameplate.fontSize;
-                contentConfig.nameFontFamily = this.visualComponent.config.nameplate.fontFamily;
-                contentConfig.showDecorativeFlourishes = this.visualComponent.config.nameplate.decorative;
-                
-                // Get art positioning
-                contentConfig.artOffsetX = this.visualComponent.config.artPositioning.offsetX;
-                contentConfig.artOffsetY = this.visualComponent.config.artPositioning.offsetY;
-                contentConfig.artScale = this.visualComponent.config.artPositioning.scale;
-                
-                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Using visual properties from visualComponent for contentComponent`);
-            } else {
-                console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): visualComponent not available, content component may have incorrect dimensions and styling.`);
-            }
-            
-            // Create content component with correct dimensions and visual properties
+            // Create content component with MINIMAL config
             this.contentComponent = new window.CardFrameContentComponent(
                 this.scene,
-                this, // CardFrameManager is the container for contentComponent's elements
+                this, // CardFrameManager is the container
                 this.typeColor,
-                contentConfig // Pass config with correct values from visualComponent
+                contentConfig // Minimal config with no layout properties
             );
             
             // Verify successful instantiation
             if (this.contentComponent && typeof this.contentComponent.createPortraitWindow === 'function') {
                 console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Content component initialized successfully.`);
             } else {
-                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - CardFrameContentComponent instantiation failed or is invalid. ContentComponent:`, this.contentComponent);
+                console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - CardFrameContentComponent instantiation failed or is invalid.`);
                 this.contentComponent = null; // Ensure it's null if something went wrong
             }
         } catch (error) {
@@ -537,26 +522,28 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 return; // Exit if the class definition isn't loaded
             }
             
-            // Get status effect configuration from visualComponent if available
-            let interactionConfig = { ...this.config };
-            
-            if (this.visualComponent) {
-                // Pass status effect configuration from visualComponent
-                interactionConfig.statusEffectScale = this.visualComponent.config.statusEffects.scale;
-                interactionConfig.statusEffectSpacing = this.visualComponent.config.statusEffects.spacing;
-                interactionConfig.statusEffectOffsetY = this.visualComponent.config.statusEffects.offsetY;
+            // ONLY pass relevant interaction data - NO status effect layout properties!
+            let interactionConfig = {
+                // Character data
+                characterName: this.config.characterName,
+                characterType: this.config.characterType,
+                characterTeam: this.config.characterTeam,
                 
-                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Using status effect configuration from visualComponent`);
-            } else {
-                console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): visualComponent not available, interaction component may have incorrect status effect configuration.`);
-            }
+                // Interaction settings only
+                interactive: this.config.interactive,
+                onSelect: this.config.onSelect,
+                onHoverStart: this.config.onHoverStart,
+                onHoverEnd: this.config.onHoverEnd,
+                selected: this.config.selected,
+                highlighted: this.config.highlighted
+            };
             
-            // Create interaction component with correct status effect configuration
+            // Create interaction component with MINIMAL config
             this.interactionComponent = new window.CardFrameInteractionComponent(
                 this.scene,
                 this, // CardFrameManager is the container for interactionComponent's elements
                 this.typeColor,
-                interactionConfig // Pass config with correct values from visualComponent
+                interactionConfig // Minimal config with no status effect layout properties
             );
             
             // Get required references from other components
