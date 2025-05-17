@@ -53,7 +53,12 @@ const INTERACTION_DEFAULTS = {
         pulseScale: 1.05,              // Scale factor during pulse animation
         pulseDuration: 700,            // Duration of one pulse cycle in ms
         frameFadeDuration: 250,        // Duration of white frame highlight fade in/out
-        priority: true                 // Whether turn highlighting takes visual priority over selection
+        priority: true,                // Whether turn highlighting takes visual priority over selection
+        backlitShadowColor: 0xFFFFFF,  // Color of the shadow (white)
+        backlitShadowAlpha: 0.7,       // Target opacity (40%)
+        backlitShadowExpandWidth: 10,  // How many extra pixels wide on each side (total width increase = this * 2)
+        backlitShadowExpandHeight: 15, // How many extra pixels tall on each side (total height increase = this * 2)
+        backlitShadowFadeDuration: 250 // Duration for its fade in/out
     },
     
     // Initial state
@@ -104,6 +109,7 @@ class CardFrameInteractionComponent {
         // Reference to important objects
         this.frameBase = null; // Will be set by setupInteractivity
         this.glowContainer = null; // Reference to the glow container
+        this.activeTurnBacklitShadow = null; // Backlit shadow graphics for active turn
         
         console.log(`CardFrameInteractionComponent: Initialized for character ${this.config.characterName || 'Unknown'}`); 
     }
@@ -452,6 +458,17 @@ class CardFrameInteractionComponent {
                     this.scene.tweens.remove(this.activeTurnTween);
                     this.activeTurnTween = null;
                 }
+                
+                // Clean up backlit shadow tween
+                if (this.activeTurnBacklitShadow) {
+                    this.scene.tweens.killTweensOf(this.activeTurnBacklitShadow);
+                }
+            }
+            
+            // Destroy backlit shadow if it exists
+            if (this.activeTurnBacklitShadow && this.activeTurnBacklitShadow.scene) {
+                this.activeTurnBacklitShadow.destroy();
+                this.activeTurnBacklitShadow = null;
             }
             
             // Reset cursor if needed
@@ -484,6 +501,59 @@ class CardFrameInteractionComponent {
             if (this.activeTurnTween) {
                 this.scene.tweens.remove(this.activeTurnTween);
                 this.activeTurnTween = null;
+            }
+            
+            // Create backlit shadow effect
+            if (this.activeTurnBacklitShadow) {
+                if (this.scene.tweens) {
+                    this.scene.tweens.killTweensOf(this.activeTurnBacklitShadow);
+                }
+                this.activeTurnBacklitShadow.destroy();
+                this.activeTurnBacklitShadow = null;
+            }
+            
+            if (this.glowContainer && this.glowContainer.scene) {
+                // Create new shadow graphics
+                this.activeTurnBacklitShadow = this.scene.add.graphics();
+                
+                // Get dimensions from config or use default values
+                const cardWidth = this.config.width || 240; // Fallback to standard card width
+                const cardHeight = this.config.height || 320; // Fallback to standard card height
+                const shadowWidth = cardWidth + (this.config.activeTurn.backlitShadowExpandWidth * 2);
+                const shadowHeight = cardHeight + (this.config.activeTurn.backlitShadowExpandHeight * 2);
+                const cornerRadius = this.config.cornerRadius || 12; // Fallback to standard corner radius
+                
+                // Draw the backlit shadow
+                this.activeTurnBacklitShadow.fillStyle(this.config.activeTurn.backlitShadowColor, 1.0); // Use full opacity for fillStyle
+                this.activeTurnBacklitShadow.fillRoundedRect(
+                    -shadowWidth / 2,
+                    -shadowHeight / 2,
+                    shadowWidth,
+                    shadowHeight,
+                    cornerRadius
+                );
+                
+                // Set initial alpha to 0 for the fade-in animation
+                this.activeTurnBacklitShadow.setAlpha(0);
+                
+                // Add to glow container
+                this.glowContainer.add(this.activeTurnBacklitShadow);
+                
+                // Set explicit depth to ensure visibility
+                this.activeTurnBacklitShadow.setDepth(5);
+                
+                // Animate shadow fade-in
+                if (this.scene.tweens) {
+                    this.scene.tweens.add({
+                        targets: this.activeTurnBacklitShadow,
+                        alpha: { from: 0, to: this.config.activeTurn.backlitShadowAlpha },
+                        duration: this.config.activeTurn.backlitShadowFadeDuration,
+                        ease: 'Sine.easeOut'
+                    });
+                } else {
+                    // If tweens not available, set alpha directly
+                    this.activeTurnBacklitShadow.alpha = this.config.activeTurn.backlitShadowAlpha;
+                }
             }
             
             // Apply white frame highlight to the visual component
@@ -553,6 +623,33 @@ class CardFrameInteractionComponent {
                 this.container.setScale(1);
             }
             
+            // Fade out and remove backlit shadow
+            if (this.activeTurnBacklitShadow && this.activeTurnBacklitShadow.scene) {
+                // Stop any active tweens on the shadow
+                if (this.scene.tweens) {
+                    this.scene.tweens.killTweensOf(this.activeTurnBacklitShadow);
+                    
+                    // Animate shadow fade-out
+                    this.scene.tweens.add({
+                        targets: this.activeTurnBacklitShadow,
+                        alpha: 0,
+                        duration: this.config.activeTurn.backlitShadowFadeDuration,
+                        ease: 'Sine.easeOut',
+                        onComplete: () => {
+                            // Clean up shadow after fade-out
+                            if (this.activeTurnBacklitShadow && this.activeTurnBacklitShadow.scene) {
+                                this.activeTurnBacklitShadow.destroy();
+                                this.activeTurnBacklitShadow = null;
+                            }
+                        }
+                    });
+                } else {
+                    // If tweens not available, destroy immediately
+                    this.activeTurnBacklitShadow.destroy();
+                    this.activeTurnBacklitShadow = null;
+                }
+            }
+            
             // Remove white frame highlight from the visual component
             if (this.container && this.container.visualComponent && 
                 typeof this.container.visualComponent.setFrameWhiteHighlight === 'function') {
@@ -591,6 +688,7 @@ class CardFrameInteractionComponent {
             // Clear references
             this.frameBase = null;
             this.glowContainer = null;
+            this.activeTurnBacklitShadow = null;
             this.scene = null;
             this.container = null;
             this.config = null;

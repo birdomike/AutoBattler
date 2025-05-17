@@ -602,7 +602,10 @@ class CardFrameManager extends Phaser.GameObjects.Container {
                 glowContainer = this.scene.add.container(0, 0);
                 this.add(glowContainer);
                 this.glowContainer = glowContainer;
-                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Created new glowContainer.`);
+                
+                // Set depth to ensure the backlit shadow is visible but behind the card frame
+                this.glowContainer.setDepth(1);
+                console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Created new glowContainer and set depth to 1.`);
             }
             
             // Initialize the component with required references

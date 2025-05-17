@@ -1,3 +1,22 @@
+## 0.7.5.8 - Fix Backlit Shadow Visibility in Turn Indicator (2025-05-17)
+
+### Fixed
+- Fixed the backlit shadow effect visibility issue for active turn indicators
+- Corrected z-order management for the shadow to ensure it appears correctly behind the card
+- Implemented proper alpha handling for shadow graphics and tweening
+
+### Changed
+- Improved depth management for glowContainer in CardFrameManager
+- Enhanced visual layering of card frame components for proper backlit effect
+
+### Technical
+- Fixed fillStyle rendering by using full opacity (1.0) with separate alpha control
+- Removed problematic sendToBack() call that was hiding the shadow
+- Added explicit depth settings for both the glowContainer and backlit shadow
+- Improved console logging for better debugging information
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.8_FixBacklitShadowVisibility.md*
+
 ## 0.7.5.7 - Remove Card Frame Outward Glow from Turn Indicator (2025-05-17)
 
 ### Changed
