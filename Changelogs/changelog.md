@@ -1,3 +1,22 @@
+## 0.7.5.4 - Disable Old TurnIndicator System (2025-05-16)
+
+### Changed
+- Completely disabled the old ellipse TurnIndicator system in favor of the new card frame turn highlighting
+- Modified TeamContainer and TeamDisplayManager to only use the new highlighting system
+- Commented out TurnIndicator.js script loading in index.html
+
+### Fixed
+- Resolved issue where both old ellipse indicators and new card frame pulse were appearing simultaneously
+- Eliminated visual clutter and confusion with multiple turn indicators
+
+### Technical
+- Used soft-deprecation approach with clear @deprecated annotations
+- Redirected old indicator methods to call new highlight methods directly
+- Preserved original implementation in comments for reference
+- Added clear code documentation about the deprecation
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.4_DisableOldTurnIndicator.md*
+
 ## 0.7.5.3 - 2025-05-16
 
 ### Fixed
