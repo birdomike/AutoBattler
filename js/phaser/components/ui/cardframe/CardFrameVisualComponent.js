@@ -101,6 +101,7 @@ class CardFrameVisualComponent {
         this.backdrop = null;
         this.innerGlowGraphics = null;
         this.edgeEffects = null;
+        this.whiteHighlightFrameLayer = null;
         
         // Initialize the visual elements
         this.initialize();
@@ -423,6 +424,104 @@ class CardFrameVisualComponent {
     }
     
     /**
+     * Sets a white highlight on the frame border with smooth fade-in/fade-out animation
+     * @param {boolean} isHighlighted - Whether to show (true) or hide (false) the white highlight
+     * @param {number} duration - Duration of the fade animation in milliseconds
+     * @returns {boolean} - Success state
+     */
+    setFrameWhiteHighlight(isHighlighted, duration = 250) {
+        try {
+            // Check if scene is still valid
+            if (!this.scene || !this.container) {
+                console.error('CardFrameVisualComponent.setFrameWhiteHighlight: Scene or container is invalid');
+                return false;
+            }
+            
+            const WHITE_COLOR = 0xFFFFFF;
+            
+            if (isHighlighted) {
+                // If highlight already exists, destroy it first to prevent stacking
+                if (this.whiteHighlightFrameLayer) {
+                    // Stop any active tweens on the highlight layer
+                    if (this.scene.tweens) {
+                        this.scene.tweens.killTweensOf(this.whiteHighlightFrameLayer);
+                    }
+                    this.whiteHighlightFrameLayer.destroy();
+                    this.whiteHighlightFrameLayer = null;
+                }
+                
+                // Create white highlight frame
+                this.whiteHighlightFrameLayer = this.scene.add.graphics();
+                
+                // Draw the white frame border with same dimensions as the base frame
+                this.whiteHighlightFrameLayer.lineStyle(this.config.borderWidth, WHITE_COLOR, this.config.frameAlpha);
+                this.whiteHighlightFrameLayer.strokeRoundedRect(
+                    -this.config.width / 2,
+                    -this.config.height / 2,
+                    this.config.width,
+                    this.config.height,
+                    this.config.cornerRadius
+                );
+                
+                // Start with fully transparent
+                this.whiteHighlightFrameLayer.setAlpha(0);
+                
+                // Add to container (ensure it appears above the base frame)
+                this.container.add(this.whiteHighlightFrameLayer);
+                
+                // Animate fade-in
+                if (this.scene.tweens) {
+                    this.scene.tweens.add({
+                        targets: this.whiteHighlightFrameLayer,
+                        alpha: this.config.frameAlpha,
+                        duration: duration,
+                        ease: 'Sine.easeOut'
+                    });
+                } else {
+                    // If tweens not available, set alpha directly
+                    this.whiteHighlightFrameLayer.setAlpha(this.config.frameAlpha);
+                }
+                
+                return true;
+            } else {
+                // Handle fade-out and cleanup
+                if (this.whiteHighlightFrameLayer && this.whiteHighlightFrameLayer.scene) {
+                    // Stop any active tweens
+                    if (this.scene.tweens) {
+                        this.scene.tweens.killTweensOf(this.whiteHighlightFrameLayer);
+                        
+                        // Animate fade-out
+                        this.scene.tweens.add({
+                            targets: this.whiteHighlightFrameLayer,
+                            alpha: 0,
+                            duration: duration,
+                            ease: 'Sine.easeOut',
+                            onComplete: () => {
+                                // Clean up after fade-out completes
+                                if (this.whiteHighlightFrameLayer && this.whiteHighlightFrameLayer.scene) {
+                                    this.whiteHighlightFrameLayer.destroy();
+                                    this.whiteHighlightFrameLayer = null;
+                                }
+                            }
+                        });
+                    } else {
+                        // If tweens not available, destroy immediately
+                        this.whiteHighlightFrameLayer.destroy();
+                        this.whiteHighlightFrameLayer = null;
+                    }
+                    
+                    return true;
+                }
+                
+                return false; // Nothing to fade out
+            }
+        } catch (error) {
+            console.error('CardFrameVisualComponent.setFrameWhiteHighlight: Error:', error);
+            return false;
+        }
+    }
+    
+    /**
      * Clean up all resources
      */
     destroy() {
@@ -453,12 +552,18 @@ class CardFrameVisualComponent {
                 this.debugVisuals = null;
             }
             
+            if (this.whiteHighlightFrameLayer && this.whiteHighlightFrameLayer.scene) {
+                this.whiteHighlightFrameLayer.destroy();
+                this.whiteHighlightFrameLayer = null;
+            }
+            
             // Kill any active tweens
             if (this.scene && this.scene.tweens) {
                 if (this.frameBase) this.scene.tweens.killTweensOf(this.frameBase);
                 if (this.backdrop) this.scene.tweens.killTweensOf(this.backdrop);
                 if (this.innerGlowGraphics) this.scene.tweens.killTweensOf(this.innerGlowGraphics);
                 if (this.edgeEffects) this.scene.tweens.killTweensOf(this.edgeEffects);
+                if (this.whiteHighlightFrameLayer) this.scene.tweens.killTweensOf(this.whiteHighlightFrameLayer);
             }
             
             // Clear references

@@ -1,3 +1,18 @@
+## 0.7.5.5 - Card Frame White Highlight for Turn Indicators (2025-05-16)
+
+### Added
+- White frame highlight effect for active character cards during their turn
+- New `setFrameWhiteHighlight()` method in CardFrameVisualComponent for smooth fade-in/out of white frame highlight
+- Proper cleanup and resource management for the highlight effect
+
+### Technical
+- Implemented white highlight as a separate graphics layer overlaying the original colored frame
+- Added smooth animation with tweens for fade-in and fade-out transitions
+- Maintained the existing team-colored glow and pulse effects while adding this new visual indicator
+- Enhanced visual clarity for identifying the active character's turn
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.5_CardFrameWhiteHighlight.md*
+
 ## 0.7.5.4 - Disable Old TurnIndicator System (2025-05-16)
 
 ### Changed
