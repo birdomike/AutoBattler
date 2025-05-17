@@ -50,9 +50,6 @@ const INTERACTION_DEFAULTS = {
     
     // Active Turn Highlight settings
     activeTurn: {
-        glowColorPlayer: 0x4488FF,     // Blue glow for player team
-        glowColorEnemy: 0xFF4444,      // Red glow for enemy team
-        glowIntensity: 1.0,            // Intensity of the glow effect (0-1)
         pulseScale: 1.05,              // Scale factor during pulse animation
         pulseDuration: 700,            // Duration of one pulse cycle in ms
         frameFadeDuration: 250,        // Duration of white frame highlight fade in/out
@@ -102,13 +99,13 @@ class CardFrameInteractionComponent {
         // Store internal state
         this._highlighted = this.config.state.highlighted || false;
         this._selected = this.config.state.selected || false;
-    this._activeTurn = false; // New state for active turn highlighting
+        this._activeTurn = false; // New state for active turn highlighting
         
         // Reference to important objects
         this.frameBase = null; // Will be set by setupInteractivity
         this.glowContainer = null; // Reference to the glow container
         
-        console.log(`CardFrameInteractionComponent: Initialized for character ${this.config.characterName || 'Unknown'}`);
+        console.log(`CardFrameInteractionComponent: Initialized for character ${this.config.characterName || 'Unknown'}`); 
     }
     
     /**
@@ -457,12 +454,6 @@ class CardFrameInteractionComponent {
                 }
             }
             
-            // Clean up active turn glow
-            if (this.activeTurnGlow) {
-                this.activeTurnGlow.destroy();
-                this.activeTurnGlow = null;
-            }
-            
             // Reset cursor if needed
             document.body.style.cursor = 'default';
             
@@ -489,26 +480,11 @@ class CardFrameInteractionComponent {
                 return false;
             }
             
-            // Get appropriate glow color based on team
-            let glowColor;
-            if (teamType === 'player') {
-                glowColor = this.config.activeTurn.glowColorPlayer;
-            } else if (teamType === 'enemy') {
-                glowColor = this.config.activeTurn.glowColorEnemy;
-            } else {
-                // Default to type color if team not specified
-                glowColor = this.typeColor;
-                console.warn(`CardFrameInteractionComponent: Unknown team type '${teamType}', using type color for active turn glow`);
-            }
-            
             // Stop any existing active turn tweens
             if (this.activeTurnTween) {
                 this.scene.tweens.remove(this.activeTurnTween);
                 this.activeTurnTween = null;
             }
-            
-            // Apply glow effect
-            this.applyActiveTurnGlow(glowColor);
             
             // Apply white frame highlight to the visual component
             if (this.container && this.container.visualComponent && 
@@ -544,49 +520,11 @@ class CardFrameInteractionComponent {
      * Apply the active turn glow effect
      * @private
      * @param {number} glowColor - Color for the glow effect
+     * @deprecated - This method is no longer used for active turn highlighting
      */
     applyActiveTurnGlow(glowColor) {
-        try {
-            if (!this.glowContainer || !this.glowContainer.scene) {
-                console.error('CardFrameInteractionComponent.applyActiveTurnGlow: glowContainer not set or invalid');
-                return;
-            }
-            
-            // Clear existing glow effects if this is the active turn (priority)
-            if (this.config.activeTurn.priority) {
-                this.removeGlowEffect();
-            }
-            
-            // Create a new graphics object for the active turn glow
-            const activeTurnGlow = this.scene.add.graphics();
-            
-            // Apply a stronger glow effect with more layers for a more distinct look
-            const intensity = this.config.activeTurn.glowIntensity;
-            const layers = this.config.glow.layers + 1; // Add one extra layer for active turn
-            
-            // Draw multiple glow layers for a soft effect
-            for (let i = 0; i < layers; i++) {
-                const padding = this.config.glow.paddingBase + (i * this.config.glow.paddingIncrement);
-                const layerOpacity = this.config.glow.opacityBase * intensity * (1 - i * this.config.glow.opacityDecrement);
-                
-                activeTurnGlow.fillStyle(glowColor, layerOpacity);
-                activeTurnGlow.fillRoundedRect(
-                    -this.config.width / 2 - padding,
-                    -this.config.height / 2 - padding,
-                    this.config.width + (padding * 2),
-                    this.config.height + (padding * 2),
-                    this.config.cornerRadius + padding / 2
-                );
-            }
-            
-            // Add to glow container
-            this.glowContainer.add(activeTurnGlow);
-            
-            // Store reference to this specific glow for removal later
-            this.activeTurnGlow = activeTurnGlow;
-        } catch (error) {
-            console.error('CardFrameInteractionComponent: Error applying active turn glow:', error);
-        }
+        console.log('applyActiveTurnGlow called but is now deprecated for active turn');
+        return;
     }
     
     /**
@@ -613,12 +551,6 @@ class CardFrameInteractionComponent {
             // Reset scale if no other effects are active
             if (!this._selected && !this._highlighted) {
                 this.container.setScale(1);
-            }
-            
-            // Remove active turn glow
-            if (this.activeTurnGlow && this.glowContainer) {
-                this.activeTurnGlow.destroy();
-                this.activeTurnGlow = null;
             }
             
             // Remove white frame highlight from the visual component

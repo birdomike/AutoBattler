@@ -1,3 +1,18 @@
+## 0.7.5.7 - Remove Card Frame Outward Glow from Turn Indicator (2025-05-17)
+
+### Changed
+- Removed the team-colored outward glow effect from the active turn indicator system
+- Simplified the turn indicator to use only white frame highlight and size pulse
+- Streamlined `CardFrameInteractionComponent` configuration by removing unnecessary glow parameters
+
+### Technical
+- Cleaned up `applyActiveTurnGlow` method by deprecating and emptying its implementation
+- Removed glow-related code from `showActiveTurnHighlight` and `hideActiveTurnHighlight` methods
+- Eliminated glow cleanup from the component's destroy and cleanup methods
+- Established a clean baseline for future "backlit shadow" visual effect implementation
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.7_RemoveCardFrameOutwardGlow.md*
+
 ## 0.7.5.6 - Connect Card Frame White Highlight to Turn System (2025-05-16)
 
 ### Added
