@@ -194,6 +194,37 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     }
     
     /**
+     * Show active turn highlighting for the character
+     * Indicates that it's this character's turn in battle
+     * @param {string} teamType - 'player' or 'enemy' team
+     * @returns {boolean} - Success state
+     */
+    showActiveTurnHighlight(teamType) {
+        // Delegate to interaction component if available
+        if (this.interactionComponent && typeof this.interactionComponent.showActiveTurnHighlight === 'function') {
+            return this.interactionComponent.showActiveTurnHighlight(teamType);
+        } else {
+            console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): showActiveTurnHighlight called but interactionComponent is not available or lacks method.`);
+            return false;
+        }
+    }
+    
+    /**
+     * Hide active turn highlighting for the character
+     * Used when it's no longer this character's turn
+     * @returns {boolean} - Success state
+     */
+    hideActiveTurnHighlight() {
+        // Delegate to interaction component if available
+        if (this.interactionComponent && typeof this.interactionComponent.hideActiveTurnHighlight === 'function') {
+            return this.interactionComponent.hideActiveTurnHighlight();
+        } else {
+            console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): hideActiveTurnHighlight called but interactionComponent is not available or lacks method.`);
+            return false;
+        }
+    }
+    
+    /**
      * Update the character's name
      * @param {string} name - New character name
      */

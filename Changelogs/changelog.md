@@ -1,3 +1,18 @@
+## 0.7.5.3 - 2025-05-16
+
+### Fixed
+- Resolved TypeError by completing the card frame turn indicator delegation chain
+- Added missing delegation methods in CardFrameManager.js and CardFrame.js
+- Connected showActiveTurnHighlight/hideActiveTurnHighlight methods through all components
+
+### Technical
+- Implemented proper method delegation following the established component pattern
+- Added comprehensive error handling with detailed warning messages
+- Maintained consistent delegation pattern across all components
+- Completed full connection from CharacterSprite to CardFrameInteractionComponent
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.3_CompleteTurnIndicatorDelegationChain.md*
+
 ## 0.7.5.2 - 2025-05-16
 
 ### Changed

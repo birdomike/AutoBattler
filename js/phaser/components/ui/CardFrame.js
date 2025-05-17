@@ -785,6 +785,59 @@ class CardFrame extends Phaser.GameObjects.Container {
     }
     
     /**
+     * Show active turn highlighting for the character
+     * Indicates that it's this character's turn in battle
+     * @param {string} teamType - 'player' or 'enemy' team
+     * @returns {boolean} - Success state
+     */
+    showActiveTurnHighlight(teamType) {
+        try {
+            // If component system is active, delegate to manager
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.showActiveTurnHighlight === 'function') {
+                    return this.manager.showActiveTurnHighlight(teamType);
+                } else {
+                    console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): Manager exists but has no showActiveTurnHighlight method`);
+                }
+            }
+            
+            // Log warning for delegation failure
+            console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): showActiveTurnHighlight delegation failed, turn highlight will be missing`);
+            return false;
+        } catch (error) {
+            console.error('CardFrame: Error delegating showActiveTurnHighlight:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Hide active turn highlighting for the character
+     * Used when it's no longer this character's turn
+     * @returns {boolean} - Success state
+     */
+    hideActiveTurnHighlight() {
+        try {
+            // If component system is active, delegate to manager
+            if (this.getConfig('useComponentSystem', true) && this.manager) {
+                // Delegate to manager if method exists
+                if (typeof this.manager.hideActiveTurnHighlight === 'function') {
+                    return this.manager.hideActiveTurnHighlight();
+                } else {
+                    console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): Manager exists but has no hideActiveTurnHighlight method`);
+                }
+            }
+            
+            // Log warning for delegation failure
+            console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): hideActiveTurnHighlight delegation failed, turn highlight will not be removed`);
+            return false;
+        } catch (error) {
+            console.error('CardFrame: Error delegating hideActiveTurnHighlight:', error);
+            return false;
+        }
+    }
+    
+    /**
      * Get the appropriate color for the health bar based on percentage
      * @param {number} percent - Health percentage (0-1)
      * @returns {number} - Color as hex number
