@@ -1000,20 +1000,51 @@ class CharacterSprite {
 
 
     /**
- * Highlight this character as active - MOVED TO TurnIndicator.js
+ * Highlight this character as active for its turn
+ * @returns {boolean} True if highlighting was successful, false otherwise
  */
 highlight() {
-    // Functionality moved to TurnIndicator.js
-    console.log(`CharacterSprite highlight for ${this.character?.name} - delegating to TurnIndicator`);
-    // TeamContainer will handle the actual highlighting via TurnIndicator
+    try {
+        // If this character is using a card frame, use the new highlight method
+        if (this.cardConfig && this.cardConfig.enabled && this.cardFrame) {
+            // Determine the character's team type (convert to lowercase to match expected parameter)
+            const teamType = this.character?.team?.toLowerCase() || 'player';
+            
+            // Apply the new card frame turn highlight
+            this.cardFrame.showActiveTurnHighlight(teamType);
+            console.log(`CharacterSprite (${this.character?.name}): Applied card frame turn highlight for team ${teamType}.`);
+            return true;
+        } else {
+            // Not using card frame - old turn indicator logic would apply, but is now deprecated
+            console.log(`CharacterSprite (${this.character?.name}): Not a card frame. Old turn indicator logic would apply (now deprecated and removed).`);
+            return false;
+        }
+    } catch (error) {
+        console.error(`CharacterSprite (${this.character?.name}): Error in highlight method:`, error);
+        return false;
+    }
 }
 
     /**
-     * Remove highlight effect - MOVED TO TurnIndicator.js
+     * Remove highlight effect from this character
+     * @returns {boolean} True if unhighlighting was successful, false otherwise
      */
     unhighlight() {
-        // Functionality moved to TurnIndicator.js
-        // TeamContainer will handle unhighlighting via TurnIndicator
+        try {
+            // If this character is using a card frame, use the new unhighlight method
+            if (this.cardConfig && this.cardConfig.enabled && this.cardFrame) {
+                // Remove the card frame turn highlight
+                this.cardFrame.hideActiveTurnHighlight();
+                console.log(`CharacterSprite (${this.character?.name}): Removed card frame turn highlight.`);
+                return true;
+            } else {
+                // Not using card frame - old turn indicator logic would apply, but is now deprecated
+                return false;
+            }
+        } catch (error) {
+            console.error(`CharacterSprite (${this.character?.name}): Error in unhighlight method:`, error);
+            return false;
+        }
     }
 
     /**

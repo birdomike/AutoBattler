@@ -1,3 +1,36 @@
+## 0.7.5.2 - 2025-05-16
+
+### Changed
+- Connected card frame turn indicator to existing turn logic in CharacterSprite.js
+- Migrated CharacterSprite.highlight() and unhighlight() to use the new card frame methods
+
+### Fixed
+- Removed references to deprecated TurnIndicator system from CharacterSprite
+
+### Technical
+- Modified highlight() method to determine character team and invoke showActiveTurnHighlight()
+- Modified unhighlight() method to invoke hideActiveTurnHighlight()
+- Added proper error handling with try-catch blocks
+- Added appropriate logging for both card and non-card representations
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.2_CharacterSpriteTurnIndicatorIntegration.md*
+
+## 0.7.5.1 - 2025-05-16
+
+### Added
+- Card-based turn indicator system that highlights active character cards instead of using floor markers
+
+### Changed
+- Migrated turn highlighting from the old TurnIndicator system (flattened circles) to the Card Frame component
+- Extended CardFrameInteractionComponent with new activeTurn configuration and highlight methods
+
+### Technical
+- Added showActiveTurnHighlight() and hideActiveTurnHighlight() methods to CardFrameInteractionComponent
+- Established new internal state variable (_activeTurn) for tracking turn highlight state independently
+- Added team-specific visual styling (blue for player team, red for enemy team)
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.1_CardFrameTurnIndicator.md*
+
 ## 0.7.5.0 - Health Bar Single Source of Truth Implementation (2025-05-16)
 
 ### Fixed
