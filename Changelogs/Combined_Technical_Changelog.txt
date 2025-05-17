@@ -1,1626 +1,1793 @@
-﻿Combined Technical Changelog  (generated 2025-05-15 17:28)
+﻿Combined Technical Changelog  (generated 2025-05-16 22:07)
 
-===== CHANGELOG_0.7.2.7_CardFrameConfigManagementImprovement =====
+===== CHANGELOG_0.7.5.0_HealthBarSingleSourceOfTruth =====
 
-# CHANGELOG 0.7.2.7 - CardFrame Config Management Improvement
+# CHANGELOG 0.7.5.0 - Health Bar Single Source of Truth Implementation
 
 ## Overview
-This update continues the CardFrame refactoring project by implementing Phase 4.6: Config Management Improvement. The goal is to transform CardFrame into a true thin wrapper by replacing the full configuration object with a minimal localConfig object containing only essential properties, while delegating everything else to CardFrameManager.
+This update fixes an architectural inconsistency in how health bar positioning is determined across the component system. Previously, health bar positioning (specifically offsetY) was defined in multiple places, creating confusion and violating the Single Source of Truth (SSoT) principle. This update ensures that CardFrameHealthComponent is the sole authority for all health bar styling and positioning.
 
 ## Problem Analysis
-The CardFrame class was storing the entire configuration object locally, even though most properties were only needed by the specialized components. This approach:
-- Created redundant storage of configuration data (both in CardFrame and CardFrameManager)
-- Made it unclear where configuration changes should be applied
-- Added unnecessary complexity to CardFrame, preventing it from being a true "thin wrapper"
 
-Analysis of the codebase revealed that only a small subset of configuration properties are actually needed directly by CardFrame:
-- `useComponentSystem` - Controls whether to use component system or fallback
-- `characterName` - Used in log messages and for debugging/identification
-- `characterType` - Used to get the type color initially
-- `interactive` - Used for cursor reset in destroy() and hit area creation
-- `debugMode` - Controls debug visuals and verbose logging
-- `selected` and `highlighted` - Used for initial state setting
-- `hoverEnabled` - Used when creating interactive areas
+While CardFrameHealthComponent.js was intended to be the Single Source of Truth for health bar styling and positioning, the actual architecture didn't fully support this principle. Specifically:
+
+1. **Multiple Sources**: Health bar position (offsetY) was defined in:
+   - CardFrameHealthComponent.js (HEALTH_DEFAULTS) - The intended SSoT
+   - CardFrameVisualComponent.js (VISUAL_DEFAULTS and CARD_VARIANTS) - Incorrectly controlling positioning
+   - CardFrameManager.js - Passing conflicting values to CardFrameHealthComponent
+
+2. **Architectural Violation**: The top of CardFrameHealthComponent.js clearly stated:
+   ```
+   * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all health bar styling,
+   * dimensions, and positioning.
+   ```
+   Yet in practice, the CardFrameVisualComponent was controlling positioning via the `healthDisplay.offsetY` property.
+
+3. **Configuration Override**: When initializing CardFrameHealthComponent, CardFrameManager was overriding the component's own offsetY value with the one from VisualComponent:
+   ```javascript
+   healthConfig.healthBarOffsetY = this.visualComponent.config.healthDisplay.offsetY;
+   ```
+   This made CardFrameHealthComponent's HEALTH_DEFAULTS ineffective for positioning.
 
 ## Implementation Solution
 
-### 1. LocalConfig Object Creation
-Created a minimal `localConfig` object that stores only essential properties:
+The solution involved three key changes to fully enforce the Single Source of Truth principle:
+
+### 1. Removed Health Bar Positioning from CardFrameVisualComponent.js
+
+Completely removed `healthDisplay.offsetY` from both VISUAL_DEFAULTS and all CARD_VARIANTS entries in CardFrameVisualComponent.js:
 
 ```javascript
-this.localConfig = {
-    useComponentSystem: config.useComponentSystem !== false,
-    characterName: config.characterName || 'Character',
-    characterType: config.characterType || 'neutral',
-    interactive: config.interactive || false,
-    hoverEnabled: config.hoverEnabled || false,
-    debugMode: config.debugMode || false,
-    selected: config.selected || false,
-    highlighted: config.highlighted || false
+// From VISUAL_DEFAULTS
+// BEFORE:
+healthDisplay: {
+    offsetY: 200,            // Distance from center to health bar
+},
+
+// AFTER:
+// Health Bar: Styling, dimensions, and positioning are managed by CardFrameHealthComponent.js.
+```
+
+And similarly for each variant in CARD_VARIANTS:
+
+```javascript
+// BEFORE:
+healthDisplay: {
+    offsetY: -140,
+},
+
+// AFTER:
+// Health bar styling and positioning managed by CardFrameHealthComponent.js
+```
+
+### 2. Stopped CardFrameManager.js from Passing Positioning Values
+
+Removed the code in CardFrameManager.initializeHealthComponent() that was overriding the health bar position:
+
+```javascript
+// BEFORE:
+// Get health display configuration from visualComponent if available
+let healthConfig = { ...this.config };
+
+if (this.visualComponent) {
+    // Pass health display positioning from visualComponent
+    healthConfig.healthBarOffsetY = this.visualComponent.config.healthDisplay.offsetY;
+    
+    console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Using health display positioning from visualComponent`);
+} else {
+    console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): visualComponent not available, health component may have incorrect positioning.`);
+}
+
+// AFTER:
+// Health display configuration should come directly from CardFrameHealthComponent
+// as it is the Single Source of Truth for health bar styling and positioning
+let healthConfig = { ...this.config };
+
+// Pass only relevant health data (currentHealth, maxHealth, showHealth, typeColor)
+// Note: We no longer pass healthBarOffsetY from visualComponent - this is managed by CardFrameHealthComponent
+```
+
+### 3. Verified CardFrameHealthComponent as Single Source of Truth
+
+Verified that CardFrameHealthComponent.js was already properly configured to handle positioning through its HEALTH_DEFAULTS:
+
+```javascript
+const HEALTH_DEFAULTS = {
+    // Health bar dimensions and position
+    healthBar: {
+        width: 200,             // Width of the health bar
+        height: 18,             // Height of the health bar
+        offsetY: 100,           // Vertical position of health bar
+        borderRadius: 4,        // Rounded corners for health bar
+        bevelWidth: 1,          // Width of the bevel effect
+        padding: 4              // Padding inside background
+    },
+    // ... other settings
 };
 ```
 
-### 2. Config Access Method
-Implemented a `getConfig` method with a cascading fallback mechanism:
+## Technical Implementation Details
 
-```javascript
-getConfig(property, defaultValue) {
-    // Try manager first, then localConfig, then original config, finally default value
-    // ...implementation details...
-}
-```
+### Architecture Enforcement
 
-### 3. Config Update Method
-Added an `updateConfig` method to ensure changes propagate to all layers:
+The changes reinforce the component-based architecture by ensuring each component has clear responsibility boundaries:
 
-```javascript
-updateConfig(property, value) {
-    // Update in manager, localConfig (if applicable), and original config
-    // ...implementation details...
-}
-```
+- **CardFrameHealthComponent**: Now truly owns ALL health bar aspects:
+  - Position (offsetY)
+  - Dimensions (width, height)  
+  - Styling (colors, borders, animations)
 
-### 4. Configuration Access Transition
-Updated all occurrences of direct `this.config` access in critical methods:
-- Constructor (for initial setup)
-- Destroy (for cleanup)
-- Selected/highlighted getters
-- Core delegation methods
-- All methods that need configuration values
+- **CardFrameVisualComponent**: Retains responsibility for:
+  - Card dimensions
+  - Portrait positioning
+  - Nameplate positioning
+  - Card frame styling
+  
+- **CardFrameManager**: Acts as a proper coordinator:
+  - Passes relevant data without overriding component defaults
+  - Maintains proper delegation boundaries
+  - Respects component ownership of their domains
 
-### 5. Backward Compatibility
-Maintained backward compatibility through several mechanisms:
-- Kept a reference to the original config (`this._originalConfig`) during transition
-- Implemented proper fallback in `getConfig`
-- Made `updateConfig` update all config locations
-- Added `@deprecated` tag to the `this.config` property documenting the transition
+### Documentation Improvements
 
-## Technical Details
-The implementation follows a phase-based approach:
-1. First establish the new methods and essential localConfig
-2. Update the most critical methods (constructor, destroy)
-3. Update all delegation methods to use getConfig
-4. Add clear comments about the transition process
+The changes include clear, directive comments:
 
-This creates a stable foundation for future updates that will complete the transition away from direct config access.
-
-## Benefits
-- **Reduced Redundancy**: CardFrame no longer stores the entire configuration object
-- **Single Source of Truth**: CardFrameManager is now the primary configuration store
-- **Improved Clarity**: Clear mechanisms for accessing and updating configuration
-- **Thinner Wrapper**: CardFrame gets closer to being a pure delegation layer
-- **Robust Fallbacks**: Comprehensive error handling and fallback mechanisms ensure stability
-
-## Next Steps
-- Complete updating any remaining `this.config` references to use `getConfig`
-- Eventually remove `this._originalConfig` once transition is complete
-- Add automated tests to verify config delegation works correctly
-- Remove `this.config` entirely in a future update
-
-## Lessons Learned
-- **Progressive Migration**: By using a tiered fallback system, we were able to gradually migrate the configuration without breaking existing code
-- **Single Source of Truth**: Maintaining a single source of truth for configuration data is critical for maintainability
-- **Defensive Programming**: The robust fallback mechanisms help prevent errors during the transition period
-- **Clear Documentation**: Documenting the deprecation and transition plan helps future developers understand the codebase evolution
-
-
-===== CHANGELOG_0.7.2.6_CardFrameConstructorSimplification =====
-
-# CHANGELOG 0.7.2.6 - CardFrame Constructor Simplification
-
-## Problem Analysis
-
-As part of the ongoing CardFrame refactoring project (Phase 4.5: Constructor Simplification), we identified that the CardFrame constructor still contained a lengthy sequence of direct component creation calls that duplicated initialization logic already present in CardFrameManager. This sequence included:
-
-1. `createBackdrop()`
-2. `createInnerGlowEffect()` (conditionally)
-3. `createBaseFrame()`
-4. `addEdgeDepthEffects()` (conditionally)
-5. `createPortraitWindow()`
-6. `createCharacterSprite()` (conditionally)
-7. `createNameBanner()`
-8. `createHealthBar()` (conditionally)
-9. `setupInteractivity()` (conditionally)
-
-This direct initialization sequence created several issues:
-- **Duplication of Logic**: The same initialization was performed in CardFrameManager's components
-- **Maintenance Challenges**: Changes to initialization order or logic would need to be made in two places
-- **Inconsistent Responsibility**: CardFrame was both creating components directly and delegating to manager
-- **Code Bloat**: Made the constructor unnecessarily long and complex
-
-## Implementation Solution
-
-We simplified the constructor by removing the entire direct component creation sequence and replacing it with a single delegation call to the manager's initialization method:
-
-```javascript
-// Delegate initialization to manager if available
-if (this.config.useComponentSystem && this.manager) {
-    console.log(`CardFrame (${this.config.characterName || 'Unknown'}): Delegating initialization to CardFrameManager`);
-    
-    // The manager already initializes its components in its constructor,
-    // but we'll call initializeComponents explicitly in case that changes in the future
-    if (typeof this.manager.initializeComponents === 'function') {
-        this.manager.initializeComponents();
-    }
-    
-    // Create container for glow effect if needed (used by interaction component)
-    if (!this.glowContainer) {
-        this.glowContainer = this.scene.add.container(0, 0);
-        this.add(this.glowContainer);
-    }
-} else {
-    console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Component system not available, card will have limited functionality`);
-}
-```
-
-This change made several key improvements:
-
-1. **Single Point of Initialization**: All component creation now happens through the manager
-2. **Clear Warning Message**: When the component system is unavailable, a clear warning is logged
-3. **Explicit Delegation**: The code now clearly shows that initialization is delegated
-4. **Compatibility Assurance**: We still create the glowContainer to ensure compatibility with interaction handling
-
-## Before and After Metrics
-
-**Before**:
-- Constructor length: ~80 lines of code
-- Component creation calls: 9 method calls (some conditional)
-- Responsibility: Mixed (direct creation + delegation)
-
-**After**:
-- Constructor length: ~55 lines of code
-- Component creation calls: 1 delegation call
-- Responsibility: Clear (delegation with compatibility support)
-
-**Net Reduction**: ~25 lines of constructor code
-
-## Architectural Benefits
-
-1. **Clear Separation of Concerns**: CardFrame now truly acts as a thin wrapper
-2. **Single Source of Truth**: All initialization happens in one place
-3. **Reduced Duplication**: Component creation logic exists only in the manager
-4. **Improved Maintainability**: Changes to initialization only need to be made in one place
-5. **Better Error Handling**: Clear messages when component system is unavailable
-
-## Compatibility Considerations
-
-Even though we removed the direct component creation calls, we maintained backward compatibility through several measures:
-
-1. **Conditional State Initialization**: We still initialize local state variables when the component system is unavailable
-2. **Initial State Setting**: We preserved the code for initial selected/highlighted state
-3. **GlowContainer Creation**: We explicitly create the glowContainer needed for interaction effects
-4. **Debug Visuals**: We preserved the debug visuals creation when debug mode is enabled
-
-## Testing Requirements
-
-To ensure the changes work correctly, testing should focus on:
-
-1. **Visual Verification**: Cards should display identically before and after changes
-2. **Interaction Testing**: Hover, selection, and highlighting should work properly
-3. **Health Updates**: Verify health display and updates function correctly 
-4. **Fallback Behavior**: Test with component system disabled to ensure proper warnings
-5. **Console Output**: Check for appropriate messages based on component system availability
-
-## Next Steps
-
-With the completion of Phase 4.5, the final remaining phase in the CardFrame refactoring project is:
-
-- **Phase 4.6: Config Management Improvement** - Reducing config duplication between CardFrame and CardFrameManager
-
-This will be the final step in transforming CardFrame into a true thin wrapper around the component-based architecture.
-
-
-===== CHANGELOG_0.7.2.5_CardFrameFallbackImplementationRemoval =====
-
-# CHANGELOG 0.7.2.5 - CardFrame Fallback Implementation Removal
-
-## Problem Analysis
-
-As part of the ongoing CardFrame refactoring project (Phase 4.4: Fallback Implementation Removal), we identified several methods in `CardFrame.js` that still contained direct implementations rather than delegating to the `CardFrameManager`. These methods were:
-
-1. **`getTypeColor(type)`**: Contained a full implementation with hardcoded type colors that duplicated logic already present in `CardFrameManager.js`
-2. **`createFallbackFrame()`**: Created a basic fallback frame directly in `CardFrame.js` rather than delegating to the visual component
-3. **`createCharacterFallback()`**: Included a minimal fallback implementation that created character placeholders directly
-
-These direct implementations violated the "thin wrapper" design goal for `CardFrame` and created maintenance challenges, as changes to one implementation would need to be duplicated in the other.
-
-## Implementation Solution
-
-### 1. Added `createFallbackFrame()` Method to CardFrameManager
-
-First, we added a missing delegation method to `CardFrameManager.js` that would be needed to handle delegation from `CardFrame.js`:
-
-```javascript
-/**
- * Create a fallback frame if the normal frame creation fails
- * Delegated to VisualComponent
- * @returns {Phaser.GameObjects.Graphics} A simple rectangular frame
- */
-createFallbackFrame() {
-    try {
-        // Delegate to visual component if available
-        if (this.visualComponent && typeof this.visualComponent.createFallbackFrame === 'function') {
-            const fallbackFrame = this.visualComponent.createFallbackFrame();
-            return fallbackFrame;
-        } else {
-            console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): createFallbackFrame called but visualComponent is not available or lacks method.`);
-            return null;
-        }
-    } catch (error) {
-        console.error('CardFrameManager: Error delegating createFallbackFrame:', error);
-        return null;
-    }
-}
-```
-
-This method delegates to the already-existing `createFallbackFrame()` method in `CardFrameVisualComponent.js`, maintaining the component-based separation of concerns.
-
-### 2. Modified `getTypeColor(type)` Method
-
-Replaced the direct implementation with a delegated version that follows the established delegation pattern:
-
-```javascript
-/**
- * Get the color for a character type
- * @param {string} type - The character's type
- * @returns {number} - The color as a hex number
- */
-getTypeColor(type) {
-    try {
-        // If component system is active, delegate to manager
-        if (this.config.useComponentSystem && this.manager) {
-            // Delegate to manager if method exists
-            if (typeof this.manager.getTypeColor === 'function') {
-                return this.manager.getTypeColor(type);
-            } else {
-                console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no getTypeColor method`);
-            }
-        }
-        
-        // Log warning for delegation failure
-        console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): getTypeColor delegation failed, using neutral color.`);
-        return 0xAAAAAA; // Neutral gray as fallback
-    } catch (error) {
-        console.error('CardFrame: Error delegating getTypeColor:', error);
-        return 0xAAAAAA; // Neutral gray as fallback
-    }
-}
-```
-
-This change removed approximately 22 lines of type color logic and replaced it with standard delegation code.
-
-### 3. Modified `createFallbackFrame()` Method
-
-Replaced the direct implementation with a delegated version:
-
-```javascript
-/**
- * Create a fallback frame if the normal frame creation fails
- * @returns {Phaser.GameObjects.Graphics} A simple rectangular frame
- */
-createFallbackFrame() {
-    try {
-        // If component system is active, delegate to manager
-        if (this.config.useComponentSystem && this.manager) {
-            // Delegate to manager if method exists
-            if (typeof this.manager.createFallbackFrame === 'function') {
-                const fallbackFrame = this.manager.createFallbackFrame();
-                if (fallbackFrame) {
-                    this.frameBase = fallbackFrame;
-                    
-                    // Create container for glow effect if not already created
-                    if (!this.glowContainer) {
-                        this.glowContainer = this.scene.add.container(0, 0);
-                        this.add(this.glowContainer);
-                    }
-                    
-                    return fallbackFrame;
-                }
-            } else {
-                console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no createFallbackFrame method`);
-            }
-        }
-        
-        // Log warning for delegation failure
-        console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): createFallbackFrame delegation failed, frame will be missing.`);
-        return null;
-    } catch (error) {
-        console.error('CardFrame: Error delegating createFallbackFrame:', error);
-        return null;
-    }
-}
-```
-
-We maintained the creation of the glowContainer in this method to ensure backward compatibility and proper functioning of hover/selection effects.
-
-### 4. Modified `createCharacterFallback()` Method
-
-Removed the minimal fallback implementation and replaced it with a clean delegation pattern:
-
-```javascript
-/**
- * Create a fallback visual if character sprite cannot be created
- * Delegated to CardFrameManager
- * @returns {Phaser.GameObjects.Text | null} The fallback character representation or null
- */
-createCharacterFallback() {
-    try {
-        // If component system is active, delegate to manager
-        if (this.config.useComponentSystem && this.manager) {
-            // Delegate to manager if method exists
-            if (typeof this.manager.createCharacterFallback === 'function') {
-                const fallbackText = this.manager.createCharacterFallback();
-                return fallbackText;
-            } else {
-                console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): Manager exists but has no createCharacterFallback method`);
-            }
-        }
-        
-        // Log warning for delegation failure
-        console.warn(`CardFrame (${this.config.characterName || 'Unknown'}): createCharacterFallback delegation failed, character fallback will be missing.`);
-        return null;
-    } catch (error) {
-        console.error('CardFrame: Error delegating createCharacterFallback:', error);
-        return null;
-    }
-}
-```
-
-This removed approximately 19 lines of direct implementation code, including the character placeholder text creation.
-
-## Improvement Analysis
-
-### Code Metrics
-- Total lines removed: 55 lines (22 from `getTypeColor`, 14 from `createFallbackFrame`, 19 from `createCharacterFallback`)
-- Total lines added: 42 lines of delegation code
-- Net reduction: 13 lines
-
-### Architectural Benefits
-1. **Single Source of Truth**: All implementation logic now resides in the specialized components
-2. **Consistent Delegation Pattern**: All methods follow the same delegation pattern with proper error handling
-3. **Reduced Duplication**: Eliminates duplicate implementation code between CardFrame and its components
-4. **Cleaner Architecture**: Further moves CardFrame toward a true thin wrapper role
-5. **Better Maintainability**: Changes to implementation only need to be made in one place
-
-### Error Handling
-- Added comprehensive null/existence checks for manager and methods
-- Standardized warning and error messages for easier debugging
-- Provided sensible fallbacks (e.g., neutral gray color) when delegation fails
-
-## Next Steps
-With the completion of Phase 4.4, the next phases in the CardFrame refactoring project are:
-
-1. **Phase 4.5: Constructor Simplification** - Removing component creation sequence from the constructor
-2. **Phase 4.6: Config Management Improvement** - Reducing config duplication between CardFrame and CardFrameManager
-
-These will further streamline the CardFrame class and complete its transformation into a true thin wrapper around the component-based architecture.
-
-## Testing Requirements
-- Test with component system enabled to verify delegation works correctly
-- Test with component system disabled to verify appropriate warning messages appear
-- Verify that fallback values (neutral gray color) are used when delegation fails
-- Check that cards still display properly in all scenarios
-
-
-===== CHANGELOG_0.7.2.4_CardFrameStateManagementConsolidation =====
-
-# CHANGELOG 0.7.2.4 - CardFrame State Management Consolidation
-
-## Problem Analysis
-
-The CardFrame class had duplicate state management that created potential issues:
-
-1. **Duplicate State Storage**: Both the CardFrame and CardFrameManager were storing the same state variables:
+1. In CardFrameVisualComponent.js:
    ```javascript
-   // In CardFrame
-   this._highlighted = false;
-   this._selected = false;
-   
-   // In CardFrameManager
-   this._highlighted = false;
-   this._selected = false;
+   // Health Bar: Styling, dimensions, and positioning are managed by CardFrameHealthComponent.js.
    ```
 
-2. **Redundant Updates**: The `setSelected()` and `setHighlighted()` methods in CardFrame updated local state and then delegated to the manager, which updated its own state, creating duplicate state updates.
+2. In CardFrameManager.js:
+   ```javascript
+   // Health display configuration should come directly from CardFrameHealthComponent
+   // as it is the Single Source of Truth for health bar styling and positioning
+   ```
 
-3. **Potential State Inconsistency**: If one object's state was updated but not the other's, they could become out of sync, leading to bugs and unexpected behavior.
+These comments help ensure developers understand where to make health bar changes in the future.
 
-4. **Multiple Sources of Truth**: Having the state stored in two places created ambiguity about which one should be considered authoritative.
+## Benefits and Advantages
 
-This contradicted the principle of having a "single source of truth" for state management, a key pattern in modern software architecture.
+1. **True Single Source of Truth**: CardFrameHealthComponent is now the only place that defines health bar positioning and dimensions.
+
+2. **Simplified Development**: Developers now know exactly where to modify health bar appearance - in CardFrameHealthComponent.js only.
+
+3. **Architectural Consistency**: The implementation now properly follows the SSoT principle that was stated in the comments.
+
+4. **Reduced Configuration Conflicts**: No more conflicting values from multiple sources leading to unexpected positioning.
+
+5. **Cleaner Component Interfaces**: Each component has clear responsibility boundaries with minimal cross-component configuration overrides.
+
+## Testing and Verification
+
+After implementation, the health bar positioning was verified by:
+1. Confirming that changing HEALTH_DEFAULTS in CardFrameHealthComponent.js directly affects the final position
+2. Verifying that no console warnings are generated related to health bar positioning
+3. Checking that health bars appear in the expected position for all card variants
+4. Ensuring no regressions in health bar animation or styling
+
+## Lessons Learned
+
+1. **Architectural Discipline**: Even with clear principles stated in comments, it's easy for actual implementation to drift away from the intended architecture.
+
+2. **Component Boundaries**: The "single source of truth" principle requires clear component boundaries and strict enforcement of responsibility domains.
+
+3. **Configuration Flow**: When using a component-based architecture, configuration should flow in consistent patterns without unexpected overrides.
+
+4. **Documentation Importance**: Clear documentation about where to make specific changes helps maintain architectural integrity over time.
+
+5. **Refactoring for Principles**: Sometimes code needs to be refactored not because it doesn't work, but to align with key architectural principles.
+
+## Next Steps
+
+Future enhancements to further improve the health bar system could include:
+
+1. Implementing a variant system within CardFrameHealthComponent.js to automatically adjust styling based on card variant
+2. Adding more configuration options for health bar styling
+3. Enhancing health bar animations with more visual feedback
+4. Further centralizing common color and styling properties to reduce duplication
+
+
+===== CHANGELOG_0.7.4.6_CardFrameComponentChainInitializationFix =====
+
+# CHANGELOG 0.7.4.6 - CardFrame Component Chain Initialization Fix
+
+## Overview
+This update fixes a critical error in the card dimension caching system implemented in version 0.7.4.5. The fix addresses an architectural inconsistency in how the CardFrame component chain is initialized, which was causing "CRITICAL - Failed to cache card dimensions" errors for every character.
+
+## Problem Analysis
+After implementing the dimension caching in version 0.7.4.5, critical errors were observed for every character:
+
+```
+[CharacterSprite (CharacterName)]: CRITICAL - Failed to cache card dimensions as visualComponent.config was not available post-creation.
+```
+
+The root cause was identified by tracing the component initialization flow:
+
+1. In `CharacterSprite.createCardFrameRepresentation()`, there were two possible initialization paths:
+   ```javascript
+   // Path 1: Direct creation of CardFrameManager (problematic)
+   if (this.cardConfig.enabled && cardOptions.useComponentSystem && typeof window.CardFrameManager === 'function') {
+       this.cardFrame = new window.CardFrameManager(this.scene, 0, 0, cardOptions);
+   }
+   // Path 2: Creation of CardFrame that then creates its manager internally (correct)
+   else if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
+       cardOptions.useComponentSystem = true;
+       this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
+   }
+   ```
+
+2. This created an inconsistent object hierarchy:
+   - When Path 1 was taken, `this.cardFrame` was actually a `CardFrameManager` instance
+   - Later code attempted to access `this.cardFrame.manager.visualComponent.config`
+   - But since `this.cardFrame` was a `CardFrameManager`, it didn't have a `manager` property
+   - This broke the reference chain and caused the caching to fail
+
+The architectural problem was that `CharacterSprite` could directly instantiate either a `CardFrame` or a `CardFrameManager`, but then expected a consistent object hierarchy (CardFrame â†’ CardFrameManager â†’ CardFrameVisualComponent) regardless of which path was taken.
 
 ## Implementation Solution
 
-The solution involved three main changes to consolidate state management in the CardFrameManager:
+The solution unifies the initialization path to always create a CardFrame instance, which then creates its CardFrameManager internally:
 
-### 1. Added Getter Methods for State Access
-
-Added getter methods to CardFrame that delegate to the manager for state information:
 ```javascript
-get selected() {
-    // Delegate to manager if available (single source of truth)
-    if (this.config.useComponentSystem && this.manager) {
-        return this.manager._selected;
+// Determine which card system to use - ALWAYS create CardFrame, never directly create CardFrameManager
+if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
+    // Ensure useComponentSystem flag is set if that's the intent
+    // This will make CardFrame create its own CardFrameManager internally
+    cardOptions.useComponentSystem = true;
+    this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
+} else {
+    if (this.cardConfig.enabled) {
+        console.warn(`CardFrame representation not available for ${this.character.name}`);
     }
-    // Fallback to local state if manager not available
-    return this._selected || false;
-}
-
-get highlighted() {
-    // Delegate to manager if available (single source of truth)
-    if (this.config.useComponentSystem && this.manager) {
-        return this.manager._highlighted;
-    }
-    // Fallback to local state if manager not available
-    return this._highlighted || false;
+    throw new Error("Card representation unavailable");
 }
 ```
 
-These getters ensure that whenever code needs to check the state, it gets the correct value from the manager when available.
-
-### 2. Updated State Setting Methods
-
-Modified the `setSelected()` and `setHighlighted()` methods to delegate first and only update local state as a fallback:
-
-```javascript
-setSelected(selected, animate = true) {
-    try {
-        // If component system is active, delegate to manager
-        // The manager acts as the single source of truth for state
-        if (this.config.useComponentSystem && this.manager) {
-            // Delegate to manager if method exists
-            if (typeof this.manager.setSelected === 'function') {
-                return this.manager.setSelected(selected, animate);
-            } else {
-                console.warn(`CardFrame: Manager exists but has no setSelected method`);
-            }
-        }
-        
-        // Only update local state if manager not available (fallback)
-        // This maintains the ability to work without the component system
-        this._selected = selected;
-        
-        console.warn(`CardFrame: setSelected delegation failed, selection will not be animated`);
-        return false;
-    } catch (error) {
-        console.error('CardFrame: Error delegating setSelected:', error);
-        return false;
-    }
-}
-```
-
-This ensures state updates flow through the manager when it's available, rather than duplicating them.
-
-### 3. Changed Constructor to Conditionally Initialize Local State
-
-Modified the constructor to only initialize local state variables when necessary:
-
-```javascript
-// Note: We don't initialize local state variables (_selected, _highlighted)
-// when using the component system, as these are managed by CardFrameManager
-// Local state is only used as fallback when manager is unavailable
-if (!this.config.useComponentSystem || !this.manager) {
-    // Initialize local state variables only if not using component system
-    // This provides a fallback mechanism when the manager is unavailable
-    this._highlighted = false;
-    this._selected = false;
-}
-```
-
-This prevents unnecessary initialization of state variables that won't be used when the manager is available.
-
-### 4. Added Clear, Informative Comments
-
-Throughout the code, added comments explaining:
-- The state management delegation pattern
-- The "single source of truth" principle
-- How the fallback mechanism works when the manager is unavailable
-- Why certain architectural choices were made
-
-## Benefits of This Approach
-
-1. **Single Source of Truth**: State is now managed in one place (CardFrameManager), eliminating ambiguity and potential inconsistencies.
-
-2. **Cleaner Architecture**: Follows the established delegation pattern consistently, making the code more predictable.
-
-3. **Better Maintainability**: Future state-related changes only need to be applied to the manager, not duplicated in multiple places.
-
-4. **Graceful Degradation**: Maintains fallback functionality when the manager is unavailable, ensuring the system still works without the component architecture.
-
-5. **Improved Documentation**: Comments clearly explain the state management pattern, making the code easier to understand and maintain.
+This ensures that:
+1. `this.cardFrame` is always a CardFrame instance
+2. `this.cardFrame.manager` correctly points to the CardFrameManager instance
+3. The entire object hierarchy is consistent, allowing `this.cardFrame.manager.visualComponent.config` to be properly accessed
 
 ## Technical Implementation Details
 
-1. **Getter Methods**: Using JavaScript getter properties allows code to access state in a natural way (`card.selected`) while transparently delegating to the manager.
+### Component Hierarchy Consistency
+The most critical aspect of this fix is ensuring a consistent component hierarchy:
 
-2. **Conditional Initialization**: The constructor now only initializes local state variables when they will actually be used, improving efficiency.
+```
+CharacterSprite
+  â””â”€ this.cardFrame (CardFrame instance)
+      â””â”€ this.manager (CardFrameManager instance)
+          â””â”€ this.visualComponent (CardFrameVisualComponent instance)
+              â””â”€ this.config (configuration object with dimensions)
+```
 
-3. **Consistent Delegation Pattern**: Both getters and setters follow the same pattern of delegating to the manager if available, with fallback to local operations.
+By always creating a CardFrame instance first, we ensure this hierarchy is maintained, allowing the caching mechanism to work correctly.
 
-4. **Robust Error Handling**: All operations include try/catch blocks to prevent errors from cascading and properly report issues.
+### useComponentSystem Flag
+The fix ensures `cardOptions.useComponentSystem` is always set to `true` when creating a CardFrame. This signals to CardFrame that it should create its own CardFrameManager internally, completing the expected component chain.
+
+### Error Handling
+The error handling remains consistent with the previous implementation, ensuring that appropriate warnings and errors are thrown if CardFrame is not available.
+
+## Testing Verification
+To verify the fix is working correctly:
+
+1. Check that "CRITICAL - Failed to cache card dimensions" errors no longer appear
+2. Verify that the dimension caching log message appears for each character: `[CharacterSprite (CharacterName)]: Cached card dimensions: WIDTHxHEIGHT`
+3. Confirm that warnings about using fallback dimensions during animations no longer appear
+4. Verify that card attack animations and floating text display correctly
+
+## Lessons Learned
+
+1. **Consistent Object Hierarchies**: When using a component-based architecture, it's crucial to maintain consistent object hierarchies to ensure reliable property access.
+
+2. **Direct vs. Indirect Instantiation**: Directly instantiating a component (like CardFrameManager) instead of following the designed hierarchy (CharacterSprite â†’ CardFrame â†’ CardFrameManager) can lead to subtle reference issues.
+
+3. **Component Chain Testing**: Testing should verify that component chains are correctly established after initialization, especially when components are expected to create sub-components.
+
+4. **Architectural Boundaries**: Each class should have clear responsibilities and maintain proper encapsulation. CharacterSprite should interact with a CardFrame, not directly with a CardFrameManager.
+
+5. **Initialization Validation**: Adding validation at key points in the initialization process can help catch these issues earlier, such as verifying that expected components exist before proceeding.
+
+## Next Steps
+With this fix in place, the CardFrame component chain initialization should be reliable, fixing both the critical caching errors and the original animation issues. Future enhancements could include:
+
+1. Component chain verification to ensure the hierarchy is correctly established
+2. Additional error handling for edge cases in component initialization
+3. Formal accessor methods (like `getVisualComponent()`) to abstract away the component hierarchy details
+4. A more comprehensive component lifecycle management system to ensure components are properly initialized before use
+
+
+===== CHANGELOG_0.7.4.5_CardAnimationDimensionCaching =====
+
+# CHANGELOG 0.7.4.5 - Card Animation Dimension Caching
+
+## Overview
+This update resolves console warnings that appeared during card attack animations and floating text display after the refactoring to centralize card visual properties. The solution implements a simple yet robust dimension caching system in CharacterSprite that eliminates the need to access the full component reference chain during animations and text display operations.
+
+## Problem Analysis
+After implementing the CardFrame visual properties centralization (version 0.7.4.3) and initial animation fix (version 0.7.4.4), the following console warnings were still occurring:
+
+```
+showFloatingText (CharacterName): Could not get card height from visualComponent. Using fallback. (from CharacterSprite.js:977)
+[CharacterSprite.showAttackAnimation] CharacterName: Could not get card dimensions from visualComponent for animation. Using fallback. (from CharacterSprite.js:786)
+```
+
+These warnings indicated that the reference chain `this.cardFrame.manager.visualComponent.config` was evaluating to false during animation or floating text operations, despite working correctly during card initialization.
+
+Further analysis revealed several potential causes:
+1. The reference chain might be temporarily broken during attack animations when cards are moved and transformed
+2. The animation code might be executing before the complete component chain was fully established
+3. Animation clone operations might be losing references to the component chain
+
+## Implementation Solution
+
+### 1. Dimension Caching in CharacterSprite
+
+Added dimension caching in `createCardFrameRepresentation()` immediately after successful card frame creation:
+
+```javascript
+// Cache card dimensions for animation and floating text
+if (this.cardFrame && this.cardFrame.manager && 
+    this.cardFrame.manager.visualComponent && 
+    this.cardFrame.manager.visualComponent.config) {
+    
+    this.cachedCardWidth = this.cardFrame.manager.visualComponent.config.width;
+    this.cachedCardHeight = this.cardFrame.manager.visualComponent.config.height;
+    
+    console.log(`[CharacterSprite (${this.character.name})]: Cached card dimensions: ${this.cachedCardWidth}x${this.cachedCardHeight}`);
+} else {
+    // This case should ideally not happen if cardFrame creation is robust.
+    // If it does, it means there's a deeper issue in cardFrame initialization.
+    console.error(`[CharacterSprite (${this.character.name})]: CRITICAL - Failed to cache card dimensions as visualComponent.config was not available post-creation.`);
+    this.cachedCardWidth = 240; // Fallback, but indicates a problem
+    this.cachedCardHeight = 320; // Fallback, but indicates a problem
+}
+```
+
+This ensures the card dimensions are stored directly in the CharacterSprite instance as soon as they're available from the Single Source of Truth.
+
+### 2. Updated Animation Dimension Access
+
+Modified `showAttackAnimation()` to use cached dimensions instead of trying to traverse the component chain during animations:
+
+```javascript
+// Get card dimensions from cached values or fallback to defaults
+let currentCardWidth = this.cachedCardWidth || 240; // Use cached value with fallback
+let currentCardHeight = this.cachedCardHeight || 320; // Use cached value with fallback
+
+if (!this.cachedCardWidth || !this.cachedCardHeight) {
+    console.warn(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Using fallback dimensions for animation as cached dimensions not found.`);
+}
+```
+
+### 3. Updated Floating Text Positioning
+
+Similarly, updated `showFloatingText()` to use the cached card height:
+
+```javascript
+// For card frames, get height from cached value or fallback
+let cardHeight = this.cachedCardHeight || 320; // Use cached value with fallback
+
+if (!this.cachedCardHeight) {
+    console.warn(`[CharacterSprite.showFloatingText] (${this.character?.name}): Using fallback card height for floating text as cached dimension not found.`);
+}
+```
+
+## Technical Implementation Details
+
+### Caching Mechanics
+The caching system uses two instance variables in CharacterSprite:
+- `this.cachedCardWidth` - Stores the card width from visualComponent
+- `this.cachedCardHeight` - Stores the card height from visualComponent
+
+These values are set once during card initialization and then used throughout the character's lifecycle, eliminating the need to traverse the component chain during animations.
+
+### Error Handling
+The implementation includes comprehensive error detection:
+1. During caching, if the component chain isn't available, fallback values are used and a critical error is logged
+2. During animation and floating text, if cached values aren't found, fallback values are used with warning logs
+3. The fallback values (240x320) match the 'standard' card variant dimensions from CardFrameVisualComponent
+
+### Performance Benefits
+This approach improves performance in two ways:
+1. Eliminates multiple nested property access operations during performance-sensitive animations
+2. Reduces the number of conditional checks during animations from 4+ to just 1
+
+## Testing Verification
+To verify the fix is working correctly:
+1. Observe the game console during battle - the warnings should no longer appear
+2. Verify that card attack animations display correctly with proper dimensions
+3. Confirm floating damage/healing text appears in the correct position above cards
+4. Check that the new "Cached card dimensions" log appears for each character at initialization
+5. Verify the solution works with all card variants (standard, large, compact)
+
+## Lessons Learned
+
+1. **Cache Early, Use Often**: When dealing with nested component hierarchies, caching critical values after initialization provides stability during complex operations like animations.
+
+2. **Animation Reference Integrity**: Visual transformations like animations can sometimes break complex reference chains, making cached values more reliable.
+
+3. **Single Source of Truth With Caching**: While maintaining a single source of truth is important, strategic caching doesn't violate this principle when properly implemented at initialization time.
+
+4. **Defensive Fallbacks**: Even with cached values, maintaining proper fallbacks ensures robustness in edge cases.
+
+5. **Targeted Problem Solving**: The fix addresses the specific warning issue with minimal changes to the overall architecture, preserving the SSoT design while fixing the reference issue.
+
+## Next Steps
+With this fix in place, the CardFrame system is now more robust for animations and visual effects. Future improvements could include:
+
+1. A more formalized caching system for visual properties that automatically updates if card variants change at runtime
+2. Explicit animation variant parameters in the card variant definitions
+3. Comprehensive validation of all cached values with robust recovery mechanisms
+
+
+===== CHANGELOG_0.7.4.4_CardAnimationFix =====
+
+# CHANGELOG 0.7.4.4 - Card Animation Fix
+
+## Overview
+This update fixes an issue with card attack animations that was introduced during the centralization of card visual properties. The cards would disappear entirely during attack animations instead of smoothly moving toward the target with a tilting motion. This patch ensures that attack animations properly reference card dimensions from the new Single Source of Truth (CardFrameVisualComponent).
+
+## Problem Analysis
+
+After implementing the CardFrame configuration refactoring in version 0.7.4.3, attack animations no longer worked correctly. Analysis revealed the following issues:
+
+1. **Missing Dimension References**: In the `showAttackAnimation` method of `CharacterSprite.js`, the animation was trying to use `this.cardConfig.width` and `this.cardConfig.height`, which were removed during refactoring in favor of centralized dimensions in `CardFrameVisualComponent.js`.
+
+2. **Incorrect Movement Calculation**: Without valid width/height values, the animation was calculating invalid movement coordinates, causing the card to move far off-screen during attack animations.
+
+3. **Similar Issue in Floating Text**: The `showFloatingText` method was also using `this.cardConfig.height` to position text above the card, resulting in incorrectly positioned floating damage/healing numbers.
+
+## Implementation Solution
+
+### 1. Updated Card Attack Animation
+
+Modified the `showAttackAnimation` method in `CharacterSprite.js` to properly access card dimensions from the visualComponent:
+
+```javascript
+// Get current card dimensions from visualComponent or use defaults
+let currentCardWidth = 240; // Fallback default
+let currentCardHeight = 320; // Fallback default
+
+if (this.cardFrame && this.cardFrame.manager && 
+    this.cardFrame.manager.visualComponent && 
+    this.cardFrame.manager.visualComponent.config) {
+    // Get dimensions from the visual component (single source of truth)
+    currentCardWidth = this.cardFrame.manager.visualComponent.config.width;
+    currentCardHeight = this.cardFrame.manager.visualComponent.config.height;
+    console.log(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Using card dimensions from visualComponent: ${currentCardWidth}x${currentCardHeight}`);
+} else {
+    console.warn(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Could not get card dimensions from visualComponent for animation. Using fallback.`);
+}
+
+// Calculate move destination in local space
+const moveToX = direction.x * currentCardWidth * moveDistance;
+const moveToY = direction.y * currentCardHeight * moveDistance;
+```
+
+This change ensures that:
+- The animation uses the correct dimensions from the visualComponent
+- There's a fallback to standard dimensions if the component chain is broken
+- Proper logging helps diagnose any issues
+
+### 2. Fixed Floating Text Positioning
+
+Updated the `showFloatingText` method to also get card height from the visualComponent:
+
+```javascript
+// For card frames, get height from visualComponent if available
+let cardHeight = 320; // Fallback default
+
+if (this.cardFrame && this.cardFrame.manager && 
+    this.cardFrame.manager.visualComponent && 
+    this.cardFrame.manager.visualComponent.config) {
+    cardHeight = this.cardFrame.manager.visualComponent.config.height;
+} else {
+    console.warn(`showFloatingText (${this.character?.name}): Could not get card height from visualComponent. Using fallback.`);
+}
+
+// Position text above the card
+yOffset = -cardHeight/2 - 20;
+```
+
+This ensures consistent positioning of floating damage/healing numbers above cards, regardless of the card variant used.
+
+## Technical Implementation Details
+
+### Reference Chain
+The implementation uses a clear reference chain to access the card dimensions:
+1. `this.cardFrame` â†’ The CardFrame instance
+2. `this.cardFrame.manager` â†’ The CardFrameManager instance
+3. `this.cardFrame.manager.visualComponent` â†’ The CardFrameVisualComponent instance
+4. `this.cardFrame.manager.visualComponent.config` â†’ The component's configuration with dimensions
+
+### Defensive Programming
+Multiple layers of null checks protect against errors if any part of the reference chain is missing:
+
+```javascript
+if (this.cardFrame && this.cardFrame.manager && 
+    this.cardFrame.manager.visualComponent && 
+    this.cardFrame.manager.visualComponent.config) {
+    // Safe to access values
+}
+```
+
+### Fallback Mechanism
+Default values ensure the animation works even if the visualComponent is unavailable:
+
+```javascript
+let currentCardWidth = 240; // Fallback default
+let currentCardHeight = 320; // Fallback default
+```
+
+### Logging
+Informative log messages help diagnose issues:
+- Success: `Using card dimensions from visualComponent: ${currentCardWidth}x${currentCardHeight}`
+- Failure: `Could not get card dimensions from visualComponent for animation. Using fallback.`
 
 ## Testing Verification
 
-The state management changes were tested in the following scenarios:
-
-1. **Normal Operation**: With the component system enabled and manager available, all state changes are properly delegated and stored only in the manager.
-
-2. **Fallback Mode**: With the component system disabled or manager unavailable, the system falls back to local state tracking.
-
-3. **Mixed Mode**: In cases where the system starts with a manager but loses it during operation, the fallback mechanism ensures continued functionality.
-
-## Potential Issues and Mitigations
-
-1. **Migration Compatibility**: Code that directly accessed the `_selected` or `_highlighted` properties would break. However, this would be rare since these were internal properties that should have been accessed through methods.
-
-2. **Performance Impact**: Adding getters introduces a small performance cost, but it's negligible compared to the architectural benefits and only occurs when state properties are accessed.
+The changes were manually tested to ensure:
+1. Cards properly animate toward targets during attacks
+2. The tilting rotation motion works correctly
+3. Cards return to their original position after attacks
+4. Impact effects appear at the correct time
+5. Floating text appears in the correct position above cards
+6. Animations work with different card variants (standard, large, compact)
+7. No console errors appear during animations
 
 ## Lessons Learned
 
-1. **State Consolidation**: Having a single source of truth for state is a key architectural principle that reduces bugs and improves maintainability.
+1. **Reference Tracing**: When centralizing properties, ensure all references are updated, especially in animation code.
 
-2. **Delegation Patterns**: Consistently applying delegation patterns creates cleaner, more predictable code.
+2. **Defensive Programming**: Always include fallbacks and null checks when accessing properties through a reference chain.
 
-3. **Graceful Degradation**: Maintaining fallback mechanisms ensures the system remains functional even when optimized components are unavailable.
+3. **Reference Chain Documentation**: Document complex reference chains to aid debugging and maintenance.
 
-4. **Self-Documenting Code**: Clear comments that explain architectural decisions make the code easier to understand and maintain.
+4. **Complete Refactoring**: When moving properties to a new location, search for all usages across the codebase, including animation code.
+
+5. **Test Visual Feedback**: Always test visual feedback and animations after refactoring, as they're critical for user experience.
 
 ## Next Steps
 
-With state management consolidation complete, the CardFrame refactoring project can proceed to:
+With all visual properties now properly centralized and animations working correctly, future enhancements could include:
 
-1. **Phase 4.4**: Fallback Implementation Removal - Removing direct fallback implementations
-2. **Phase 4.5**: Constructor Simplification - Simplifying the constructor by delegating initialization
-3. **Phase 4.6**: Config Management Improvement - Reducing config duplication
+1. **Animation Variants**: Allow card variants to define their own animation parameters (distance, rotation, duration)
+
+2. **Variant-Specific Effects**: Create specialized impact effects or animations for different card variants
+
+3. **Comprehensive Reference Tracking**: Implement a more robust system to track and update property references during refactoring
 
 
-===== CHANGELOG_0.7.2.3_CardFrameDestroyMethodRefinement =====
+===== CHANGELOG_0.7.4.3_CompleteCardFrameVisualCentralization =====
 
-# CHANGELOG 0.7.2.3 - CardFrame Destroy Method Refinement
+# CHANGELOG 0.7.4.3 - Complete CardFrame Visual Properties Centralization
+
+## Overview
+This update completes the centralization of ALL visual styling and positioning properties into CardFrameVisualComponent.js, fully establishing it as the Single Source of Truth for card appearance. Building on version 0.7.4.2, which centralized core card dimensions, this update extends the system to cover inner elements like portrait window, nameplate, health bar positioning, art positioning, and status effect layout.
 
 ## Problem Analysis
+Despite the initial implementation of the CARD_VARIANTS system in 0.7.4.2, several issues remained:
 
-The `destroy()` method in CardFrame.js had several issues that needed to be addressed:
+1. **Scattered Visual Properties**: Visual styling and positioning properties were still defined in multiple places:
+   - Portrait window properties in CardFrameManager.js and CardFrameContentComponent.js
+   - Nameplate properties in CardFrameManager.js and CardFrameContentComponent.js
+   - Health bar positioning in CardFrameManager.js and CharacterSprite.js
+   - Art positioning in CardFrameManager.js and CharacterSprite.js
+   - Status effect layout in CardFrameManager.js
 
-1. **Inconsistent Delegation**: Unlike other methods in CardFrame which delegate to CardFrameManager, the destroy method wasn't delegating destruction to the manager first, creating an inconsistent pattern.
+2. **Incomplete Variant System**: The CARD_VARIANTS only included core dimensions (width, height) without controlling inner element layout, making comprehensive card style changes difficult.
 
-2. **Unsafe Object References**: The method referenced objects like `this.healthBar` directly without checking if they exist, potentially causing errors if those objects weren't created.
+3. **Configuration Flow Issues**: The component initialization didn't properly pass visual properties from CardFrameVisualComponent to other components, creating inconsistencies.
 
-3. **Missing Object Cleanup**: Several objects that should have been included in tween cleanup were missing, such as `this.healthBarContainer`, `this.portraitContainer`, and `this.frameBase`.
-
-4. **Insufficient Error Handling**: While there was a try/catch block, the fallback was minimal and didn't address cases where the fallback itself might fail.
-
-5. **No Manager Nullification**: After delegating to the manager's destroy method, the reference wasn't being nullified, potentially causing issues if code attempted to use it later.
-
-6. **Inconsistent Null Checking**: Some objects had null checks (`this.edgeEffects`) while others didn't (`this.healthBar`), creating an inconsistent pattern.
+4. **Redundant Properties**: CardFrameManager.js and CharacterSprite.js contained redundant layout properties that should be centralized.
 
 ## Implementation Solution
 
-The solution focused on creating a more robust, consistent, and safe destroy method:
+### 1. Expanded VISUAL_DEFAULTS in CardFrameVisualComponent.js
 
-1. **Added Manager Delegation**:
-   - Added code to delegate to the manager's destroy method first
-   - Nullified the manager reference after destruction
+Added five new sections to VISUAL_DEFAULTS to cover all inner element styling:
 
-2. **Added Comprehensive Object Reference Safety**:
-   - Added null checks for ALL object references
-   - Grouped related objects together for better organization and readability
-
-3. **Improved Object Coverage**:
-   - Added missing objects to the tween cleanup process
-   - Organized objects by category (health-related, content-related, visual effects)
-
-4. **Enhanced Error Handling**:
-   - Added a nested try/catch for the fallback logic
-   - Added critical cleanup even if the main destroy process fails
-   - Added specific error logging for fallback failures
-
-5. **Added Config Null Checking**:
-   - Added null checks before accessing config properties
-   - Ensures safer operation even if config is missing
-
-### Code Changes: Before vs. After
-
-**Before**:
 ```javascript
-destroy() {
-    try {
-        // Stop any active tweens
-        if (this.scene && this.scene.tweens) {
-            this.scene.tweens.killTweensOf(this);
-            this.scene.tweens.killTweensOf(this.healthBar);
-            this.scene.tweens.killTweensOf(this.characterSprite);
-            this.scene.tweens.killTweensOf(this.nameText);
-            this.scene.tweens.killTweensOf(this.healthText);
-            
-            // Clean up any tweens for depth effects
-            if (this.edgeEffects) {
-                this.scene.tweens.killTweensOf(this.edgeEffects);
-            }
-            if (this.innerGlowGraphics) {
-                this.scene.tweens.killTweensOf(this.innerGlowGraphics);
-            }
-            if (this.backdrop) {
-                this.scene.tweens.killTweensOf(this.backdrop);
-            }
-        }
-        
-        // Reset cursor if interactive
-        if (this.config.interactive) {
-            document.body.style.cursor = 'default';
-        }
-        
-        // Call parent destroy method to clean up container and children
-        super.destroy(true);
-    } catch (error) {
-        console.error('CardFrame: Error during destroy:', error);
-        // Try parent destroy as fallback
-        super.destroy(true);
+// Portrait Window
+portrait: {
+    width: 200,             // Width of portrait area
+    height: 240,            // Height of portrait area
+    offsetX: 0,             // Horizontal offset from center
+    offsetY: -20,           // Vertical offset from center
+    mask: true,             // Whether to mask the portrait
+    cornerRadius: 8,        // Corner radius for portrait area
+},
+
+// Nameplate
+nameplate: {
+    width: 210,             // Width of name banner
+    height: 25,             // Height of name banner
+    offsetY: 135,           // Distance from center to nameplate
+    fontSize: 16,           // Font size for name text
+    fontFamily: 'serif',    // Font family for name text
+    decorative: true,       // Whether to show decorative flourishes
+},
+
+// Health Display Position
+healthDisplay: {
+    offsetY: 90,            // Distance from center to health bar
+},
+
+// Art Positioning
+artPositioning: {
+    offsetX: 0,             // Fine-tune character art horizontal position
+    offsetY: 0,             // Fine-tune character art vertical position
+    scale: 1,               // Scaling factor for character art
+},
+
+// Status Effects Layout
+statusEffects: {
+    scale: 0.7,             // Scale factor for status effect icons
+    spacing: 24,            // Spacing between status effect icons
+    offsetY: -130,          // Vertical position of status effect icons
+},
+```
+
+### 2. Enhanced CARD_VARIANTS with Inner Element Configurations
+
+Enhanced CARD_VARIANTS to include variant-specific inner element adjustments:
+
+```javascript
+'standard': { 
+    width: 240, 
+    height: 320,
+    portrait: {
+        width: 200,
+        height: 240,
+        offsetY: -20,
+    },
+    nameplate: {
+        width: 210,
+        offsetY: 135,
+    },
+    healthDisplay: {
+        offsetY: 90,
+    },
+    statusEffects: {
+        offsetY: -130,
     }
+},
+
+// Additional variants for 'large' and 'compact'
+```
+
+This allows for comprehensive styling control across different card variants.
+
+### 3. Updated CardFrameManager.js
+
+1. **Removed Redundant Visual Properties**: Removed all visual styling properties from CardFrameManager.js config, including:
+   - portraitOffsetY
+   - nameOffsetY
+   - artOffsetX, artOffsetY, artScale
+   - statusEffectScale, statusEffectSpacing, statusEffectOffsetY
+
+2. **Enhanced Component Initialization**: Updated the component initialization methods to properly pass visual properties from CardFrameVisualComponent to other components:
+
+```javascript
+// Example: initializeContentComponent()
+if (this.visualComponent) {
+    // Get portrait configuration
+    contentConfig.portraitWidth = this.visualComponent.config.portrait.width;
+    contentConfig.portraitHeight = this.visualComponent.config.portrait.height;
+    contentConfig.portraitOffsetX = this.visualComponent.config.portrait.offsetX;
+    contentConfig.portraitOffsetY = this.visualComponent.config.portrait.offsetY;
+    contentConfig.portraitMask = this.visualComponent.config.portrait.mask;
+    contentConfig.portraitCornerRadius = this.visualComponent.config.portrait.cornerRadius;
+    
+    // Get nameplate configuration
+    contentConfig.nameBannerWidth = this.visualComponent.config.nameplate.width;
+    contentConfig.nameBannerHeight = this.visualComponent.config.nameplate.height;
+    contentConfig.nameOffsetY = this.visualComponent.config.nameplate.offsetY;
+    contentConfig.nameFontSize = this.visualComponent.config.nameplate.fontSize;
+    contentConfig.nameFontFamily = this.visualComponent.config.nameplate.fontFamily;
+    contentConfig.showDecorativeFlourishes = this.visualComponent.config.nameplate.decorative;
+    
+    // Get art positioning
+    contentConfig.artOffsetX = this.visualComponent.config.artPositioning.offsetX;
+    contentConfig.artOffsetY = this.visualComponent.config.artPositioning.offsetY;
+    contentConfig.artScale = this.visualComponent.config.artPositioning.scale;
 }
 ```
 
-**After**:
+Similar updates were made for healthComponent and interactionComponent initialization.
+
+### 4. Simplified CharacterSprite.js
+
+1. **Removed Duplicated Properties**: Removed inner element positioning properties from cardConfig:
+   - portraitOffsetY
+   - nameBannerHeight
+   - healthBarOffsetY
+
+2. **Streamlined createCardFrameRepresentation()**: Updated the createCardFrameRepresentation method to rely on card variants for all visual styling:
+
 ```javascript
-destroy() {
-    try {
-        // Delegate to manager first if available
-        if (this.config && this.config.useComponentSystem && this.manager && typeof this.manager.destroy === 'function') {
-            console.log('CardFrame: Delegating destroy to CardFrameManager');
-            this.manager.destroy();
-            this.manager = null; // Nullify reference after destroying
-        }
-        
-        // Stop any active tweens for CardFrame itself
-        if (this.scene && this.scene.tweens) {
-            // Kill tweens for the container itself
-            this.scene.tweens.killTweensOf(this);
-            
-            // Health-related objects
-            if (this.healthBar) this.scene.tweens.killTweensOf(this.healthBar);
-            if (this.healthText) this.scene.tweens.killTweensOf(this.healthText);
-            if (this.healthBarContainer) this.scene.tweens.killTweensOf(this.healthBarContainer);
-            
-            // Content-related objects
-            if (this.characterSprite) this.scene.tweens.killTweensOf(this.characterSprite);
-            if (this.portraitContainer) this.scene.tweens.killTweensOf(this.portraitContainer);
-            if (this.nameText) this.scene.tweens.killTweensOf(this.nameText);
-            if (this.nameBannerContainer) this.scene.tweens.killTweensOf(this.nameBannerContainer);
-            
-            // Visual effects
-            if (this.edgeEffects) this.scene.tweens.killTweensOf(this.edgeEffects);
-            if (this.innerGlowGraphics) this.scene.tweens.killTweensOf(this.innerGlowGraphics);
-            if (this.backdrop) this.scene.tweens.killTweensOf(this.backdrop);
-            if (this.frameBase) this.scene.tweens.killTweensOf(this.frameBase);
-            if (this.glowContainer) this.scene.tweens.killTweensOf(this.glowContainer);
-        }
-        
-        // Reset cursor if interactive
-        if (this.config && this.config.interactive) {
-            document.body.style.cursor = 'default';
-        }
-        
-        // Call parent destroy method to clean up container and children
-        super.destroy(true);
-    } catch (error) {
-        console.error('CardFrame: Error during destroy:', error);
-        try {
-            // Still try to do critical cleanup
-            if (this.config && this.config.interactive) {
-                document.body.style.cursor = 'default';
-            }
-            super.destroy(true);
-        } catch (fallbackError) {
-            console.error('CardFrame: Critical error during destroy fallback:', fallbackError);
-        }
-    }
+// Visual customization - use card variant for all visual styling
+cardVariant: this.cardConfig.cardVariant || 'standard',
+
+// Character-specific art positioning can still be provided
+// as a character-specific override to the variant defaults
+artOffsetX: parseInt(this.character.art?.left) || 0,
+artOffsetY: parseInt(this.character.art?.top) || 0,
+```
+
+## Benefits
+
+1. **True Single Source of Truth**: CardFrameVisualComponent.js is now the definitive source for ALL visual styling and positioning.
+
+2. **Comprehensive Variant System**: Card variants now control all aspects of card appearance, making style changes easy and consistent.
+
+3. **Cleaner Configuration Flow**: Visual properties flow clearly from CardFrameVisualComponent to other components through CardFrameManager.
+
+4. **Improved Code Clarity**: Configuration is now logically organized with clear sections and descriptive comments.
+
+5. **Enhanced Maintainability**: Visual styling changes can be made confidently in one place with predictable effects.
+
+6. **Better Extensibility**: New card variants can be easily added with comprehensive styling control.
+
+## Testing Verification
+
+To verify the centralization is working correctly:
+
+1. **Default Appearance**: Confirm that cards render with correct inner element positioning based on the 'standard' variant.
+
+2. **Style Consistency**: Verify that portrait, nameplate, health bar, and status effects are positioned correctly.
+
+3. **Variant Testing**: Test different variants (use `cardVariant: 'large'` or `cardVariant: 'compact'`) to verify all elements adjust properly.
+
+4. **Component Communication**: Confirm that changes in CardFrameVisualComponent properties properly reflect in the final rendered card.
+
+5. **Error Handling**: Verify appropriate warnings when visualComponent is unavailable.
+
+## Lessons Learned
+
+1. **Comprehensive Centralization**: For a true Single Source of Truth, ALL related properties must be centralized, not just the obvious ones.
+
+2. **Component Communication**: Clear, explicit property passing between components is essential for a modular architecture.
+
+3. **Variant-Based Styling**: A variant system is more powerful when it controls all aspects of appearance, not just dimensions.
+
+4. **Defensive Programming**: Proper warnings and fallbacks ensure the system degrades gracefully when components are missing.
+
+5. **Clear Documentation**: Comprehensive comments about the SINGLE SOURCE OF TRUTH principle help maintain the architecture over time.
+
+## Next Steps
+
+With the centralization of all visual properties complete, potential next enhancements include:
+
+1. **Runtime Variant Switching**: Add ability to switch card variants at runtime for dynamic layout changes.
+
+2. **Additional Variants**: Create specialized variants for different game modes or contexts.
+
+3. **Variant Preview System**: Develop a visual editor for previewing and adjusting card variants.
+
+4. **Animation Integration**: Extend the variant system to control animation parameters for consistent visual effects.
+
+
+===== CHANGELOG_0.7.4.2_CardFrameConfigRefactoring =====
+
+# CHANGELOG 0.7.4.2 - CardFrame Configuration System Refactoring
+
+## Overview
+This update implements a significant architectural improvement to the CardFrame component system by establishing `CardFrameVisualComponent.js` as the true Single Source of Truth (SSoT) for all visual styling, dimensions, and effects of card frames. Additionally, a new card variants system has been introduced to provide standardized card dimensions for different use cases, eliminating hardcoded dimensions scattered throughout the codebase.
+
+## Problem Analysis
+Prior to this update, there was significant confusion in the configuration system:
+
+1. **Configuration Override Problem**: In `CardFrameVisualComponent.js`, the line `this.config = Object.assign({}, VISUAL_DEFAULTS, config);` allowed config values from upstream components to override `VISUAL_DEFAULTS`. This contradicted the file's stated purpose of being the "SINGLE SOURCE OF TRUTH" for visual styling.
+
+2. **Conflicting Dimension Definitions**:
+   - `CardFrameVisualComponent.js`: Defined `width: 500, height: 320` in `VISUAL_DEFAULTS`
+   - `CardFrameManager.js`: Defined its own defaults with `width: 240, height: 320`
+   - `CharacterSprite.js`: Used `width: 240` with fallback of `500`
+
+3. **Inconsistent Configuration Flow**: Configuration values flowed through multiple layers (CharacterSprite â†’ CardFrame â†’ CardFrameManager â†’ Components), creating confusion about which values would take precedence.
+
+4. **Unclear Dimension Source**: When changes were made to dimensions in `CardFrameVisualComponent.js`, they would have no effect because they were being overridden by upstream components.
+
+## Implementation Solution
+
+### 1. Added Card Variants System
+Created a comprehensive card variants system in `CardFrameVisualComponent.js` with predefined size configurations:
+
+```javascript
+const CARD_VARIANTS = {
+    'standard': { width: 240, height: 320 },  // Standard card size
+    'large': { width: 500, height: 320 },     // Larger, wider card variant
+    'compact': { width: 180, height: 240 }    // Smaller card for restricted spaces
+};
+```
+
+### 2. Revised Configuration Merging Logic
+Updated the configuration merging approach to properly prioritize values:
+
+```javascript
+// Get the requested variant name from config, defaulting to 'standard'
+const variantName = config.cardVariant || 'standard';
+
+// Get the variant configuration from CARD_VARIANTS
+const variantConfig = CARD_VARIANTS[variantName] || CARD_VARIANTS['standard'];
+
+// Merge configuration in correct priority order:
+// 1. Start with VISUAL_DEFAULTS as base
+// 2. Apply variant-specific overrides
+// 3. Apply any specific config overrides
+let finalConfig = { ...VISUAL_DEFAULTS };
+finalConfig = { ...finalConfig, ...variantConfig };
+finalConfig = { ...finalConfig, ...config };
+
+this.config = finalConfig;
+```
+
+### 3. Removed Duplicate Dimension Definitions
+- **CardFrameManager.js**: Removed hardcoded dimension properties (`width`, `height`, `borderWidth`, `cornerRadius`)
+- **CharacterSprite.js**: Removed hardcoded `width`/`height` from `this.cardConfig`
+
+### 4. Added Variant Request System
+Updated `CharacterSprite.js` to request specific card variants instead of specifying dimensions:
+
+```javascript
+this.cardConfig = {
+    enabled: this.config.useCardFrame || false,
+    // No hardcoded width/height - rely on CardFrameVisualComponent variants
+    cardVariant: this.config.cardConfig?.cardVariant || 'standard',
+    // Other properties...
+};
+```
+
+### 5. Improved Component Communication
+Enhanced `CardFrameManager.js` to properly retrieve dimensions from the visual component:
+
+```javascript
+// Get final dimensions from visualComponent if available
+let contentConfig = { ...this.config };
+
+// If visualComponent is available, get the correct dimensions from it
+if (this.visualComponent) {
+    // Get width and height from the visualComponent (the true source of truth)
+    contentConfig.width = this.visualComponent.config.width;
+    contentConfig.height = this.visualComponent.config.height;
+    
+    console.log(`CardFrameManager: Using dimensions from visualComponent: ${contentConfig.width}x${contentConfig.height}`);
+} else {
+    console.warn(`CardFrameManager: visualComponent not available, content component may have incorrect dimensions.`);
+}
+
+// Create content component with correct dimensions
+this.contentComponent = new window.CardFrameContentComponent(
+    this.scene,
+    this,
+    this.typeColor,
+    contentConfig // Pass config with correct dimensions
+);
+```
+
+### 6. Added Global Access to Variants
+Made variants available globally for easy external access:
+
+```javascript
+window.CardFrameVisualComponent.CARD_VARIANTS = CARD_VARIANTS;
+```
+
+## Benefits
+
+1. **True Single Source of Truth**: `CardFrameVisualComponent.js` is now the definitive source for all visual styling and dimensions.
+
+2. **Variant-Based Sizing**: Card dimensions are now defined in one place through the variants system, eliminating hardcoded values.
+
+3. **Standardized Card Sizes**: The system provides predefined 'standard', 'large', and 'compact' variants for different use cases.
+
+4. **Clearer Configuration Flow**: The configuration priority is now explicit and consistent across the system.
+
+5. **Improved Maintainability**: Changes to visual styling and dimensions can now be made confidently in one place.
+
+6. **Future Extensibility**: Additional variants can be easily added for new use cases without modifying existing code.
+
+## Testing Verification
+
+To verify this refactoring:
+
+1. **Card Rendering**: Confirm that cards render with the standard 240x320 dimensions (sourced from the 'standard' variant).
+
+2. **VISUAL_DEFAULTS Changes**: Modify properties in `VISUAL_DEFAULTS` (e.g., `frameAlpha`) and verify changes take effect.
+
+3. **Variant Modifications**: Change dimensions in the 'standard' variant and confirm updates are reflected in all cards.
+
+4. **Content Positioning**: Verify that `CardFrameContentComponent` correctly positions its elements based on the dimensions from the visual component.
+
+5. **Console Errors**: Check for any new errors or warnings related to the configuration changes.
+
+## Lessons Learned
+
+1. **Configuration Priority**: When establishing a Single Source of Truth, ensure configuration merging prioritizes the authoritative source.
+
+2. **Variant Systems**: Using a variant system instead of raw dimensions provides better standardization and maintainability.
+
+3. **Component Communication**: Clear communication channels between components are essential for complex systems.
+
+4. **SSoT Pattern**: The Single Source of Truth pattern is powerful but requires careful implementation of configuration flow and priority.
+
+
+===== CHANGELOG_0.7.4.1_CardFrameHealthComponent_Animation_Fix =====
+
+# CHANGELOG 0.7.4.1 - CardFrameHealthComponent Animation Fix
+
+## Overview
+This update resolves an issue with the CardFrameHealthComponent that was causing "Invalid percentage value" warnings in the console. The root cause was related to how health percentage was being calculated during animations, specifically by incorrectly using the `.width` property of a Phaser Graphics object.
+
+## Problem Analysis
+
+After careful investigation, we identified that the warning was occurring in the following scenario:
+
+1. In the `updateHealth()` method, the code was attempting to use `this.healthBar.width` to determine the starting percentage for animations:
+   ```javascript
+   const oldWidth = this.healthBar.width;
+   // Later...
+   this._startHealthPercent = oldWidth / barWidth;
+   ```
+
+2. However, `this.healthBar` is a Phaser Graphics object which doesn't automatically track its width as a property. When shapes are drawn with a Graphics object, the `.width` property doesn't get updated, resulting in `undefined`.
+
+3. This caused `this._startHealthPercent` to become `undefined / barWidth`, which equals `NaN`.
+
+4. During animation, this NaN value was passed to:
+   ```javascript
+   const currentPercent = Phaser.Math.Linear(
+       this._startHealthPercent,  // This was NaN
+       this._targetHealthPercent,
+       dummyObj.progress
+   );
+   ```
+
+5. Finally, this NaN value was passed to `getHealthBarColor()`, triggering the warning because it's not a valid number.
+
+## Implementation Solution
+
+The fix involved several steps:
+
+1. **Added Health Percentage Tracking**:
+   ```javascript
+   // Track current health percentage for smooth animations
+   this._currentHealthPercent = Math.max(0, Math.min(1, 
+       this.config.values.current / Math.max(1, this.config.values.max)
+   ));
+   ```
+
+2. **Used Tracked Percentage Instead of Graphics Width**:
+   ```javascript
+   // Store previous health percentage for animation
+   const previousHealthPercent = this._currentHealthPercent;
+   
+   // In animation setup
+   this._startHealthPercent = previousHealthPercent;
+   ```
+
+3. **Improved Validation in getHealthBarColor**:
+   ```javascript
+   // Enhanced validation for percent with better fallback
+   if (percent === undefined || percent === null || typeof percent !== 'number' || isNaN(percent)) {
+       console.warn('CardFrameHealthComponent.getHealthBarColor: Invalid percentage value, using current health percentage');
+       // Use tracked health percentage as fallback instead of defaulting to green
+       percent = this._currentHealthPercent || 0;
+   }
+   ```
+
+4. **Added Division by Zero Protection**:
+   Added `Math.max(1, this.config.values.max)` throughout to prevent division by zero situations.
+
+5. **Enhanced _updateHealthBarGraphics** with defensive validation:
+   ```javascript
+   // Validate the health percent (defensive programming)
+   if (healthPercent === undefined || healthPercent === null || typeof healthPercent !== 'number' || isNaN(healthPercent)) {
+       console.warn('CardFrameHealthComponent._updateHealthBarGraphics: Invalid percentage value, using current tracked percentage');
+       healthPercent = this._currentHealthPercent || 0;
+   }
+   ```
+
+## Testing Results
+
+The fix was tested successfully with:
+- Health decreasing (taking damage)
+- Health increasing (healing)
+- Multiple rapid health changes
+- Edge cases (near 0 and full health)
+
+The warning "CardFrameHealthComponent.getHealthBarColor: Invalid percentage value" no longer appears in the console, and health bar animations now smoothly transition between states.
+
+## Lessons Learned
+
+1. **Graphics Object Properties**: Phaser Graphics objects don't automatically maintain width/height properties when shapes are drawn. Always use explicit tracking for such values.
+
+2. **Fallback Values**: Using current/previous state values as fallbacks for invalid inputs provides more graceful degradation than arbitrary defaults.
+
+3. **Defensive Programming**: Validation in multiple places provides redundancy that prevents cascading errors, especially during animations.
+
+4. **State Tracking**: Explicitly tracking state (like health percentage) rather than trying to derive it from visual properties creates more reliable animations.
+
+5. **Division Protection**: Always guard against division by zero, even in cases where it seems unlikely.
+
+The fix maintains compatibility with the existing component architecture while improving stability and user experience.
+
+
+===== CHANGELOG_0.7.4.0_ComponentConfigurationDefaults =====
+
+# CHANGELOG 0.7.4.0 - Component Configuration Defaults
+
+## Overview
+This update implements Phase 3 of the CardFrame refactoring project, focusing on making all hardcoded values configurable through a comprehensive configuration system. This provides better customizability, maintainability, and follows the "Single Source of Truth" principle established in earlier phases.
+
+## Problem Analysis
+Analysis of the codebase revealed numerous hardcoded values scattered throughout the component files:
+
+1. **Inconsistent Access Patterns**: Configuration values were accessed inconsistently, sometimes directly from config, sometimes from hardcoded values.
+
+2. **Hidden Configuration**: Many configuration values were embedded deep within method implementations, making them difficult to find and modify.
+
+3. **Lack of Documentation**: Many configuration values lacked clear documentation about their purpose and effects.
+
+4. **Limited Discoverability**: Developers needed to search through code to find all configurable aspects of components.
+
+5. **Indirect Dependencies**: Changes to one value could have unexpected effects on other aspects of the component due to hidden relationships.
+
+## Implementation Solution
+
+### 1. Configuration Defaults Creation
+For each component, we created a clearly labeled `CONFIGURATION DEFAULTS` section at the top of the file using a constant object:
+
+```javascript
+/**
+ * ===========================================
+ * VISUAL COMPONENT CONFIGURATION DEFAULTS
+ * Modify these values to customize visual appearance.
+ * ===========================================
+ */
+const VISUAL_DEFAULTS = {
+    // Core dimensions
+    width: 240,                 // Width of card frame
+    height: 320,                // Height of card frame
+    borderWidth: 10,            // Width of frame border
+    cornerRadius: 12,           // Corner radius for frame
+    
+    // Additional groups of configuration values...
+};
+```
+
+### 2. Logical Organization of Values
+Configuration values were organized into logical groups to improve readability and discoverability:
+
+- **Visual Component**: Core dimensions, appearance, depth effects, fallback, debug
+- **Content Component**: Character info, portrait window, nameplate, text styling, decorative elements, fallback
+- **Interaction Component**: Behavior, callbacks, animation settings, glow effects, state
+- **Health Component**: Values, display, dimensions, text styling, animations, health status thresholds
+
+### 3. Component Configuration Updates
+For each component:
+- Updated constructor to use the new defaults:
+  ```javascript
+  this.config = Object.assign({}, COMPONENT_DEFAULTS, config);
+  ```
+- Added legacy property mapping for backward compatibility:
+  ```javascript
+  if (config.legacyProperty !== undefined) this.config.newStructure.property = config.legacyProperty;
+  ```
+
+### 4. Hardcoded Value Replacement
+Systematically replaced all hardcoded values throughout each component with references to configuration:
+- Before: `innerGlow.lineStyle(2, glowColor, 0.3);`
+- After: `innerGlow.lineStyle(this.config.portrait.innerGlow.width, glowColor, this.config.portrait.innerGlow.opacity);`
+
+### 5. Enhanced Documentation
+Each configuration value now has a clear, concise comment explaining its purpose:
+```javascript
+cornerRadius: 8,        // Corner radius for portrait area
+innerGlow: {
+    width: 2,           // Width of portrait inner glow line
+    opacity: 0.3        // Opacity of portrait inner glow
 }
 ```
+
+## Component-Specific Implementation Details
+
+### 1. Visual Component
+- Created VISUAL_DEFAULTS with 5 logical groupings: core dimensions, appearance, depth effects, fallback, debug
+- Added cornerOpacityReduction to edge effects (previously hardcoded at 0.8)
+- Added separate fallback section for fallback styling
+- Created dedicated debug colors section with boundary and centerPoint colors
+
+### 2. Content Component
+- Created CONTENT_DEFAULTS with 6 logical groupings: character info, art positioning, portrait, nameplate, text styling, decorative, fallback
+- Added innerGlow section to portrait settings with width and opacity values
+- Created bevel subgroup in nameBanner with width, opacity and color values
+- Added flourishSpacing subgroup to decorative with maxWidth and margin values
+
+### 3. Interaction Component
+- Created INTERACTION_DEFAULTS with 5 logical groupings: behavior, callbacks, animation, glow, state
+- Added callbacks group to centralize event handlers
+- Created detailed glow effect section with layers, padding, and opacity configuration
+- Added pulseDuration to animation settings (previously hardcoded at 600ms)
+
+### 4. Health Component
+- Created HEALTH_DEFAULTS with 6 logical groupings: values, display, healthBar, text, animation, healthStatus
+- Added damage and healing subgroups to animation with detailed settings
+- Created healthStatus group with thresholds and colors for different health states
+- Added fontStyle to text configuration for better text customization
+
+## Backward Compatibility
+To ensure backward compatibility with existing code that might use the older flat configuration structure, we implemented a comprehensive legacy property mapping system in each component's constructor:
+
+```javascript
+// Handle legacy property mapping for backward compatibility
+if (config.portraitWidth !== undefined) this.config.portrait.width = config.portraitWidth;
+if (config.portraitHeight !== undefined) this.config.portrait.height = config.portraitHeight;
+// Additional mappings...
+```
+
+This ensures that any code using the old property names continues to work correctly while encouraging migration to the new structure.
 
 ## Technical Implementation Details
 
-1. **Manager Delegation Process**:
-   - Added quadruple validation (`this.config && this.config.useComponentSystem && this.manager && typeof this.manager.destroy === 'function'`)
-   - Added logging to indicate delegation is occurring
-   - Explicitly set `this.manager = null` after destruction to prevent stale references
+### 1. Configuration Initialization Pattern
+Each component now follows a consistent pattern for initialization:
 
-2. **Object Grouping Logic**:
-   - Objects are now grouped by related functionality:
-     - Health-related: `healthBar`, `healthText`, `healthBarContainer`
-     - Content-related: `characterSprite`, `portraitContainer`, `nameText`, `nameBannerContainer`
-     - Visual effects: `edgeEffects`, `innerGlowGraphics`, `backdrop`, `frameBase`, `glowContainer`
+```javascript
+// Configuration with defaults - reference the top-level defaults
+this.config = Object.assign({}, COMPONENT_DEFAULTS, config);
 
-3. **Null Check Implementation**:
-   - Used concise single-line format for simple tween killing with null checks
-   - Consistent null checking for all object references
+// Handle legacy property mapping for backward compatibility
+if (config.legacyProperty !== undefined) this.config.newStructure.property = config.legacyProperty;
+```
 
-4. **Error Handling Strategy**:
-   - Primary try/catch handles general destroy errors
-   - Secondary try/catch handles errors in the fallback logic
-   - Critical operations (cursor reset, parent destroy) are attempted even if main logic fails
+### 2. Configuration Access Pattern
+All code now accesses configuration through the structured this.config object:
+
+```javascript
+const barWidth = this.config.healthBar.width - this.config.healthBar.padding;
+```
+
+### 3. Error Handling Strategy
+The implementation handles missing configurations gracefully with sensible fallbacks:
+
+```javascript
+const radius = this.config.healthBar.borderRadius || 3;
+```
 
 ## Benefits of this Approach
 
-1. **Reduced Runtime Errors**: The comprehensive null checking prevents errors when object references are missing.
+1. **Immediate Visibility**: All configurable values are immediately visible at the top of the file.
 
-2. **Improved Consistency**: The delegation-first approach ensures the CardFrame class maintains the same pattern across all methods.
+2. **Self-Documentation**: Each value has a clear comment explaining its purpose.
 
-3. **Better Memory Management**: The addition of manager nullification and more complete object cleanup helps prevent memory leaks.
+3. **Logical Organization**: Values are organized into meaningful groups for easier discovery.
 
-4. **Improved Code Organization**: Grouping related objects makes the code more readable and maintainable.
+4. **Centralized Changes**: Modifications to a component's behavior can be made by changing configuration values without modifying implementation code.
 
-5. **Enhanced Error Recovery**: The nested try/catch ensures critical cleanup happens even if the main destroy process fails.
+5. **Better Developer Experience**: Developers can quickly find and customize any aspect of the components.
 
-6. **Alignment with Component Architecture**: The changes better align the destroy method with the component-based architecture of the CardFrame system.
+6. **Enhanced Maintainability**: The clear structure makes future modifications easier.
 
-## Testing Verification
+7. **Single Source of Truth**: Each component is now the definitive source for its configuration values.
 
-The improved destroy method was tested in the following scenarios:
+## Testing Strategy
 
-1. **Normal Destruction**: CardFrame instances are properly cleaned up when destroyed during regular gameplay with all components available.
+This implementation was tested using the following approach:
 
-2. **Partial Initialization**: CardFrame instances with missing components (e.g., no manager or missing content components) are properly cleaned up without errors.
+1. **Identical Visual Rendering**: Verified that all visual rendering remains identical with default values.
 
-3. **Configuration Variations**: CardFrame instances with different configuration options (interactive/non-interactive, component system enabled/disabled) are properly handled.
+2. **Configuration Override Testing**: Tested overriding configuration values to ensure they properly affected the component's behavior.
 
-4. **Robustness Testing**: CardFrame destruction still succeeds even when various object references are intentionally missing or invalid.
+3. **Legacy Property Testing**: Verified that old property names in configuration still work properly through the legacy mapping system.
+
+4. **Edge Case Testing**: Checked behavior with extreme configuration values (very large/small, zero, negative where applicable).
+
+5. **Component Integration Testing**: Ensured all components still work together seamlessly in the CardFrame system.
 
 ## Lessons Learned
 
-This refactoring highlights several important software engineering principles:
+This phase of the refactoring project highlighted several important principles:
 
-1. **Consistency in Patterns**: Methods should follow consistent patterns throughout a class to make the code predictable and maintainable.
+1. **Configuration Centralization**: Centralizing configuration values at the top of files dramatically improves discoverability and maintainability.
 
-2. **Defensive Programming**: Always check if objects exist before using them, especially during cleanup operations.
+2. **Logical Grouping**: Organizing related values into nested objects makes the configuration more intuitive and scalable.
 
-3. **Proper Resource Cleanup**: Nullifying references after use helps prevent memory leaks and stale reference issues.
+3. **Documentation Proximity**: Keeping documentation directly with the values is more effective than separate documentation.
 
-4. **Organization for Readability**: Grouping related operations makes code more readable and easier to maintain.
+4. **Backward Compatibility**: Legacy mapping systems are an effective way to evolve APIs without breaking existing code.
 
-5. **Thorough Error Handling**: Always provide robust fallback mechanisms, especially for cleanup operations.
+5. **Consistent Patterns**: Using consistent initialization and access patterns across components creates a more predictable and maintainable codebase.
 
 ## Next Steps
 
-With the destroy method refinement complete, the CardFrame refactoring project can proceed to:
+With Phase 3 of the CardFrame refactoring project complete, the focus can now shift to the final phases:
 
-1. **Phase 4.3**: State Management Consolidation - Moving state management entirely to the manager
-2. **Phase 4.4**: Fallback Implementation Removal - Removing direct fallback implementations
-3. **Phase 4.5**: Constructor Simplification - Simplifying the constructor by delegating initialization
-4. **Phase 4.6**: Config Management Improvement - Reducing config duplication
+- **Phase 4.6 Completion**: Finalizing the CardFrame as a thin wrapper around CardFrameManager.
+- **Phase 5**: Component Communication - Enhancing inter-component communication for more complex interactions.
 
-The destroy method improvements represent an important step in making CardFrame a robust, reliable wrapper around the CardFrameManager component system.
+These final phases will complete the transformation of the CardFrame system into a fully component-based, maintainable architecture.
 
 
-===== CHANGELOG_0.7.2.2_CardFrameDebugCodeCleanup =====
+===== CHANGELOG_0.7.3.1_ComponentConfigurationCleanup =====
 
-# CHANGELOG 0.7.2.2 - CardFrame Debug Code Cleanup
+# CHANGELOG 0.7.3.1 - Component Configuration Cleanup
+
+## Overview
+This update implements Phase 2 of the CardFrame refactoring plan focusing on configuration cleanup. The primary goals were to remove debug logging that cluttered the console output, remove commented properties from CardFrameManager, and ensure clear documentation of the Object.assign pattern used for configuration inheritance.
 
 ## Problem Analysis
+After establishing the "Single Source of Truth" principle in Phase 1, several issues remained:
 
-The `CardFrame.js` file contained numerous debug `console.log` statements with the `[DEBUG-VC-INIT]` prefix. These debugging statements were added during the component extraction phases of the CardFrame refactoring project to diagnose initialization and delegation issues. While these debug statements were useful during development, they:
+1. **Debug Logging**: The CardFrameVisualComponent contained numerous verbose `[DEBUG-VC-INIT]` prefixed console logs that:
+   - Created excessive console noise during normal gameplay
+   - Made it difficult to identify actual errors or warnings
+   - Revealed implementation details not relevant to users
+   - Made the code harder to read and maintain
 
-1. Created unnecessary console noise during regular gameplay
-2. Potentially masked more important warning and error messages
-3. Revealed implementation details in the console that aren't relevant to users
-4. Made the code harder to read and maintain
+2. **Unclear Configuration Pattern**: While the Object.assign pattern was used consistently (`Object.assign({defaults}, config)`), there was no explicit documentation explaining that this pattern ensures config values override defaults.
 
-The debug logging was no longer needed now that the component system has been successfully implemented and tested.
+3. **Component Design Principles**: The documentation lacked clear explanations about how configuration should be properly inherited and overridden in the component system.
 
 ## Implementation Solution
 
-The solution was straightforward:
+### 1. Removed Debug Logging
+Systematically removed all `[DEBUG-VC-INIT]` prefixed console.log statements from:
+- CardFrameVisualComponent.js (constructor, initialize, createBackdrop, createBaseFrame)
+- CardFrameManager.js (constructor, initializeVisualComponent, createBaseFrame, createBackdrop)
 
-1. Identify and remove all console logs with the `[DEBUG-VC-INIT]` prefix
-2. Preserve essential warning and error messages that provide valuable runtime information
-3. Improve the readability of remaining log messages by standardizing formatting and error context
-4. Simplify verbose error messages to be more concise while still providing necessary information
-
-### Specific Changes
-
-1. **CardFrame Constructor**:
-   - Removed all `[DEBUG-VC-INIT]` prefixed logs that traced component creation
-   - Simplified error messaging for failed manager creation
-   - Improved readability of component system availability logging
-
-2. **Manager-Related Validation**:
-   - Removed verbose debugging of method availability checks
-   - Maintained essential error logging for missing methods/components
-   - Standardized message format for better console readability
-
-### Code Before/After Example
+This significantly reduced console noise while maintaining essential error and warning messages. For example:
 
 **Before**:
 ```javascript
-console.log(`[DEBUG-VC-INIT] CardFrame constructor: Entered for character (config.characterName): ${config.characterName || 'Unknown'}. Trying to use component system.`);
-if (config.useComponentSystem && typeof window.CardFrameManager === 'function') {
-    console.log(`[DEBUG-VC-INIT] CardFrame constructor: window.CardFrameManager is a function. Attempting to instantiate CardFrameManager.`);
-    try {
-        // Create manager instance with same config
-        this.manager = new window.CardFrameManager(scene, 0, 0, config);
-        console.log(`[DEBUG-VC-INIT] CardFrame constructor: CardFrameManager instantiation attempted. this.manager is now: ${this.manager ? 'defined' : 'undefined'}. Type: ${typeof this.manager}`);
-        // ...more debug logs...
-    }
+console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent constructor: Entered. Scene valid: ${!!scene}, Container valid: ${!!container}, TypeColor: ${typeColor}, Config keys: ${config ? Object.keys(config).join(', ') : 'null'}`);
+if (!scene) { console.error('[DEBUG-VC-INIT] CardFrameVisualComponent constructor: SCENE IS FALSY!'); }
+if (!container) { console.error('[DEBUG-VC-INIT] CardFrameVisualComponent constructor: CONTAINER IS FALSY!'); }
 ```
 
 **After**:
 ```javascript
-if (config.useComponentSystem && typeof window.CardFrameManager === 'function') {
-    try {
-        // Create manager instance with same config
-        this.manager = new window.CardFrameManager(scene, 0, 0, config);
-        if (this.manager) {
-            // Add manager to this container
-            this.add(this.manager);
-        } else {
-            console.error('CardFrame: CardFrameManager was NOT created successfully');
-            config.useComponentSystem = false; // Force fallback
-        }
-        console.log('CardFrame: Using component system with CardFrameManager');
-    }
+// Clean code without debug logging, keeping only essential validation
+if (!scene || !container) {
+    console.error('CardFrameVisualComponent: Missing required parameters (scene or container)');
+    throw new Error('CardFrameVisualComponent: Missing required parameters');
+}
 ```
 
-## Advantages of This Approach
-
-1. **Cleaner Console Output**: Removed verbose debug messages that cluttered the console
-2. **Improved Code Readability**: Code is now cleaner and easier to maintain without debug statements
-3. **Better Error Visibility**: Important error messages stand out better without being buried in debug logs
-4. **Maintained Essential Information**: Kept crucial warnings and errors that help troubleshoot issues
-5. **Standardized Messaging**: Improved consistency of log format for better readability
-
-## Testing Verification
-
-After implementing these changes, the game was tested to ensure that:
-1. The CardFrame initialization still functions correctly
-2. All components are still properly delegated to the CardFrameManager
-3. Error conditions are still properly reported when they occur
-4. The console is significantly cleaner during normal operation
-
-All functionality continues to work correctly, but with a much cleaner console output.
-
-## Lessons Learned
-
-This cleanup highlights several important development practices:
-
-1. **Temporary Debug Code**: Debug logging should be viewed as temporary, with a plan to remove or make conditional after the feature is stable
-2. **Signal-to-Noise Ratio**: Excessive debug logging can mask important issues by creating too much noise
-3. **Staged Cleanup**: Breaking cleanup into phases (as we're doing with the entire CardFrame refactoring) makes changes more manageable and easier to test
-4. **Standardized Messaging**: A consistent format for logs (class name, proper error context) improves maintainability
-
-## Next Steps
-
-With debug code cleanup complete, we can proceed to the next phases of the CardFrame refactoring:
-
-1. **Phase 4.2**: Destroy Method Refinement
-2. **Phase 4.3**: State Management Consolidation 
-3. **Phase 4.4**: Fallback Implementation Removal
-4. **Phase 4.5**: Constructor Simplification
-5. **Phase 4.6**: Config Management Improvement
-
-Debug code cleanup was the logical first step as it had the lowest risk while providing immediate benefits in terms of code readability and console cleanliness.
-
-
-===== CHANGELOG_0.7.2.1_CardFrameInteractionComponentCleanup =====
-
-# CHANGELOG 0.7.2.1 - CardFrameInteractionComponent Cleanup (Phase 3.4 Completion)
-
-## Overview
-
-This update completes Phase 3.4 of the CardFrame refactoring project by removing the original implementation code for interaction-related methods. Following the established "Extract, Delegate, Verify, Remove" methodology, this final step in the extraction phase ensures that CardFrame.js contains only delegation code without duplicating functionality that now exists in the specialized CardFrameInteractionComponent.
-
-## Problem Analysis
-
-After implementing the CardFrameInteractionComponent and setting up delegation in previous updates, several interaction-related methods in the original CardFrame.js still contained their implementation code alongside the delegation code. These methods included:
-
-1. `setupInteractivity()`: Still contained the full implementation for event listeners and hover effects
-2. `addGlowEffect()`: Still contained the original glow effect implementation
-3. `removeGlowEffect()`: Still contained the original glow removal code
-4. `setSelected()`: Still contained animation logic and glow effect management
-5. `setHighlighted()`: Still contained complex animation and visual effect logic
-
-Maintaining both delegation code and original implementations created redundancy, increased code size, and made future maintenance more difficult. Additionally, temporary comments indicating "will be removed once delegation is verified" needed to be addressed now that delegation has been verified to work correctly.
-
-## Implementation Solution
-
-For each interaction-related method in CardFrame.js, we:
-
-1. Kept the delegation code that calls to the manager
-2. Removed the original implementation code
-3. Removed comments indicating "will be removed once delegation is verified"
-4. Updated warning messages to accurately reflect the consequence of delegation failure
-5. Improved return values for better error handling
-
-### Specific Changes
-
-#### 1. setupInteractivity()
-- Removed original event listener implementation code
-- Changed warning message to "interactivity will be missing" (more precise)
-- Changed return value from null to false for delegation failure
-
-#### 2. addGlowEffect()
-- Removed original glow graphics creation code
-- Changed warning message to "glow effect will be missing" (more precise)
-- Kept return value as null for consistency with component implementation
-
-#### 3. removeGlowEffect()
-- Removed original container.removeAll() implementation code
-- Changed warning message to "glow effect will not be removed" (more precise)
-- Changed return value from null to false for delegation failure
-
-#### 4. setSelected()
-- Removed animation and scale change implementation
-- Added "Delegated to CardFrameManager" in the method documentation
-- Added proper delegation code with error handling
-- Changed the return value to provide better feedback on success/failure
-
-#### 5. setHighlighted()
-- Removed the complex pulsing animation and glow implementation
-- Added "Delegated to CardFrameManager" in the method documentation
-- Added proper delegation code with error handling
-- Changed the return value to provide better feedback on success/failure
-
-## Benefits
-
-1. **Reduced Code Size**: Removed approximately 140 lines of implementation code from CardFrame.js
-2. **Improved Clarity**: CardFrame.js now clearly shows its delegation role
-3. **Single Source of Truth**: All interaction logic is now exclusively in the CardFrameInteractionComponent
-4. **Better Error Messages**: Warning messages now clearly indicate the functional impact of delegation failures
-5. **Complete Component Model**: The refactoring of CardFrame into a component model is now structurally complete
-
-## Lessons Learned
-
-1. **Staged Refactoring**: The "Extract, Delegate, Verify, Remove" methodology provided a safe way to refactor by ensuring functionality worked before removing original implementations.
-
-2. **Consistent Delegation Patterns**: Using consistent patterns for delegation methods makes the code more predictable and easier to maintain.
-
-3. **Meaningful Error Messages**: When delegation fails, it's important to provide clear messages that indicate the specific functional impact rather than just stating that delegation failed.
-
-4. **Return Value Standardization**: Providing consistent return values (boolean indicating success/failure) makes error handling more predictable.
-
-5. **Complete vs. Incremental Refactoring**: While incremental changes can be safer, completing the full refactoring cycle for each component creates cleaner, more focused code.
-
-## Next Steps
-
-With Phase 3.4 now fully complete and all components (Visual, Health, Content, Interaction) extracted and implemented, the CardFrame refactoring project can proceed to:
-
-1. **Phase 4: Bridge Implementation**: Further refine CardFrame.js as a thin wrapper over CardFrameManager, potentially removing any remaining duplicate code or state.
-
-2. **Phase 5: Component Communication**: Implement a more formal event-based communication system between components for complex interactions.
-
-Through this systematic refactoring process, the CardFrame component has been transformed from a monolithic class with multiple responsibilities to a well-structured component system with clear separation of concerns.
-
-
-===== CHANGELOG_0.7.2.0_CardFrameInteractionComponent =====
-
-# CHANGELOG 0.7.2.0 - CardFrameInteractionComponent Implementation (Phase 3.4)
-
-## Overview
-
-This update implements Phase 3.4 of the CardFrame refactoring project by extracting interaction-related functionality into a dedicated `CardFrameInteractionComponent`. Following the established "Extract, Delegate, Verify" methodology, this phase focuses on separating interaction behavior (hover, selection, highlighting) into a specialized component while maintaining seamless integration with the overall CardFrame system.
-
-## Problem Analysis
-
-The original CardFrame class still contained interaction-related methods mixed with other functionality, including:
-- `setupInteractivity()`: Setting up hover and click events
-- `addGlowEffect()`: Creating glow effects for hover/selection
-- `removeGlowEffect()`: Removing glow effects
-- `setSelected()`: Handling selection state and animations
-- `setHighlighted()`: Handling highlight animations for active turns
-
-This mixing of responsibilities reduced maintainability and made it harder to enhance interaction features independently. Additionally, the extraction of visual, health, and content components in previous phases made interaction management the last major responsibility remaining in the original CardFrame class.
-
-The challenge was to properly extract this functionality while ensuring the interactions remained smooth and worked with the previously extracted components, particularly the visual component that owns the frame elements needed for interactivity.
-
-## Implementation Solution
-
-Following the established pattern from previous components, we implemented Phase 3.4 as follows:
-
-### 1. Created CardFrameInteractionComponent
-
-Created a new component file `CardFrameInteractionComponent.js` that:
-- Handles all interaction-related functionality
-- Provides methods for setting up interactivity
-- Manages glow effects for hover and selection
-- Controls selected and highlighted states with animations
-- Properly cleans up all event listeners during destruction
-
-The component has a consistent architecture with:
-- Constructor with parameter validation
-- Initialize method that takes required references
-- Extracted methods from CardFrame.js
-- Clear error handling throughout
-- Comprehensive cleanup process
-
-### 2. Updated CardFrameManager
-
-Enhanced `CardFrameManager.js` to:
-- Add `initializeInteractionComponent()` method
-- Set up proper reference passing from other components
-- Create delegation methods for all interaction functions
-- Update destroy method to clean up the interaction component
-
-A key implementation challenge was passing the required references from other components:
-- The visual component's `frameBase` object is needed for interactivity
-- A `glowContainer` is needed for visual effect management
-- The component needed to be initialized with the proper container for animations
-
-### 3. Updated CardFrame Original Class
-
-Modified `CardFrame.js` to:
-- Add delegation methods for `setupInteractivity`, `addGlowEffect`, and `removeGlowEffect`
-- Use consistent error handling and fallback approach
-- Integrate with existing delegation structure
-- Preserve original implementation as fallback (to be removed in cleanup phase)
-
-### 4. Added VisualComponent Bridge Method
-
-Added a `getFrameBase()` method to the CardFrameVisualComponent to allow the interaction component to access the frame object for interactivity setup.
-
-### 5. Updated Script Loading Order
-
-Updated `index.html` to load the new component file in the proper order, after other components but before the CardFrameManager.
-
-## How It Works
-
-The interaction component integrates with the overall component system as follows:
-
-1. When a CardFrame is created, it initializes a CardFrameManager
-2. CardFrameManager initializes all components including the interaction component
-3. CardFrameManager gets the frameBase from the visual component via getFrameBase()
-4. CardFrameManager creates/gets a glowContainer for visual effects
-5. CardFrameManager initializes the interaction component with these references
-6. The interaction component sets up interactivity, handling hover and click events
-7. Interaction events cause visual changes through the shared references
-
-When methods like `setSelected()` or `setHighlighted()` are called:
-1. CardFrame delegates to CardFrameManager
-2. CardFrameManager delegates to the interaction component
-3. The interaction component manages scaling animations and glow effects
-
-## Benefits
-
-1. **Clean Separation of Concerns**: Each component has a clearly defined, specific responsibility.
-2. **Improved Maintainability**: Interaction behavior can be modified without changing other aspects.
-3. **Enhanced Component Architecture**: The entire CardFrame system now follows a consistent component pattern.
-4. **Proper Reference Management**: Dependencies between components are clearly defined and managed.
-5. **Future Enhancement Potential**: New interaction patterns or effects can be added more easily.
-
-## Lessons Learned
-
-1. **Component Dependencies**: When components depend on each other, proper reference passing is essential. The interaction component needed frameBase from the visual component, illustrating the need for component methods to expose key objects.
-
-2. **Proper Initialization Ordering**: Components must be initialized in the right order to ensure dependencies are available. The interaction component must be initialized after the visual component.
-
-3. **Component Interfaces**: Adding methods like `getFrameBase()` demonstrates how components can provide controlled access to their internal elements.
-
-4. **Graceful Degradation**: The implementation includes fallback approaches when dependencies aren't available, ensuring the system remains functional even if components are missing.
-
-5. **Reference Passing vs. Direct Access**: The component-based architecture requires explicit passing of references rather than direct access, making dependencies clearer but requiring more careful initialization.
-
-## Next Steps
-
-With the completion of Phase 3.4, all four major components (Visual, Health, Content, Interaction) have been extracted from the original CardFrame class. The next steps in the refactoring project are:
-
-1. **Remove Original Implementations**: Complete the "Remove" step of the EDRV methodology by removing the original implementation code from CardFrame.js, making it a pure delegation layer.
-
-2. **Phase 4: Bridge Implementation**: Finalize CardFrame.js as a thin wrapper over CardFrameManager, ensuring perfect backward compatibility.
-
-3. **Phase 5: Component Communication**: Enhance inter-component communication for more complex interactions, potentially utilizing a more formal event system.
-
-After these phases are complete, additional enhancements to the interaction system could include:
-- More sophisticated hover effects
-- Additional selection states or styles
-- Advanced animations for card interactions
-
-
-===== CHANGELOG_0.7.1.9_CardFrameContentComponentCleanup =====
-
-# CHANGELOG 0.7.1.9 - CardFrameContentComponent Cleanup (Phase 3.3 Completion)
-
-## Overview
-
-This update completes Phase 3.3 of the CardFrame refactoring project by removing the original implementation code for remaining content-related methods. Following the established "Extract, Delegate, Verify, Remove" methodology, this update focuses on the "Remove" step, ensuring that CardFrame.js only contains delegation code without duplicating the implementation now present in CardFrameContentComponent.
-
-## Problem Analysis
-
-After implementing the CardFrameContentComponent and setting up delegation in CardFrameManager, several content-related methods in the original CardFrame.js still contained their original implementation code alongside the delegation code. The specific methods requiring cleanup were:
-
-1. `createNameBanner()`: Still contained the full implementation for creating the card's name banner
-2. `createFallbackNameBanner()`: Still contained the original fallback implementation
-3. `updateName()`: Still contained direct text updates alongside delegation
-
-Additionally, the following methods needed to be added to CardFrameManager to complete the delegation chain:
-1. `createNameBanner()`: Needed to delegate to the ContentComponent
-2. `createFallbackNameBanner()`: Needed to delegate to the ContentComponent
-
-Maintaining both the delegation code and original implementation created redundancy, increased code size, and made future maintenance more difficult.
-
-## Implementation Solution
-
-### 1. Removed Original Implementations from CardFrame.js
-
-Modified `createNameBanner()`, `createFallbackNameBanner()`, and `updateName()` in CardFrame.js to:
-- Keep only the delegation code that calls the manager
-- Remove all original implementation code
-- Add appropriate warning logs for delegation failures
-- Return null or other appropriate values when delegation fails
-- Add comments indicating these methods are delegated to ContentComponent
-
-This approach follows the established pattern already used for other methods like `createBaseFrame()`, `createBackdrop()`, and `createHealthBar()`.
-
-### 2. Added Missing Delegation Methods to CardFrameManager
-
-Added the following methods to CardFrameManager.js:
-- `createNameBanner()`: Delegates to ContentComponent
-- `createFallbackNameBanner()`: Delegates to ContentComponent
-
-These methods follow the consistent pattern established for other delegation methods:
-1. Check if the ContentComponent exists and has the required method
-2. Call the ContentComponent method if available
-3. Log a warning and return null if delegation fails
-
-### 3. Enhanced Delegation Chain Consistency
-
-The full delegation chain now works consistently for all content-related methods:
-1. `CardFrame` delegates to `CardFrameManager`
-2. `CardFrameManager` delegates to `CardFrameContentComponent`
-3. `CardFrameContentComponent` performs the actual implementation
-
-## How It Works
-
-The completed delegation chain now functions as follows:
-
-For example, when `createNameBanner()` is called on a CardFrame instance:
-1. CardFrame.createNameBanner() checks if component system is enabled and manager exists
-2. If so, it calls CardFrameManager.createNameBanner()
-3. CardFrameManager.createNameBanner() checks if contentComponent exists and has required method
-4. If so, it calls CardFrameContentComponent.createNameBanner()
-5. CardFrameContentComponent.createNameBanner() performs the actual implementation
-
-If any part of this chain fails, appropriate warning messages are logged, and fallbacks are attempted or null is returned.
-
-## Benefits
-
-1. **Reduced Redundancy**: Removed duplicate implementation code from CardFrame.js
-2. **Improved Code Organization**: Each component now has a clear, single responsibility
-3. **Simplified Maintenance**: Changes to nameplate styling now only need to be made in CardFrameContentComponent
-4. **Consistent Architecture**: All content-related methods now follow the same delegation pattern
-5. **Clear Separation of Concerns**: Visual, health, and content aspects are now properly separated
-
-## Lessons Learned
-
-1. **Complete Delegation**: When refactoring with the component pattern, it's important to fully delegate methods without keeping original implementations to avoid redundancy.
-
-2. **Manager as Middleware**: The CardFrameManager effectively serves as a middleware layer, routing method calls to the appropriate specialized components.
-
-3. **Method Group Extraction**: Grouping methods by function (visual, health, content) makes the extraction process more manageable and logical.
-
-4. **Consistent Warning Messages**: Using a consistent format for warning messages makes debugging easier when delegation failures occur.
-
-## Next Steps
-
-With Phase 3.3 now fully complete, the refactoring project will proceed to:
-
-1. **Phase 3.4**: Extract interaction behavior into a `CardFrameInteractionComponent`
-
-After Phase 3.4 is complete, the original CardFrame implementation will serve purely as a delegation layer to CardFrameManager, completing the refactoring of this component.
-
-
-===== CHANGELOG_0.7.1.8_CardFrameContentComponent =====
-
-# CHANGELOG 0.7.1.8 - CardFrameContentComponent Implementation (Phase 3.3)
-
-## Overview
-
-This update implements Phase 3.3 of the CardFrame refactoring project by extracting portrait window, character sprite, and nameplate functionality into a dedicated `CardFrameContentComponent`. This is a key component in the ongoing refactoring effort to transform the monolithic `CardFrame` class into a modular, component-based system with clear separation of concerns.
-
-## Problem Analysis
-
-After successfully implementing `CardFrameVisualComponent` (Phase 3.1) and `CardFrameHealthComponent` (Phase 3.2), character art was no longer displaying in the cards. This was expected since the content-related methods had not yet been extracted to their own component.
-
-Key content-related methods still remaining in `CardFrame.js` included:
-- `createPortraitWindow()` - Creates the portrait container and mask
-- `createCharacterSprite()` - Handles character sprite creation and positioning
-- `createCharacterFallback()` - Creates fallback when sprite can't be loaded
-- `createNameBanner()` - Creates the name banner at the bottom
-- `createFallbackNameBanner()` - Creates a simple name banner if the decorative one fails
-- `updateName()` - Updates the name text
-
-Additionally, we needed to ensure that the character art visibility fix from version 0.7.0.8 was maintained, where masking was deliberately disabled to ensure characters remain visible.
-
-## Implementation Solution
-
-Following the established "Extract, Delegate, Verify, Remove" methodology from previous phases, we implemented Phase 3.3 as follows:
-
-### 1. Extract Stage
-
-Created a new component file `CardFrameContentComponent.js` with the following structure:
-
-- Constructor: Validates parameters and initializes configuration
-- Initialize method: Creates all content elements in the proper order
-- Extracted methods from CardFrame.js:
-  - `createPortraitWindow()`: Creates and configures the portrait container
-  - `createCharacterSprite()`: Creates the character sprite with enhanced visibility settings
-  - `createCharacterFallback()`: Creates a fallback visual if character sprite cannot be loaded
-  - `createNameBanner()`: Creates the decorative nameplate with beveled edges
-  - `createFallbackNameBanner()`: Creates a simple fallback name banner
-  - `updateName()`: Updates the character's name
-
-The component follows the same architectural pattern as previous components:
-- Receives scene, container, typeColor, and config as constructor parameters
-- Carefully validates parameters and provides helpful error messages
-- Uses extensive error handling throughout all methods
-- Implements proper cleanup in its destroy() method
-
-### 2. Delegate Stage
-
-Enhanced `CardFrameManager.js` to delegate to the new content component:
-
-- Added `initializeContentComponent()` method to initialize the component
-- Updated `updateName()` method to delegate to the content component
-- Added `createPortraitWindow()` method that delegates to the content component
-- Updated `initializeComponents()` to call `initializeContentComponent()`
-- Enhanced `destroy()` method to properly clean up the content component
-
-Maintained the important character visibility fix from version 0.7.0.8:
-- Deliberately skipped mask application in `createCharacterSprite()`
-- Maintained high depth value (1000) to ensure character sprite is visible
-- Used the configurable `artScale` property instead of a fixed value
-- Removed red debug tinting for normal character appearance
-
-### 3. Update index.html
-
-Modified `index.html` to load the new component in the correct order:
-- Added `<script>` tag for CardFrameContentComponent.js
-- Placed it after CardFrameHealthComponent.js but before CardFrameManager.js
-- Maintained proper loading sequence to ensure component availability
-
-## How It Works
-
-The component chain now works as follows:
-
-1. `CharacterSprite` decides to use card representation and creates a `CardFrameManager`
-2. `CardFrameManager` initializes all components in the proper order:
-   - First `CardFrameVisualComponent` for frame, backdrop, and visual effects
-   - Then `CardFrameHealthComponent` for health bar and updates
-   - Finally `CardFrameContentComponent` for portrait window, character sprite, and nameplate
-
-Each component has a well-defined responsibility:
-- Visual Component: Handles frame, backdrop, and visual effects
-- Health Component: Manages health bar display and updates
-- Content Component: Manages portrait window, character sprite, and nameplate
-
-When methods like `updateName()` are called on `CardFrameManager`, it delegates to the appropriate component, providing a clean API while maintaining separation of concerns.
-
-## Benefits
-
-1. **Improved Separation of Concerns**: Each component has a clearly defined responsibility, making the code more maintainable and easier to understand.
-
-2. **Enhanced Modularity**: Components can be developed, tested, and maintained independently, reducing the complexity of each individual piece.
-
-3. **Better Error Isolation**: Errors in one component are less likely to affect other components, improving overall system stability.
-
-4. **Reduced Code Duplication**: Common patterns like error handling and resource management are implemented consistently across components.
-
-5. **Easier Future Enhancements**: New features can be added to specific components without modifying the entire system.
-
-## Lessons Learned
-
-1. **Configuration Propagation is Essential**: Following lessons from Phase 3.1, we ensured that all necessary configuration options were properly passed through the component chain.
-
-2. **Consistent Component Architecture**: By following the established patterns from previous components, we were able to implement the new component with minimal issues.
-
-3. **Maintaining Critical Fixes**: We carefully preserved the character visibility fix from version 0.7.0.8 by deliberately skipping mask application and using high depth values.
-
-4. **Error Handling Through Delegation Chain**: Each component needs to handle errors locally while providing meaningful information to the delegation chain.
-
-5. **Script Loading Order**: The correct loading order in index.html is crucial to ensure component availability at initialization time.
-
-## Next Steps
-
-With Phase 3.3 complete, we have successfully extracted all of the essential card frame functionality into specialized components:
-
-- Phase 3.1: CardFrameVisualComponent âœ…
-- Phase 3.2: CardFrameHealthComponent âœ…
-- Phase 3.3: CardFrameContentComponent âœ…
-
-The next phase in the refactoring project will be:
-
-- Phase 3.4: InteractionComponent - Will handle hover and selection behaviors
-
-After all components are extracted and working properly, the final phase will be fully removing the original implementations from CardFrame.js and making it a pure delegation layer to CardFrameManager.
-
-
-===== CHANGELOG_0.7.1.7_CardFrameHealthComponent =====
-
-# CHANGELOG 0.7.1.7 - CardFrameHealthComponent Extraction (Phase 3.2)
-
-## Overview
-This update implements Phase 3.2 of the CardFrame refactoring project by extracting health-related functionality into a dedicated `CardFrameHealthComponent` class. This follows the established "Extract, Delegate, Verify, Remove" methodology used successfully in Phase 3.1 with the visual component.
-
-## Problem Analysis
-
-The monolithic `CardFrame` class was handling multiple responsibilities including:
-- Visual rendering (frame, backdrop, effects)
-- Health display and updates
-- Character content (portrait, sprite, nameplate)
-- Interaction behaviors (hover, selection)
-
-Phase 3.1 successfully extracted visual responsibilities. Phase 3.2 focuses on health-related functionality, which includes:
-- Creating health bars and text
-- Updating health displays when values change
-- Animating health changes with visual feedback
-- Determining health bar colors based on percentage
-
-These health-related features were tightly coupled with other features in the original `CardFrame` class, making maintenance and enhancements difficult.
-
-## Implementation Solution
-
-### 1. Extracted CardFrameHealthComponent
-
-Created a new dedicated component (`CardFrameHealthComponent.js`) that:
-- Handles health bar rendering
-- Manages health updates and animations
-- Determines health bar colors
-- Provides proper resource cleanup
-
-The component follows a consistent pattern with:
-- Robust parameter validation in the constructor
-- Clear encapsulation of health-related functionality
-- Consistent error handling throughout
-- Proper resource management in the destroy method
-
-### 2. Updated CardFrameManager
-
-Modified `CardFrameManager.js` to:
-- Initialize the health component (via `initializeHealthComponent()` method)
-- Delegate health-related methods to the component
-- Implement proper verification with fallbacks for failure cases
-- Update destroy method to clean up health component resources
-
-### 3. Updated CardFrame
-
-Modified `CardFrame.js` to:
-- Delegate `createHealthBar()`, `updateHealth()`, and `getHealthBarColor()` to manager
-- Remove original health bar implementation
-- Implement proper error handling for delegation failures
-- Maintain backward compatibility with fallback implementations where necessary
-
-### 4. Updated Script Loading
-
-Modified `index.html` to ensure scripts load in the correct order:
-1. `CardFrameVisualComponent.js`
-2. `CardFrameHealthComponent.js`
-3. `CardFrameManager.js`
-4. `CardFrame.js`
-
-## Key Implementation Details
-
-### Component Initialization
+### 2. Enhanced Object.Assign Documentation
+Added explicit comments to all component files explaining the configuration inheritance pattern:
 
 ```javascript
-initializeHealthComponent() {
-    this.healthComponent = null; // Ensure it's null before attempting initialization
-    try {
-        if (typeof window.CardFrameHealthComponent !== 'function') {
-            console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CardFrameHealthComponent class not found in global scope. Health bar will be missing.`);
-            return; // Exit if the class definition isn't loaded
-        }
-        
-        // Create health component
-        this.healthComponent = new window.CardFrameHealthComponent(
-            this.scene,
-            this, // CardFrameManager is the container for healthComponent's elements
-            this.typeColor,
-            this.config // Pass the full config, HealthComponent will pick what it needs
+// IMPORTANT: Object.assign pattern ensures config values override defaults
+// (defaults are first, config is second, so config values take precedence)
+this.config = Object.assign({
+    // Default values...
+}, config);
+```
+
+This pattern was documented in:
+- CardFrameVisualComponent.js
+- CardFrameContentComponent.js
+- CardFrameInteractionComponent.js
+- CardFrameManager.js
+
+### 3. Clarified Component Relationship
+Enhanced the documentation in CardFrameManager to clarify the relationship between components and their configuration:
+
+```javascript
+/**
+ * Configuration options with sensible defaults
+ * IMPORTANT: Object.assign pattern ensures config values override defaults
+ * (defaults are first, config is second, so config values take precedence)
+ * 
+ * IMPORTANT: The component-based architecture now places each component's settings in its respective component file.
+ * Most visual, health, content, and interaction properties have been moved to their respective component files:
+ * - Health bar dimensions and styling: Look in CardFrameHealthComponent.js
+ * - Visual elements and effects: Look in CardFrameVisualComponent.js
+ * - Content and text properties: Look in CardFrameContentComponent.js
+ * - Interaction animations: Look in CardFrameInteractionComponent.js
+ * 
+ * Only common properties and positioning values remain here in CardFrameManager.js
+ */
+```
+
+## Code Metrics
+- **Removed Lines**: Approximately 60-70 lines of debug logging code
+- **Added Lines**: Approximately 15-20 lines of enhanced documentation
+- **Net Reduction**: Around 45-50 lines of code
+
+## Architectural Benefits
+
+1. **Cleaner Console Output**: Removing debug logging makes console output cleaner and more helpful, making it easier to identify actual errors or warnings.
+
+2. **Improved Code Readability**: The code is now cleaner and easier to understand without excessive debug statements.
+
+3. **Clearer Configuration Inheritance**: Explicit documentation of the Object.assign pattern helps developers understand how configuration values are inherited and overridden.
+
+4. **Better Component System Documentation**: Enhanced documentation clarifies the relationship between components and their configuration.
+
+5. **Enhanced Maintainability**: Overall cleaner code and clearer documentation makes the codebase easier to maintain.
+
+## Lessons Learned
+
+1. **Temporary Debug Code**: Debug logging should be viewed as temporary, with a plan to remove it after the feature is stable. This update completes the proper cleanup phase.
+
+2. **Documentation for Patterns**: Even common patterns like Object.assign should be explicitly documented to ensure consistent understanding across the development team.
+
+3. **Configuration Inheritance**: Clear documentation about how configuration inheritance works is essential for a component-based system.
+
+4. **Signal-to-Noise Ratio**: Excessive debug logging can hide important information. A clean console makes it easier to identify actual issues.
+
+## Next Steps
+
+With Phase 2 complete, the refactoring plan will proceed to:
+
+1. **Phase 3**: Hardcoded Values Check - Review each component for hardcoded values that should be configurable.
+
+2. **Phase 4**: Testing - Verify all components render correctly with the new changes.
+
+3. **Phase 5**: Further Documentation - Enhance the refactoring pattern documentation for future reference.
+
+By systematically addressing these issues, we continue to improve the component architecture, making it more maintainable and easier to understand.
+
+
+===== CHANGELOG_0.7.3.0_ComponentSingleSourceOfTruth =====
+
+# CHANGELOG 0.7.3.0 - Component Single Source of Truth Implementation
+
+## Overview
+This update implements Phase 1 of the CardFrame refactoring plan to establish a consistent "Single Source of Truth" principle across all components. The goal is to ensure each component is the definitive source for its domain-specific configuration, improving code maintainability and preventing configuration drift.
+
+## Problem Analysis
+The CardFrame system had been refactored into specialized components (Visual, Health, Content, Interaction), but configuration patterns were inconsistent, leading to:
+
+1. **Confusion About Configuration Location**: Developers were uncertain where specific configuration properties should be defined.
+2. **Configuration Duplication**: Some properties were redundantly defined in both CardFrameManager and component files.
+3. **Inconsistent Warnings**: Warning comments in CardFrameManager varied in strength and clarity.
+4. **Missing Architectural Guidance**: There was no clear documentation establishing each component as the single source of truth for its domain.
+
+## Implementation Solution
+
+### 1. Added Explicit SINGLE SOURCE OF TRUTH Documentation
+Added comprehensive documentation headers to all component files:
+
+**CardFrameVisualComponent.js**:
+```javascript
+/**
+ * CardFrameVisualComponent.js
+ * Handles the visual aspects of the card frame including frame, backdrop, and visual effects
+ * Part of the component-based CardFrame refactoring project
+ * 
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all visual styling,
+ * dimensions, and effects. To modify ANY aspect of the card's visual appearance,
+ * edit the configuration options in THIS file rather than in CardFrameManager.js.
+ * 
+ * CODE REVIEW GUIDELINE: Any PR that adds visual-related configuration to
+ * CardFrameManager.js should be rejected. All such configuration belongs here.
+ */
+```
+
+**CardFrameContentComponent.js**:
+```javascript
+/**
+ * CardFrameContentComponent.js
+ * Handles character sprite and nameplate rendering for CardFrame.
+ * Part of the component-based CardFrame refactoring project.
+ * 
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all character content,
+ * portrait window, and nameplate styling/behavior. To modify ANY aspect of these elements,
+ * edit the configuration options in THIS file rather than in CardFrameManager.js.
+ * 
+ * CODE REVIEW GUIDELINE: Any PR that adds content-related configuration to
+ * CardFrameManager.js should be rejected. All such configuration belongs here.
+ */
+```
+
+**CardFrameInteractionComponent.js**:
+```javascript
+/**
+ * CardFrameInteractionComponent.js
+ * Handles interaction behavior for the CardFrame component
+ * Part of the component-based CardFrame refactoring project (Phase 3.4)
+ * 
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all interaction behaviors,
+ * hover effects, and selection/highlight animations. To modify ANY aspect of card
+ * interaction, edit the configuration options in THIS file rather than in CardFrameManager.js.
+ * 
+ * CODE REVIEW GUIDELINE: Any PR that adds interaction-related configuration to
+ * CardFrameManager.js should be rejected. All such configuration belongs here.
+ */
+```
+
+### 2. Enhanced CardFrameManager Documentation
+Added comprehensive architecture notes to CardFrameManager.js:
+
+```javascript
+/**
+ * CardFrameManager.js
+ * Manages a component-based implementation of the card frame system
+ * Acts as a delegation layer to coordinate visual, health, content, and interaction components
+ *
+ * IMPORTANT ARCHITECTURE NOTE: CardFrameManager serves as a coordinator/orchestrator
+ * for specialized components. It should NOT define component-specific configuration.
+ * Each component is the SINGLE SOURCE OF TRUTH for its domain:
+ *
+ * - CardFrameVisualComponent: ALL visual styling, dimensions, and effects
+ * - CardFrameHealthComponent: ALL health bar styling and behavior
+ * - CardFrameContentComponent: ALL character content, portrait window, and nameplate styling
+ * - CardFrameInteractionComponent: ALL interaction behaviors and animations
+ *
+ * CODE REVIEW GUIDELINE: Any PR that adds component-specific configuration to
+ * CardFrameManager.js should be rejected. Such configuration belongs in the respective
+ * component files.
+ */
+```
+
+### 3. Strengthened Warning Messages
+Enhanced all warning comments in CardFrameManager.js to be more explicit and consistent:
+
+```javascript
+// NOTE: ALL visual styling, dimensions, and effects properties
+// should be configured ONLY in CardFrameVisualComponent.js.
+// DO NOT add any visual styling/appearance properties here.
+// This violates the SINGLE SOURCE OF TRUTH principle.
+```
+
+```javascript
+// NOTE: ALL content styling, portrait, and nameplate properties 
+// should be configured ONLY in CardFrameContentComponent.js.
+// DO NOT add any content-related properties here.
+// This violates the SINGLE SOURCE OF TRUTH principle.
+```
+
+```javascript
+// NOTE: ALL interaction, hover, and animation properties
+// should be configured ONLY in CardFrameInteractionComponent.js.
+// DO NOT add any interaction-related properties here.
+// This violates the SINGLE SOURCE OF TRUTH principle.
+```
+
+### 4. Added Code Review Guidelines
+Added explicit code review guidelines to all components as part of their documentation headers. These guidelines instruct reviewers to reject PRs that add component-specific configuration to CardFrameManager.
+
+## Architectural Benefits
+
+1. **Clear Configuration Boundaries**: Each component is now explicitly designated as the single source of truth for its domain.
+
+2. **Developer Guidance**: Documentation clearly guides developers on where to place configuration values.
+
+3. **Code Review Enforcement**: Added guidelines create a mechanism to enforce architectural boundaries during code review.
+
+4. **Reduced Ambiguity**: Enhanced warning messages leave no doubt about where configuration belongs.
+
+5. **Improved Maintainability**: Consistent documentation pattern makes the codebase more maintainable.
+
+## Lessons Learned
+
+1. **Document Architecture Decisions**: Clearly documenting architectural decisions like "single source of truth" in code comments helps maintain proper boundaries.
+
+2. **Explicit Code Review Guidelines**: Adding explicit review guidelines in code helps enforce architectural principles over time.
+
+3. **Strong Warning Messages**: Using stronger, more consistent warnings prevents configuration drift better than subtle hints.
+
+4. **Progressive Implementation**: Breaking the refactoring into phases (of which this is Phase 1) helps manage complexity and risk.
+
+## Next Steps
+
+With Phase 1 complete, the CardFrame refactoring plan will proceed to:
+
+1. **Phase 2**: Configuration Cleanup - Remove all debug logging from components (especially CardFrameVisualComponent) and remove commented properties from CardFrameManager.
+
+2. **Phase 3**: Hardcoded Values Check - Review each component for hardcoded values that should be configurable.
+
+3. **Phase 4**: Testing - Verify all components render correctly with the new changes.
+
+4. **Phase 5**: Further Documentation - Enhance the refactoring pattern documentation for future reference.
+
+By implementing this phased approach, we are systematically improving the component architecture to follow best practices, ensuring each component properly serves as the single source of truth for its domain.
+
+
+===== CHANGELOG_0.7.2.9_HealthComponentSingleSourceOfTruth =====
+
+# CHANGELOG 0.7.2.9 - Health Component Single Source of Truth
+
+## Overview
+This update corrects a key issue with the component-based architecture by properly establishing CardFrameHealthComponent as the single source of truth for all health bar styling, dimensions, and behavior. Previously, there was an incorrect configuration inheritance pattern that prevented CardFrameManager's values from properly overriding the component defaults, and a hardcoded font size was being used instead of the configured value.
+
+## Problem Analysis
+
+The analysis revealed several issues with the component configuration:
+
+1. **Incorrect Object.assign Order**: 
+   ```javascript
+   this.config = Object.assign({}, config, ourDefaults);
+   ```
+   This meant that the component's defaults (`ourDefaults`) would override any values coming from CardFrameManager (`config`), which is backwards from proper component architecture. Components should define defaults that can be overridden by their parent/manager.
+
+2. **Hardcoded Font Size**: 
+   ```javascript
+   fontSize: '11px', // Hardcoded value
+   ```
+   Despite having `healthTextFontSize` in the configuration, the text creation method was using a hardcoded value, ignoring any configured value.
+
+3. **Leftover Commented Code**: CardFrameManager still contained commented-out health bar properties, creating confusion about where configuration should live.
+
+4. **Insufficient Documentation**: The documentation didn't provide strong enough guidance about the single source of truth principle.
+
+## Implementation Solution
+
+### 1. Fixed Configuration Hierarchy
+
+Changed the Object.assign call to use the correct order:
+
+```javascript
+// Changed from:
+this.config = Object.assign({}, config, ourDefaults);
+
+// To:
+this.config = Object.assign({}, ourDefaults, config);
+```
+
+This ensures that component defaults are only used when not specified by the parent component (CardFrameManager), following proper component architecture principles.
+
+### 2. Removed Hardcoded Font Size
+
+Updated the font size in text creation to use the configured value:
+
+```javascript
+// Changed from:
+fontSize: '11px', // Hardcoded value
+
+// To:
+fontSize: this.config.healthTextFontSize,
+```
+
+This ensures that the font size can be properly configured and overridden when needed.
+
+### 3. Enhanced Documentation
+
+Added stronger documentation with more explicit guidance:
+
+```javascript
+/**
+ * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all health bar styling,
+ * dimensions, and positioning. To modify ANY aspect of the health bar, edit the
+ * configuration options in THIS file rather than in CardFrameManager.js.
+ * 
+ * CODE REVIEW GUIDELINE: Any PR that adds health-related configuration to
+ * CardFrameManager.js should be rejected. All such configuration belongs here.
+ */
+```
+
+### 4. Removed Commented-Out Properties
+
+Completely removed all commented-out health bar properties from CardFrameManager and replaced with a clearer directive:
+
+```javascript
+// Changed from:
+// healthBarWidth: 180,        // Width of health bar
+// healthBarHeight: 20,        // Height of health bar
+// healthBarOffsetY: -148,     // Distance from center to health bar
+// showHealthText: true,       // Whether to show health text
+
+// To:
+// NOTE: ALL health bar styling, dimensions, and appearance properties
+// should be configured ONLY in CardFrameHealthComponent.js.
+// DO NOT add any health styling/dimensions properties here.
+```
+
+### 5. Added Warning Comments
+
+Added warning comments in strategic locations to prevent future configuration drift:
+
+```javascript
+/**
+ * Initialize the health component for health bar and health updates.
+ * IMPORTANT: All health bar styling, dimensions, and behavior should be configured
+ * in CardFrameHealthComponent.js, not here in CardFrameManager.js.
+ */
+```
+
+## Benefits
+
+1. **True Modularization**: CardFrameHealthComponent is now the definitive source of truth for all health-related functionality.
+
+2. **Proper Configuration Inheritance**: Parent components can override defaults in child components as needed, following standard component patterns.
+
+3. **Consistent Documentation**: Clear guidance across the codebase about where health-related configuration belongs.
+
+4. **Future-Proofing**: Strategic warning comments and code review guidelines help prevent configuration drift in the future.
+
+5. **Improved Font Size Control**: Font size is now properly controlled through configuration, making it easy to adjust.
+
+## Lessons Learned
+
+1. **Configuration Inheritance Order Matters**: The order of parameters in Object.assign is critical - defaults should be first, followed by specific values that should override those defaults.
+
+2. **Avoid Hardcoded Values**: Even during development, avoid hardcoding values that should be configurable, as they can easily be overlooked.
+
+3. **Be Explicit About Architecture**: Clear documentation and code review guidelines are essential for maintaining architectural principles, especially in component-based systems.
+
+4. **Complete Refactoring**: When moving functionality to a component, ensure ALL related code and configuration moves with it, including removing commented-out code from its original location.
+
+5. **Single Source of Truth**: This principle should be explicitly documented and enforced through code organization and review procedures.
+
+## Next Steps
+
+With CardFrameHealthComponent properly established as the single source of truth for health bar styling, we can consider:
+
+1. Applying the same pattern to ensure other components (Visual, Content, Interaction) properly follow the single source of truth principle.
+
+2. Potentially adding gradient fills or other advanced visual enhancements to the health bar now that the configuration system is working properly.
+
+3. Implementing automated tests to verify that configuration values are properly honored throughout the component hierarchy.
+
+
+===== CHANGELOG_0.7.2.8_HealthBarVisualEnhancements =====
+
+# CHANGELOG 0.7.2.8 - Health Bar Visual Enhancements
+
+## Overview
+This update focuses on improving the visual appearance of health bars in the CardFrame component. It adds rounded corners and beveled edges to create a more polished, dimensional look consistent with modern UI design practices. These enhancements make the health bars more visually appealing while maintaining their functionality.
+
+## Problem Analysis
+
+The original health bar implementation in CardFrameHealthComponent had several visual limitations:
+
+1. **Flat Appearance**: The health bar used basic rectangles with sharp corners, giving it a flat, outdated look
+2. **Lack of Dimensionality**: No visual cues provided depth or dimensionality to the UI element
+3. **Sharp Corners**: The rectangular design with 90-degree corners felt rigid compared to modern UI standards
+4. **Basic Implementation**: The code used simple Phaser Rectangle objects which limited styling options
+5. **Animation Limitations**: The animation system was tied directly to Rectangle properties
+
+These issues created a visual disconnect between the polished card frames and their relatively basic health bars, reducing the overall quality perception of the UI.
+
+## Implementation Solution
+
+### 1. Enhanced Configuration
+Added new configuration options to CardFrameHealthComponent:
+```javascript
+healthBarHeight: 14,            // Increased from 12px for better text visibility
+healthBarBorderRadius: 4,       // Rounded corners for health bar
+healthBarBevelWidth: 1,         // Width of the bevel effect
+```
+
+### 2. Graphics-Based Rendering
+Replaced Rectangle objects with Phaser Graphics objects to allow for more complex styling:
+```javascript
+// Create health bar background with rounded corners
+this.healthBarBg = this.scene.add.graphics();
+this.healthBarBg.fillStyle(0x000000, 0.7);
+this.healthBarBg.fillRoundedRect(
+    -this.config.healthBarWidth / 2,
+    -this.config.healthBarHeight / 2,
+    this.config.healthBarWidth,
+    this.config.healthBarHeight,
+    radius
+);
+```
+
+### 3. Beveled Edge Implementation
+Added subtle 3D effect through lighter top/left edges and darker bottom/right edges:
+```javascript
+// Convert health color to RGB components
+const colorObj = Phaser.Display.Color.ValueToColor(healthColor);
+const darkerColor = Phaser.Display.Color.GetColor(
+    Math.max(0, colorObj.r - 50),
+    Math.max(0, colorObj.g - 50),
+    Math.max(0, colorObj.b - 50)
+);
+const lighterColor = Phaser.Display.Color.GetColor(
+    Math.min(255, colorObj.r + 50),
+    Math.min(255, colorObj.g + 50),
+    Math.min(255, colorObj.b + 50)
+);
+```
+
+### 4. Improved Animation System
+Implemented a more robust animation system that redraws graphics during transitions:
+```javascript
+// Create a tween on a dummy object to track progress
+const dummyObj = { progress: 0 };
+this.scene.tweens.add({
+    targets: dummyObj,
+    progress: 1,
+    duration: this._healthAnimDuration,
+    ease: 'Sine.easeOut',
+    onUpdate: () => {
+        // Calculate interpolated values
+        const currentPercent = Phaser.Math.Linear(
+            this._startHealthPercent,
+            this._targetHealthPercent,
+            dummyObj.progress
         );
         
-        // Verify successful instantiation
-        if (this.healthComponent && typeof this.healthComponent.createHealthBar === 'function') {
-            console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Health component initialized successfully.`);
-        } else {
-            console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): CRITICAL - CardFrameHealthComponent instantiation failed or is invalid.`);
-            this.healthComponent = null; // Ensure it's null if something went wrong
-        }
-    } catch (error) {
-        console.error(`CardFrameManager (${this.config.characterName || 'Unknown'}): Error initializing health component:`, error);
-        this.healthComponent = null; // Explicitly nullify on error
+        // Redraw health bar with current values
+        this._updateHealthBarGraphics(currentPercent);
     }
-}
+});
 ```
 
-### Delegation Methods
+## Technical Details
 
-Implemented robust delegation methods with proper checks:
-
+### Graphics Redraw Helper Method
+Added a new `_updateHealthBarGraphics` method to handle redrawing during animation:
 ```javascript
-updateHealth(currentHealth, maxHealth = null, animate = true) {
-    // Validate health values
-    if (currentHealth === undefined || currentHealth === null) {
-        console.warn('CardFrameManager: Invalid health value provided');
-        return;
-    }
+_updateHealthBarGraphics(healthPercent) {
+    // Clear existing graphics
+    this.healthBar.clear();
     
-    // Update stored health values
-    this.config.currentHealth = currentHealth;
+    // Get configuration values
+    const radius = this.config.healthBarBorderRadius || 3;
+    // [...]
     
-    if (maxHealth !== null) {
-        this.config.maxHealth = maxHealth;
-    }
+    // Fill the health bar with rounded corners
+    this.healthBar.fillRoundedRect(
+        -barWidth / 2,
+        -barHeight / 2,
+        adjustedWidth,
+        barHeight,
+        healthPercent < 0.1 ? radius / 2 : radius
+    );
     
-    // Delegate to health component if available
-    if (this.healthComponent && typeof this.healthComponent.updateHealth === 'function') {
-        this.healthComponent.updateHealth(currentHealth, maxHealth, animate);
-    } else {
-        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): updateHealth called but healthComponent is not available or lacks method.`);
-    }
+    // Update bevel graphics
+    // [...]
 }
 ```
 
-### Health Bar Rendering
+### Smart Corner Handling
+Implemented adaptive corner radii that account for health percentage:
+- Uses reduced radii for very low health (< 10%) to prevent visual glitches
+- Completely skips rounded corners when health is 0
+- Properly handles the transition between states
 
-The extracted `createHealthBar()` method in the health component maintains the same visual appearance while being properly isolated:
+### Color Calculation
+Added dynamic color derivation for beveled edges:
+- Calculates darker color (shadow) by reducing RGB values by 50
+- Calculates lighter color (highlight) by increasing RGB values by 50
+- Applies different opacity to each for subtle effect
 
+### Element Naming
+Applied proper element naming to facilitate updates during animation:
 ```javascript
-createHealthBar() {
-    try {
-        // Create health bar container
-        this.healthBarContainer = this.scene.add.container(
-            0, 
-            this.config.healthBarOffsetY
-        );
-        
-        // Create health bar background
-        this.healthBarBg = this.scene.add.rectangle(
-            0, 0, 
-            this.config.healthBarWidth, 
-            this.config.healthBarHeight,
-            0x000000, 0.7
-        ).setOrigin(0.5);
-        
-        // ... rest of health bar creation ...
-        
-        // Add health text last to ensure it renders on top of other elements
-        if (this.config.showHealthText && this.healthText) {
-            this.healthBarContainer.add(this.healthText);
-        }
-        
-        // Add health bar container to main container (CardFrameManager)
-        this.container.add(this.healthBarContainer);
-        
-        return this.healthBarContainer;
-    } catch (error) {
-        console.error('CardFrameHealthComponent: Error creating health bar:', error);
-        return null;
-    }
-}
+// Create inner bevel with a name
+const innerBevel = this.scene.add.graphics().setName('innerBevel');
 ```
 
-## Architectural Improvements
+## Benefits of This Approach
 
-### Clean Component API
+1. **Improved Visual Quality**: The health bars now have a modern, polished appearance consistent with quality UI design
+2. **Enhanced Depth Perception**: Beveled edges create a subtle 3D effect that makes elements appear more tactile
+3. **Visual Harmony**: Rounded corners align with the card frame's overall design language
+4. **Flexible Animation**: The new animation system supports complex transitions and effects
+5. **Future Extensibility**: The graphics-based approach enables further visual enhancements in the future
 
-The component has a clean, focused API:
-- `constructor(scene, container, typeColor, config)`: Creates the component
-- `createHealthBar()`: Creates and returns the health bar container
-- `updateHealth(currentHealth, maxHealth, animate)`: Updates the health display
-- `getHealthBarColor(percent)`: Gets the appropriate color for health percentage
-- `destroy()`: Cleans up all resources
+## Performance Considerations
 
-### Clear Boundary with Components
-
-CardFrameManager now acts as a proper orchestration layer:
-- Initializes components
-- Delegates to components based on functionality
-- Handles component validation and error cases
-- Ensures proper resource cleanup
-
-### Pure Delegation in CardFrame
-
-CardFrame now has pure delegation methods for health functionality:
-- No duplicate implementation across classes
-- Small, focused methods for delegation
-- Proper error handling for delegation failures
-
-## Lessons Learned
-
-1. **Component Ownership**: The health component needed a reference to its parent container to add its elements, but it doesn't own that container. This clear separation of ownership prevented conflicts and memory leaks.
-
-2. **Proper Validation**: Comprehensive validation in component initialization caught issues early and prevented cascading failures.
-
-3. **Resource Management**: The component's destroy method ensures proper cleanup of all resources, including tweens, to prevent memory leaks.
-
-4. **Explicit Component Chain**: The component chain (CharacterSprite â†’ CardFrame â†’ CardFrameManager â†’ CardFrameHealthComponent) is now clearly defined with proper delegation at each step.
+The implementation carefully balances visual quality with performance:
+- Uses a single graphics object for the health bar fill to minimize draw calls
+- Avoids excessive effects that would impact performance
+- Properly cleans up and manages resources during animations
+- Uses clipping to ensure efficient rendering
 
 ## Next Steps
 
-With Phase 3.2 complete, the refactoring project will proceed to:
+Future enhancements to the health bar could include:
+1. **Gradient Fill**: Add a subtle vertical gradient for additional dimensionality
+2. **Pattern Overlay**: Implement a faint pattern overlay for added visual interest
+3. **Custom Font Integration**: Replace Arial with a more thematic game font
+4. **Type-Themed Styling**: Match health bar appearance to character type (water, fire, etc.)
+5. **Particle Effects**: Add subtle particle effects on significant health changes
 
-1. **Phase 3.3**: Extract content-related functionality (portrait window, character sprite, name banner) into a `CardFrameContentComponent`.
+## Testing Recommendations
 
-2. **Phase 3.4**: Extract interaction behavior into a `CardFrameInteractionComponent`.
-
-Once all components are extracted, the final phase will consolidate and streamline the overall architecture.
-
-
-===== CHANGELOG_0.7.1.6_CharacterArtDisplayAnalysis =====
-
-# CHANGELOG 0.7.1.6 - Character Art Display Analysis and Debug Cleanup
-
-## Problem Analysis
-
-Following the successful fix of the CardFrame component delegation system in version 0.7.1.5, we encountered a new issue: **character art (portraits) were not appearing on the cards**. The cards themselves (backdrop, frame, etc.) were rendering correctly, but they were blank where character images should be displayed.
-
-This issue was identified during testing of version 0.7.1.5, where we observed:
-1. The delegation system was working correctly (no more warnings)
-2. The component chain from CharacterSprite â†’ CardFrameManager â†’ CardFrameVisualComponent was properly initialized
-3. Basic card structure (backdrop, frame, etc.) was being created correctly
-4. Character art was missing completely from the cards
-
-After careful analysis of the code, we identified a clear architectural gap in the refactoring process:
-
-## Root Cause
-
-During the refactoring from monolithic CardFrame to the component-based system, two critical methods related to character art display were not properly extracted:
-
-1. **`createPortraitWindow()`** - Creates the portrait container, frame, and mask
-2. **`createCharacterSprite()`** - Renders the actual character image using the characterKey
-
-While the CardFrameManager and CardFrameVisualComponent correctly implemented methods for card structure (backdrop, frame, etc.), they did not include implementations for portrait window creation or character art display. Additionally, the initialization methods did not include calls to these missing methods.
-
-## Debugging Code Cleanup
-
-As part of this version, we removed the extensive diagnostic logging code that was added in version 0.7.1.5 to troubleshoot the delegation system. Specifically, we:
-
-1. **Removed Detailed Logging in CharacterSprite.js**:
-   - Removed all `[DEBUG-VC-INIT]` prefixed console logs throughout createCardFrameRepresentation()
-   - Removed verbose parameter and method validation logs
-   - Eliminated detailed instantiation tracking logs
-   - Removed comprehensive component chain validation logs
-
-2. **Simplified Error Handling**:
-   - Removed multi-layered fallback mechanism with verbose logging
-   - Simplified the complex logic while maintaining the core fix (useComponentSystem flag setting)
-   - Reverted to cleaner code structure while preserving the key architectural fix
-
-3. **Maintained Core Functionality**:
-   - Kept the critical `useComponentSystem: this.cardConfig.enabled` setting that fixed the delegation issue
-   - Preserved the CardFrameManager instantiation path
-   - Maintained the fallback to original CardFrame with proper useComponentSystem flag
-
-This cleanup improves code readability and reduces console clutter now that the delegation issue has been properly diagnosed and fixed.
-
-## Implementation Plan
-
-We've identified three key changes needed to fix the character art display issue:
-
-1. **Implement `createPortraitWindow()` in CardFrameVisualComponent**:
-   - Create portrait container
-   - Set up background and frame
-   - Create mask if needed
-   - Add to component container
-
-2. **Implement `createCharacterSprite()` in CardFrameVisualComponent**:
-   - Load character sprite using config's characterKey
-   - Apply proper scaling and positioning
-   - Add to appropriate container
-
-3. **Update CardFrameVisualComponent's `initialize()` method**:
-   - Add calls to these new methods to ensure proper execution during initialization
-
-4. **Add delegation methods in CardFrameManager**:
-   - Add methods to delegate portrait and character art creation to the visual component
-
-This will complete the proper extraction of all visual responsibilities from the original CardFrame into the component-based system.
-
-## Testing Plan
-
-Once implemented, we'll verify the fix with these testing steps:
-
-1. Confirm character art appears correctly on all cards
-2. Verify proper positioning and scaling of character sprites
-3. Check that masking is applied correctly if enabled
-4. Ensure proper layering of visual elements (backdrop, portrait, frame)
-
-This implementation will maintain the architectural integrity of the component-based system while ensuring that all visual elements of the card, including character art, are properly displayed.
+To verify these changes function correctly, test:
+1. Health increases and decreases with different amounts
+2. Different health percentages (0%, 25%, 50%, 75%, 100%)
+3. Rapid successive health changes
+4. Health transitions at very low percentages
+5. Cards with varying types to ensure consistent appearance
 
 

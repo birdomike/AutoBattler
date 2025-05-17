@@ -365,13 +365,13 @@ class BattleUIManager {
                 // Create the direct battle log in the right side of the screen
                 const battleLog = new DirectBattleLog(
                     this.scene, 
-                    this.scene.cameras.main.width - 350, // X position (right side)
+                    this.scene.cameras.main.width - 400, // X position (flush with right edge)
                     50,                                  // Y position (top)
-                    300,                                 // Width
+                    400,                                 // Width (increased from 300)
                     {
                         backgroundColor: 0x000000,
                         backgroundAlpha: 0.5,
-                        fontSize: 16,
+                        fontSize: 14,
                         maxMessages: 30,
                         padding: 10,
                         maxHeight: halfScreenHeight // Limit height to half the screen

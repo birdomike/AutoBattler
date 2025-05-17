@@ -15,7 +15,7 @@ class DirectBattleLog {
             // Default options
             this.options = {
                 fontSize: 16,
-                fontFamily: 'Arial',
+                fontFamily: "'Cinzel', serif",
                 maxMessages: 30,
                 lineSpacing: 2,
                 backgroundColor: 0x000000,

@@ -77,7 +77,7 @@ class StatusEffectContainer {
             spacing: 4,           // Spacing between icons in pixels
             maxIcons: 6,          // Maximum number of icons to display before showing +N
             backgroundAlpha: 0.5, // Alpha value for icon backgrounds
-            yOffset: 20,          // Distance below character to position icons
+            yOffset: 120,          // Distance below character to position icons
             fadeSpeed: 200,       // Icon fade in/out speed in ms
             originalIconSize: 32  // Original size of AI icons in pixels
         };
