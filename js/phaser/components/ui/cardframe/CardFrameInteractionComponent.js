@@ -55,6 +55,7 @@ const INTERACTION_DEFAULTS = {
         glowIntensity: 1.0,            // Intensity of the glow effect (0-1)
         pulseScale: 1.05,              // Scale factor during pulse animation
         pulseDuration: 700,            // Duration of one pulse cycle in ms
+        frameFadeDuration: 250,        // Duration of white frame highlight fade in/out
         priority: true                 // Whether turn highlighting takes visual priority over selection
     },
     
@@ -509,6 +510,16 @@ class CardFrameInteractionComponent {
             // Apply glow effect
             this.applyActiveTurnGlow(glowColor);
             
+            // Apply white frame highlight to the visual component
+            if (this.container && this.container.visualComponent && 
+                typeof this.container.visualComponent.setFrameWhiteHighlight === 'function') {
+                const frameFadeDuration = (this.config.activeTurn.frameFadeDuration !== undefined) ? 
+                    this.config.activeTurn.frameFadeDuration : (this.config.activeTurn.pulseDuration / 2);
+                this.container.visualComponent.setFrameWhiteHighlight(true, frameFadeDuration);
+            } else {
+                console.warn('CardFrameInteractionComponent: visualComponent or setFrameWhiteHighlight method not available.');
+            }
+            
             // Start pulsing animation
             if (this.config.activeTurn.pulseScale > 1.0) {
                 this.activeTurnTween = this.scene.tweens.add({
@@ -608,6 +619,16 @@ class CardFrameInteractionComponent {
             if (this.activeTurnGlow && this.glowContainer) {
                 this.activeTurnGlow.destroy();
                 this.activeTurnGlow = null;
+            }
+            
+            // Remove white frame highlight from the visual component
+            if (this.container && this.container.visualComponent && 
+                typeof this.container.visualComponent.setFrameWhiteHighlight === 'function') {
+                const frameFadeDuration = (this.config.activeTurn.frameFadeDuration !== undefined) ? 
+                    this.config.activeTurn.frameFadeDuration : (this.config.activeTurn.pulseDuration / 2);
+                this.container.visualComponent.setFrameWhiteHighlight(false, frameFadeDuration);
+            } else {
+                console.warn('CardFrameInteractionComponent: visualComponent or setFrameWhiteHighlight method not available for hiding frame highlight.');
             }
             
             // Restore selection glow if the card was selected

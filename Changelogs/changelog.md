@@ -1,3 +1,20 @@
+## 0.7.5.6 - Connect Card Frame White Highlight to Turn System (2025-05-16)
+
+### Added
+- Connected the new white frame highlight effect to the turn indicator system
+- Added `frameFadeDuration` configuration option to control the speed of the highlight transition
+
+### Changed
+- Updated `CardFrameInteractionComponent` to call `visualComponent.setFrameWhiteHighlight()` when a character's turn begins/ends
+- Enhanced active turn visual feedback with complementary effects (white frame + team-colored glow + size pulse)
+
+### Technical
+- Implemented proper component communication between `CardFrameInteractionComponent` and `CardFrameVisualComponent`
+- Added defensive programming with detailed warning messages when components are unavailable
+- Ensured smooth timing coordination between different visual effects
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.6_ConnectWhiteHighlightToTurnSystem.md*
+
 ## 0.7.5.5 - Card Frame White Highlight for Turn Indicators (2025-05-16)
 
 ### Added
