@@ -50,7 +50,7 @@ const INTERACTION_DEFAULTS = {
     
     // Active Turn Highlight settings
     activeTurn: {
-        pulseScale: 1.05,              // Scale factor during pulse animation
+        pulseScale: 1.00,              // Scale factor during pulse animation- set to nothing for now- unnecessary
         pulseDuration: 700,            // Duration of one pulse cycle in ms
         frameFadeDuration: 250,        // Duration of white frame highlight fade in/out
         priority: true,                // Whether turn highlighting takes visual priority over selection
