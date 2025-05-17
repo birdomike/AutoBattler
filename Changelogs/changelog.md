@@ -1,3 +1,37 @@
+## 0.7.5.9-hotfix - Card Frame Battle Log Rendering Fix (2025-05-17)
+
+### Fixed
+- Fixed error "Cannot read properties of undefined (reading 'sys')" in Battle Log rendering
+- Corrected Phaser object lifecycle handling in DirectBattleLog's renderMessages method
+- Ensured proper recreation of card frame elements after container clearing
+
+### Technical
+- Simplified frame element handling by always recreating elements after container.removeAll()
+- Removed attempt to reuse Phaser objects that had been destroyed
+- Improved robustness of Battle Log rendering system
+
+*Note: For detailed information on the fix, see updated CHANGELOG_0.7.5.9_CardFrameStylingForBattleLog.md*
+
+## 0.7.5.9 - Card Frame Styling for Battle Log (2025-05-17)
+
+### Added
+- Added card frame visual styling to the Battle Log similar to character cards
+- Implemented white border with semi-transparent backdrop for Battle Log
+- Added dedicated nameplate section with "Battle Log" label
+
+### Changed
+- Refactored DirectBattleLog to use the same visual language as character cards
+- Enhanced Battle Log visibility with more structured visual appearance
+- Improved separation of message text from background elements
+
+### Technical
+- Implemented createCardFrame() and updateCardFrameVisuals() methods in DirectBattleLog
+- Added proper depth management for card frame elements
+- Enhanced cleanup in the destroy() method to prevent memory leaks
+- Used consistent corner radius and border styling with character cards
+
+*Note: For detailed information on implementation, see CHANGELOG_0.7.5.9_CardFrameStylingForBattleLog.md*
+
 ## 0.7.5.8 - Fix Backlit Shadow Visibility in Turn Indicator (2025-05-17)
 
 ### Fixed

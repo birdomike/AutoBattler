@@ -22,6 +22,17 @@ class DirectBattleLog {
                 backgroundAlpha: 0.3,
                 padding: 10,
                 maxHeight: this.maxHeight, // Use the calculated max height
+                // Card frame options
+                cardStyle: {
+                    borderWidth: 6,
+                    cornerRadius: 12,
+                    borderColor: 0xFFFFFF, // White border
+                    backgroundColor: 0x000000, // Black background
+                    backgroundAlpha: 0.4,
+                    nameplateHeight: 30,
+                    nameplateBgColor: 0x000000,
+                    nameplateBgAlpha: 0.6
+                },
                 ...options
             };
             
@@ -57,16 +68,11 @@ class DirectBattleLog {
                 type: { color: '#66ffcc' }
             };
             
-            // Create semi-transparent background
-            if (this.options.backgroundColor) {
-                this.background = this.scene.add.rectangle(
-                    0, 0, 
-                    this.width, 10, // Height will be dynamically set
-                    this.options.backgroundColor,
-                    this.options.backgroundAlpha
-                ).setOrigin(0, 0);
-                this.container.add(this.background);
-            }
+            // Create card frame-style background
+            this.createCardFrame()
+            
+            // Legacy background (now handled by card frame)
+            this.background = this.backdrop; // Reference the backdrop created in createCardFrame
             
             // Add control button for pausing message flow
             this.addMessagePauseToggle();
@@ -607,6 +613,103 @@ class DirectBattleLog {
     }
     
     /**
+     * Create card frame visual elements
+     */
+    createCardFrame() {
+        try {
+            const style = this.options.cardStyle;
+            const initialHeight = 10; // Placeholder height, will be updated in renderMessages
+
+            // Create backdrop (semi-transparent background)
+            this.backdrop = this.scene.add.rectangle(
+                style.borderWidth, style.borderWidth, 
+                this.width - (style.borderWidth * 2), initialHeight - (style.borderWidth * 2),
+                style.backgroundColor,
+                style.backgroundAlpha
+            ).setOrigin(0, 0);
+            this.container.add(this.backdrop);
+
+            // Create frame border
+            this.frameBorder = this.scene.add.graphics();
+            this.frameBorder.lineStyle(style.borderWidth, style.borderColor, 1);
+            this.frameBorder.strokeRoundedRect(
+                0, 0,
+                this.width, initialHeight,
+                style.cornerRadius
+            );
+            this.container.add(this.frameBorder);
+
+            // Add nameplate at the bottom
+            this.nameplateBg = this.scene.add.rectangle(
+                style.borderWidth, initialHeight - style.nameplateHeight,
+                this.width - (style.borderWidth * 2), style.nameplateHeight,
+                style.nameplateBgColor,
+                style.nameplateBgAlpha
+            ).setOrigin(0, 0);
+            this.container.add(this.nameplateBg);
+
+            // Add "Battle Log" text
+            this.nameplateText = this.scene.add.text(
+                this.width / 2, initialHeight - (style.nameplateHeight / 2),
+                "Battle Log",
+                {
+                    fontFamily: this.options.fontFamily,
+                    fontSize: 16,
+                    color: '#FFFFFF',
+                    align: 'center'
+                }
+            ).setOrigin(0.5, 0.5);
+            this.container.add(this.nameplateText);
+
+            // Position nameplate and text properly
+            this.updateCardFrameVisuals(initialHeight);
+
+            return true;
+        } catch (error) {
+            console.error('Error creating card frame:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Update card frame visuals based on new height
+     * @param {number} newHeight - New height of the battle log
+     */
+    updateCardFrameVisuals(newHeight) {
+        try {
+            const style = this.options.cardStyle;
+            
+            // Update backdrop
+            if (this.backdrop) {
+                this.backdrop.height = newHeight - (style.borderWidth * 2);
+            }
+            
+            // Update frame border
+            if (this.frameBorder) {
+                this.frameBorder.clear();
+                this.frameBorder.lineStyle(style.borderWidth, style.borderColor, 1);
+                this.frameBorder.strokeRoundedRect(
+                    0, 0,
+                    this.width, newHeight,
+                    style.cornerRadius
+                );
+            }
+            
+            // Update nameplate position
+            if (this.nameplateBg) {
+                this.nameplateBg.y = newHeight - style.nameplateHeight;
+            }
+            
+            // Update nameplate text position
+            if (this.nameplateText) {
+                this.nameplateText.y = newHeight - (style.nameplateHeight / 2);
+            }
+        } catch (error) {
+            console.error('Error updating card frame visuals:', error);
+        }
+    }
+
+    /**
      * Render all messages
      * @param {boolean} animate - Whether to animate the newest message
      */
@@ -623,25 +726,19 @@ class DirectBattleLog {
             const pauseToggleState = this.messageProcessingPaused;
             const hadPauseToggle = !!this.pauseToggle;
             
-            // Clear everything except the pause toggle to avoid issues
+            // Remove the pause toggle from the container temporarily (without destroying it)
             if (this.pauseToggle) {
-                // Remove the pause toggle from the container temporarily
                 this.container.remove(this.pauseToggle, false); // false = don't destroy
             }
             
-            // Now safely clear the container
+            // Now safely clear the container - this destroys all child objects including our frame elements
             this.container.removeAll(true);
             
-            // Recreate background if needed
-            if (this.options.backgroundColor) {
-                this.background = this.scene.add.rectangle(
-                    0, 0, 
-                    this.width, Math.min(this.maxHeight, 10), // Placeholder height, updated below and limited by maxHeight
-                    this.options.backgroundColor,
-                    this.options.backgroundAlpha
-                ).setOrigin(0, 0);
-                this.container.add(this.background);
-            }
+            // Recreate card frame elements (they were destroyed by removeAll)
+            this.createCardFrame();
+            
+            // Legacy background reference
+            this.background = this.backdrop;
             
             // Readd the pause toggle if it existed, or create a new one
             if (hadPauseToggle && this.pauseToggle && !this.pauseToggle.destroyed) {
@@ -770,10 +867,9 @@ class DirectBattleLog {
                 }
             });
             
-            // Update background height - capped at maxHeight
-            if (this.background) {
-                this.background.height = Math.min(totalHeight + this.options.padding, this.maxHeight);
-            }
+            // Update card frame visuals with new height
+            const newHeight = Math.min(totalHeight + this.options.padding, this.maxHeight);
+            this.updateCardFrameVisuals(newHeight);
             
             // Add animation for the most recent message if requested
             if (animate && messagesToShow.length > 0 && this.container) {
@@ -831,6 +927,28 @@ class DirectBattleLog {
      * Destroy this battle log
      */
     destroy() {
+        // Clean up card frame elements explicitly
+        if (this.frameBorder) {
+            this.frameBorder.destroy();
+            this.frameBorder = null;
+        }
+        
+        if (this.backdrop) {
+            this.backdrop.destroy();
+            this.backdrop = null;
+        }
+        
+        if (this.nameplateBg) {
+            this.nameplateBg.destroy();
+            this.nameplateBg = null;
+        }
+        
+        if (this.nameplateText) {
+            this.nameplateText.destroy();
+            this.nameplateText = null;
+        }
+        
+        // Destroy container which will clean up any remaining child objects
         if (this.container) {
             this.container.destroy();
         }
