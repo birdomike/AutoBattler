@@ -1,3 +1,45 @@
+## [0.7.6.4] - 2025-05-18
+### Added
+- **SoundAssetLoader**: Complete audio asset preloading system for battle sounds
+- **4-Tier Loading Coverage**: Loads genre-specific, character-specific, and default auto-attack sounds
+- **Asset Loading Management**: Progress tracking, duplicate prevention, and comprehensive error handling
+- **Phaser Integration**: Seamless integration with Phaser's batch loading system
+
+### Enhanced
+- **Sound System Foundation**: Completed Phase 1 Step 4 with robust asset management
+- **Key Generation Consistency**: Identical sound key algorithms between loader and manager
+- **AudioAssetMappings Integration**: Direct reading from mapping configuration for automatic updates
+- **Debug Support**: Comprehensive logging and statistics for development
+
+### Technical
+- **Batch Loading**: Efficient Phaser asset loading with queue management
+- **Memory Optimization**: Duplicate detection and proper resource cleanup
+- **Error Recovery**: Graceful handling of missing or corrupted audio files
+- **Future-Ready**: Placeholder architecture for ability sounds (Phase 5)
+
+*Note: For detailed implementation information, see CHANGELOG_0.7.6.4_Phase1SoundSystemStep4.md*
+
+## [0.7.6.3] - 2025-05-18
+### Added
+- **Phase 1 Sound System Implementation**: Complete auto-attack sound system with 4-tier hierarchical resolution
+- **SoundEventHandler**: Event-driven sound management connecting battle events to audio feedback
+- **BattleSoundManager**: Core sound manager with caching, volume controls, and 4-tier resolution
+- **Audio Asset Organization**: Complete reorganization of sound files into genre/character/ability/default tiers
+
+### Enhanced
+- **Character Data**: Added minimal `autoAttackType` property to all characters for sound mapping
+- **AbilityAnimationConfig**: Integrated character sound profile mappings with path-based system
+- **AudioAssetMappings**: Comprehensive 4-tier sound resolution system with randomization and testing
+
+### Technical
+- **4-Tier Audio Resolution**: ability-specific → character-specific → genre-specific → defaults
+- **Genre Sound Sharing**: Sword fighters (Drakarion/Caste/Vaelgor) share thematic melee sounds
+- **Character-Specific Sounds**: Sylvanna gets unique bow attack sounds
+- **Timing System**: Synchronized audio with melee (500ms delay) vs ranged (immediate) attacks
+- **Performance Optimization**: Sound caching, pooling, and efficient memory management
+
+*Note: For detailed implementation information, see CHANGELOG_0.7.6.3_Phase1SoundSystemSteps1-3.md*
+
 ## [0.7.6.1] - 2025-05-18
 ### Changed
 - **Upgraded Audio System to 4-Tier Resolution**
