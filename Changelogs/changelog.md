@@ -1,3 +1,13 @@
+## [0.7.5.16] - 2025-05-18
+### Removed
+- Deleted deprecated BattleLogPanel.js file that was completely replaced by DirectBattleLog.js
+- Removed unused script tag for BattleLogPanel.js from index.html
+- Cleaned up codebase by removing 800+ lines of obsolete complex panel implementation
+
+### Improved
+- Reduced bundle size and eliminated dead code from battle UI system
+- Confirmed DirectBattleLog.js as the sole battle log implementation used by BattleUIManager
+
 ## [0.7.5.15] - 2025-05-18
 ### Removed
 - **TeamBuilderUIUpdates.js**: Completely removed technical debt file that was monkey-patching TeamBuilderUI prototype
