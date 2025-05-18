@@ -1,16 +1,21 @@
-## 0.7.5.9-hotfix - Card Frame Battle Log Rendering Fix (2025-05-17)
+## 0.7.5.10 - Fixed-Size Battle Log Implementation (2025-05-17)
 
 ### Fixed
-- Fixed error "Cannot read properties of undefined (reading 'sys')" in Battle Log rendering
-- Corrected Phaser object lifecycle handling in DirectBattleLog's renderMessages method
-- Ensured proper recreation of card frame elements after container clearing
+- Fixed battle log UI starting small and growing to maximum size during battles
+- Resolved issue where text could extend beyond the battle log's visual frame
+- Added buffer space to ensure all text messages are properly contained
+
+### Changed
+- Battle log now starts at maximum height from initialization
+- Modified frame sizing to include extra buffer space for longer messages
+- Improved visual consistency by maintaining fixed battle log dimensions
 
 ### Technical
-- Simplified frame element handling by always recreating elements after container.removeAll()
-- Removed attempt to reuse Phaser objects that had been destroyed
-- Improved robustness of Battle Log rendering system
+- Updated createCardFrame() to use maximum height immediately instead of placeholder
+- Modified updateCardFrameVisuals() to add buffer space to the frame
+- Ensured consistent position of nameplate at the bottom of the extended frame
 
-*Note: For detailed information on the fix, see updated CHANGELOG_0.7.5.9_CardFrameStylingForBattleLog.md*
+*Note: For detailed implementation information, see CHANGELOG_0.7.5.10_FixedSizeBattleLog.md*
 
 ## 0.7.5.9 - Card Frame Styling for Battle Log (2025-05-17)
 

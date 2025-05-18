@@ -10,7 +10,7 @@ class DirectBattleLog {
             this.x = x;
             this.y = y;
             this.width = width;
-            this.maxHeight = options.maxHeight || scene.cameras.main.height * 0.5; // Default to half screen height
+            this.maxHeight = (options.maxHeight || scene.cameras.main.height * 0.5) + 60; // Add 30px extra space
             
             // Default options
             this.options = {
@@ -618,7 +618,7 @@ class DirectBattleLog {
     createCardFrame() {
         try {
             const style = this.options.cardStyle;
-            const initialHeight = 10; // Placeholder height, will be updated in renderMessages
+            const initialHeight = this.maxHeight; // Use maximum height from the start
 
             // Create backdrop (semi-transparent background)
             this.backdrop = this.scene.add.rectangle(
@@ -679,9 +679,12 @@ class DirectBattleLog {
         try {
             const style = this.options.cardStyle;
             
+            // Add a buffer to ensure text doesn't overflow the frame
+            const frameHeight = newHeight + 50; // Add 50px extra buffer
+            
             // Update backdrop
             if (this.backdrop) {
-                this.backdrop.height = newHeight - (style.borderWidth * 2);
+                this.backdrop.height = frameHeight - (style.borderWidth * 2);
             }
             
             // Update frame border
@@ -690,19 +693,19 @@ class DirectBattleLog {
                 this.frameBorder.lineStyle(style.borderWidth, style.borderColor, 1);
                 this.frameBorder.strokeRoundedRect(
                     0, 0,
-                    this.width, newHeight,
+                    this.width, frameHeight,
                     style.cornerRadius
                 );
             }
             
             // Update nameplate position
             if (this.nameplateBg) {
-                this.nameplateBg.y = newHeight - style.nameplateHeight;
+                this.nameplateBg.y = frameHeight - style.nameplateHeight;
             }
             
             // Update nameplate text position
             if (this.nameplateText) {
-                this.nameplateText.y = newHeight - (style.nameplateHeight / 2);
+                this.nameplateText.y = frameHeight - (style.nameplateHeight / 2);
             }
         } catch (error) {
             console.error('Error updating card frame visuals:', error);
@@ -867,9 +870,8 @@ class DirectBattleLog {
                 }
             });
             
-            // Update card frame visuals with new height
-            const newHeight = Math.min(totalHeight + this.options.padding, this.maxHeight);
-            this.updateCardFrameVisuals(newHeight);
+            // Always maintain maximum height for the card frame
+            this.updateCardFrameVisuals(this.maxHeight);
             
             // Add animation for the most recent message if requested
             if (animate && messagesToShow.length > 0 && this.container) {
