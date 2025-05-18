@@ -1,3 +1,17 @@
+## [0.7.5.15] - 2025-05-18
+### Removed
+- **TeamBuilderUIUpdates.js**: Completely removed technical debt file that was monkey-patching TeamBuilderUI prototype
+- Eliminated runtime prototype modifications that conflicted with component-based architecture
+- Removed script loading for TeamBuilderUIUpdates.js from index.html
+
+### Improved
+- **BattleInitiator.js**: All Phaser battle transition functionality now properly integrated into component architecture
+- Enhanced code maintainability by eliminating monkey-patch approach
+- Clarified responsibility separation between TeamBuilderUI orchestration and battle initialization
+- Strengthened component-based architecture by removing prototype modification workarounds
+
+*Note: For detailed information on the investigation process and integration approach, see CHANGELOG_0.7.5.15_RemoveTeamBuilderUIUpdates.md*
+
 ## [0.7.5.14] - 2025-05-18
 ### Removed
 - Removed unused Character.js and Ability.js class files from index.html import list
