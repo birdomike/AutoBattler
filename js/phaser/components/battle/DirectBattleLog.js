@@ -227,8 +227,8 @@ class DirectBattleLog {
                     iconText.setScale(1.05);
                 });
             
-            // Position the button in the control container (right edge)
-            toggleContainer.x = this.width / 2 - buttonSize - 15; // Positioned at right edge with space for copy button
+            // Position the pause button in the control container (further to the right)
+            toggleContainer.x = this.width / 2 + 150; // Positioned close to right edge with spacing for copy button
             
             // Store references for updating
             toggleContainer.graphics = buttonGraphics;
@@ -362,8 +362,8 @@ class DirectBattleLog {
                     this.copyBattleLog();
                 });
             
-            // Position the button in the control container (right edge)
-            copyContainer.x = this.width / 2 - 10; // Positioned at right edge
+            // Position the button in the control container (further to the right)
+            copyContainer.x = this.width / 2 + 117; // Positioned at far right edge
             
             // Store references for updating
             copyContainer.graphics = buttonGraphics;

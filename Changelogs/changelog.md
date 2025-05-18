@@ -1,3 +1,11 @@
+## Version 0.7.5.12 - UI Layout Adjustments (2025-05-17)
+
+### Changed
+- Reduced Battle Controls panel width to properly account for removed copy button
+- Moved Battle Log control buttons (Pause and Copy) further to the right for better positioning
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.5.12_UILayoutAdjustments.md*
+
 ## Version 0.7.5.11 - Battle Log UI Improvement (2025-05-17)
 
 ### Changed

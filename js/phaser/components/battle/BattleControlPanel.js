@@ -44,8 +44,8 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
             const buttonWidth = 45; // Reduced from 60 to make more compact
             const buttonHeight = 30;
             const buttonSpacing = 5; // Reduced from 8 to make more compact
-            // Width calculation updated: removed space for copy button (5 buttons instead of 6)
-            const width = (buttonWidth * 5) + (buttonSpacing * 6) + (this.config.padding * 2);
+            // Width calculation updated: properly accounts for 4 buttons (1 start/pause + 3 speed buttons)
+            const width = (buttonWidth * 4) + (buttonSpacing * 5) + (this.config.padding * 2);
             const height = buttonHeight + (this.config.padding * 2) + 20; // Extra space for title
             
             // Create container for background and border
