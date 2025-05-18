@@ -1,12 +1,13 @@
 /**
  * AudioAssetMappings.js
  * 
- * Hierarchical sound mapping system for the AutoBattler game.
- * Provides organized sound file management with character-specific profiles,
- * ability-specific sounds, and fallback defaults. Uses logical key resolution
- * to map sound requests to specific audio file paths.
+ * 4-Tier Hierarchical sound mapping system for the AutoBattler game.
+ * Provides organized sound file management with ability-specific overrides,
+ * character-specific customizations, genre-specific shared sounds, and default fallbacks.
  * 
- * Resolution Priority: Ability-specific → Character-specific → Defaults
+ * Resolution Priority: Ability-specific → Character-specific → Genre-specific → Defaults
+ * 
+ * v2.0 - Updated to match actual folder structure with genre_specific organization
  */
 
 export const AudioAssetMappings = {
@@ -52,62 +53,54 @@ export const AudioAssetMappings = {
     }
   },
 
+  // ============ GENRE-SPECIFIC SOUND MAPPINGS ============
+  genre_specific: {
+    'sword_melee_genre': {
+      autoAttack: {
+        melee: {
+          impact: {
+            path: 'genre_specific/Sword Melee Genre/',
+            files: ['Sword Attack 1.wav', 'Sword Attack 2.wav', 'Sword Attack 3.wav'],
+            variations: true,
+            randomSelect: true
+          }
+        }
+      }
+    },
+    'fire_caster': {
+      autoAttack: {
+        ranged: {
+          cast: {
+            path: 'genre_specific/Fire_Caster/',
+            files: [], // To be populated when sound files are added
+            variations: false
+          }
+        }
+      }
+    },
+    'frost_caster': {
+      autoAttack: {
+        ranged: {
+          cast: {
+            path: 'genre_specific/Frost_Caster/',
+            files: [], // To be populated when sound files are added
+            variations: false
+          }
+        }
+      }
+    }
+  },
+
   // ============ CHARACTER-SPECIFIC OVERRIDES ============
-  characters: {
-    'sword_warrior': {
+  character_specific: {
+    'sylvanna': {
       autoAttack: {
-        melee: {
-          impact: {
-            path: 'character_specific/sword_warrior/auto_attack/',
-            files: ['sword_attack_1.wav', 'sword_attack_2.wav'],
+        ranged: {
+          release: {
+            path: 'character_specific/Sylvanna/',
+            files: ['Bow Attack 1.wav', 'Bow Attack 2.wav'],
             variations: true,
             randomSelect: true
-          },
-          movement: {
-            path: 'character_specific/sword_warrior/movement/armor_clank.wav',
-            variations: false
-          }
-        }
-      }
-    },
-    'nature_ranger': {
-      autoAttack: {
-        ranged: {
-          release: {
-            path: 'character_specific/nature_ranger/auto_attack/',
-            files: ['nature_bow_1.wav', 'nature_bow_2.wav'],
-            variations: true,
-            randomSelect: true
-          }
-        }
-      }
-    },
-    'fire_mage': {
-      autoAttack: {
-        ranged: {
-          release: {
-            path: 'character_specific/fire_mage/auto_attack/fire_staff_whoosh.wav',
-            variations: false
-          }
-        }
-      }
-    },
-    'storm_mage': {
-      autoAttack: {
-        ranged: {
-          release: {
-            path: 'character_specific/storm_mage/auto_attack/lightning_crackle.wav',
-            variations: false
-          }
-        }
-      }
-    },
-    'wind_assassin': {
-      autoAttack: {
-        melee: {
-          impact: {
-            path: 'character_specific/wind_assassin/auto_attack/wind_slice.wav',
-            variations: false
           }
         }
       }
@@ -157,12 +150,12 @@ export const AudioAssetMappings = {
   // ============ HELPER METHODS ============
   helpers: {
     /**
-     * Resolve a sound request to a specific file path
+     * Resolve a sound request to a specific file path using 4-tier hierarchy
      * @param {Object} context - Sound resolution context
      * @param {string} context.type - 'autoAttack' or 'ability'
      * @param {string} context.event - Sound event type (e.g., 'impact', 'cast')
      * @param {string} [context.abilityId] - Ability identifier for ability sounds
-     * @param {string} [context.characterKey] - Character profile key for character-specific sounds
+     * @param {string} [context.characterKey] - Character profile key (can be 'character_specific/name' or 'genre_specific/genre')
      * @param {string} [context.autoAttackType] - 'melee' or 'ranged' for auto-attacks
      * @returns {Object|null} Sound result object or null
      */
@@ -170,27 +163,39 @@ export const AudioAssetMappings = {
       const { type, event, abilityId, characterKey, autoAttackType } = context;
       
       try {
-        // 1. Check ability-specific first
+        // 1. Ability-specific (highest priority)
         if (type === 'ability' && abilityId && this.abilities[abilityId]?.[event]) {
           return this.buildSoundResult(this.abilities[abilityId][event]);
         }
         
-        // 2. Check character-specific override
-        if (type === 'autoAttack' && characterKey && 
-            this.characters[characterKey]?.autoAttack?.[autoAttackType]?.[event]) {
-          return this.buildSoundResult(
-            this.characters[characterKey].autoAttack[autoAttackType][event]
-          );
+        // 2. Character-specific (high priority)
+        if (type === 'autoAttack' && characterKey?.startsWith('character_specific/')) {
+          const charName = characterKey.split('/')[1];
+          if (this.character_specific[charName]?.autoAttack?.[autoAttackType]?.[event]) {
+            return this.buildSoundResult(
+              this.character_specific[charName].autoAttack[autoAttackType][event]
+            );
+          }
         }
         
-        // 3. Fall back to default
+        // 3. Genre-specific (medium priority)
+        if (type === 'autoAttack' && characterKey?.startsWith('genre_specific/')) {
+          const genreName = characterKey.split('/')[1];
+          if (this.genre_specific[genreName]?.autoAttack?.[autoAttackType]?.[event]) {
+            return this.buildSoundResult(
+              this.genre_specific[genreName].autoAttack[autoAttackType][event]
+            );
+          }
+        }
+        
+        // 4. Defaults (lowest priority)
         if (type === 'autoAttack' && this.defaults.autoAttack?.[autoAttackType]?.[event]) {
           return this.buildSoundResult(
             this.defaults.autoAttack[autoAttackType][event]
           );
         }
         
-        // 4. Ultimate fallback for abilities
+        // 5. Ultimate fallback for abilities
         if (type === 'ability' && this.defaults.abilities?.[event]) {
           return this.buildSoundResult(this.defaults.abilities[event]);
         }
@@ -267,23 +272,32 @@ export const AudioAssetMappings = {
     },
 
     /**
-     * Test sound resolution system with example scenarios
+     * Test sound resolution system with example scenarios for 4-tier hierarchy
      * @returns {Object} Test results
      */
     testSoundResolution() {
       const testCases = [
-        // Auto-attack tests
-        { desc: "Drakarion melee auto-attack impact", test: () => this.getAutoAttackSound('melee', 'impact', 'sword_warrior') },
-        { desc: "Generic melee auto-attack impact", test: () => this.getAutoAttackSound('melee', 'impact') },
-        { desc: "Sylvanna ranged auto-attack release", test: () => this.getAutoAttackSound('ranged', 'release', 'nature_ranger') },
-        { desc: "Generic ranged auto-attack release", test: () => this.getAutoAttackSound('ranged', 'release') },
+        // Genre-specific tests (sword melee genre)
+        { desc: "Drakarion genre-specific melee impact", test: () => this.getAutoAttackSound('melee', 'impact', 'genre_specific/sword_melee_genre') },
+        { desc: "Caste genre-specific melee impact", test: () => this.getAutoAttackSound('melee', 'impact', 'genre_specific/sword_melee_genre') },
+        { desc: "Vaelgor genre-specific melee impact", test: () => this.getAutoAttackSound('melee', 'impact', 'genre_specific/sword_melee_genre') },
+        
+        // Character-specific tests (Sylvanna unique)
+        { desc: "Sylvanna character-specific ranged release", test: () => this.getAutoAttackSound('ranged', 'release', 'character_specific/sylvanna') },
+        
+        // Default fallback tests
+        { desc: "Generic melee auto-attack impact (default)", test: () => this.getAutoAttackSound('melee', 'impact') },
+        { desc: "Generic ranged auto-attack release (default)", test: () => this.getAutoAttackSound('ranged', 'release') },
         
         // Ability tests
-        { desc: "Drakarion Flame Strike cast", test: () => this.getAbilitySound('drakarion_flame_strike', 'cast') },
-        { desc: "Aqualia Tidal Wave impact", test: () => this.getAbilitySound('aqualia_tidal_wave', 'impact') },
+        { desc: "Drakarion Flame Strike cast (ability-specific)", test: () => this.getAbilitySound('drakarion_flame_strike', 'cast') },
+        { desc: "Aqualia Tidal Wave impact (ability-specific)", test: () => this.getAbilitySound('aqualia_tidal_wave', 'impact') },
         { desc: "Unknown ability cast (fallback)", test: () => this.getAbilitySound('unknown_ability', 'cast') },
         
         // Edge cases
+        { desc: "Invalid character key format", test: () => this.getAutoAttackSound('melee', 'impact', 'invalid_format') },
+        { desc: "Non-existent genre", test: () => this.getAutoAttackSound('melee', 'impact', 'genre_specific/non_existent') },
+        { desc: "Non-existent character", test: () => this.getAutoAttackSound('ranged', 'release', 'character_specific/non_existent') },
         { desc: "Invalid auto-attack type", test: () => this.getAutoAttackSound('invalid', 'impact') },
         { desc: "Invalid event type", test: () => this.getAutoAttackSound('melee', 'invalid') }
       ];

@@ -13,7 +13,7 @@ This document outlines a comprehensive, phased implementation plan for integrati
 
 ---
 
-## **Phase 0: Data & Asset Foundation (REVISED)** 
+## **Phase 0: Data & Asset Foundation (COMPLETED WITH 4-TIER ENHANCEMENT)** 
 *Establishing data structures and organizing assets with clear separation of concerns*
 
 ### **Overall Phase Goal**
@@ -21,12 +21,12 @@ Create foundational data structures and organize assets with clear separation be
 
 ### **Key Systems/Managers to Implement or Enhance**
 - **New Files:**
-  - `js/data/AbilityAnimationConfig.js` - **Single source of truth** for all animation/sound presentation
-  - `js/data/AudioAssetMappings.js` - Sound file organization mapping
-  - `assets/images/projectiles/` directory structure
+  - `js/data/AbilityAnimationConfig.js` - **Single source of truth** for all animation/sound presentation ✅
+  - `js/data/AudioAssetMappings.js` - **4-tier hierarchical** sound file organization mapping ✅
+  - `assets/images/projectiles/` directory structure ✅
 - **Modified Files:**
-  - `data/characters.json` - **Only** add `autoAttackType` property (minimal change)
-  - Asset organization in `assets/audio/InCombat_Sounds/`
+  - `data/characters.json` - **Only** add `autoAttackType` property (minimal change) ✅
+  - Asset organization in `assets/audio/InCombat_Sounds/` ✅
 
 ### **Specific Sub-Category Goals/Tasks**
 #### **Minimal Data Structure Modifications:**
@@ -72,8 +72,20 @@ Create foundational data structures and organize assets with clear separation be
        }
      },
      
-     // Sound mappings by category
-     soundMappings: { /* organized by visual types and animation types */ }
+     // Character sound profile mappings (path-based with 4-tier support)
+     characterSoundProfiles: {
+       // Genre-specific mappings (shared sounds for similar character types)
+       'drakarion': 'genre_specific/sword_melee_genre',
+       'caste': 'genre_specific/sword_melee_genre',
+       'vaelgor': 'genre_specific/sword_melee_genre',
+       
+       // Character-specific mappings (truly unique sounds)
+       'sylvanna': 'character_specific/sylvanna',
+       
+       // Default fallbacks (null = use defaults)
+       'lumina': null,
+       'zephyr': null
+     }
    }
    ```
 
@@ -84,9 +96,23 @@ Create foundational data structures and organize assets with clear separation be
    - Keep all presentation logic in this single file
 
 #### **Asset Organization:**
-4. **Reorganize audio assets** by category:
-   - Create subdirectories: `auto_attacks/`, `abilities/`, `reactions/`, `ambient/`
-   - Map existing files (slap1-17 → auto_attacks/melee/, splash1-18 → abilities/, etc.)
+4. **Implement 4-tier audio asset structure** (COMPLETED):
+   ```
+   assets/audio/InCombat_Sounds/
+   ├── genre_specific/
+   │   ├── Sword Melee Genre/        # Shared sounds for sword fighters
+   │   │   ├── Sword Attack 1.wav ✅
+   │   │   ├── Sword Attack 2.wav ✅
+   │   │   └── Sword Attack 3.wav ✅
+   │   ├── Fire_Caster/             # For fire-themed spellcasters
+   │   └── Frost_Caster/            # For ice/frost-themed spellcasters
+   ├── character_specific/
+   │   └── Sylvanna/                # Unique to Sylvanna only
+   │       ├── Bow Attack 1.wav ✅
+   │       └── Bow Attack 2.wav ✅
+   ├── ability_specific/             # For specific unique abilities
+   └── defaults/                     # Generic fallbacks
+   ```
 
 5. **Create placeholder projectile assets**:
    - Basic arrow sprite (`arrow.png`)
@@ -94,88 +120,97 @@ Create foundational data structures and organize assets with clear separation be
    - Lightning bolt sprite (`lightning.png`)
    - Particle texture (`particle.png`)
 
-### **Data Configuration Goals**
-- **AbilityAnimationConfig.js Structure (Comprehensive)**:
+### **Data Configuration Goals (COMPLETED)**
+- **AudioAssetMappings.js Structure (4-Tier System)**:
 ```javascript
 {
-  // Auto-attacks only need autoAttackType from characters.json
-  autoAttacks: {
-    melee: {
-      animation: { approach: {}, strike: {}, return: {} },
-      sounds: { movement: ['footsteps'], impact: ['slap'] },
-      timing: { /* sequence */ }
-    },
-    ranged: {
-      animation: { prepare: {}, release: {} },
-      projectile: { sprite: 'basic_arrow', speed: 1000 },
-      sounds: { prepare: ['bow_draw'], release: ['woosh'] },
-      timing: { /* sequence */ }
+  // 1. Ability-specific (highest priority)
+  abilities: {
+    'drakarion_flame_strike': {
+      cast: { path: 'ability_specific/flame_strike/cast/fire_buildup.wav' },
+      impact: { path: 'ability_specific/flame_strike/impact/', 
+               files: ['fire_explosion_1.wav', 'fire_explosion_2.wav'] }
     }
   },
   
-  // Abilities keyed by ID, infer details from existing character data
-  abilities: {
-    "drakarion_flame_strike": {
-      // Inferred from ability.effects[0].damageType = "fire"
-      visualType: "fire",
-      // Inferred from ability.targetType = "SingleEnemy"  
-      animationType: "projectile",
-      projectile: {
-        type: "dynamic",
-        core: "fireball_core",
-        particles: "fire_trail"
-      },
-      sounds: {
-        cast: ["fire_buildup"],
-        impact: ["explosion_fire"]
-      },
-      timing: { /* sequence */ }
-    },
-    
-    "lumina_divine_protection": {
-      // Inferred from ability.effects[0].damageType = "healing"
-      visualType: "light", 
-      // Inferred from ability.targetType = "SingleAlly"
-      animationType: "instant",
-      effects: {
-        target: "divine_glow",
-        caster: "prayer_aura"
-      },
-      sounds: {
-        cast: ["holy_chant"],
-        effect: ["divine_bell"]
+  // 2. Character-specific (high priority)
+  character_specific: {
+    'sylvanna': {
+      autoAttack: {
+        ranged: {
+          release: {
+            path: 'character_specific/Sylvanna/',
+            files: ['Bow Attack 1.wav', 'Bow Attack 2.wav'],
+            variations: true, randomSelect: true
+          }
+        }
       }
     }
   },
   
-  // Inference helpers for unmapped abilities
-  inferenceRules: {
-    damageTypeToVisual: {
-      "fire": "fire",
-      "water": "water", 
-      "ice": "ice",
-      "healing": "light"
-      // etc.
+  // 3. Genre-specific (medium priority) - NEW TIER!
+  genre_specific: {
+    'sword_melee_genre': {
+      autoAttack: {
+        melee: {
+          impact: {
+            path: 'genre_specific/Sword Melee Genre/',
+            files: ['Sword Attack 1.wav', 'Sword Attack 2.wav', 'Sword Attack 3.wav'],
+            variations: true, randomSelect: true
+          }
+        }
+      }
     },
-    targetTypeToAnimation: {
-      "SingleEnemy": "projectile",
-      "AllEnemies": "aoe",
-      "Self": "instant",
-      "SingleAlly": "instant"
+    'fire_caster': {
+      autoAttack: {
+        ranged: {
+          cast: { path: 'genre_specific/Fire_Caster/', files: [] }
+        }
+      }
+    }
+  },
+  
+  // 4. Defaults (lowest priority)
+  defaults: {
+    autoAttack: {
+      melee: { impact: { path: 'defaults/auto_attacks/melee_impact/punch_flesh_13.wav' } },
+      ranged: { release: { path: 'defaults/auto_attacks/ranged_release/', 
+                          files: ['bow_release_1.wav', 'bow_release_2.wav'] } }
     }
   }
 }
 ```
 
-### **Testing/Verification Goals**
-- [ ] All characters in `characters.json` have **only** the `autoAttackType` property added
-- [ ] No existing character or ability data is modified beyond this single property
-- [ ] `AbilityAnimationConfig.js` loads without errors and contains comprehensive structure
-- [ ] AbilityAnimationConfig can successfully map all existing abilities via ID lookup
-- [ ] Inference system works for unmapped abilities using existing character data
-- [ ] Audio files are properly organized and accessible
-- [ ] Placeholder projectile images are properly sized and positioned  
-- [ ] **No existing game functionality is broken** by minimal data structure changes
+- **Character Sound Profile Mapping (Path-Based)**:
+```javascript
+characterSoundProfiles: {
+  // Genre-specific: Multiple characters share thematic sounds
+  'drakarion': 'genre_specific/sword_melee_genre',  // Fire warrior
+  'caste': 'genre_specific/sword_melee_genre',      // Metal berserker  
+  'vaelgor': 'genre_specific/sword_melee_genre',    // Dark sentinel
+  'aqualia': 'genre_specific/fire_caster',          // Water/Ice mage
+  'nyria': 'genre_specific/frost_caster',           // Storm elementalist
+  
+  // Character-specific: Truly unique, personal sounds
+  'sylvanna': 'character_specific/sylvanna',        // Nature ranger
+  
+  // Defaults: Use generic fallback sounds
+  'lumina': null,   // Light cleric
+  'zephyr': null    // Air assassin
+}
+```
+
+### **Testing/Verification Goals (COMPLETED ✅)**
+- [x] All characters in `characters.json` have **only** the `autoAttackType` property added
+- [x] No existing character or ability data is modified beyond this single property
+- [x] `AbilityAnimationConfig.js` loads without errors and contains comprehensive structure
+- [x] `AudioAssetMappings.js` implements 4-tier resolution hierarchy correctly
+- [x] AbilityAnimationConfig can successfully map all existing abilities via ID lookup
+- [x] Character sound profiles use path-based mapping (genre_specific/character_specific)
+- [x] Inference system works for unmapped abilities using existing character data
+- [x] Audio files are properly organized in 4-tier structure
+- [x] Sound resolution test cases validate all hierarchy levels
+- [x] **No existing game functionality is broken** by minimal data structure changes
 
 ---
 
@@ -197,14 +232,16 @@ Establish a robust, event-driven sound system specifically for battle scenarios,
 ### **Specific Sub-Category Goals/Tasks**
 #### Core Implementation:
 1. **Implement BattleSoundManager.js**:
-   - Asset loading from organized audio directories
+   - **4-tier asset resolution** using AudioAssetMappings.helpers.resolveSound()
+   - **Path-based character mapping** (handle 'genre_specific/sword_melee_genre' format)
    - Category-based volume controls (`autoAttack`, `abilities`, `reactions`, `ambient`)
-   - Random sound selection from pools (e.g., random slap1-17 for melee attacks)
+   - **Genre-aware sound selection** (e.g., random sword attack 1-3 for sword melee genre)
    - Sound pooling for performance optimization
 
 2. **Implement SoundEventHandler.js**:
    - Listen to `CHARACTER_ACTION`, `CHARACTER_DAMAGED`, `CHARACTER_HEALED` events
-   - Map character types/abilities to appropriate sound categories
+   - **Resolve character sound profiles** from AbilityAnimationConfig.characterSoundProfiles
+   - **Handle 4-tier resolution**: character-specific → genre-specific → defaults
    - Handle timing delays for impact sounds vs action sounds
 
 3. **Implement SoundAssetLoader.js**:
@@ -215,41 +252,52 @@ Establish a robust, event-driven sound system specifically for battle scenarios,
 #### Integration Points:
 4. **Enhance BattleEventManager.js**:
    - Register SoundEventHandler as event listener
-   - Ensure proper event data includes character type and action context
+   - Ensure proper event data includes character reference (not just character type)
+   - **Pass complete character object** to enable sound profile lookup
 
 5. **Rename and enhance UISoundManager.js**:
    - Handle non-battle audio (menu clicks, team builder sounds)
    - Maintain existing functionality while clarifying scope
 
 #### Character-Specific Mapping:
-6. **Implement auto-attack sound selection**:
-   - Melee characters → random selection from slap sounds
-   - Ranged characters → random selection from woosh sounds
-   - Type-specific variations (fire attacks use different sounds than ice attacks)
+6. **Implement auto-attack sound selection with 4-tier resolution**:
+   - **Genre-specific**: Drakarion/Caste/Vaelgor → random sword attack sounds (1-3)
+   - **Character-specific**: Sylvanna → unique bow attack sounds (1-2) 
+   - **Genre themes**: Fire_Caster, Frost_Caster genres (when populated)
+   - **Default fallbacks**: Lumina/Zephyr → generic melee/ranged sounds
 
 ### **Data Configuration Goals**
-- **Expand AbilityAnimationConfig.js**:
+- **BattleSoundManager Integration with 4-Tier System**:
 ```javascript
-{
-  autoAttacks: {
-    melee: {
-      sounds: ['slap'],
-      timing: { playAt: 'impact' },
-      variations: { fire: ['slap_fire'], ice: ['slap_ice'] }
-    },
-    ranged: {
-      sounds: ['woosh'],
-      timing: { playAt: 'release' },
-      variations: { nature: ['woosh_nature'] }
-    }
+class BattleSoundManager {
+  getAutoAttackSound(character, event) {
+    // Get character's sound profile from AbilityAnimationConfig
+    const characterKey = AbilityAnimationConfig.characterSoundProfiles[character.name];
+    
+    // Use 4-tier resolution via AudioAssetMappings
+    return AudioAssetMappings.helpers.resolveSound({
+      type: 'autoAttack',
+      characterKey: characterKey,  // e.g., 'genre_specific/sword_melee_genre'
+      autoAttackType: character.autoAttackType,
+      event: event
+    });
   }
+  
+  // Example results:
+  // Drakarion impact → 'genre_specific/Sword Melee Genre/Sword Attack 2.wav'
+  // Sylvanna release → 'character_specific/Sylvanna/Bow Attack 1.wav'
+  // Lumina impact → 'defaults/auto_attacks/melee_impact/punch_flesh_13.wav'
 }
 ```
 
 ### **Testing/Verification Goals**
-- [ ] Auto-attack sounds play correctly for both melee and ranged characters
+- [ ] **Genre-specific resolution**: Drakarion/Caste/Vaelgor play sword melee genre sounds
+- [ ] **Character-specific resolution**: Sylvanna plays unique bow attack sounds
+- [ ] **Default fallbacks**: Lumina/Zephyr fall back to default sounds appropriately
+- [ ] **Path parsing**: System handles 'genre_specific/sword_melee_genre' format correctly
+- [ ] **Random variations**: Multiple files within genre folders selected randomly
 - [ ] Sound volume controls work independently for different categories
-- [ ] Different character types play appropriate sound variations
+- [ ] **4-tier hierarchy**: Resolution follows ability → character → genre → defaults order
 - [ ] No audio-related console errors during battle
 - [ ] Sound events properly triggered by battle logic events
 - [ ] Performance: No audio lag or memory leaks during extended battles
@@ -512,6 +560,7 @@ Implement sophisticated projectile effects using Phaser's built-in capabilities,
    - Frame rate monitoring and automatic quality adjustment
 
 ### **Data Configuration Goals**
+- **Integration with 4-Tier Sound System**: All projectile abilities will use the same resolution hierarchy
 - **Advanced projectile configurations**:
 ```javascript
 {
@@ -533,9 +582,10 @@ Implement sophisticated projectile effects using Phaser's built-in capabilities,
         }
       },
       sounds: {
-        launch: ['fireball_whoosh'],
-        travel: ['fire_crackle'],
-        impact: ['explosion_fire', 'target_burn']
+        // These will be resolved through the 4-tier system
+        launch: { logicalKey: 'ability.launch', abilitySpecific: true },
+        travel: { logicalKey: 'ability.travel', abilitySpecific: true },
+        impact: { logicalKey: 'ability.impact', abilitySpecific: true }
       }
     },
     "nyria_lightning_bolt": {
@@ -550,8 +600,9 @@ Implement sophisticated projectile effects using Phaser's built-in capabilities,
         screen: { flash: 'white', intensity: 0.8 }
       },
       sounds: {
-        cast: ['electric_charge'],
-        strike: ['lightning_crack', 'thunder_boom']
+        // These will be resolved through the 4-tier system
+        cast: { logicalKey: 'ability.cast', abilitySpecific: true },
+        strike: { logicalKey: 'ability.strike', abilitySpecific: true }
       }
     }
   }
@@ -819,8 +870,10 @@ Finalize the animation and sound systems with comprehensive polish, performance 
 At the completion of all phases, the following should be fully functional:
 
 ### **Audio System Success:**
-- ✅ Distinct sounds for melee vs ranged auto-attacks
-- ✅ Character-type specific audio variations
+- ✅ **4-tier sound resolution**: ability → character → genre → defaults
+- ✅ **Genre-specific sounds**: Sword melee characters share thematic sounds
+- ✅ **Character-specific sounds**: Unique characters (like Sylvanna) have personal sounds
+- ✅ **Path-based mapping**: System handles 'genre_specific/sword_melee_genre' format
 - ✅ Ability sounds synchronized with visual effects
 - ✅ Layered audio (ambient + action sounds)
 - ✅ User-controllable volume settings per category
@@ -851,12 +904,15 @@ At the completion of all phases, the following should be fully functional:
 This implementation plan provides several key advantages:
 
 1. **Clean Separation of Concerns:**
-   - `characters.json`: Core game mechanics only
-   - `AbilityAnimationConfig.js`: Complete presentation layer
+   - `characters.json`: Core game mechanics only (+ minimal `autoAttackType`)
+   - `AbilityAnimationConfig.js`: Complete presentation layer + character sound profile mappings
+   - `AudioAssetMappings.js`: 4-tier hierarchical sound organization
 
 2. **Single Source of Truth:**
-   - All animation/sound decisions made in one place
+   - All animation/sound decisions centralized in AbilityAnimationConfig.js
+   - Sound file organization and resolution logic in AudioAssetMappings.js
    - Easy to modify presentation without touching character data
+   - Character sound profiles clearly mapped with path-based system
 
 3. **Smart Inference:**
    - Can automatically handle new abilities by inferring from existing properties
@@ -869,7 +925,9 @@ This implementation plan provides several key advantages:
 
 5. **Performance-First Design:**
    - Built-in optimization and scaling from the ground up
+   - **Smart sound resolution** avoids unnecessary file lookups 
    - Resource pooling and cleanup handled automatically
    - Quality settings allow adaptation to different hardware
+   - **Genre-based sharing** reduces memory footprint vs per-character files
 
 This phased approach ensures each system can be developed, tested, and validated independently while building toward a comprehensive, polished audio-visual experience that enhances the AutoBattler's battle system without compromising its existing architecture.

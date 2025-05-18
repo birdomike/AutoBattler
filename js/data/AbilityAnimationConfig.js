@@ -264,15 +264,19 @@ export const AbilityAnimationConfig = {
 
   // ============ CHARACTER-SPECIFIC SOUND PROFILES ============
   characterSoundProfiles: {
-    // Map character IDs/names to sound profile keys
-    'drakarion': 'sword_warrior',     // Uses sword attack sounds
-    'caste': 'sword_warrior',         // Also uses sword sounds
-    'sylvanna': 'nature_ranger',      // Uses nature bow sounds
-    'aqualia': 'fire_mage',           // Uses magical staff sounds
-    'vaelgor': 'sword_warrior',       // Dark warrior with sword
-    'lumina': null,                   // Uses defaults - staff/magic sounds
-    'zephyr': 'wind_assassin',        // Wind-themed melee
-    'nyria': 'storm_mage'             // Storm-themed ranged magic
+    // Genre-specific mappings (shared sounds for similar character types)
+    'drakarion': 'genre_specific/sword_melee_genre',   // Fire warrior with sword
+    'caste': 'genre_specific/sword_melee_genre',       // Metal berserker with sword
+    'vaelgor': 'genre_specific/sword_melee_genre',     // Dark sentinel with sword
+    'aqualia': 'genre_specific/fire_caster',           // Water/Ice mage (when fire caster sounds added)
+    'nyria': 'genre_specific/frost_caster',            // Storm elementalist (when frost caster sounds added)
+    
+    // Character-specific mappings (truly unique sounds)
+    'sylvanna': 'character_specific/sylvanna',         // Nature ranger with unique bow sounds
+    
+    // Default fallbacks (will use default sounds)
+    'lumina': null,                                    // Light cleric - uses default sounds
+    'zephyr': null                                     // Air assassin - uses default sounds (could add genre_specific/wind_assassin later)
   },
 
   // ============ INFERENCE SYSTEM RULES ============

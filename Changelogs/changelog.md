@@ -1,3 +1,19 @@
+## [0.7.6.1] - 2025-05-18
+### Changed
+- **Upgraded Audio System to 4-Tier Resolution**
+  - Enhanced `AudioAssetMappings.js` from 3-tier to 4-tier sound resolution system
+  - Updated structure: ability-specific → character-specific → genre-specific → defaults
+  - Updated character sound profiles in `AbilityAnimationConfig.js` to use new genre/character paths
+  - Added genre-specific mappings for sword melee characters (Drakarion, Caste, Vaelgor)
+  - Added character-specific mapping for Sylvanna's unique bow sounds
+  - Updated test cases to validate 4-tier resolution hierarchy
+
+### Technical
+- Aligned `AudioAssetMappings.js` structure with actual folder organization
+- Implemented proper path parsing for `genre_specific/` and `character_specific/` prefixes
+- Enhanced `resolveSound()` method to handle new hierarchy levels
+- Maintained backward compatibility with existing sound resolution logic
+
 ## [0.7.6.0] - 2025-05-18
 ### Added
 - **Phase 0: Battle Sound & Animation System Foundation** complete implementation
