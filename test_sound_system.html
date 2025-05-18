@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound System Test - AutoBattler</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .status {
+            padding: 8px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.success { background: #2e7d32; }
+        .status.error { background: #c62828; }
+        .status.warning { background: #ef6c00; }
+        .status.info { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <h1>🔊 AutoBattler Sound System Test</h1>
+    
+    <div class="status info">
+        <strong>Phase 1 Implementation Status:</strong> Testing 4-tier sound resolution and BattleSoundManager integration
+    </div>
+
+    <!-- Test Section 1: Data File Loading -->
+    <div class="test-section">
+        <h2>Step 1: Data File Loading Test</h2>
+        <p>Test if AudioAssetMappings.js and AbilityAnimationConfig.js are loaded correctly</p>
+        <button id="test-data-loading">Test Data Loading</button>
+        <div id="data-loading-result" class="result"></div>
+    </div>
+
+    <!-- Test Section 2: Sound Resolution -->
+    <div class="test-section">
+        <h2>Step 2: 4-Tier Sound Resolution Test</h2>
+        <p>Test the 4-tier hierarchical sound resolution system</p>
+        <button id="test-sound-resolution">Test Sound Resolution</button>
+        <div id="sound-resolution-result" class="result"></div>
+    </div>
+
+    <!-- Test Section 3: Character Sound Profiles -->
+    <div class="test-section">
+        <h2>Step 3: Character Sound Profile Test</h2>
+        <p>Test character-to-sound-profile mappings</p>
+        <button id="test-character-mapping">Test Character Mapping</button>
+        <div id="character-mapping-result" class="result"></div>
+    </div>
+
+    <!-- Test Section 4: Mock Battle Test -->
+    <div class="test-section">
+        <h2>Step 4: Mock Battle Sound Test</h2>
+        <p>Simulate character auto-attacks and test sound resolution</p>
+        <button id="test-mock-battle">Test Mock Battle</button>
+        <div id="mock-battle-result" class="result"></div>
+    </div>
+
+    <!-- Import data modules first -->
+    <script type="module">
+        // Import the data configuration files
+        import { AudioAssetMappings, testAudioMappings } from './js/data/AudioAssetMappings.js';
+        import { AbilityAnimationConfig } from './js/data/AbilityAnimationConfig.js';
+
+        // Make them available globally for testing
+        window.AudioAssetMappings = AudioAssetMappings;
+        window.AbilityAnimationConfig = AbilityAnimationConfig;
+        window.testAudioMappings = testAudioMappings;
+
+        // Test 1: Data File Loading
+        document.getElementById('test-data-loading').addEventListener('click', () => {
+            const result = document.getElementById('data-loading-result');
+            
+            try {
+                // Test AudioAssetMappings
+                const audioMappingsTest = {
+                    hasBasePath: !!AudioAssetMappings.basePath,
+                    basePath: AudioAssetMappings.basePath,
+                    hasDefaults: !!AudioAssetMappings.defaults,
+                    hasGenreSpecific: !!AudioAssetMappings.genre_specific,
+                    hasCharacterSpecific: !!AudioAssetMappings.character_specific,
+                    hasHelpers: !!AudioAssetMappings.helpers,
+                    helperMethods: AudioAssetMappings.helpers ? Object.keys(AudioAssetMappings.helpers) : []
+                };
+
+                // Test AbilityAnimationConfig
+                const animationConfigTest = {
+                    hasAutoAttacks: !!AbilityAnimationConfig.autoAttacks,
+                    hasCharacterSoundProfiles: !!AbilityAnimationConfig.characterSoundProfiles,
+                    characterCount: Object.keys(AbilityAnimationConfig.characterSoundProfiles || {}).length,
+                    characters: Object.keys(AbilityAnimationConfig.characterSoundProfiles || {}),
+                    hasAbilities: !!AbilityAnimationConfig.abilities,
+                    abilityCount: Object.keys(AbilityAnimationConfig.abilities || {}).length
+                };
+
+                result.innerHTML = `✅ SUCCESS: Data files loaded correctly
+
+AudioAssetMappings:
+- Has base path: ${audioMappingsTest.hasBasePath} (${audioMappingsTest.basePath})
+- Has defaults: ${audioMappingsTest.hasDefaults}
+- Has genre-specific: ${audioMappingsTest.hasGenreSpecific}
+- Has character-specific: ${audioMappingsTest.hasCharacterSpecific}
+- Has helpers: ${audioMappingsTest.hasHelpers}
+- Helper methods: ${audioMappingsTest.helperMethods.join(', ')}
+
+AbilityAnimationConfig:
+- Has auto-attacks: ${animationConfigTest.hasAutoAttacks}
+- Has character sound profiles: ${animationConfigTest.hasCharacterSoundProfiles}
+- Character count: ${animationConfigTest.characterCount}
+- Characters: ${animationConfigTest.characters.join(', ')}
+- Has abilities: ${animationConfigTest.hasAbilities}
+- Ability count: ${animationConfigTest.abilityCount}`;
+
+            } catch (error) {
+                result.innerHTML = `❌ ERROR: Failed to test data loading
+Error: ${error.message}
+Stack: ${error.stack}`;
+            }
+        });
+
+        // Test 2: Sound Resolution
+        document.getElementById('test-sound-resolution').addEventListener('click', () => {
+            const result = document.getElementById('sound-resolution-result');
+            
+            try {
+                const testResults = testAudioMappings();
+                
+                result.innerHTML = `✅ 4-TIER SOUND RESOLUTION TEST RESULTS:
+
+Summary: ${testResults.passed}/${testResults.totalTests} tests passed
+
+Details:
+${testResults.results.map(test => 
+    `${test.success ? '✅' : '❌'} ${test.description}
+    Result: ${test.success ? JSON.stringify(test.result, null, 2) : test.error}`
+).join('\n\n')}`;
+
+            } catch (error) {
+                result.innerHTML = `❌ ERROR: Failed to test sound resolution
+Error: ${error.message}
+Stack: ${error.stack}`;
+            }
+        });
+
+        // Test 3: Character Sound Profile Mapping
+        document.getElementById('test-character-mapping').addEventListener('click', () => {
+            const result = document.getElementById('character-mapping-result');
+            
+            try {
+                const testCharacters = ['drakarion', 'caste', 'vaelgor', 'sylvanna', 'lumina', 'zephyr'];
+                const mappingResults = testCharacters.map(character => {
+                    const profile = AbilityAnimationConfig.characterSoundProfiles[character];
+                    return {
+                        character,
+                        profile,
+                        type: profile ? (profile.startsWith('genre_specific') ? 'Genre' : 'Character') : 'Default'
+                    };
+                });
+
+                result.innerHTML = `✅ CHARACTER SOUND PROFILE MAPPING RESULTS:
+
+${mappingResults.map(mapping => 
+    `${mapping.character}: ${mapping.profile || 'null (uses defaults)'} [${mapping.type}]`
+).join('\n')}
+
+Profile Types:
+- Genre: Shared sounds with similar characters
+- Character: Unique sounds specific to that character
+- Default: Uses generic fallback sounds`;
+
+            } catch (error) {
+                result.innerHTML = `❌ ERROR: Failed to test character mapping
+Error: ${error.message}
+Stack: ${error.stack}`;
+            }
+        });
+
+        // Test 4: Mock Battle
+        document.getElementById('test-mock-battle').addEventListener('click', () => {
+            const result = document.getElementById('mock-battle-result');
+            
+            try {
+                // Create mock characters for testing
+                const mockCharacters = [
+                    { name: 'drakarion', autoAttackType: 'melee' },
+                    { name: 'caste', autoAttackType: 'melee' },
+                    { name: 'sylvanna', autoAttackType: 'ranged' },
+                    { name: 'lumina', autoAttackType: 'melee' },
+                    { name: 'zephyr', autoAttackType: 'ranged' }
+                ];
+
+                const battleResults = mockCharacters.map(character => {
+                    // Get character sound profile
+                    const characterKey = AbilityAnimationConfig.characterSoundProfiles[character.name.toLowerCase()];
+                    
+                    // Determine event type based on attack type
+                    const eventType = character.autoAttackType === 'melee' ? 'impact' : 'release';
+                    
+                    // Resolve sound using AudioAssetMappings
+                    const soundResult = AudioAssetMappings.helpers.resolveSound({
+                        type: 'autoAttack',
+                        characterKey: characterKey,
+                        autoAttackType: character.autoAttackType,
+                        event: eventType
+                    });
+
+                    return {
+                        character: character.name,
+                        attackType: character.autoAttackType,
+                        event: eventType,
+                        profileKey: characterKey,
+                        soundResult: soundResult
+                    };
+                });
+
+                result.innerHTML = `✅ MOCK BATTLE SOUND RESOLUTION RESULTS:
+
+${battleResults.map(battle => 
+    `${battle.character} (${battle.attackType} ${battle.event}):
+  Profile: ${battle.profileKey || 'null (default)'}
+  Sound: ${battle.soundResult ? battle.soundResult.fullPath : 'NOT FOUND'}
+  ${battle.soundResult && battle.soundResult.hasVariations ? 
+    `Variation: ${battle.soundResult.selectedFile} (${battle.soundResult.totalVariations} available)` : ''}`
+).join('\n\n')}
+
+Expected Results:
+- Drakarion/Caste: Should use sword melee genre sounds
+- Sylvanna: Should use character-specific bow sounds
+- Lumina/Zephyr: Should use default sounds`;
+
+            } catch (error) {
+                result.innerHTML = `❌ ERROR: Failed to test mock battle
+Error: ${error.message}
+Stack: ${error.stack}`;
+            }
+        });
+
+        // Initialize status
+        console.log('🔊 Sound System Test Page Loaded');
+        console.log('AudioAssetMappings available:', !!window.AudioAssetMappings);
+        console.log('AbilityAnimationConfig available:', !!window.AbilityAnimationConfig);
+    </script>
+</body>
+</html>

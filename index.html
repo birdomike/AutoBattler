@@ -135,6 +135,15 @@
     <script src="js/phaser/components/ui/CardFrameManager.js"></script>
     <!-- Original CardFrame Component - Must load before CharacterSprite -->
     <script src="js/phaser/components/ui/CardFrame.js"></script>
+    <!-- Data configuration files (Foundation - Phase 0) -->
+    <script type="module" src="js/data/AudioAssetMappings.js"></script>
+    <script type="module" src="js/data/AbilityAnimationConfig.js"></script>
+    
+    <!-- Sound System Components (Phase 1) -->
+    <script type="module" src="js/phaser/audio/BattleSoundManager.js"></script>
+    <script type="module" src="js/phaser/audio/SoundEventHandler.js"></script>
+    <script type="module" src="js/phaser/audio/SoundAssetLoader.js"></script>
+    
     <!-- BattleScene (Module) -->
     <script type="module" src="js/phaser/scenes/BattleScene.js"></script>
     
@@ -148,6 +157,8 @@
 
     <script src="js/ui/TooltipManager.js" defer></script>
     <script src="js/ui/SoundManager.js" defer></script>
+    <!-- PhaserSoundManager.js - [DISABLED] Replaced in Phase 1 with new sound system -->
+    <!-- <script src="js/phaser/audio/PhaserSoundManager.js" defer></script> -->
     <script src="js/ui/teambuilder/TeamBuilderUtils.js" defer></script>
     <script src="js/ui/teambuilder/HeroDetailPanelManager.js" defer></script>
     <script src="js/ui/teambuilder/FilterManager.js" defer></script>

@@ -1,3 +1,7 @@
+// Import data configuration files
+import { AudioAssetMappings } from '../../data/AudioAssetMappings.js';
+import { AbilityAnimationConfig } from '../../data/AbilityAnimationConfig.js';
+
 /**
  * BattleSoundManager - Core battle audio management system
  * Uses the 4-tier hierarchical resolution system for battlefield sound effects
@@ -56,160 +60,37 @@ export class BattleSoundManager {
     }
     
     /**
-     * Get character's sound profile mapping (temporary implementation until data integration)
+     * Get character's sound profile mapping from AbilityAnimationConfig
      * @param {string} characterName - Name of the character
      * @returns {string|null} Path-based character key or null for defaults
      */
     getCharacterSoundProfile(characterName) {
-        // TODO: This will eventually be imported from AbilityAnimationConfig.characterSoundProfiles
-        // For now, using hardcoded mapping
-        const profileMapping = {
-            // Genre-specific mappings - characters sharing thematic sounds
-            'drakarion': 'genre_specific/sword_melee_genre',
-            'caste': 'genre_specific/sword_melee_genre', 
-            'vaelgor': 'genre_specific/sword_melee_genre',
-            
-            // Character-specific mappings - truly unique sounds
-            'sylvanna': 'character_specific/sylvanna',
-            
-            // Default fallbacks - use generic sounds
-            'lumina': null,
-            'zephyr': null
-        };
-        
-        return profileMapping[characterName.toLowerCase()] || null;
+        try {
+            // Use the imported AbilityAnimationConfig for character sound profiles
+            return AbilityAnimationConfig.characterSoundProfiles[characterName.toLowerCase()] || null;
+        } catch (error) {
+            console.error(`[BattleSoundManager] Error getting character sound profile for ${characterName}:`, error);
+            return null;
+        }
     }
     
     /**
-     * 4-tier sound resolution implementation
+     * 4-tier sound resolution implementation using AudioAssetMappings
      * @param {Object} params - Resolution parameters
      * @returns {Object|null} Sound result with fullPath or null
      */
     resolve4TierSound(params) {
-        const { type, characterKey, autoAttackType, event } = params;
-        
         try {
-            // Tier 1: Ability-specific (not implemented for auto-attacks, would be for special abilities)
-            // Skip for auto-attacks
+            // Use AudioAssetMappings for the complete 4-tier resolution
+            const soundResult = AudioAssetMappings.helpers.resolveSound(params);
             
-            // Tier 2: Character-specific resolution  
-            if (characterKey && characterKey.startsWith('character_specific/')) {
-                const characterResult = this.resolveCharacterSpecificSound(characterKey, autoAttackType, event);
-                if (characterResult) return characterResult;
+            if (this.debugMode && soundResult) {
+                console.log(`[BattleSoundManager] 4-tier resolution result:`, soundResult);
             }
             
-            // Tier 3: Genre-specific resolution
-            if (characterKey && characterKey.startsWith('genre_specific/')) {
-                const genreResult = this.resolveGenreSpecificSound(characterKey, autoAttackType, event);
-                if (genreResult) return genreResult;
-            }
-            
-            // Tier 4: Default fallback
-            const defaultResult = this.resolveDefaultSound(autoAttackType, event);
-            if (defaultResult) return defaultResult;
-            
-            console.warn(`[BattleSoundManager] No sound found for ${type} with characterKey: ${characterKey}, autoAttackType: ${autoAttackType}, event: ${event}`);
-            return null;
-            
+            return soundResult;
         } catch (error) {
             console.error('[BattleSoundManager] Error in 4-tier sound resolution:', error);
-            return null;
-        }
-    }
-    
-    /**
-     * Resolve character-specific sounds (Tier 2)
-     * @param {string} characterKey - Character key like 'character_specific/sylvanna'
-     * @param {string} autoAttackType - 'melee' or 'ranged'
-     * @param {string} event - 'impact', 'release', etc.
-     * @returns {Object|null} Sound result or null
-     */
-    resolveCharacterSpecificSound(characterKey, autoAttackType, event) {
-        try {
-            // Extract character name from key
-            const characterName = characterKey.split('/')[1];
-            
-            if (characterName === 'sylvanna' && autoAttackType === 'ranged' && event === 'release') {
-                // Sylvanna has unique bow sounds
-                const bowSounds = ['Bow Attack 1.wav', 'Bow Attack 2.wav'];
-                const randomSound = bowSounds[Math.floor(Math.random() * bowSounds.length)];
-                
-                return {
-                    fullPath: `character_specific/Sylvanna/${randomSound}`,
-                    source: 'character_specific',
-                    characterName: characterName
-                };
-            }
-            
-            return null;
-        } catch (error) {
-            console.error(`[BattleSoundManager] Error resolving character-specific sound:`, error);
-            return null;
-        }
-    }
-    
-    /**
-     * Resolve genre-specific sounds (Tier 3)
-     * @param {string} characterKey - Genre key like 'genre_specific/sword_melee_genre' 
-     * @param {string} autoAttackType - 'melee' or 'ranged'
-     * @param {string} event - 'impact', 'release', etc.
-     * @returns {Object|null} Sound result or null
-     */
-    resolveGenreSpecificSound(characterKey, autoAttackType, event) {
-        try {
-            // Extract genre name from key
-            const genreName = characterKey.split('/')[1];
-            
-            if (genreName === 'sword_melee_genre' && autoAttackType === 'melee' && event === 'impact') {
-                // Sword melee genre has multiple attack sounds - select randomly
-                const swordSounds = ['Sword Attack 1.wav', 'Sword Attack 2.wav', 'Sword Attack 3.wav'];
-                const randomSound = swordSounds[Math.floor(Math.random() * swordSounds.length)];
-                
-                return {
-                    fullPath: `genre_specific/Sword Melee Genre/${randomSound}`,
-                    source: 'genre_specific',
-                    genreName: genreName
-                };
-            }
-            
-            return null;
-        } catch (error) {
-            console.error(`[BattleSoundManager] Error resolving genre-specific sound:`, error);
-            return null;
-        }
-    }
-    
-    /**
-     * Resolve default fallback sounds (Tier 4)
-     * @param {string} autoAttackType - 'melee' or 'ranged'
-     * @param {string} event - 'impact', 'release', etc.
-     * @returns {Object|null} Sound result or null
-     */
-    resolveDefaultSound(autoAttackType, event) {
-        try {
-            // Default sound mappings
-            const defaultMappings = {
-                melee: {
-                    impact: 'defaults/auto_attacks/melee_impact/punch flesh 13.wav'
-                },
-                ranged: {
-                    release: 'defaults/auto_attacks/ranged_release/woosh_default.wav'
-                }
-            };
-            
-            const soundPath = defaultMappings[autoAttackType]?.[event];
-            if (soundPath) {
-                return {
-                    fullPath: soundPath,
-                    source: 'defaults',
-                    autoAttackType: autoAttackType,
-                    event: event
-                };
-            }
-            
-            return null;
-        } catch (error) {
-            console.error(`[BattleSoundManager] Error resolving default sound:`, error);
             return null;
         }
     }
@@ -231,7 +112,7 @@ export class BattleSoundManager {
             const categoryVolume = this.volumeSettings[category] || 1.0;
             const finalVolume = this.volumeSettings.master * categoryVolume;
             
-            // Generate a key for the sound
+            // Generate a key for the sound (AudioAssetMappings includes the base path)
             const soundKey = this.generateSoundKey(soundResult.fullPath);
             
             // Check if sound is already loaded
@@ -245,8 +126,7 @@ export class BattleSoundManager {
                 return true;
             }
             
-            // Load and play the sound
-            const fullAssetPath = `assets/audio/InCombat_Sounds/${soundResult.fullPath}`;
+            // The fullPath from AudioAssetMappings already includes the base path
             const sound = this.scene.sound.add(soundKey, { 
                 volume: finalVolume,
                 // Add sound pooling for performance
@@ -261,6 +141,9 @@ export class BattleSoundManager {
             
             if (this.debugMode) {
                 console.log(`[BattleSoundManager] Playing new sound: ${soundResult.fullPath} at volume ${finalVolume}`);
+                if (soundResult.hasVariations) {
+                    console.log(`[BattleSoundManager] Selected variation: ${soundResult.selectedFile} (${soundResult.totalVariations} total)`);
+                }
             }
             
             return true;

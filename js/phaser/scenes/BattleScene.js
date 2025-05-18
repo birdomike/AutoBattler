@@ -1,3 +1,8 @@
+// Import the sound system components
+import { BattleSoundManager } from '../audio/BattleSoundManager.js';
+import { SoundEventHandler } from '../audio/SoundEventHandler.js';
+import { SoundAssetLoader } from '../audio/SoundAssetLoader.js';
+
 /**
  * BattleScene.js
  * 
@@ -185,6 +190,17 @@ export default class BattleScene extends Phaser.Scene {
             // Set a flag to show an error message to the user
             this.showAssetLoadingError = true;
         }
+        
+        // Initialize sound asset loader for auto-attack sounds (Phase 1)
+        this.soundAssetLoader = new SoundAssetLoader(this);
+        
+        // Load auto-attack sounds using 4-tier system
+        console.log('[BattleScene] Loading auto-attack sound assets...');
+        this.soundAssetLoader.loadAutoAttackSounds().then(() => {
+            console.log('[BattleScene] Auto-attack sound assets loaded successfully');
+        }).catch((error) => {
+            console.error('[BattleScene] Error loading auto-attack sound assets:', error);
+        });
     }
 
     /**
@@ -202,6 +218,7 @@ export default class BattleScene extends Phaser.Scene {
             this.initializeBattleBridge();
             this.initializeTeamManager();
             this.initializeFXManager();
+            this.initializeSoundSystem();
 
             // Mark as initialized
             this.isInitialized = true;
@@ -400,6 +417,52 @@ export default class BattleScene extends Phaser.Scene {
         } catch (error) {
             console.error('[BattleScene] Error initializing FX manager:', error);
             this.showErrorMessage('Failed to initialize visual effects: ' + error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Initializes the sound system for battle audio (Phase 1)
+     * Handles sound manager and event handler integration
+     * @private
+     * @returns {boolean} Success state
+     */
+    initializeSoundSystem() {
+        try {
+            // Initialize sound manager (replaces old PhaserSoundManager)
+            this.soundManager = new BattleSoundManager(this, {
+                debugMode: false // Set to true for development/testing
+            });
+            
+            // Initialize sound event handler
+            this.soundEventHandler = new SoundEventHandler(this.soundManager);
+            
+            // Register sound event handler with BattleEventManager
+            if (this.eventManager) {
+                // Register for CHARACTER_ACTION events (primary focus for Phase 1)
+                this.eventManager.on('CHARACTER_ACTION', (data) => {
+                    this.soundEventHandler.handleBattleEvent('CHARACTER_ACTION', data);
+                });
+                
+                // Register for future event types (Phase 2+)
+                this.eventManager.on('CHARACTER_DAMAGED', (data) => {
+                    this.soundEventHandler.handleBattleEvent('CHARACTER_DAMAGED', data);
+                });
+                
+                this.eventManager.on('CHARACTER_HEALED', (data) => {
+                    this.soundEventHandler.handleBattleEvent('CHARACTER_HEALED', data);
+                });
+                
+                console.log('[BattleScene] Sound system registered with BattleEventManager');
+            } else {
+                console.warn('[BattleScene] BattleEventManager not available - sound events will not be handled');
+            }
+            
+            console.log('[BattleScene] Sound system initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('[BattleScene] Error initializing sound system:', error);
+            this.showErrorMessage('Failed to initialize sound system: ' + error.message);
             return false;
         }
     }
@@ -750,6 +813,25 @@ export default class BattleScene extends Phaser.Scene {
                 console.log('[BattleScene] Cleaning up BattleFXManager');
                 this.fxManager.destroy();
                 this.fxManager = null;
+            }
+            
+            // Clean up sound system
+            if (this.soundEventHandler && typeof this.soundEventHandler.destroy === 'function') {
+                console.log('[BattleScene] Cleaning up SoundEventHandler');
+                this.soundEventHandler.destroy();
+                this.soundEventHandler = null;
+            }
+            
+            if (this.soundManager && typeof this.soundManager.destroy === 'function') {
+                console.log('[BattleScene] Cleaning up BattleSoundManager');
+                this.soundManager.destroy();
+                this.soundManager = null;
+            }
+            
+            if (this.soundAssetLoader && typeof this.soundAssetLoader.destroy === 'function') {
+                console.log('[BattleScene] Cleaning up SoundAssetLoader');
+                this.soundAssetLoader.destroy();
+                this.soundAssetLoader = null;
             }
 
             // Clean up local references
