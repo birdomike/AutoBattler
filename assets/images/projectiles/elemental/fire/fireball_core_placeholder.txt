@@ -1,0 +1,9 @@
+# Fireball Core Placeholder
+# Filename: fireball_core.png
+# Dimensions: 24x24 pixels
+# Description: Core fireball sprite for Drakarion's Flame Strike
+# Color: Bright orange/red with yellow center
+# Shape: Circular fireball with flame wisps
+# Usage: Primary projectile for fire-based abilities
+
+# To create: Orange circle with yellow center, flame-like edges

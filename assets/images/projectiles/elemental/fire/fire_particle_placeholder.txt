@@ -1,0 +1,9 @@
+# Fire Particle Placeholder
+# Filename: fire_particle.png
+# Dimensions: 8x8 pixels
+# Description: Small fire particle for fireball trails
+# Color: Orange/red/yellow gradient
+# Shape: Small flame or spark
+# Usage: Particle effects for fire projectiles
+
+# To create: Tiny orange/yellow flame shape or bright orange dot

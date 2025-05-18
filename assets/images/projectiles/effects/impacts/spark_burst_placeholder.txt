@@ -1,0 +1,9 @@
+# Spark Burst Placeholder
+# Filename: spark_burst.png
+# Dimensions: 32x32 pixels
+# Description: Impact effect for various projectiles
+# Color: White/yellow sparks radiating outward
+# Shape: Burst pattern with multiple spark lines
+# Usage: Generic impact effect for projectile hits
+
+# To create: White center with yellow/orange lines radiating outward

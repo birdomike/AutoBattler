@@ -1,0 +1,9 @@
+# Basic Particle Placeholder
+# Filename: particle.png
+# Dimensions: 4x4 pixels
+# Description: Basic particle texture for various effects
+# Color: White/transparent
+# Shape: Simple square or circle
+# Usage: Base particle texture for trails and effects
+
+# To create: Small white square or circle

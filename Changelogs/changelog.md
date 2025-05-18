@@ -1,3 +1,21 @@
+## [0.7.6.0] - 2025-05-18
+### Added
+- **Phase 0: Battle Sound & Animation System Foundation** complete implementation
+- Created comprehensive presentation layer architecture with `AbilityAnimationConfig.js` and `AudioAssetMappings.js`
+- Added `autoAttackType` property to all 8 characters (melee/ranged) based on role mapping
+- Established hierarchical sound resolution system with character-specific profiles and ability-specific mappings
+- Implemented smart inference system to auto-generate animation configs for unmapped abilities
+- Created organized directory structures for projectiles and sound assets
+
+### Technical
+- **Architecture**: Clean separation between game mechanics (characters.json) and presentation layer (config files)
+- **Sound Profiles**: Character mapping system (e.g., 'drakarion' → 'sword_warrior' profile)
+- **Inference System**: Automatically determines visualType and animationType from existing character data
+- **Asset Organization**: Structured directories for selective sound management and projectile sprites
+- **Zero Breaking Changes**: All existing game functionality preserved
+
+*Note: For detailed implementation information, see CHANGELOG_0.7.6.0_Phase0BattleSoundAnimationFoundation.md*
+
 ## [0.7.5.16] - 2025-05-18
 ### Removed
 - Deleted deprecated BattleLogPanel.js file that was completely replaced by DirectBattleLog.js

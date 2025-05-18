@@ -1,0 +1,9 @@
+# Magic Bolt Placeholder
+# Filename: magic_bolt.png
+# Dimensions: 24x8 pixels
+# Description: Generic magical projectile for spellcasters
+# Color: Purple/blue energy bolt
+# Orientation: Horizontal, glowing effect
+# Usage: Default projectile for Mages without specific elements
+
+# To create: Bright purple/blue elongated oval with glow effect

@@ -1,0 +1,10 @@
+# Basic Arrow Placeholder
+# Filename: basic_arrow.png
+# Dimensions: 32x8 pixels
+# Description: Simple arrow sprite for default ranged auto-attacks
+# Color: Brown/wooden arrow with gray arrowhead
+# Orientation: Horizontal, pointing right
+# Usage: Default projectile for Rangers and other ranged attackers
+
+# To create: Simple brown rectangle (shaft) with triangular gray tip
+# Can be created with any image editor as a basic colored shape

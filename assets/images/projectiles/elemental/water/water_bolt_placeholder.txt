@@ -1,0 +1,9 @@
+# Water Bolt Placeholder
+# Filename: water_bolt.png
+# Dimensions: 16x16 pixels
+# Description: Water projectile for Aqualia's abilities
+# Color: Blue/cyan with translucent effect
+# Shape: Water drop or sphere
+# Usage: Water-based magical attacks
+
+# To create: Blue circular shape with lighter blue center
