@@ -55,6 +55,10 @@ class DirectBattleLog {
             // Position container at the right edge at Y=350 (aligned with teams)
             this.container = this.scene.add.container(this.x, 350);
             
+            // Create container for control buttons positioned above the battle log frame
+            this.controlButtonsContainer = this.scene.add.container(0, -30); // Position above frame
+            this.container.add(this.controlButtonsContainer); // Add to container property, not 'this'
+            
             // Text message colors
             this.messageTypes = {
                 default: { color: '#ffffff' },

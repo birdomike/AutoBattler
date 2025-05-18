@@ -44,7 +44,8 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
             const buttonWidth = 45; // Reduced from 60 to make more compact
             const buttonHeight = 30;
             const buttonSpacing = 5; // Reduced from 8 to make more compact
-            const width = (buttonWidth * 6) + (buttonSpacing * 7) + (this.config.padding * 2);
+            // Width calculation updated: removed space for copy button (5 buttons instead of 6)
+            const width = (buttonWidth * 5) + (buttonSpacing * 6) + (this.config.padding * 2);
             const height = buttonHeight + (this.config.padding * 2) + 20; // Extra space for title
             
             // Create container for background and border
@@ -146,17 +147,8 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
                 }
             });
             
-            // Add a vertical divider after speed controls
-            this.addVerticalDivider(startX + 4 * (buttonWidth + buttonSpacing) - buttonSpacing/2);
-            
-            // Add copy log button after divider
-            this.copyButton = this.createIconButton(
-                startX + 5 * (buttonWidth + buttonSpacing),
-                buttonsY,
-                '📋', // Clipboard icon
-                () => this.copyBattleLog(),
-                'Copy Battle Log'
-            );
+            // Copy button removed - Functionality moved to DirectBattleLog
+            // The vertical divider after speed controls has also been removed
             
         } catch (error) {
             console.error('Error creating compact battle control panel:', error);
@@ -642,139 +634,12 @@ class BattleControlPanel extends Phaser.GameObjects.Container {
     
     /**
      * Copy battle log to clipboard
+     * 
+     * Note: This functionality has been moved to DirectBattleLog component.
+     * The method and related methods (copyToClipboard, fallbackCopy, and showCopyFeedback)
+     * have been relocated to place the copy button closer to the battle log it affects,
+     * following the design principle of control proximity.
      */
-    copyBattleLog() {
-        try {
-            // Get the battle log from the scene
-            const battleLog = this.scene.battleLog;
-            
-            if (!battleLog || !battleLog.completeLog || battleLog.completeLog.length === 0) {
-                this.showFloatingMessage('No battle log to copy', 0xffaa00);
-                return;
-            }
-            
-            // Format log text
-            const logText = battleLog.completeLog.map(entry => {
-                // Include turn number for context if available
-                const turnPrefix = entry.turn > 0 ? `[Turn ${entry.turn}] ` : '';
-                return `${turnPrefix}${entry.text}`;
-            }).join('\n');
-            
-            // Copy to clipboard
-            this.copyToClipboard(logText);
-        } catch (error) {
-            console.error('Error copying battle log:', error);
-            this.showFloatingMessage('Error copying log', 0xff0000);
-        }
-    }
-    
-    /**
-     * Copy text to clipboard with fallback
-     */
-    copyToClipboard(text) {
-        // Try using the clipboard API with fallback
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text)
-                .then(() => {
-                    this.showCopyFeedback(true);
-                })
-                .catch(err => {
-                    console.error('Clipboard API failed:', err);
-                    this.fallbackCopy(text);
-                });
-        } else {
-            this.fallbackCopy(text);
-        }
-    }
-    
-    /**
-     * Fallback copy method using textarea
-     */
-    fallbackCopy(text) {
-        try {
-            // Create temporary textarea element
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed'; // Avoid scrolling to bottom
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            
-            // Execute copy command
-            const successful = document.execCommand('copy');
-            this.showCopyFeedback(successful);
-            
-            // Clean up
-            document.body.removeChild(textArea);
-        } catch (err) {
-            console.error('Fallback copy failed:', err);
-            this.showFloatingMessage('Copy failed', 0xff0000);
-        }
-    }
-    
-    /**
-     * Show visual feedback when copy succeeds
-     */
-    showCopyFeedback(success) {
-        if (success) {
-            // Flash the copy button
-            if (this.copyButton && this.copyButton.graphics) {
-                // Store original color
-                const originalFillColor = this.copyButton.graphics.fillStyle;
-                
-                // Change to success color
-                this.copyButton.graphics.clear();
-                this.copyButton.graphics.fillStyle(0x48bb78, 1); // Green success color
-                this.copyButton.graphics.fillRoundedRect(-18, -18, 36, 36, 4);
-                this.copyButton.graphics.lineStyle(1, 0x3498db, 1);
-                this.copyButton.graphics.strokeRoundedRect(-18, -18, 36, 36, 4);
-                
-                // Show "Copied!" message
-                const feedbackText = this.scene.add.text(
-                    this.copyButton.x, 
-                    this.copyButton.y - 30, 
-                    'Copied!', 
-                    { 
-                        fontFamily: 'Arial', 
-                        fontSize: '14px', 
-                        color: '#48bb78',
-                        stroke: '#000000',
-                        strokeThickness: 2,
-                    }
-                ).setOrigin(0.5, 0.5);
-                
-                // Add feedback text to the scene directly for proper z-index
-                this.scene.add.existing(feedbackText);
-                
-                // Animate feedback text
-                this.scene.tweens.add({
-                    targets: feedbackText,
-                    y: this.copyButton.y - 40,
-                    alpha: 0,
-                    duration: 1500,
-                    ease: 'Power2',
-                    onComplete: () => {
-                        feedbackText.destroy();
-                    }
-                });
-                
-                // Reset button color after delay
-                this.scene.time.delayedCall(1000, () => {
-                    this.copyButton.graphics.clear();
-                    this.copyButton.graphics.fillStyle(0x225588, 1);
-                    this.copyButton.graphics.fillRoundedRect(-18, -18, 36, 36, 4);
-                    this.copyButton.graphics.lineStyle(1, 0x3498db, 1);
-                    this.copyButton.graphics.strokeRoundedRect(-18, -18, 36, 36, 4);
-                });
-            }
-            
-            // Show success message
-            this.showFloatingMessage('Battle log copied!', 0x48bb78);
-        } else {
-            // Show error message
-            this.showFloatingMessage('Failed to copy', 0xff0000);
-        }
-    }
 }
 
 // Ensure the class is globally accessible
