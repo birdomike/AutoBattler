@@ -5,6 +5,7 @@
       "name": "Nyria",
       "type": "storm",
       "role": "Elementalist",
+      "autoAttackType": "ranged",
       "actionDecisionLogic": "decideAction_WeightedRandomAbility",
       "stats": {
         "hp": 114,
@@ -40,6 +41,7 @@
       "name": "Caste",
       "type": "metal",
       "role": "Berserker",
+      "autoAttackType": "melee",
       "actionDecisionLogic": "decideAction_PrioritizeOffense",
       "stats": {
         "hp": 110,
@@ -159,6 +161,7 @@
       "name": "Drakarion",
       "type": "fire",
       "role": "Warrior",
+      "autoAttackType": "melee",
       "actionDecisionLogic": "decideAction_PrioritizeOffense",
       "actionDecisionLogic": "decideAction_PrioritizeOffense",
       "stats": {
@@ -246,6 +249,7 @@
       "name": "Aqualia",
       "type": "water/ice",
       "role": "Mage",
+      "autoAttackType": "ranged",
       "actionDecisionLogic": "decideAction_WeightedRandomAbility",
       "stats": {
         "hp": 82,
@@ -356,6 +360,7 @@
       "name": "Sylvanna",
       "type": "nature",
       "role": "Ranger",
+      "autoAttackType": "ranged",
       "actionDecisionLogic": "decideAction_WeightedRandomAbility",
       "stats": {
         "hp": 92,
@@ -455,6 +460,7 @@
       "name": "Vaelgor",
       "type": "dark",
       "role": "Sentinel",
+      "autoAttackType": "melee",
       "actionDecisionLogic": "decideAction_Defensive",
       "stats": {
         "hp": 139,
@@ -563,6 +569,7 @@
       "name": "Lumina",
       "type": "light",
       "role": "Cleric",
+      "autoAttackType": "ranged",
       "actionDecisionLogic": "decideAction_PrioritizeHeal",
       "stats": {
         "hp": 100,
@@ -701,6 +708,7 @@
       "name": "Zephyr",
       "type": "air",
       "role": "Assassin",
+      "autoAttackType": "melee",
       "actionDecisionLogic": "decideAction_PrioritizeOffense",
       "stats": {
         "hp": 80,
