@@ -1,3 +1,33 @@
+## [0.7.5.14] - 2025-05-18
+### Removed
+- Removed unused Character.js and Ability.js class files from index.html import list
+- Eliminated vestigial "Core Game Entities" section that contained empty class definitions
+- Cleaned up technical debt discovered during Code Compendium documentation process
+
+### Improved
+- Reduced initial page load by removing unnecessary HTTP requests for unused files
+- Clarified actual data architecture (plain objects from JSON rather than class instances)
+- Made codebase more honest about its actual implementation approach
+
+*Note: For detailed information on the investigation process and architectural analysis, see CHANGELOG_0.7.5.14_RemoveUnusedEntityClasses.md*
+
+## Version 0.7.5.13 - Fix BattleEventManager Registration Timing (2025-05-17)
+
+### Fixed
+- Resolved warning "BattleEventManager not available or missing setBattleLog method" during battle scene initialization
+- Fixed timing issue where BattleUIManager tried to register battle log before BattleEventManager was created
+
+### Changed
+- Moved battle log registration responsibility from BattleUIManager to BattleScene
+- Implemented scene-as-mediator pattern for cross-component dependencies
+
+### Technical
+- BattleScene now coordinates all cross-component registrations after initialization completes
+- Follows established pattern used for TeamManager and FXManager dependencies
+- Eliminates initialization order dependencies between UI and Event managers
+
+*Note: For detailed information on implementation approach, see CHANGELOG_0.7.5.13_FixEventManagerRegistrationTiming.md*
+
 ## Version 0.7.5.12 - UI Layout Adjustments (2025-05-17)
 
 ### Changed

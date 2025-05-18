@@ -575,6 +575,12 @@ export default class BattleScene extends Phaser.Scene {
                 this.eventManager.setTeamManager(this.teamManager);
             }
             
+            // Register battle log with EventManager if it exists
+            if (this.battleLog && typeof this.eventManager.setBattleLog === 'function') {
+                this.eventManager.setBattleLog(this.battleLog);
+                console.log('[BattleScene] Registered battle log with BattleEventManager');
+            }
+            
             console.log('[BattleScene] BattleEventManager initialized successfully');
             return true;
         } catch (error) {

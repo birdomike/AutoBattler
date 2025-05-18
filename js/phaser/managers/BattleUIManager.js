@@ -387,13 +387,8 @@ class BattleUIManager {
                 // Add direct access for testing in console
                 window.battleLog = battleLog;
                 
-                // Register the battle log with the event manager if available
-                if (this.scene.eventManager && typeof this.scene.eventManager.setBattleLog === 'function') {
-                    this.scene.eventManager.setBattleLog(battleLog);
-                    console.log("[BattleUIManager] Registered battle log with BattleEventManager");
-                } else {
-                    console.warn("[BattleUIManager] BattleEventManager not available or missing setBattleLog method");
-                }
+                // Store battle log reference in scene for later registration with EventManager
+                // The scene will handle registering it with the EventManager when available
                 
                 console.log("[BattleUIManager] Battle log created successfully");
             } else {

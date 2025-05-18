@@ -1,1793 +1,1764 @@
-﻿Combined Technical Changelog  (generated 2025-05-16 22:07)
+﻿Combined Technical Changelog  (generated 2025-05-18 00:38)
 
-===== CHANGELOG_0.7.5.0_HealthBarSingleSourceOfTruth =====
+===== CHANGELOG_0.7.5.13_FixEventManagerRegistrationTiming =====
 
-# CHANGELOG 0.7.5.0 - Health Bar Single Source of Truth Implementation
+# CHANGELOG 0.7.5.13 - Fix BattleEventManager Registration Timing
 
 ## Overview
-This update fixes an architectural inconsistency in how health bar positioning is determined across the component system. Previously, health bar positioning (specifically offsetY) was defined in multiple places, creating confusion and violating the Single Source of Truth (SSoT) principle. This update ensures that CardFrameHealthComponent is the sole authority for all health bar styling and positioning.
+This update fixes a timing issue where the BattleUIManager was attempting to register the battle log with the BattleEventManager before the event manager had been initialized, resulting in a warning message:
+
+```
+[BattleUIManager] BattleEventManager not available or missing setBattleLog method
+```
+
+While this warning was harmless (the battle log continued to function via the BattleBridge), it indicated an architectural timing issue that needed to be resolved.
 
 ## Problem Analysis
 
-While CardFrameHealthComponent.js was intended to be the Single Source of Truth for health bar styling and positioning, the actual architecture didn't fully support this principle. Specifically:
+### Root Cause
+The issue stemmed from the initialization order in BattleScene:
 
-1. **Multiple Sources**: Health bar position (offsetY) was defined in:
-   - CardFrameHealthComponent.js (HEALTH_DEFAULTS) - The intended SSoT
-   - CardFrameVisualComponent.js (VISUAL_DEFAULTS and CARD_VARIANTS) - Incorrectly controlling positioning
-   - CardFrameManager.js - Passing conflicting values to CardFrameHealthComponent
+1. `initializeUIManager()` was called first
+   - This created the battle log via `createBattleLogPanel()`
+   - `createBattleLogPanel()` immediately tried to register the battle log with `this.scene.eventManager`
+   - But `this.scene.eventManager` didn't exist yet
 
-2. **Architectural Violation**: The top of CardFrameHealthComponent.js clearly stated:
-   ```
-   * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all health bar styling,
-   * dimensions, and positioning.
-   ```
-   Yet in practice, the CardFrameVisualComponent was controlling positioning via the `healthDisplay.offsetY` property.
+2. `initializeBattleBridge()` was called later
+   - This then called `initializeEventManager()` 
+   - Only then was `this.eventManager` created
 
-3. **Configuration Override**: When initializing CardFrameHealthComponent, CardFrameManager was overriding the component's own offsetY value with the one from VisualComponent:
-   ```javascript
-   healthConfig.healthBarOffsetY = this.visualComponent.config.healthDisplay.offsetY;
-   ```
-   This made CardFrameHealthComponent's HEALTH_DEFAULTS ineffective for positioning.
+This created a timing dependency where one component tried to use another before it was available.
+
+### Why the Battle Log Still Worked
+The battle log continued to function normally because it connects to the battle events through the BattleBridge system, not just through the EventManager registration. The registration is an optimization that allows the EventManager to forward events directly to the battle log, but the log has its own event listeners as a fallback.
 
 ## Implementation Solution
 
-The solution involved three key changes to fully enforce the Single Source of Truth principle:
+### Approach: Scene as Dependency Mediator
+Rather than having components try to directly interact with each other during initialization, the solution makes the BattleScene act as a mediator for cross-component dependencies. This follows the pattern already established for other components like TeamManager and FXManager.
 
-### 1. Removed Health Bar Positioning from CardFrameVisualComponent.js
+### Changes Made
 
-Completely removed `healthDisplay.offsetY` from both VISUAL_DEFAULTS and all CARD_VARIANTS entries in CardFrameVisualComponent.js:
+#### 1. Removed Direct Registration from BattleUIManager
+**File**: `js/phaser/managers/BattleUIManager.js`
 
+Removed the problematic registration attempt in `createBattleLogPanel()`:
 ```javascript
-// From VISUAL_DEFAULTS
-// BEFORE:
-healthDisplay: {
-    offsetY: 200,            // Distance from center to health bar
-},
-
-// AFTER:
-// Health Bar: Styling, dimensions, and positioning are managed by CardFrameHealthComponent.js.
-```
-
-And similarly for each variant in CARD_VARIANTS:
-
-```javascript
-// BEFORE:
-healthDisplay: {
-    offsetY: -140,
-},
-
-// AFTER:
-// Health bar styling and positioning managed by CardFrameHealthComponent.js
-```
-
-### 2. Stopped CardFrameManager.js from Passing Positioning Values
-
-Removed the code in CardFrameManager.initializeHealthComponent() that was overriding the health bar position:
-
-```javascript
-// BEFORE:
-// Get health display configuration from visualComponent if available
-let healthConfig = { ...this.config };
-
-if (this.visualComponent) {
-    // Pass health display positioning from visualComponent
-    healthConfig.healthBarOffsetY = this.visualComponent.config.healthDisplay.offsetY;
-    
-    console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Using health display positioning from visualComponent`);
+// REMOVED:
+// Register the battle log with the event manager if available
+if (this.scene.eventManager && typeof this.scene.eventManager.setBattleLog === 'function') {
+    this.scene.eventManager.setBattleLog(battleLog);
+    console.log("[BattleUIManager] Registered battle log with BattleEventManager");
 } else {
-    console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): visualComponent not available, health component may have incorrect positioning.`);
+    console.warn("[BattleUIManager] BattleEventManager not available or missing setBattleLog method");
 }
 
-// AFTER:
-// Health display configuration should come directly from CardFrameHealthComponent
-// as it is the Single Source of Truth for health bar styling and positioning
-let healthConfig = { ...this.config };
-
-// Pass only relevant health data (currentHealth, maxHealth, showHealth, typeColor)
-// Note: We no longer pass healthBarOffsetY from visualComponent - this is managed by CardFrameHealthComponent
+// REPLACED WITH:
+// Store battle log reference in scene for later registration with EventManager
+// The scene will handle registering it with the EventManager when available
 ```
 
-### 3. Verified CardFrameHealthComponent as Single Source of Truth
+The BattleUIManager now focuses solely on creating the battle log and storing the reference in the scene (`this.scene.battleLog = battleLog`).
 
-Verified that CardFrameHealthComponent.js was already properly configured to handle positioning through its HEALTH_DEFAULTS:
+#### 2. Added Scene-Mediated Registration
+**File**: `js/phaser/scenes/BattleScene.js`
 
+Added registration logic in `initializeEventManager()`:
 ```javascript
-const HEALTH_DEFAULTS = {
-    // Health bar dimensions and position
-    healthBar: {
-        width: 200,             // Width of the health bar
-        height: 18,             // Height of the health bar
-        offsetY: 100,           // Vertical position of health bar
-        borderRadius: 4,        // Rounded corners for health bar
-        bevelWidth: 1,          // Width of the bevel effect
-        padding: 4              // Padding inside background
-    },
-    // ... other settings
-};
+// Register battle log with EventManager if it exists
+if (this.battleLog && typeof this.eventManager.setBattleLog === 'function') {
+    this.eventManager.setBattleLog(this.battleLog);
+    console.log('[BattleScene] Registered battle log with BattleEventManager');
+}
 ```
 
-## Technical Implementation Details
+This ensures the registration happens after both the battle log and event manager exist.
 
-### Architecture Enforcement
+## Architectural Benefits
 
-The changes reinforce the component-based architecture by ensuring each component has clear responsibility boundaries:
+### 1. Eliminated Timing Dependencies
+Components no longer need to worry about initialization order. Each focuses on its own responsibilities without needing to know when other components become available.
 
-- **CardFrameHealthComponent**: Now truly owns ALL health bar aspects:
-  - Position (offsetY)
-  - Dimensions (width, height)  
-  - Styling (colors, borders, animations)
+### 2. Consistent Pattern
+This solution follows the existing pattern where BattleScene coordinates cross-component relationships:
+- `eventManager.setTeamManager(this.teamManager)`
+- `eventManager.setFXManager(this.fxManager)`
+- Now also: `eventManager.setBattleLog(this.battleLog)`
 
-- **CardFrameVisualComponent**: Retains responsibility for:
-  - Card dimensions
-  - Portrait positioning
-  - Nameplate positioning
-  - Card frame styling
-  
-- **CardFrameManager**: Acts as a proper coordinator:
-  - Passes relevant data without overriding component defaults
-  - Maintains proper delegation boundaries
-  - Respects component ownership of their domains
+### 3. Single Source of Truth
+BattleScene acts as the orchestrator that knows when all components are available and can wire them together appropriately.
 
-### Documentation Improvements
+### 4. Improved Error Handling
+No more spurious warning messages during normal initialization.
 
-The changes include clear, directive comments:
+### 5. Future-Proof
+This pattern makes it easy to add more cross-component dependencies without worrying about initialization order.
 
-1. In CardFrameVisualComponent.js:
-   ```javascript
-   // Health Bar: Styling, dimensions, and positioning are managed by CardFrameHealthComponent.js.
-   ```
+## Testing Verification
 
-2. In CardFrameManager.js:
-   ```javascript
-   // Health display configuration should come directly from CardFrameHealthComponent
-   // as it is the Single Source of Truth for health bar styling and positioning
-   ```
-
-These comments help ensure developers understand where to make health bar changes in the future.
-
-## Benefits and Advantages
-
-1. **True Single Source of Truth**: CardFrameHealthComponent is now the only place that defines health bar positioning and dimensions.
-
-2. **Simplified Development**: Developers now know exactly where to modify health bar appearance - in CardFrameHealthComponent.js only.
-
-3. **Architectural Consistency**: The implementation now properly follows the SSoT principle that was stated in the comments.
-
-4. **Reduced Configuration Conflicts**: No more conflicting values from multiple sources leading to unexpected positioning.
-
-5. **Cleaner Component Interfaces**: Each component has clear responsibility boundaries with minimal cross-component configuration overrides.
-
-## Testing and Verification
-
-After implementation, the health bar positioning was verified by:
-1. Confirming that changing HEALTH_DEFAULTS in CardFrameHealthComponent.js directly affects the final position
-2. Verifying that no console warnings are generated related to health bar positioning
-3. Checking that health bars appear in the expected position for all card variants
-4. Ensuring no regressions in health bar animation or styling
+After implementing these changes:
+1. The warning message should no longer appear during battle scene initialization
+2. Battle log functionality should remain unchanged (continues to receive and display all battle events)
+3. EventManager should properly receive the battle log reference for optimized event forwarding
+4. Console should show: `[BattleScene] Registered battle log with BattleEventManager`
 
 ## Lessons Learned
 
-1. **Architectural Discipline**: Even with clear principles stated in comments, it's easy for actual implementation to drift away from the intended architecture.
+### 1. Component Initialization Order Matters
+When components depend on each other, careful consideration of initialization order is crucial. However, the better solution is often to remove the dependency rather than rely on specific ordering.
 
-2. **Component Boundaries**: The "single source of truth" principle requires clear component boundaries and strict enforcement of responsibility domains.
+### 2. Scene as Mediator Pattern
+Using the scene as a mediator for cross-component dependencies is more robust than having components directly interact during initialization.
 
-3. **Configuration Flow**: When using a component-based architecture, configuration should flow in consistent patterns without unexpected overrides.
+### 3. Defensive Programming
+Components should handle cases where dependencies aren't available yet, rather than assuming they will be.
 
-4. **Documentation Importance**: Clear documentation about where to make specific changes helps maintain architectural integrity over time.
+### 4. Clear Separation of Concerns
+Each component should focus on its primary responsibility. Cross-component wiring is better handled at a higher level (the scene).
 
-5. **Refactoring for Principles**: Sometimes code needs to be refactored not because it doesn't work, but to align with key architectural principles.
+## Future Considerations
 
-## Next Steps
+This pattern could be extended to other cross-component dependencies in the game. Any time one component needs a reference to another, consider whether the scene should mediate that relationship rather than having direct coupling.
 
-Future enhancements to further improve the health bar system could include:
-
-1. Implementing a variant system within CardFrameHealthComponent.js to automatically adjust styling based on card variant
-2. Adding more configuration options for health bar styling
-3. Enhancing health bar animations with more visual feedback
-4. Further centralizing common color and styling properties to reduce duplication
+The fix maintains all existing functionality while eliminating the architectural timing issue, resulting in cleaner, more maintainable code.
 
 
-===== CHANGELOG_0.7.4.6_CardFrameComponentChainInitializationFix =====
+===== CHANGELOG_0.7.5.12_UILayoutAdjustments =====
 
-# CHANGELOG 0.7.4.6 - CardFrame Component Chain Initialization Fix
+# CHANGELOG 0.7.5.12 - UI Layout Adjustments
 
 ## Overview
-This update fixes a critical error in the card dimension caching system implemented in version 0.7.4.5. The fix addresses an architectural inconsistency in how the CardFrame component chain is initialized, which was causing "CRITICAL - Failed to cache card dimensions" errors for every character.
+This update makes two small but impactful improvements to the game's UI layout:
+
+1. Reduced the Battle Controls panel width to properly account for the removed Copy button
+2. Repositioned the Battle Log control buttons (Pause and Copy) further to the right for better alignment
+
+These changes follow up on the previous update (0.7.5.11) which relocated the Copy button from the Battle Controls panel to the Battle Log. After observing the UI in action, these refinements were needed to create a more balanced and visually pleasing layout.
 
 ## Problem Analysis
-After implementing the dimension caching in version 0.7.4.5, critical errors were observed for every character:
 
-```
-[CharacterSprite (CharacterName)]: CRITICAL - Failed to cache card dimensions as visualComponent.config was not available post-creation.
-```
+### Battle Controls Panel Size
+The Battle Controls panel width calculation was updated in version 0.7.5.11 to remove space for the Copy button. However, the width calculation still accounted for 5 buttons instead of the actual 4 buttons now present (1 Start/Pause button and 3 speed buttons). This resulted in unnecessary empty space in the panel.
 
-The root cause was identified by tracing the component initialization flow:
-
-1. In `CharacterSprite.createCardFrameRepresentation()`, there were two possible initialization paths:
-   ```javascript
-   // Path 1: Direct creation of CardFrameManager (problematic)
-   if (this.cardConfig.enabled && cardOptions.useComponentSystem && typeof window.CardFrameManager === 'function') {
-       this.cardFrame = new window.CardFrameManager(this.scene, 0, 0, cardOptions);
-   }
-   // Path 2: Creation of CardFrame that then creates its manager internally (correct)
-   else if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
-       cardOptions.useComponentSystem = true;
-       this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
-   }
-   ```
-
-2. This created an inconsistent object hierarchy:
-   - When Path 1 was taken, `this.cardFrame` was actually a `CardFrameManager` instance
-   - Later code attempted to access `this.cardFrame.manager.visualComponent.config`
-   - But since `this.cardFrame` was a `CardFrameManager`, it didn't have a `manager` property
-   - This broke the reference chain and caused the caching to fail
-
-The architectural problem was that `CharacterSprite` could directly instantiate either a `CardFrame` or a `CardFrameManager`, but then expected a consistent object hierarchy (CardFrame â†’ CardFrameManager â†’ CardFrameVisualComponent) regardless of which path was taken.
+### Battle Log Control Buttons Position
+The newly added Pause and Copy buttons above the Battle Log were positioned near the right edge, but not far enough to create a balanced appearance. The buttons needed to be moved further to the right to better align with the right edge of the Battle Log frame.
 
 ## Implementation Solution
 
-The solution unifies the initialization path to always create a CardFrame instance, which then creates its CardFrameManager internally:
+### 1. Fixed Battle Controls Panel Width Calculation
+Updated the width calculation in the `createPanel()` method of BattleControlPanel.js:
 
 ```javascript
-// Determine which card system to use - ALWAYS create CardFrame, never directly create CardFrameManager
-if (this.cardConfig.enabled && typeof window.CardFrame === 'function') {
-    // Ensure useComponentSystem flag is set if that's the intent
-    // This will make CardFrame create its own CardFrameManager internally
-    cardOptions.useComponentSystem = true;
-    this.cardFrame = new window.CardFrame(this.scene, 0, 0, cardOptions);
+// Original code (incorrect)
+// Width calculation updated: removed space for copy button (5 buttons instead of 6)
+const width = (buttonWidth * 5) + (buttonSpacing * 6) + (this.config.padding * 2);
+
+// Updated code (correct)
+// Width calculation updated: properly accounts for 4 buttons (1 start/pause + 3 speed buttons)
+const width = (buttonWidth * 4) + (buttonSpacing * 5) + (this.config.padding * 2);
+```
+
+This change ensures the panel width properly accounts for exactly the number of buttons present, creating a more compact and visually balanced control panel.
+
+### 2. Repositioned Battle Log Control Buttons
+Modified the positioning of both the Pause and Copy buttons in DirectBattleLog.js:
+
+For the Pause button:
+```javascript
+// Original position
+toggleContainer.x = this.width / 2 - buttonSize - 15; // Positioned at right edge with space for copy button
+
+// New position
+toggleContainer.x = this.width / 2 - 5; // Positioned close to right edge with spacing for copy button
+```
+
+For the Copy button:
+```javascript
+// Original position
+copyContainer.x = this.width / 2 - 10; // Positioned at right edge
+
+// New position
+copyContainer.x = this.width / 2 + 25; // Positioned at far right edge
+```
+
+These position adjustments move both buttons further to the right while maintaining their relative spacing. The pause button is now positioned near the right edge, and the copy button is at the far right edge of the Battle Log frame.
+
+## Architectural Benefits
+
+### 1. Improved Visual Balance
+The smaller Battle Controls panel now matches its actual content, eliminating unnecessary empty space. This creates a more balanced UI component that focuses on its core functionality.
+
+### 2. Enhanced Control Proximity
+By positioning the Battle Log controls further to the right, they better align with the right edge of the Battle Log frame, reinforcing the principle of control proximity established in version 0.7.5.11.
+
+### 3. Consistent Spacing
+The updated positioning maintains consistent spacing between the buttons while creating better overall alignment with the Battle Log's visual frame.
+
+## Testing Process
+The implementation was tested with specific focus on:
+1. Visual verification of the Battle Controls panel width reduction
+2. Confirmation that all buttons remain fully accessible and visually distinct
+3. Verification of proper alignment of Battle Log control buttons with the frame
+4. Testing interaction with all buttons to ensure functionality was maintained
+
+## Lessons Learned
+1. **UI Refinement Process**: Even after major UI changes, small refinements are often needed to perfect the visual balance.
+2. **Accurate Component Sizing**: Component dimensions should exactly match their content requirements without unnecessary padding or space.
+3. **Visual Alignment**: Proper alignment of controls with their parent containers reinforces the relationship between controls and the elements they affect.
+
+## Next Steps
+These UI refinements complete the Battle Log UI improvement project started in version 0.7.5.11. Future UI enhancements could include:
+1. Further consistency improvements across all UI components
+2. Additional visual feedback for button interactions
+3. Keyboard shortcuts for common controls
+
+
+===== CHANGELOG_0.7.5.11_BattleLogUIImprovement =====
+
+# CHANGELOG 0.7.5.11 - Battle Log UI Improvement
+
+## Overview
+This update improves the user experience by reorganizing UI controls related to the battle log, following the principle of control proximity - placing UI controls near the elements they affect. The two main issues addressed were:
+
+1. The pause button being inside the battle log's card frame, creating visual clutter and inconsistency.
+2. The "Copy Battle Log" button being in the Battle Controls panel at the bottom of the screen, far from the actual battle log it affects.
+
+## Problem Analysis
+### Poor Control Placement
+The original implementation positioned the pause button inside the battle log frame. This created several issues:
+- It cluttered the visual appearance of the card-style battle log
+- It was inconsistent with the card design pattern used throughout the game
+- It made the controls less prominent and harder to identify
+
+### Disconnected Functionality
+The "Copy Battle Log" button was located in the BattleControlPanel at the bottom of the screen, disconnected from the battle log itself. This created a poor mental model for users:
+- Users had to look in unexpected places for related functionality
+- The spatial disconnect made the UI less intuitive
+- It violated the component responsibility principle, where each UI component should manage its own controls
+
+## Implementation Solution
+
+### 1. Created Control Buttons Container
+Added a dedicated container positioned above the battle log card frame:
+```javascript
+// Create container for control buttons positioned above the battle log frame
+this.controlButtonsContainer = this.scene.add.container(0, -30); // Position above frame
+this.container.add(this.controlButtonsContainer); // Add to container property
+```
+
+### 2. Redesigned Pause Button
+Completely redesigned the pause button with proper styling and interactions:
+- Changed from a simple text element to a properly styled button with background
+- Improved visual feedback with hover and press effects
+- Added tooltips for better user experience
+- Positioned it in the new control buttons container
+
+### 3. Added Copy Button
+Implemented a new copy button with matching styling:
+```javascript
+addCopyButton() {
+    // Create styled button with rounded rectangle background
+    // Add clipboard icon and proper interaction effects
+    // Position next to pause button in control container
+}
+```
+
+### 4. Enhanced Copy Functionality
+Moved all copy-related functionality from BattleControlPanel to DirectBattleLog:
+- `copyBattleLog()` - Formats and copies log content
+- `copyToClipboard()` - Handles clipboard API
+- `fallbackCopy()` - Fallback for browsers without clipboard API
+- `showCopyFeedback()` - Shows success/failure message
+
+### 5. Updated Message Rendering Process
+Modified the `renderMessages()` method to properly handle the control buttons container during updates:
+```javascript
+// Store control buttons container to preserve it
+const controlButtons = this.controlButtonsContainer;
+const pauseState = this.messageProcessingPaused;
+
+// Temporarily remove control buttons container from main container
+if (controlButtons) {
+    this.container.remove(controlButtons, false); // false = don't destroy
+}
+
+// ... recreate frame elements ...
+
+// Re-add control buttons container if it existed
+if (controlButtons && !controlButtons.destroyed) {
+    this.controlButtonsContainer = controlButtons;
+    this.container.add(this.controlButtonsContainer);
 } else {
-    if (this.cardConfig.enabled) {
-        console.warn(`CardFrame representation not available for ${this.character.name}`);
+    // If container was somehow destroyed, recreate it
+    // ...
+}
+```
+
+### 6. Removed Code from BattleControlPanel
+Modified BattleControlPanel to remove:
+- Copy button creation code
+- Vertical divider that separated the copy button
+- Copy-related methods
+- Updated width calculation to account for removed button
+
+## Implementation Challenges
+
+### Container Hierarchy Management
+The main challenge was ensuring the control buttons container was properly preserved during message rendering. The rendering process needed to:
+1. Temporarily remove the control buttons container
+2. Clear the main container (which would destroy all child objects)
+3. Recreate the frame elements
+4. Re-add the control buttons container
+
+This required careful management of container references and proper use of the `remove()` method's second parameter to prevent destroying the container.
+
+### Handling Render Errors
+We implemented comprehensive error handling to ensure the UI would remain functional even if errors occurred during rendering:
+```javascript
+try {
+    // ... rendering code ...
+} catch (error) {
+    console.error('Error in renderMessages preparations:', error);
+    // Error recovery code to recreate control buttons if needed
+    if (!this.controlButtonsContainer || this.controlButtonsContainer.destroyed) {
+        this.controlButtonsContainer = this.scene.add.container(0, -30);
+        this.container.add(this.controlButtonsContainer);
+        this.addMessagePauseToggle();
+        this.addCopyButton();
     }
-    throw new Error("Card representation unavailable");
 }
 ```
 
-This ensures that:
-1. `this.cardFrame` is always a CardFrame instance
-2. `this.cardFrame.manager` correctly points to the CardFrameManager instance
-3. The entire object hierarchy is consistent, allowing `this.cardFrame.manager.visualComponent.config` to be properly accessed
+## Architectural Benefits
 
-## Technical Implementation Details
+### Improved Component Encapsulation
+Each UI component now manages its own controls, following the principle of encapsulation:
+- DirectBattleLog manages both pause and copy functionality
+- BattleControlPanel focuses only on battle flow controls
 
-### Component Hierarchy Consistency
-The most critical aspect of this fix is ensuring a consistent component hierarchy:
+### Enhanced User Experience
+The new UI layout provides several UX improvements:
+- More intuitive grouping of related controls
+- Consistent styling and visual feedback
+- More prominent, easier-to-find controls
+- Cleaner visual appearance of both battle log and control panel
 
-```
-CharacterSprite
-  â””â”€ this.cardFrame (CardFrame instance)
-      â””â”€ this.manager (CardFrameManager instance)
-          â””â”€ this.visualComponent (CardFrameVisualComponent instance)
-              â””â”€ this.config (configuration object with dimensions)
-```
+### Better Code Organization
+The refactoring improved code organization by:
+- Grouping related functionality in appropriate classes
+- Following consistent patterns for button creation and styling
+- Implementing proper tooltips and visual feedback
+- Adding comprehensive error handling and recovery
 
-By always creating a CardFrame instance first, we ensure this hierarchy is maintained, allowing the caching mechanism to work correctly.
-
-### useComponentSystem Flag
-The fix ensures `cardOptions.useComponentSystem` is always set to `true` when creating a CardFrame. This signals to CardFrame that it should create its own CardFrameManager internally, completing the expected component chain.
-
-### Error Handling
-The error handling remains consistent with the previous implementation, ensuring that appropriate warnings and errors are thrown if CardFrame is not available.
-
-## Testing Verification
-To verify the fix is working correctly:
-
-1. Check that "CRITICAL - Failed to cache card dimensions" errors no longer appear
-2. Verify that the dimension caching log message appears for each character: `[CharacterSprite (CharacterName)]: Cached card dimensions: WIDTHxHEIGHT`
-3. Confirm that warnings about using fallback dimensions during animations no longer appear
-4. Verify that card attack animations and floating text display correctly
+## Testing Process
+The implementation was tested with specific focus on:
+1. Button functionality verification (pause/resume works, copy works)
+2. Visual consistency and proper styling
+3. Tooltip appearance and correctness
+4. Error handling when components are destroyed
+5. Performance during message rendering
 
 ## Lessons Learned
-
-1. **Consistent Object Hierarchies**: When using a component-based architecture, it's crucial to maintain consistent object hierarchies to ensure reliable property access.
-
-2. **Direct vs. Indirect Instantiation**: Directly instantiating a component (like CardFrameManager) instead of following the designed hierarchy (CharacterSprite â†’ CardFrame â†’ CardFrameManager) can lead to subtle reference issues.
-
-3. **Component Chain Testing**: Testing should verify that component chains are correctly established after initialization, especially when components are expected to create sub-components.
-
-4. **Architectural Boundaries**: Each class should have clear responsibilities and maintain proper encapsulation. CharacterSprite should interact with a CardFrame, not directly with a CardFrameManager.
-
-5. **Initialization Validation**: Adding validation at key points in the initialization process can help catch these issues earlier, such as verifying that expected components exist before proceeding.
+1. **Control Proximity**: UI controls should be placed near the elements they affect for intuitive user experience.
+2. **Component Responsibility**: Each UI component should manage its own controls for better encapsulation.
+3. **Container Management**: Proper handling of container hierarchy is critical for stable UI components.
+4. **Error Recovery**: Comprehensive error handling with recovery mechanisms ensures stable operation.
 
 ## Next Steps
-With this fix in place, the CardFrame component chain initialization should be reliable, fixing both the critical caching errors and the original animation issues. Future enhancements could include:
-
-1. Component chain verification to ensure the hierarchy is correctly established
-2. Additional error handling for edge cases in component initialization
-3. Formal accessor methods (like `getVisualComponent()`) to abstract away the component hierarchy details
-4. A more comprehensive component lifecycle management system to ensure components are properly initialized before use
-
-
-===== CHANGELOG_0.7.4.5_CardAnimationDimensionCaching =====
-
-# CHANGELOG 0.7.4.5 - Card Animation Dimension Caching
-
-## Overview
-This update resolves console warnings that appeared during card attack animations and floating text display after the refactoring to centralize card visual properties. The solution implements a simple yet robust dimension caching system in CharacterSprite that eliminates the need to access the full component reference chain during animations and text display operations.
-
-## Problem Analysis
-After implementing the CardFrame visual properties centralization (version 0.7.4.3) and initial animation fix (version 0.7.4.4), the following console warnings were still occurring:
-
-```
-showFloatingText (CharacterName): Could not get card height from visualComponent. Using fallback. (from CharacterSprite.js:977)
-[CharacterSprite.showAttackAnimation] CharacterName: Could not get card dimensions from visualComponent for animation. Using fallback. (from CharacterSprite.js:786)
-```
-
-These warnings indicated that the reference chain `this.cardFrame.manager.visualComponent.config` was evaluating to false during animation or floating text operations, despite working correctly during card initialization.
-
-Further analysis revealed several potential causes:
-1. The reference chain might be temporarily broken during attack animations when cards are moved and transformed
-2. The animation code might be executing before the complete component chain was fully established
-3. Animation clone operations might be losing references to the component chain
-
-## Implementation Solution
-
-### 1. Dimension Caching in CharacterSprite
-
-Added dimension caching in `createCardFrameRepresentation()` immediately after successful card frame creation:
-
-```javascript
-// Cache card dimensions for animation and floating text
-if (this.cardFrame && this.cardFrame.manager && 
-    this.cardFrame.manager.visualComponent && 
-    this.cardFrame.manager.visualComponent.config) {
-    
-    this.cachedCardWidth = this.cardFrame.manager.visualComponent.config.width;
-    this.cachedCardHeight = this.cardFrame.manager.visualComponent.config.height;
-    
-    console.log(`[CharacterSprite (${this.character.name})]: Cached card dimensions: ${this.cachedCardWidth}x${this.cachedCardHeight}`);
-} else {
-    // This case should ideally not happen if cardFrame creation is robust.
-    // If it does, it means there's a deeper issue in cardFrame initialization.
-    console.error(`[CharacterSprite (${this.character.name})]: CRITICAL - Failed to cache card dimensions as visualComponent.config was not available post-creation.`);
-    this.cachedCardWidth = 240; // Fallback, but indicates a problem
-    this.cachedCardHeight = 320; // Fallback, but indicates a problem
-}
-```
-
-This ensures the card dimensions are stored directly in the CharacterSprite instance as soon as they're available from the Single Source of Truth.
-
-### 2. Updated Animation Dimension Access
-
-Modified `showAttackAnimation()` to use cached dimensions instead of trying to traverse the component chain during animations:
-
-```javascript
-// Get card dimensions from cached values or fallback to defaults
-let currentCardWidth = this.cachedCardWidth || 240; // Use cached value with fallback
-let currentCardHeight = this.cachedCardHeight || 320; // Use cached value with fallback
-
-if (!this.cachedCardWidth || !this.cachedCardHeight) {
-    console.warn(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Using fallback dimensions for animation as cached dimensions not found.`);
-}
-```
-
-### 3. Updated Floating Text Positioning
-
-Similarly, updated `showFloatingText()` to use the cached card height:
-
-```javascript
-// For card frames, get height from cached value or fallback
-let cardHeight = this.cachedCardHeight || 320; // Use cached value with fallback
-
-if (!this.cachedCardHeight) {
-    console.warn(`[CharacterSprite.showFloatingText] (${this.character?.name}): Using fallback card height for floating text as cached dimension not found.`);
-}
-```
-
-## Technical Implementation Details
-
-### Caching Mechanics
-The caching system uses two instance variables in CharacterSprite:
-- `this.cachedCardWidth` - Stores the card width from visualComponent
-- `this.cachedCardHeight` - Stores the card height from visualComponent
-
-These values are set once during card initialization and then used throughout the character's lifecycle, eliminating the need to traverse the component chain during animations.
-
-### Error Handling
-The implementation includes comprehensive error detection:
-1. During caching, if the component chain isn't available, fallback values are used and a critical error is logged
-2. During animation and floating text, if cached values aren't found, fallback values are used with warning logs
-3. The fallback values (240x320) match the 'standard' card variant dimensions from CardFrameVisualComponent
-
-### Performance Benefits
-This approach improves performance in two ways:
-1. Eliminates multiple nested property access operations during performance-sensitive animations
-2. Reduces the number of conditional checks during animations from 4+ to just 1
-
-## Testing Verification
-To verify the fix is working correctly:
-1. Observe the game console during battle - the warnings should no longer appear
-2. Verify that card attack animations display correctly with proper dimensions
-3. Confirm floating damage/healing text appears in the correct position above cards
-4. Check that the new "Cached card dimensions" log appears for each character at initialization
-5. Verify the solution works with all card variants (standard, large, compact)
-
-## Lessons Learned
-
-1. **Cache Early, Use Often**: When dealing with nested component hierarchies, caching critical values after initialization provides stability during complex operations like animations.
-
-2. **Animation Reference Integrity**: Visual transformations like animations can sometimes break complex reference chains, making cached values more reliable.
-
-3. **Single Source of Truth With Caching**: While maintaining a single source of truth is important, strategic caching doesn't violate this principle when properly implemented at initialization time.
-
-4. **Defensive Fallbacks**: Even with cached values, maintaining proper fallbacks ensures robustness in edge cases.
-
-5. **Targeted Problem Solving**: The fix addresses the specific warning issue with minimal changes to the overall architecture, preserving the SSoT design while fixing the reference issue.
-
-## Next Steps
-With this fix in place, the CardFrame system is now more robust for animations and visual effects. Future improvements could include:
-
-1. A more formalized caching system for visual properties that automatically updates if card variants change at runtime
-2. Explicit animation variant parameters in the card variant definitions
-3. Comprehensive validation of all cached values with robust recovery mechanisms
+Possible future enhancements could include:
+1. Adding keyboard shortcuts for pause/copy functionality
+2. Implementing battle log search functionality
+3. Adding log filtering options
+4. Enhancing the mobile experience for these controls
 
 
-===== CHANGELOG_0.7.4.4_CardAnimationFix =====
+===== CHANGELOG_0.7.5.10_FixedSizeBattleLog =====
 
-# CHANGELOG 0.7.4.4 - Card Animation Fix
+# CHANGELOG 0.7.5.10 - Fixed-Size Battle Log Implementation
 
 ## Overview
-This update fixes an issue with card attack animations that was introduced during the centralization of card visual properties. The cards would disappear entirely during attack animations instead of smoothly moving toward the target with a tilting motion. This patch ensures that attack animations properly reference card dimensions from the new Single Source of Truth (CardFrameVisualComponent).
+This update fixes an issue with the Battle Log where it would start small and grow to its maximum size as messages were added. Additionally, it addresses a problem where text messages could extend beyond the visual frame boundaries. The solution implements a fixed-size battle log that starts at its maximum height immediately and includes additional buffer space to properly contain all text messages.
 
 ## Problem Analysis
 
-After implementing the CardFrame configuration refactoring in version 0.7.4.3, attack animations no longer worked correctly. Analysis revealed the following issues:
+After implementing the card frame styling for the Battle Log in version 0.7.5.9, two visual issues became apparent:
 
-1. **Missing Dimension References**: In the `showAttackAnimation` method of `CharacterSprite.js`, the animation was trying to use `this.cardConfig.width` and `this.cardConfig.height`, which were removed during refactoring in favor of centralized dimensions in `CardFrameVisualComponent.js`.
+1. **Initial Size Issue**: The battle log would start very small (10px height) and expand as messages were added, reaching its maximum height only after several messages. This created an inconsistent visual appearance and made the UI feel less polished.
 
-2. **Incorrect Movement Calculation**: Without valid width/height values, the animation was calculating invalid movement coordinates, causing the card to move far off-screen during attack animations.
+2. **Text Overflow Issue**: When messages with multiple lines were added, the text would sometimes extend beyond the bottom edge of the white border frame, especially when several long messages were displayed in succession. This created a visual disconnect where text appeared to "float" outside the card frame.
 
-3. **Similar Issue in Floating Text**: The `showFloatingText` method was also using `this.cardConfig.height` to position text above the card, resulting in incorrectly positioned floating damage/healing numbers.
+Analysis of the code revealed these specific causes:
+
+1. The `createCardFrame()` method was using a placeholder height of 10px, with the expectation that `renderMessages()` would update it later.
+2. The `renderMessages()` method was calculating height based on content, but didn't account for potential overflow.
+3. The frame visuals were being updated to match content height without additional buffer space.
 
 ## Implementation Solution
 
-### 1. Updated Card Attack Animation
+The solution addresses both issues through two key changes:
 
-Modified the `showAttackAnimation` method in `CharacterSprite.js` to properly access card dimensions from the visualComponent:
+### 1. Fixed Maximum Height from Initialization
 
-```javascript
-// Get current card dimensions from visualComponent or use defaults
-let currentCardWidth = 240; // Fallback default
-let currentCardHeight = 320; // Fallback default
-
-if (this.cardFrame && this.cardFrame.manager && 
-    this.cardFrame.manager.visualComponent && 
-    this.cardFrame.manager.visualComponent.config) {
-    // Get dimensions from the visual component (single source of truth)
-    currentCardWidth = this.cardFrame.manager.visualComponent.config.width;
-    currentCardHeight = this.cardFrame.manager.visualComponent.config.height;
-    console.log(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Using card dimensions from visualComponent: ${currentCardWidth}x${currentCardHeight}`);
-} else {
-    console.warn(`[CharacterSprite.showAttackAnimation] ${this.character.name}: Could not get card dimensions from visualComponent for animation. Using fallback.`);
-}
-
-// Calculate move destination in local space
-const moveToX = direction.x * currentCardWidth * moveDistance;
-const moveToY = direction.y * currentCardHeight * moveDistance;
-```
-
-This change ensures that:
-- The animation uses the correct dimensions from the visualComponent
-- There's a fallback to standard dimensions if the component chain is broken
-- Proper logging helps diagnose any issues
-
-### 2. Fixed Floating Text Positioning
-
-Updated the `showFloatingText` method to also get card height from the visualComponent:
+Modified the `createCardFrame()` method to use the maximum height immediately:
 
 ```javascript
-// For card frames, get height from visualComponent if available
-let cardHeight = 320; // Fallback default
+// Before
+const initialHeight = 10; // Placeholder height, will be updated in renderMessages
 
-if (this.cardFrame && this.cardFrame.manager && 
-    this.cardFrame.manager.visualComponent && 
-    this.cardFrame.manager.visualComponent.config) {
-    cardHeight = this.cardFrame.manager.visualComponent.config.height;
-} else {
-    console.warn(`showFloatingText (${this.character?.name}): Could not get card height from visualComponent. Using fallback.`);
-}
-
-// Position text above the card
-yOffset = -cardHeight/2 - 20;
+// After
+const initialHeight = this.maxHeight; // Use maximum height from the start
 ```
 
-This ensures consistent positioning of floating damage/healing numbers above cards, regardless of the card variant used.
+Also updated the `renderMessages()` method to always maintain the maximum height regardless of content:
+
+```javascript
+// Before
+const newHeight = Math.min(totalHeight + this.options.padding, this.maxHeight);
+this.updateCardFrameVisuals(newHeight);
+
+// After
+this.updateCardFrameVisuals(this.maxHeight);
+```
+
+### 2. Added Buffer Space to Contain Text
+
+Modified the `updateCardFrameVisuals()` method to add a fixed buffer to the frame height:
+
+```javascript
+// Added buffer to ensure text doesn't overflow the frame
+const frameHeight = newHeight + 50; // Add 50px extra buffer
+
+// Updated all references to use frameHeight instead of newHeight
+this.backdrop.height = frameHeight - (style.borderWidth * 2);
+```
+
+The method now creates a frame that is 50 pixels taller than the content height calculation, ensuring that all text messages remain contained within the visual frame.
+
+## Benefits
+
+1. **Consistent Visual Appearance**: The battle log now maintains a consistent size from the start of the battle, creating a more polished and professional UI.
+
+2. **Proper Text Containment**: All text messages, including multi-line ones, are properly contained within the visual frame, maintaining visual integrity.
+
+3. **Improved User Experience**: The fixed-size approach eliminates the distracting effect of the battle log growing and changing size during gameplay.
+
+4. **Enhanced Visual Hierarchy**: The consistent frame size better establishes the battle log as a permanent UI element rather than a dynamic one.
 
 ## Technical Implementation Details
 
-### Reference Chain
-The implementation uses a clear reference chain to access the card dimensions:
-1. `this.cardFrame` â†’ The CardFrame instance
-2. `this.cardFrame.manager` â†’ The CardFrameManager instance
-3. `this.cardFrame.manager.visualComponent` â†’ The CardFrameVisualComponent instance
-4. `this.cardFrame.manager.visualComponent.config` â†’ The component's configuration with dimensions
+The implementation follows a two-part approach:
 
-### Defensive Programming
-Multiple layers of null checks protect against errors if any part of the reference chain is missing:
+1. **Initial Size Establishment**: By setting the initial height to the maximum allowed height, we establish the frame's visual boundaries immediately.
 
-```javascript
-if (this.cardFrame && this.cardFrame.manager && 
-    this.cardFrame.manager.visualComponent && 
-    this.cardFrame.manager.visualComponent.config) {
-    // Safe to access values
-}
-```
+2. **Buffer Space Addition**: The additional 50-pixel buffer provides extra space for text that might extend beyond the calculated content height, particularly when multi-line messages are present.
 
-### Fallback Mechanism
-Default values ensure the animation works even if the visualComponent is unavailable:
+This approach leverages the existing code architecture without requiring substantial refactoring:
 
-```javascript
-let currentCardWidth = 240; // Fallback default
-let currentCardHeight = 320; // Fallback default
-```
+- No changes to the message rendering logic were needed
+- The existing event system continues to work unchanged
+- The visual styling (white border, nameplate, etc.) remains consistent
 
-### Logging
-Informative log messages help diagnose issues:
-- Success: `Using card dimensions from visualComponent: ${currentCardWidth}x${currentCardHeight}`
-- Failure: `Could not get card dimensions from visualComponent for animation. Using fallback.`
+## Testing Considerations
 
-## Testing Verification
+To verify the implementation works correctly, testing should focus on:
 
-The changes were manually tested to ensure:
-1. Cards properly animate toward targets during attacks
-2. The tilting rotation motion works correctly
-3. Cards return to their original position after attacks
-4. Impact effects appear at the correct time
-5. Floating text appears in the correct position above cards
-6. Animations work with different card variants (standard, large, compact)
-7. No console errors appear during animations
+1. **Initial Appearance**: The battle log should appear at full size immediately when a battle starts
+2. **Message Containment**: All messages should remain within the frame's boundaries
+3. **Message Scrolling**: As new messages are added, older ones should scroll out of view properly
+4. **Nameplate Position**: The "Battle Log" nameplate should remain properly positioned at the bottom of the frame
 
 ## Lessons Learned
 
-1. **Reference Tracing**: When centralizing properties, ensure all references are updated, especially in animation code.
+1. **Visual Consistency**: UI elements should maintain consistent dimensions when possible to create a polished appearance.
 
-2. **Defensive Programming**: Always include fallbacks and null checks when accessing properties through a reference chain.
+2. **Buffer Space Importance**: When dealing with dynamic content like text, including buffer space can prevent visual glitches from unexpected content sizes.
 
-3. **Reference Chain Documentation**: Document complex reference chains to aid debugging and maintenance.
+3. **Progressive Enhancement**: Starting with a complete visual framework and then populating it with content (rather than growing the framework to match content) often creates a more professional UI experience.
 
-4. **Complete Refactoring**: When moving properties to a new location, search for all usages across the codebase, including animation code.
+4. **Fixed vs. Dynamic Sizing**: For UI elements with known maximum bounds, using fixed sizing from the start can eliminate jarring visual changes during use.
 
-5. **Test Visual Feedback**: Always test visual feedback and animations after refactoring, as they're critical for user experience.
-
-## Next Steps
-
-With all visual properties now properly centralized and animations working correctly, future enhancements could include:
-
-1. **Animation Variants**: Allow card variants to define their own animation parameters (distance, rotation, duration)
-
-2. **Variant-Specific Effects**: Create specialized impact effects or animations for different card variants
-
-3. **Comprehensive Reference Tracking**: Implement a more robust system to track and update property references during refactoring
+This implementation demonstrates how small changes to initialization and sizing logic can significantly improve the visual consistency and professional appearance of UI elements.
 
 
-===== CHANGELOG_0.7.4.3_CompleteCardFrameVisualCentralization =====
+===== CHANGELOG_0.7.5.9_CardFrameStylingForBattleLog =====
 
-# CHANGELOG 0.7.4.3 - Complete CardFrame Visual Properties Centralization
+# CHANGELOG 0.7.5.9 - Card Frame Styling for Battle Log
 
 ## Overview
-This update completes the centralization of ALL visual styling and positioning properties into CardFrameVisualComponent.js, fully establishing it as the Single Source of Truth for card appearance. Building on version 0.7.4.2, which centralized core card dimensions, this update extends the system to cover inner elements like portrait window, nameplate, health bar positioning, art positioning, and status effect layout.
+This update applies the card frame visual styling to the Battle Log, creating a more consistent UI design language across the game. By adopting the same frame style used for character cards, the Battle Log now has a white bordered frame with semi-transparent backdrop and a dedicated nameplate section, improving both its aesthetic appearance and readability.
 
 ## Problem Analysis
-Despite the initial implementation of the CARD_VARIANTS system in 0.7.4.2, several issues remained:
+Previously, the Battle Log used a simple semi-transparent rectangle as background with no defined border or structure. This created several issues:
 
-1. **Scattered Visual Properties**: Visual styling and positioning properties were still defined in multiple places:
-   - Portrait window properties in CardFrameManager.js and CardFrameContentComponent.js
-   - Nameplate properties in CardFrameManager.js and CardFrameContentComponent.js
-   - Health bar positioning in CardFrameManager.js and CharacterSprite.js
-   - Art positioning in CardFrameManager.js and CharacterSprite.js
-   - Status effect layout in CardFrameManager.js
+1. **Visual Inconsistency**: The Battle Log looked disconnected from the character cards, using different visual language
+2. **Poor Readability**: Without a proper border and structure, text would sometimes be difficult to read against different backgrounds
+3. **Limited Visual Hierarchy**: No clear separation between the log's header and content areas
+4. **Underutilized Design System**: The card frame component architecture was already well-established but not leveraged for the Battle Log
 
-2. **Incomplete Variant System**: The CARD_VARIANTS only included core dimensions (width, height) without controlling inner element layout, making comprehensive card style changes difficult.
-
-3. **Configuration Flow Issues**: The component initialization didn't properly pass visual properties from CardFrameVisualComponent to other components, creating inconsistencies.
-
-4. **Redundant Properties**: CardFrameManager.js and CharacterSprite.js contained redundant layout properties that should be centralized.
+After reviewing the CardFrameVisualComponent implementation, it was clear that many of the same visual elements could be applied to enhance the Battle Log while maintaining a cohesive UI design language.
 
 ## Implementation Solution
 
-### 1. Expanded VISUAL_DEFAULTS in CardFrameVisualComponent.js
+### 1. Added Card Style Configuration
 
-Added five new sections to VISUAL_DEFAULTS to cover all inner element styling:
+Added new configuration options to DirectBattleLog for card styling:
 
 ```javascript
-// Portrait Window
-portrait: {
-    width: 200,             // Width of portrait area
-    height: 240,            // Height of portrait area
-    offsetX: 0,             // Horizontal offset from center
-    offsetY: -20,           // Vertical offset from center
-    mask: true,             // Whether to mask the portrait
-    cornerRadius: 8,        // Corner radius for portrait area
-},
-
-// Nameplate
-nameplate: {
-    width: 210,             // Width of name banner
-    height: 25,             // Height of name banner
-    offsetY: 135,           // Distance from center to nameplate
-    fontSize: 16,           // Font size for name text
-    fontFamily: 'serif',    // Font family for name text
-    decorative: true,       // Whether to show decorative flourishes
-},
-
-// Health Display Position
-healthDisplay: {
-    offsetY: 90,            // Distance from center to health bar
-},
-
-// Art Positioning
-artPositioning: {
-    offsetX: 0,             // Fine-tune character art horizontal position
-    offsetY: 0,             // Fine-tune character art vertical position
-    scale: 1,               // Scaling factor for character art
-},
-
-// Status Effects Layout
-statusEffects: {
-    scale: 0.7,             // Scale factor for status effect icons
-    spacing: 24,            // Spacing between status effect icons
-    offsetY: -130,          // Vertical position of status effect icons
-},
+// Card frame options
+cardStyle: {
+    borderWidth: 6,
+    cornerRadius: 12,
+    borderColor: 0xFFFFFF, // White border
+    backgroundColor: 0x000000, // Black background
+    backgroundAlpha: 0.4,
+    nameplateHeight: 30,
+    nameplateBgColor: 0x000000,
+    nameplateBgAlpha: 0.6
+}
 ```
 
-### 2. Enhanced CARD_VARIANTS with Inner Element Configurations
+These values match those used in the character card frames, ensuring visual consistency.
 
-Enhanced CARD_VARIANTS to include variant-specific inner element adjustments:
+### 2. Created Card Frame Method
+
+Implemented a new `createCardFrame()` method that builds the frame using Phaser's drawing methods:
 
 ```javascript
-'standard': { 
-    width: 240, 
-    height: 320,
-    portrait: {
-        width: 200,
-        height: 240,
-        offsetY: -20,
-    },
-    nameplate: {
-        width: 210,
-        offsetY: 135,
-    },
-    healthDisplay: {
-        offsetY: 90,
-    },
-    statusEffects: {
-        offsetY: -130,
+createCardFrame() {
+    try {
+        const style = this.options.cardStyle;
+        const initialHeight = 10; // Placeholder height, will be updated in renderMessages
+
+        // Create backdrop (semi-transparent background)
+        this.backdrop = this.scene.add.rectangle(
+            style.borderWidth, style.borderWidth, 
+            this.width - (style.borderWidth * 2), initialHeight - (style.borderWidth * 2),
+            style.backgroundColor,
+            style.backgroundAlpha
+        ).setOrigin(0, 0);
+        this.container.add(this.backdrop);
+
+        // Create frame border
+        this.frameBorder = this.scene.add.graphics();
+        this.frameBorder.lineStyle(style.borderWidth, style.borderColor, 1);
+        this.frameBorder.strokeRoundedRect(
+            0, 0,
+            this.width, initialHeight,
+            style.cornerRadius
+        );
+        this.container.add(this.frameBorder);
+
+        // Add nameplate at the bottom
+        this.nameplateBg = this.scene.add.rectangle(
+            style.borderWidth, initialHeight - style.nameplateHeight,
+            this.width - (style.borderWidth * 2), style.nameplateHeight,
+            style.nameplateBgColor,
+            style.nameplateBgAlpha
+        ).setOrigin(0, 0);
+        this.container.add(this.nameplateBg);
+
+        // Add "Battle Log" text
+        this.nameplateText = this.scene.add.text(
+            this.width / 2, initialHeight - (style.nameplateHeight / 2),
+            "Battle Log",
+            {
+                fontFamily: this.options.fontFamily,
+                fontSize: 16,
+                color: '#FFFFFF',
+                align: 'center'
+            }
+        ).setOrigin(0.5, 0.5);
+        this.container.add(this.nameplateText);
+
+        // Position nameplate and text properly
+        this.updateCardFrameVisuals(initialHeight);
+
+        return true;
+    } catch (error) {
+        console.error('Error creating card frame:', error);
+        return false;
     }
-},
-
-// Additional variants for 'large' and 'compact'
-```
-
-This allows for comprehensive styling control across different card variants.
-
-### 3. Updated CardFrameManager.js
-
-1. **Removed Redundant Visual Properties**: Removed all visual styling properties from CardFrameManager.js config, including:
-   - portraitOffsetY
-   - nameOffsetY
-   - artOffsetX, artOffsetY, artScale
-   - statusEffectScale, statusEffectSpacing, statusEffectOffsetY
-
-2. **Enhanced Component Initialization**: Updated the component initialization methods to properly pass visual properties from CardFrameVisualComponent to other components:
-
-```javascript
-// Example: initializeContentComponent()
-if (this.visualComponent) {
-    // Get portrait configuration
-    contentConfig.portraitWidth = this.visualComponent.config.portrait.width;
-    contentConfig.portraitHeight = this.visualComponent.config.portrait.height;
-    contentConfig.portraitOffsetX = this.visualComponent.config.portrait.offsetX;
-    contentConfig.portraitOffsetY = this.visualComponent.config.portrait.offsetY;
-    contentConfig.portraitMask = this.visualComponent.config.portrait.mask;
-    contentConfig.portraitCornerRadius = this.visualComponent.config.portrait.cornerRadius;
-    
-    // Get nameplate configuration
-    contentConfig.nameBannerWidth = this.visualComponent.config.nameplate.width;
-    contentConfig.nameBannerHeight = this.visualComponent.config.nameplate.height;
-    contentConfig.nameOffsetY = this.visualComponent.config.nameplate.offsetY;
-    contentConfig.nameFontSize = this.visualComponent.config.nameplate.fontSize;
-    contentConfig.nameFontFamily = this.visualComponent.config.nameplate.fontFamily;
-    contentConfig.showDecorativeFlourishes = this.visualComponent.config.nameplate.decorative;
-    
-    // Get art positioning
-    contentConfig.artOffsetX = this.visualComponent.config.artPositioning.offsetX;
-    contentConfig.artOffsetY = this.visualComponent.config.artPositioning.offsetY;
-    contentConfig.artScale = this.visualComponent.config.artPositioning.scale;
 }
 ```
 
-Similar updates were made for healthComponent and interactionComponent initialization.
+### 3. Added Dynamic Resizing Support
 
-### 4. Simplified CharacterSprite.js
-
-1. **Removed Duplicated Properties**: Removed inner element positioning properties from cardConfig:
-   - portraitOffsetY
-   - nameBannerHeight
-   - healthBarOffsetY
-
-2. **Streamlined createCardFrameRepresentation()**: Updated the createCardFrameRepresentation method to rely on card variants for all visual styling:
+Implemented `updateCardFrameVisuals()` method to handle resizing of the card frame as messages are added or removed:
 
 ```javascript
-// Visual customization - use card variant for all visual styling
-cardVariant: this.cardConfig.cardVariant || 'standard',
+updateCardFrameVisuals(newHeight) {
+    try {
+        const style = this.options.cardStyle;
+        
+        // Update backdrop
+        if (this.backdrop) {
+            this.backdrop.height = newHeight - (style.borderWidth * 2);
+        }
+        
+        // Update frame border
+        if (this.frameBorder) {
+            this.frameBorder.clear();
+            this.frameBorder.lineStyle(style.borderWidth, style.borderColor, 1);
+            this.frameBorder.strokeRoundedRect(
+                0, 0,
+                this.width, newHeight,
+                style.cornerRadius
+            );
+        }
+        
+        // Update nameplate position
+        if (this.nameplateBg) {
+            this.nameplateBg.y = newHeight - style.nameplateHeight;
+        }
+        
+        // Update nameplate text position
+        if (this.nameplateText) {
+            this.nameplateText.y = newHeight - (style.nameplateHeight / 2);
+        }
+    } catch (error) {
+        console.error('Error updating card frame visuals:', error);
+    }
+}
+```
 
-// Character-specific art positioning can still be provided
-// as a character-specific override to the variant defaults
-artOffsetX: parseInt(this.character.art?.left) || 0,
-artOffsetY: parseInt(this.character.art?.top) || 0,
+### 4. Modified renderMessages() Method
+
+Updated the `renderMessages()` method to recreate the card frame elements during container clearing:
+
+```javascript
+// Store current pause button state and position
+const pauseToggleState = this.messageProcessingPaused;
+const hadPauseToggle = !!this.pauseToggle;
+
+// Remove the pause toggle from the container temporarily (without destroying it)
+if (this.pauseToggle) {
+    this.container.remove(this.pauseToggle, false); // false = don't destroy
+}
+
+// Now safely clear the container - this destroys all child objects including our frame elements
+this.container.removeAll(true);
+
+// Recreate card frame elements (they were destroyed by removeAll)
+this.createCardFrame();
+
+// Legacy background reference
+this.background = this.backdrop;
+```
+
+**Note**: Initial implementation had a bug where it tried to re-use Phaser objects after destruction. This was fixed by always recreating the card frame elements after clearing the container.
+
+### 5. Enhanced Cleanup Process
+
+Improved the `destroy()` method to properly clean up all card frame elements:
+
+```javascript
+destroy() {
+    // Clean up card frame elements explicitly
+    if (this.frameBorder) {
+        this.frameBorder.destroy();
+        this.frameBorder = null;
+    }
+    
+    if (this.backdrop) {
+        this.backdrop.destroy();
+        this.backdrop = null;
+    }
+    
+    if (this.nameplateBg) {
+        this.nameplateBg.destroy();
+        this.nameplateBg = null;
+    }
+    
+    if (this.nameplateText) {
+        this.nameplateText.destroy();
+        this.nameplateText = null;
+    }
+    
+    // Destroy container which will clean up any remaining child objects
+    if (this.container) {
+        this.container.destroy();
+    }
+}
 ```
 
 ## Benefits
 
-1. **True Single Source of Truth**: CardFrameVisualComponent.js is now the definitive source for ALL visual styling and positioning.
+1. **Visual Consistency**: The Battle Log now shares the same visual language as character cards, creating a more cohesive UI
+2. **Improved Readability**: The defined border and structured layout make the Battle Log text easier to read
+3. **Enhanced Aesthetics**: The white frame with nameplate creates a more polished and professional appearance
+4. **Better Visual Hierarchy**: Clear separation between the nameplate section and message content
+5. **Unified Design Language**: Reinforces the card-based UI metaphor throughout the game
 
-2. **Comprehensive Variant System**: Card variants now control all aspects of card appearance, making style changes easy and consistent.
+## Defensive Programming Features
 
-3. **Cleaner Configuration Flow**: Visual properties flow clearly from CardFrameVisualComponent to other components through CardFrameManager.
+The implementation includes several defensive programming measures:
 
-4. **Improved Code Clarity**: Configuration is now logically organized with clear sections and descriptive comments.
+1. **Error Handling**: Comprehensive try/catch blocks in all new methods
+2. **Proper Resource Management**: Recreate Phaser objects when container is cleared rather than trying to reuse destroyed objects
+3. **Null Checks**: All object references are checked before use
+4. **Proper Resource Cleanup**: Enhanced destroy method ensures all resources are properly cleaned up
 
-5. **Enhanced Maintainability**: Visual styling changes can be made confidently in one place with predictable effects.
+## Hotfix Details
 
-6. **Better Extensibility**: New card variants can be easily added with comprehensive styling control.
+After initial implementation, a bug was discovered where Phaser objects were being destroyed by `container.removeAll(true)` but we attempted to re-add them to the container. This caused the error:
 
-## Testing Verification
+```
+Error in renderMessages preparations: TypeError: Cannot read properties of undefined (reading 'sys')
+```
 
-To verify the centralization is working correctly:
+The fix was to simplify the approach by always recreating the card frame elements after clearing the container, rather than trying to preserve and reuse references to Phaser objects that had been destroyed.
 
-1. **Default Appearance**: Confirm that cards render with correct inner element positioning based on the 'standard' variant.
+## Testing Considerations
 
-2. **Style Consistency**: Verify that portrait, nameplate, health bar, and status effects are positioned correctly.
+To ensure the implementation works correctly, testing should focus on:
 
-3. **Variant Testing**: Test different variants (use `cardVariant: 'large'` or `cardVariant: 'compact'`) to verify all elements adjust properly.
+1. **Visual Appearance**: The Battle Log should have a white border, semi-transparent background, and nameplate with "Battle Log" text
+2. **Dynamic Resizing**: As messages are added and removed, the card frame should resize properly
+3. **Performance**: The card frame should not cause any noticeable performance impact
+4. **Memory Management**: No memory leaks should occur when the Battle Log is destroyed
 
-4. **Component Communication**: Confirm that changes in CardFrameVisualComponent properties properly reflect in the final rendered card.
+## Future Considerations
 
-5. **Error Handling**: Verify appropriate warnings when visualComponent is unavailable.
+1. **Color Theme Options**: Consider allowing different color themes for the Battle Log frame
+2. **Size Variants**: Implement size variants similar to the character card system
+3. **Context-Specific Styling**: Enable different visual styles based on battle state (e.g., different border colors during critical moments)
+4. **Animation Effects**: Add subtle animations for important messages
 
 ## Lessons Learned
 
-1. **Comprehensive Centralization**: For a true Single Source of Truth, ALL related properties must be centralized, not just the obvious ones.
+1. **Design System Consistency**: Reusing established visual patterns improves overall UI cohesion
+2. **Component Architecture**: Using similar patterns across different UI elements simplifies maintenance
+3. **Phaser Graphics Flexibility**: The rendering approach using Graphics objects provides more visual control than basic rectangles
+4. **Phaser Object Lifecycle**: Understanding how Phaser manages object destruction is critical - objects destroyed by `removeAll(true)` cannot be reused
+5. **Defensive Recreation**: Sometimes it's cleaner to recreate objects than trying to preserve and restore them
 
-2. **Component Communication**: Clear, explicit property passing between components is essential for a modular architecture.
-
-3. **Variant-Based Styling**: A variant system is more powerful when it controls all aspects of appearance, not just dimensions.
-
-4. **Defensive Programming**: Proper warnings and fallbacks ensure the system degrades gracefully when components are missing.
-
-5. **Clear Documentation**: Comprehensive comments about the SINGLE SOURCE OF TRUTH principle help maintain the architecture over time.
-
-## Next Steps
-
-With the centralization of all visual properties complete, potential next enhancements include:
-
-1. **Runtime Variant Switching**: Add ability to switch card variants at runtime for dynamic layout changes.
-
-2. **Additional Variants**: Create specialized variants for different game modes or contexts.
-
-3. **Variant Preview System**: Develop a visual editor for previewing and adjusting card variants.
-
-4. **Animation Integration**: Extend the variant system to control animation parameters for consistent visual effects.
+This implementation demonstrates how to leverage existing visual design patterns to create a more cohesive UI experience while improving both aesthetics and functionality.
 
 
-===== CHANGELOG_0.7.4.2_CardFrameConfigRefactoring =====
+===== CHANGELOG_0.7.5.8_FixBacklitShadowVisibility =====
 
-# CHANGELOG 0.7.4.2 - CardFrame Configuration System Refactoring
+# CHANGELOG 0.7.5.8 - Fix Backlit Shadow Visibility in Turn Indicator
 
 ## Overview
-This update implements a significant architectural improvement to the CardFrame component system by establishing `CardFrameVisualComponent.js` as the true Single Source of Truth (SSoT) for all visual styling, dimensions, and effects of card frames. Additionally, a new card variants system has been introduced to provide standardized card dimensions for different use cases, eliminating hardcoded dimensions scattered throughout the codebase.
+This update resolves a critical visibility issue with the newly implemented "backlit shadow" effect for active turn indicators. After the initial implementation in version 0.7.5.7, the shadow was completely invisible despite being properly created and animated. This update corrects the z-order (depth) management and alpha handling to ensure the backlit shadow appears correctly behind the card while extending visibly around its edges.
 
 ## Problem Analysis
-Prior to this update, there was significant confusion in the configuration system:
+After implementing the backlit shadow feature, testing revealed several issues preventing the shadow from being visible:
 
-1. **Configuration Override Problem**: In `CardFrameVisualComponent.js`, the line `this.config = Object.assign({}, VISUAL_DEFAULTS, config);` allowed config values from upstream components to override `VISUAL_DEFAULTS`. This contradicted the file's stated purpose of being the "SINGLE SOURCE OF TRUTH" for visual styling.
+1. **Depth Management Issues**:
+   - The `sendToBack()` call in `CardFrameInteractionComponent.showActiveTurnHighlight()` was pushing the shadow too far back in the display list, causing it to be completely hidden behind other opaque elements.
+   - The `glowContainer` in `CardFrameManager.js` did not have an explicit depth setting, causing potential z-order conflicts with other card elements.
 
-2. **Conflicting Dimension Definitions**:
-   - `CardFrameVisualComponent.js`: Defined `width: 500, height: 320` in `VISUAL_DEFAULTS`
-   - `CardFrameManager.js`: Defined its own defaults with `width: 240, height: 320`
-   - `CharacterSprite.js`: Used `width: 240` with fallback of `500`
+2. **Alpha Handling Issues**:
+   - The shadow was drawn using `fillStyle(color, 0)` which sets the fill alpha to 0, but then the tween was attempting to animate the object's overall alpha. This created a conflict where the fill itself had zero opacity regardless of the object's alpha value.
 
-3. **Inconsistent Configuration Flow**: Configuration values flowed through multiple layers (CharacterSprite â†’ CardFrame â†’ CardFrameManager â†’ Components), creating confusion about which values would take precedence.
-
-4. **Unclear Dimension Source**: When changes were made to dimensions in `CardFrameVisualComponent.js`, they would have no effect because they were being overridden by upstream components.
+3. **Visual Layering**:
+   - The card's components needed careful depth management to achieve the "backlit" effect where the shadow appears behind the main card frame but extends visibly around its edges.
 
 ## Implementation Solution
 
-### 1. Added Card Variants System
-Created a comprehensive card variants system in `CardFrameVisualComponent.js` with predefined size configurations:
+### 1. Fixed Alpha Handling in CardFrameInteractionComponent.js
+Modified how the alpha is applied to the shadow graphics object:
 
 ```javascript
-const CARD_VARIANTS = {
-    'standard': { width: 240, height: 320 },  // Standard card size
-    'large': { width: 500, height: 320 },     // Larger, wider card variant
-    'compact': { width: 180, height: 240 }    // Smaller card for restricted spaces
-};
-```
-
-### 2. Revised Configuration Merging Logic
-Updated the configuration merging approach to properly prioritize values:
-
-```javascript
-// Get the requested variant name from config, defaulting to 'standard'
-const variantName = config.cardVariant || 'standard';
-
-// Get the variant configuration from CARD_VARIANTS
-const variantConfig = CARD_VARIANTS[variantName] || CARD_VARIANTS['standard'];
-
-// Merge configuration in correct priority order:
-// 1. Start with VISUAL_DEFAULTS as base
-// 2. Apply variant-specific overrides
-// 3. Apply any specific config overrides
-let finalConfig = { ...VISUAL_DEFAULTS };
-finalConfig = { ...finalConfig, ...variantConfig };
-finalConfig = { ...finalConfig, ...config };
-
-this.config = finalConfig;
-```
-
-### 3. Removed Duplicate Dimension Definitions
-- **CardFrameManager.js**: Removed hardcoded dimension properties (`width`, `height`, `borderWidth`, `cornerRadius`)
-- **CharacterSprite.js**: Removed hardcoded `width`/`height` from `this.cardConfig`
-
-### 4. Added Variant Request System
-Updated `CharacterSprite.js` to request specific card variants instead of specifying dimensions:
-
-```javascript
-this.cardConfig = {
-    enabled: this.config.useCardFrame || false,
-    // No hardcoded width/height - rely on CardFrameVisualComponent variants
-    cardVariant: this.config.cardConfig?.cardVariant || 'standard',
-    // Other properties...
-};
-```
-
-### 5. Improved Component Communication
-Enhanced `CardFrameManager.js` to properly retrieve dimensions from the visual component:
-
-```javascript
-// Get final dimensions from visualComponent if available
-let contentConfig = { ...this.config };
-
-// If visualComponent is available, get the correct dimensions from it
-if (this.visualComponent) {
-    // Get width and height from the visualComponent (the true source of truth)
-    contentConfig.width = this.visualComponent.config.width;
-    contentConfig.height = this.visualComponent.config.height;
-    
-    console.log(`CardFrameManager: Using dimensions from visualComponent: ${contentConfig.width}x${contentConfig.height}`);
-} else {
-    console.warn(`CardFrameManager: visualComponent not available, content component may have incorrect dimensions.`);
-}
-
-// Create content component with correct dimensions
-this.contentComponent = new window.CardFrameContentComponent(
-    this.scene,
-    this,
-    this.typeColor,
-    contentConfig // Pass config with correct dimensions
+// Before:
+this.activeTurnBacklitShadow.fillStyle(this.config.activeTurn.backlitShadowColor, 0); // Start with alpha 0
+this.activeTurnBacklitShadow.fillRoundedRect(
+    -shadowWidth / 2,
+    -shadowHeight / 2,
+    shadowWidth,
+    shadowHeight,
+    cornerRadius
 );
+
+// After:
+this.activeTurnBacklitShadow.fillStyle(this.config.activeTurn.backlitShadowColor, 1.0); // Use full opacity for fillStyle
+this.activeTurnBacklitShadow.fillRoundedRect(
+    -shadowWidth / 2,
+    -shadowHeight / 2,
+    shadowWidth,
+    shadowHeight,
+    cornerRadius
+);
+
+// Set initial alpha to 0 for the fade-in animation
+this.activeTurnBacklitShadow.setAlpha(0);
 ```
 
-### 6. Added Global Access to Variants
-Made variants available globally for easy external access:
+This separates the fill opacity from the object's overall alpha, allowing the tween to properly animate from transparent to visible.
+
+### 2. Improved Depth Management in CardFrameInteractionComponent.js
+Removed the problematic `sendToBack()` call and replaced it with an explicit depth setting:
 
 ```javascript
-window.CardFrameVisualComponent.CARD_VARIANTS = CARD_VARIANTS;
+// Before:
+// Add to glow container
+this.glowContainer.add(this.activeTurnBacklitShadow);
+
+// Send to back to ensure it's behind the card
+this.glowContainer.sendToBack(this.activeTurnBacklitShadow);
+
+// After:
+// Add to glow container
+this.glowContainer.add(this.activeTurnBacklitShadow);
+
+// Set explicit depth to ensure visibility
+this.activeTurnBacklitShadow.setDepth(5);
 ```
 
-## Benefits
+### 3. Set Explicit Depth for glowContainer in CardFrameManager.js
+Added an explicit depth setting to ensure the glowContainer has the right z-order relative to other card components:
 
-1. **True Single Source of Truth**: `CardFrameVisualComponent.js` is now the definitive source for all visual styling and dimensions.
+```javascript
+// Before:
+// Create glowContainer if not found
+if (!glowContainer) {
+    glowContainer = this.scene.add.container(0, 0);
+    this.add(glowContainer);
+    this.glowContainer = glowContainer;
+    console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Created new glowContainer.`);
+}
 
-2. **Variant-Based Sizing**: Card dimensions are now defined in one place through the variants system, eliminating hardcoded values.
+// After:
+// Create glowContainer if not found
+if (!glowContainer) {
+    glowContainer = this.scene.add.container(0, 0);
+    this.add(glowContainer);
+    this.glowContainer = glowContainer;
+    
+    // Set depth to ensure the backlit shadow is visible but behind the card frame
+    this.glowContainer.setDepth(1);
+    console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Created new glowContainer and set depth to 1.`);
+}
+```
 
-3. **Standardized Card Sizes**: The system provides predefined 'standard', 'large', and 'compact' variants for different use cases.
+### 4. Enhanced Logging
+Improved console logging to better track the depth settings for debugging:
 
-4. **Clearer Configuration Flow**: The configuration priority is now explicit and consistent across the system.
+```javascript
+console.log(`CardFrameManager (${this.config.characterName || 'Unknown'}): Created new glowContainer and set depth to 1.`);
+```
 
-5. **Improved Maintainability**: Changes to visual styling and dimensions can now be made confidently in one place.
+## Benefits of Implementation
 
-6. **Future Extensibility**: Additional variants can be easily added for new use cases without modifying existing code.
+1. **Visible Backlit Effect**: The shadow now appears correctly behind the card while extending visibly around its edges, creating the intended "backlit" visual effect.
 
-## Testing Verification
+2. **Proper Visual Layering**: The depth management ensures that the shadow appears in the right visual layer relative to other card components.
 
-To verify this refactoring:
+3. **Smooth Animation**: The improved alpha handling allows the shadow to fade in and out smoothly during turn transitions.
 
-1. **Card Rendering**: Confirm that cards render with the standard 240x320 dimensions (sourced from the 'standard' variant).
+4. **Enhanced Debugging**: The improved logging makes it easier to track depth settings and troubleshoot z-order issues.
 
-2. **VISUAL_DEFAULTS Changes**: Modify properties in `VISUAL_DEFAULTS` (e.g., `frameAlpha`) and verify changes take effect.
-
-3. **Variant Modifications**: Change dimensions in the 'standard' variant and confirm updates are reflected in all cards.
-
-4. **Content Positioning**: Verify that `CardFrameContentComponent` correctly positions its elements based on the dimensions from the visual component.
-
-5. **Console Errors**: Check for any new errors or warnings related to the configuration changes.
-
-## Lessons Learned
-
-1. **Configuration Priority**: When establishing a Single Source of Truth, ensure configuration merging prioritizes the authoritative source.
-
-2. **Variant Systems**: Using a variant system instead of raw dimensions provides better standardization and maintainability.
-
-3. **Component Communication**: Clear communication channels between components are essential for complex systems.
-
-4. **SSoT Pattern**: The Single Source of Truth pattern is powerful but requires careful implementation of configuration flow and priority.
-
-
-===== CHANGELOG_0.7.4.1_CardFrameHealthComponent_Animation_Fix =====
-
-# CHANGELOG 0.7.4.1 - CardFrameHealthComponent Animation Fix
-
-## Overview
-This update resolves an issue with the CardFrameHealthComponent that was causing "Invalid percentage value" warnings in the console. The root cause was related to how health percentage was being calculated during animations, specifically by incorrectly using the `.width` property of a Phaser Graphics object.
-
-## Problem Analysis
-
-After careful investigation, we identified that the warning was occurring in the following scenario:
-
-1. In the `updateHealth()` method, the code was attempting to use `this.healthBar.width` to determine the starting percentage for animations:
-   ```javascript
-   const oldWidth = this.healthBar.width;
-   // Later...
-   this._startHealthPercent = oldWidth / barWidth;
-   ```
-
-2. However, `this.healthBar` is a Phaser Graphics object which doesn't automatically track its width as a property. When shapes are drawn with a Graphics object, the `.width` property doesn't get updated, resulting in `undefined`.
-
-3. This caused `this._startHealthPercent` to become `undefined / barWidth`, which equals `NaN`.
-
-4. During animation, this NaN value was passed to:
-   ```javascript
-   const currentPercent = Phaser.Math.Linear(
-       this._startHealthPercent,  // This was NaN
-       this._targetHealthPercent,
-       dummyObj.progress
-   );
-   ```
-
-5. Finally, this NaN value was passed to `getHealthBarColor()`, triggering the warning because it's not a valid number.
-
-## Implementation Solution
-
-The fix involved several steps:
-
-1. **Added Health Percentage Tracking**:
-   ```javascript
-   // Track current health percentage for smooth animations
-   this._currentHealthPercent = Math.max(0, Math.min(1, 
-       this.config.values.current / Math.max(1, this.config.values.max)
-   ));
-   ```
-
-2. **Used Tracked Percentage Instead of Graphics Width**:
-   ```javascript
-   // Store previous health percentage for animation
-   const previousHealthPercent = this._currentHealthPercent;
-   
-   // In animation setup
-   this._startHealthPercent = previousHealthPercent;
-   ```
-
-3. **Improved Validation in getHealthBarColor**:
-   ```javascript
-   // Enhanced validation for percent with better fallback
-   if (percent === undefined || percent === null || typeof percent !== 'number' || isNaN(percent)) {
-       console.warn('CardFrameHealthComponent.getHealthBarColor: Invalid percentage value, using current health percentage');
-       // Use tracked health percentage as fallback instead of defaulting to green
-       percent = this._currentHealthPercent || 0;
-   }
-   ```
-
-4. **Added Division by Zero Protection**:
-   Added `Math.max(1, this.config.values.max)` throughout to prevent division by zero situations.
-
-5. **Enhanced _updateHealthBarGraphics** with defensive validation:
-   ```javascript
-   // Validate the health percent (defensive programming)
-   if (healthPercent === undefined || healthPercent === null || typeof healthPercent !== 'number' || isNaN(healthPercent)) {
-       console.warn('CardFrameHealthComponent._updateHealthBarGraphics: Invalid percentage value, using current tracked percentage');
-       healthPercent = this._currentHealthPercent || 0;
-   }
-   ```
+5. **Better Developer Experience**: The explicit depth settings make the z-order relationships clearer and easier to understand for future development.
 
 ## Testing Results
 
-The fix was tested successfully with:
-- Health decreasing (taking damage)
-- Health increasing (healing)
-- Multiple rapid health changes
-- Edge cases (near 0 and full health)
-
-The warning "CardFrameHealthComponent.getHealthBarColor: Invalid percentage value" no longer appears in the console, and health bar animations now smoothly transition between states.
+Testing confirms that the backlit shadow is now visible as intended:
+- The shadow extends beyond the card's edges, creating a white glow effect
+- The shadow fades in smoothly when a character's turn begins
+- The shadow fades out smoothly when a character's turn ends
+- The shadow appears behind the card frame, creating a true "backlit" effect
 
 ## Lessons Learned
 
-1. **Graphics Object Properties**: Phaser Graphics objects don't automatically maintain width/height properties when shapes are drawn. Always use explicit tracking for such values.
+1. **Explicit Depth Management**: When working with layered Phaser elements, it's better to use explicit depth settings rather than relying on add order or methods like `sendToBack()`.
 
-2. **Fallback Values**: Using current/previous state values as fallbacks for invalid inputs provides more graceful degradation than arbitrary defaults.
+2. **Separate Fill Alpha from Object Alpha**: When working with Phaser Graphics objects, it's important to understand the difference between the fill alpha (set with `fillStyle`) and the object's overall alpha (set with `setAlpha`).
 
-3. **Defensive Programming**: Validation in multiple places provides redundancy that prevents cascading errors, especially during animations.
+3. **Visual Debugging is Essential**: Visual effects like depth and alpha issues can be hard to diagnose without careful testing and visual debugging.
 
-4. **State Tracking**: Explicitly tracking state (like health percentage) rather than trying to derive it from visual properties creates more reliable animations.
+4. **Layered Architecture Complexity**: In a complex component-based architecture like CardFrame, z-order management needs special attention as it spans multiple components.
 
-5. **Division Protection**: Always guard against division by zero, even in cases where it seems unlikely.
+5. **Comprehensive Testing**: Effects that look fine in isolation may not work as expected when integrated into the full system, highlighting the importance of testing in the full context.
 
-The fix maintains compatibility with the existing component architecture while improving stability and user experience.
+## Future Considerations
+
+1. **Depth Constants**: Consider implementing a system of depth constants to make z-order relationships more explicit and consistent across components.
+
+2. **Visual Layer Documentation**: Add documentation about the visual layering system to help future developers understand how different card elements should be positioned in the z-order.
+
+3. **Refine Shadow Appearance**: Now that the shadow is visible, further refinements could be made to its appearance, such as adjusting the size, opacity, or adding a subtle blur effect for a softer glow.
 
 
-===== CHANGELOG_0.7.4.0_ComponentConfigurationDefaults =====
+===== CHANGELOG_0.7.5.7_RemoveCardFrameOutwardGlow =====
 
-# CHANGELOG 0.7.4.0 - Component Configuration Defaults
+# CHANGELOG 0.7.5.7 - Remove Card Frame Outward Glow from Turn Indicator
 
 ## Overview
-This update implements Phase 3 of the CardFrame refactoring project, focusing on making all hardcoded values configurable through a comprehensive configuration system. This provides better customizability, maintainability, and follows the "Single Source of Truth" principle established in earlier phases.
+This update removes the team-colored outward glow effect from the active turn indicator system in the CardFrameInteractionComponent. The existing glow effect was difficult to make visible even after numerous attempts to adjust opacity and depth settings. This change establishes a clean baseline for implementing a new "backlit shadow" effect in an upcoming update, while maintaining the white frame highlight and size pulse effects that work well.
 
 ## Problem Analysis
-Analysis of the codebase revealed numerous hardcoded values scattered throughout the component files:
+The outward glow effect in the turn indicator system had persistent visibility issues:
 
-1. **Inconsistent Access Patterns**: Configuration values were accessed inconsistently, sometimes directly from config, sometimes from hardcoded values.
+1. **Low Visibility**: Despite several attempts to increase opacity and adjust other settings, the team-colored outward glow remained difficult to see.
+2. **Z-Order Conflicts**: The glow layers were frequently obscured by other visual elements due to depth/z-order conflicts.
+3. **Inconsistent Appearance**: The glow effect appeared differently across various character types and backgrounds, leading to an inconsistent user experience.
+4. **Code Complexity**: The glow implementation added significant complexity to the turn indicator system with minimal visual benefit.
 
-2. **Hidden Configuration**: Many configuration values were embedded deep within method implementations, making them difficult to find and modify.
-
-3. **Lack of Documentation**: Many configuration values lacked clear documentation about their purpose and effects.
-
-4. **Limited Discoverability**: Developers needed to search through code to find all configurable aspects of components.
-
-5. **Indirect Dependencies**: Changes to one value could have unexpected effects on other aspects of the component due to hidden relationships.
+After attempting several fixes (including setting higher z-order, increasing opacity values, and adjusting layer settings), we decided to completely remove the outward glow and focus on a different visual approach for indicating active turns.
 
 ## Implementation Solution
 
-### 1. Configuration Defaults Creation
-For each component, we created a clearly labeled `CONFIGURATION DEFAULTS` section at the top of the file using a constant object:
-
+### 1. Modified INTERACTION_DEFAULTS
+Removed all outward glow-related properties from the activeTurn configuration:
 ```javascript
-/**
- * ===========================================
- * VISUAL COMPONENT CONFIGURATION DEFAULTS
- * Modify these values to customize visual appearance.
- * ===========================================
- */
-const VISUAL_DEFAULTS = {
-    // Core dimensions
-    width: 240,                 // Width of card frame
-    height: 320,                // Height of card frame
-    borderWidth: 10,            // Width of frame border
-    cornerRadius: 12,           // Corner radius for frame
+// Before:
+activeTurn: {
+    glowColorPlayer: 0x4488FF,     // Blue glow for player team
+    glowColorEnemy: 0xFF4444,      // Red glow for enemy team
+    glowIntensity: 1.0,            // Intensity of the glow effect (0-1)
+    pulseScale: 1.05,              // Scale factor during pulse animation
+    pulseDuration: 700,            // Duration of one pulse cycle in ms
+    frameFadeDuration: 250,        // Duration of white frame highlight fade in/out
+    priority: true                 // Whether turn highlighting takes visual priority over selection
+}
+
+// After:
+activeTurn: {
+    pulseScale: 1.05,              // Scale factor during pulse animation
+    pulseDuration: 700,            // Duration of one pulse cycle in ms
+    frameFadeDuration: 250,        // Duration of white frame highlight fade in/out
+    priority: true                 // Whether turn highlighting takes visual priority over selection
+}
+```
+
+### 2. Modified showActiveTurnHighlight() Method
+Removed all glow-related code from the method:
+```javascript
+// Before:
+showActiveTurnHighlight(teamType) {
+    // ...
+    // Get appropriate glow color based on team
+    let glowColor;
+    if (teamType === 'player') {
+        glowColor = this.config.activeTurn.glowColorPlayer;
+    } else if (teamType === 'enemy') {
+        glowColor = this.config.activeTurn.glowColorEnemy;
+    } else {
+        // Default to type color if team not specified
+        glowColor = this.typeColor;
+        console.warn(`CardFrameInteractionComponent: Unknown team type '${teamType}', using type color for active turn glow`);
+    }
     
-    // Additional groups of configuration values...
-};
-```
+    // Apply glow effect
+    this.applyActiveTurnGlow(glowColor);
+    // ...
+}
 
-### 2. Logical Organization of Values
-Configuration values were organized into logical groups to improve readability and discoverability:
-
-- **Visual Component**: Core dimensions, appearance, depth effects, fallback, debug
-- **Content Component**: Character info, portrait window, nameplate, text styling, decorative elements, fallback
-- **Interaction Component**: Behavior, callbacks, animation settings, glow effects, state
-- **Health Component**: Values, display, dimensions, text styling, animations, health status thresholds
-
-### 3. Component Configuration Updates
-For each component:
-- Updated constructor to use the new defaults:
-  ```javascript
-  this.config = Object.assign({}, COMPONENT_DEFAULTS, config);
-  ```
-- Added legacy property mapping for backward compatibility:
-  ```javascript
-  if (config.legacyProperty !== undefined) this.config.newStructure.property = config.legacyProperty;
-  ```
-
-### 4. Hardcoded Value Replacement
-Systematically replaced all hardcoded values throughout each component with references to configuration:
-- Before: `innerGlow.lineStyle(2, glowColor, 0.3);`
-- After: `innerGlow.lineStyle(this.config.portrait.innerGlow.width, glowColor, this.config.portrait.innerGlow.opacity);`
-
-### 5. Enhanced Documentation
-Each configuration value now has a clear, concise comment explaining its purpose:
-```javascript
-cornerRadius: 8,        // Corner radius for portrait area
-innerGlow: {
-    width: 2,           // Width of portrait inner glow line
-    opacity: 0.3        // Opacity of portrait inner glow
+// After:
+showActiveTurnHighlight(teamType) {
+    // ...
+    // Removed glow color selection and applyActiveTurnGlow call
+    // ...
 }
 ```
 
-## Component-Specific Implementation Details
-
-### 1. Visual Component
-- Created VISUAL_DEFAULTS with 5 logical groupings: core dimensions, appearance, depth effects, fallback, debug
-- Added cornerOpacityReduction to edge effects (previously hardcoded at 0.8)
-- Added separate fallback section for fallback styling
-- Created dedicated debug colors section with boundary and centerPoint colors
-
-### 2. Content Component
-- Created CONTENT_DEFAULTS with 6 logical groupings: character info, art positioning, portrait, nameplate, text styling, decorative, fallback
-- Added innerGlow section to portrait settings with width and opacity values
-- Created bevel subgroup in nameBanner with width, opacity and color values
-- Added flourishSpacing subgroup to decorative with maxWidth and margin values
-
-### 3. Interaction Component
-- Created INTERACTION_DEFAULTS with 5 logical groupings: behavior, callbacks, animation, glow, state
-- Added callbacks group to centralize event handlers
-- Created detailed glow effect section with layers, padding, and opacity configuration
-- Added pulseDuration to animation settings (previously hardcoded at 600ms)
-
-### 4. Health Component
-- Created HEALTH_DEFAULTS with 6 logical groupings: values, display, healthBar, text, animation, healthStatus
-- Added damage and healing subgroups to animation with detailed settings
-- Created healthStatus group with thresholds and colors for different health states
-- Added fontStyle to text configuration for better text customization
-
-## Backward Compatibility
-To ensure backward compatibility with existing code that might use the older flat configuration structure, we implemented a comprehensive legacy property mapping system in each component's constructor:
-
+### 3. Modified hideActiveTurnHighlight() Method
+Removed the code that destroys the active turn glow:
 ```javascript
-// Handle legacy property mapping for backward compatibility
-if (config.portraitWidth !== undefined) this.config.portrait.width = config.portraitWidth;
-if (config.portraitHeight !== undefined) this.config.portrait.height = config.portraitHeight;
-// Additional mappings...
-```
+// Before:
+hideActiveTurnHighlight() {
+    // ...
+    // Remove active turn glow
+    if (this.activeTurnGlow && this.glowContainer) {
+        this.activeTurnGlow.destroy();
+        this.activeTurnGlow = null;
+    }
+    // ...
+}
 
-This ensures that any code using the old property names continues to work correctly while encouraging migration to the new structure.
-
-## Technical Implementation Details
-
-### 1. Configuration Initialization Pattern
-Each component now follows a consistent pattern for initialization:
-
-```javascript
-// Configuration with defaults - reference the top-level defaults
-this.config = Object.assign({}, COMPONENT_DEFAULTS, config);
-
-// Handle legacy property mapping for backward compatibility
-if (config.legacyProperty !== undefined) this.config.newStructure.property = config.legacyProperty;
-```
-
-### 2. Configuration Access Pattern
-All code now accesses configuration through the structured this.config object:
-
-```javascript
-const barWidth = this.config.healthBar.width - this.config.healthBar.padding;
-```
-
-### 3. Error Handling Strategy
-The implementation handles missing configurations gracefully with sensible fallbacks:
-
-```javascript
-const radius = this.config.healthBar.borderRadius || 3;
-```
-
-## Benefits of this Approach
-
-1. **Immediate Visibility**: All configurable values are immediately visible at the top of the file.
-
-2. **Self-Documentation**: Each value has a clear comment explaining its purpose.
-
-3. **Logical Organization**: Values are organized into meaningful groups for easier discovery.
-
-4. **Centralized Changes**: Modifications to a component's behavior can be made by changing configuration values without modifying implementation code.
-
-5. **Better Developer Experience**: Developers can quickly find and customize any aspect of the components.
-
-6. **Enhanced Maintainability**: The clear structure makes future modifications easier.
-
-7. **Single Source of Truth**: Each component is now the definitive source for its configuration values.
-
-## Testing Strategy
-
-This implementation was tested using the following approach:
-
-1. **Identical Visual Rendering**: Verified that all visual rendering remains identical with default values.
-
-2. **Configuration Override Testing**: Tested overriding configuration values to ensure they properly affected the component's behavior.
-
-3. **Legacy Property Testing**: Verified that old property names in configuration still work properly through the legacy mapping system.
-
-4. **Edge Case Testing**: Checked behavior with extreme configuration values (very large/small, zero, negative where applicable).
-
-5. **Component Integration Testing**: Ensured all components still work together seamlessly in the CardFrame system.
-
-## Lessons Learned
-
-This phase of the refactoring project highlighted several important principles:
-
-1. **Configuration Centralization**: Centralizing configuration values at the top of files dramatically improves discoverability and maintainability.
-
-2. **Logical Grouping**: Organizing related values into nested objects makes the configuration more intuitive and scalable.
-
-3. **Documentation Proximity**: Keeping documentation directly with the values is more effective than separate documentation.
-
-4. **Backward Compatibility**: Legacy mapping systems are an effective way to evolve APIs without breaking existing code.
-
-5. **Consistent Patterns**: Using consistent initialization and access patterns across components creates a more predictable and maintainable codebase.
-
-## Next Steps
-
-With Phase 3 of the CardFrame refactoring project complete, the focus can now shift to the final phases:
-
-- **Phase 4.6 Completion**: Finalizing the CardFrame as a thin wrapper around CardFrameManager.
-- **Phase 5**: Component Communication - Enhancing inter-component communication for more complex interactions.
-
-These final phases will complete the transformation of the CardFrame system into a fully component-based, maintainable architecture.
-
-
-===== CHANGELOG_0.7.3.1_ComponentConfigurationCleanup =====
-
-# CHANGELOG 0.7.3.1 - Component Configuration Cleanup
-
-## Overview
-This update implements Phase 2 of the CardFrame refactoring plan focusing on configuration cleanup. The primary goals were to remove debug logging that cluttered the console output, remove commented properties from CardFrameManager, and ensure clear documentation of the Object.assign pattern used for configuration inheritance.
-
-## Problem Analysis
-After establishing the "Single Source of Truth" principle in Phase 1, several issues remained:
-
-1. **Debug Logging**: The CardFrameVisualComponent contained numerous verbose `[DEBUG-VC-INIT]` prefixed console logs that:
-   - Created excessive console noise during normal gameplay
-   - Made it difficult to identify actual errors or warnings
-   - Revealed implementation details not relevant to users
-   - Made the code harder to read and maintain
-
-2. **Unclear Configuration Pattern**: While the Object.assign pattern was used consistently (`Object.assign({defaults}, config)`), there was no explicit documentation explaining that this pattern ensures config values override defaults.
-
-3. **Component Design Principles**: The documentation lacked clear explanations about how configuration should be properly inherited and overridden in the component system.
-
-## Implementation Solution
-
-### 1. Removed Debug Logging
-Systematically removed all `[DEBUG-VC-INIT]` prefixed console.log statements from:
-- CardFrameVisualComponent.js (constructor, initialize, createBackdrop, createBaseFrame)
-- CardFrameManager.js (constructor, initializeVisualComponent, createBaseFrame, createBackdrop)
-
-This significantly reduced console noise while maintaining essential error and warning messages. For example:
-
-**Before**:
-```javascript
-console.log(`[DEBUG-VC-INIT] CardFrameVisualComponent constructor: Entered. Scene valid: ${!!scene}, Container valid: ${!!container}, TypeColor: ${typeColor}, Config keys: ${config ? Object.keys(config).join(', ') : 'null'}`);
-if (!scene) { console.error('[DEBUG-VC-INIT] CardFrameVisualComponent constructor: SCENE IS FALSY!'); }
-if (!container) { console.error('[DEBUG-VC-INIT] CardFrameVisualComponent constructor: CONTAINER IS FALSY!'); }
-```
-
-**After**:
-```javascript
-// Clean code without debug logging, keeping only essential validation
-if (!scene || !container) {
-    console.error('CardFrameVisualComponent: Missing required parameters (scene or container)');
-    throw new Error('CardFrameVisualComponent: Missing required parameters');
+// After:
+hideActiveTurnHighlight() {
+    // ...
+    // Glow removal code removed
+    // ...
 }
 ```
 
-### 2. Enhanced Object.Assign Documentation
-Added explicit comments to all component files explaining the configuration inheritance pattern:
-
+### 4. Neutered applyActiveTurnGlow() Method
+Replaced the method implementation with a console message and return statement:
 ```javascript
-// IMPORTANT: Object.assign pattern ensures config values override defaults
-// (defaults are first, config is second, so config values take precedence)
-this.config = Object.assign({
-    // Default values...
-}, config);
-```
+// Before:
+applyActiveTurnGlow(glowColor) {
+    try {
+        if (!this.glowContainer || !this.glowContainer.scene) {
+            console.error('CardFrameInteractionComponent.applyActiveTurnGlow: glowContainer not set or invalid');
+            return;
+        }
+        
+        // Clear existing glow effects if this is the active turn (priority)
+        if (this.config.activeTurn.priority) {
+            this.removeGlowEffect();
+        }
+        
+        // Create a new graphics object for the active turn glow
+        const activeTurnGlow = this.scene.add.graphics();
+        
+        // Apply a stronger glow effect with more layers for a more distinct look
+        const intensity = this.config.activeTurn.glowIntensity;
+        const layers = this.config.glow.layers + 1; // Add one extra layer for active turn
+        
+        // Draw multiple glow layers for a soft effect
+        for (let i = 0; i < layers; i++) {
+            const padding = this.config.glow.paddingBase + (i * this.config.glow.paddingIncrement);
+            const layerOpacity = this.config.glow.opacityBase * intensity * (1 - i * this.config.glow.opacityDecrement);
+            
+            activeTurnGlow.fillStyle(glowColor, layerOpacity);
+            activeTurnGlow.fillRoundedRect(
+                -this.config.width / 2 - padding,
+                -this.config.height / 2 - padding,
+                this.config.width + (padding * 2),
+                this.config.height + (padding * 2),
+                this.config.cornerRadius + padding / 2
+            );
+        }
+        
+        // Add to glow container
+        this.glowContainer.add(activeTurnGlow);
+        
+        // Store reference to this specific glow for removal later
+        this.activeTurnGlow = activeTurnGlow;
+    } catch (error) {
+        console.error('CardFrameInteractionComponent: Error applying active turn glow:', error);
+    }
+}
 
-This pattern was documented in:
-- CardFrameVisualComponent.js
-- CardFrameContentComponent.js
-- CardFrameInteractionComponent.js
-- CardFrameManager.js
-
-### 3. Clarified Component Relationship
-Enhanced the documentation in CardFrameManager to clarify the relationship between components and their configuration:
-
-```javascript
+// After:
 /**
- * Configuration options with sensible defaults
- * IMPORTANT: Object.assign pattern ensures config values override defaults
- * (defaults are first, config is second, so config values take precedence)
- * 
- * IMPORTANT: The component-based architecture now places each component's settings in its respective component file.
- * Most visual, health, content, and interaction properties have been moved to their respective component files:
- * - Health bar dimensions and styling: Look in CardFrameHealthComponent.js
- * - Visual elements and effects: Look in CardFrameVisualComponent.js
- * - Content and text properties: Look in CardFrameContentComponent.js
- * - Interaction animations: Look in CardFrameInteractionComponent.js
- * 
- * Only common properties and positioning values remain here in CardFrameManager.js
+ * Apply the active turn glow effect
+ * @private
+ * @param {number} glowColor - Color for the glow effect
+ * @deprecated - This method is no longer used for active turn highlighting
  */
+applyActiveTurnGlow(glowColor) {
+    console.log('applyActiveTurnGlow called but is now deprecated for active turn');
+    return;
+}
 ```
 
-## Code Metrics
-- **Removed Lines**: Approximately 60-70 lines of debug logging code
-- **Added Lines**: Approximately 15-20 lines of enhanced documentation
-- **Net Reduction**: Around 45-50 lines of code
+### 5. Updated cleanup() Method
+Removed the active turn glow cleanup code:
+```javascript
+// Before:
+cleanup() {
+    // ...
+    // Clean up active turn glow
+    if (this.activeTurnGlow) {
+        this.activeTurnGlow.destroy();
+        this.activeTurnGlow = null;
+    }
+    // ...
+}
 
-## Architectural Benefits
+// After:
+cleanup() {
+    // ...
+    // Active turn glow cleanup code removed
+    // ...
+}
+```
 
-1. **Cleaner Console Output**: Removing debug logging makes console output cleaner and more helpful, making it easier to identify actual errors or warnings.
+## Benefits of Implementation
 
-2. **Improved Code Readability**: The code is now cleaner and easier to understand without excessive debug statements.
+1. **Simplified Visual System**: The turn indicator now uses just two clear visual cues (white frame + size pulse) without conflicting with the planned "backlit shadow" effect.
 
-3. **Clearer Configuration Inheritance**: Explicit documentation of the Object.assign pattern helps developers understand how configuration values are inherited and overridden.
+2. **Reduced Code Complexity**: Removing the glow effect simplifies the component and reduces potential points of failure.
 
-4. **Better Component System Documentation**: Enhanced documentation clarifies the relationship between components and their configuration.
+3. **Clear Baseline**: Establishes a clean starting point for the upcoming "backlit shadow" effect implementation.
 
-5. **Enhanced Maintainability**: Overall cleaner code and clearer documentation makes the codebase easier to maintain.
+4. **Improved Performance**: Removes the need to create and manage multiple graphics objects for the glow effect, potentially improving performance.
+
+5. **Better Code Maintainability**: The simplified code is easier to understand and maintain going forward.
+
+## Testing Considerations
+
+During testing, we should verify:
+
+1. The white frame highlight still works correctly when a character's turn begins/ends
+2. The size pulse animation continues to function as expected
+3. The turn indication is still clear enough without the glow effect
+4. No visual artifacts remain from the removed glow effect
+5. No errors appear in the console when a character's turn changes
+
+## Future Work
+
+This change is part of a two-phase approach:
+
+1. **Phase A (Current)**: Remove existing outward glow logic to establish a clean baseline
+2. **Phase B (Upcoming)**: Implement a new "backlit shadow" visual effect for more impactful turn indication
+
+The "backlit shadow" effect will be implemented in a future update and should provide a more distinctive visual indicator without the visibility issues of the outward glow approach.
 
 ## Lessons Learned
 
-1. **Temporary Debug Code**: Debug logging should be viewed as temporary, with a plan to remove it after the feature is stable. This update completes the proper cleanup phase.
+1. **Layered Visual Feedback**: The white frame highlight and size pulse proved more effective than the subtle glow. When designing visual indicators, high-contrast elements (like white borders) often work better than subtle color effects.
 
-2. **Documentation for Patterns**: Even common patterns like Object.assign should be explicitly documented to ensure consistent understanding across the development team.
+2. **z-order/depth management**: Future visual effects need careful consideration of z-ordering and proper depth setting to ensure visibility. The outward glow effect highlights how elements can be easily obscured without proper depth management.
 
-3. **Configuration Inheritance**: Clear documentation about how configuration inheritance works is essential for a component-based system.
+3. **Configuration Management**: While we removed certain configuration options, we maintained the general glow configuration for selection and hover effects, showcasing the importance of modular configuration design.
 
-4. **Signal-to-Noise Ratio**: Excessive debug logging can hide important information. A clean console makes it easier to identify actual issues.
-
-## Next Steps
-
-With Phase 2 complete, the refactoring plan will proceed to:
-
-1. **Phase 3**: Hardcoded Values Check - Review each component for hardcoded values that should be configurable.
-
-2. **Phase 4**: Testing - Verify all components render correctly with the new changes.
-
-3. **Phase 5**: Further Documentation - Enhance the refactoring pattern documentation for future reference.
-
-By systematically addressing these issues, we continue to improve the component architecture, making it more maintainable and easier to understand.
+4. **Progressive Enhancement**: By implementing visual feedback in stages, we can evaluate the effectiveness of each element independently and make targeted improvements where needed.
 
 
-===== CHANGELOG_0.7.3.0_ComponentSingleSourceOfTruth =====
+===== CHANGELOG_0.7.5.6_ConnectWhiteHighlightToTurnSystem =====
 
-# CHANGELOG 0.7.3.0 - Component Single Source of Truth Implementation
+# CHANGELOG 0.7.5.6 - Connect Card Frame White Highlight to Turn System
 
 ## Overview
-This update implements Phase 1 of the CardFrame refactoring plan to establish a consistent "Single Source of Truth" principle across all components. The goal is to ensure each component is the definitive source for its domain-specific configuration, improving code maintainability and preventing configuration drift.
+This update completes the implementation of the enhanced turn indicator system by connecting the white frame highlight effect created in v0.7.5.5 to the turn indicator logic in the `CardFrameInteractionComponent`. Now when a character's turn begins, its card will display a smooth, fading white border, a team-colored external glow, and a subtle size pulse - creating a multi-layered visual indicator that clearly identifies the active character.
 
 ## Problem Analysis
-The CardFrame system had been refactored into specialized components (Visual, Health, Content, Interaction), but configuration patterns were inconsistent, leading to:
+In v0.7.5.5, we implemented the `setFrameWhiteHighlight()` method in `CardFrameVisualComponent.js` that provides the ability to show/hide a white frame highlight with smooth transitions. However, this capability was not yet integrated with the turn indicator system - specifically, the `showActiveTurnHighlight()` and `hideActiveTurnHighlight()` methods in `CardFrameInteractionComponent.js` did not call this new method. This meant the white highlight visual effect was available but not used.
 
-1. **Confusion About Configuration Location**: Developers were uncertain where specific configuration properties should be defined.
-2. **Configuration Duplication**: Some properties were redundantly defined in both CardFrameManager and component files.
-3. **Inconsistent Warnings**: Warning comments in CardFrameManager varied in strength and clarity.
-4. **Missing Architectural Guidance**: There was no clear documentation establishing each component as the single source of truth for its domain.
+The challenge was to ensure proper communication between these components:
+1. `CardFrameInteractionComponent` needed to access the `CardFrameVisualComponent` through the component hierarchy
+2. The timing of the white frame highlight needed to coordinate with the existing team-colored glow and size pulsing
+3. The system needed to gracefully handle cases where the visual component might not be available
 
 ## Implementation Solution
 
-### 1. Added Explicit SINGLE SOURCE OF TRUTH Documentation
-Added comprehensive documentation headers to all component files:
-
-**CardFrameVisualComponent.js**:
+### 1. Added Configuration Option
+Added a new configuration option to the `activeTurn` settings in `CardFrameInteractionComponent.js`:
 ```javascript
-/**
- * CardFrameVisualComponent.js
- * Handles the visual aspects of the card frame including frame, backdrop, and visual effects
- * Part of the component-based CardFrame refactoring project
- * 
- * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all visual styling,
- * dimensions, and effects. To modify ANY aspect of the card's visual appearance,
- * edit the configuration options in THIS file rather than in CardFrameManager.js.
- * 
- * CODE REVIEW GUIDELINE: Any PR that adds visual-related configuration to
- * CardFrameManager.js should be rejected. All such configuration belongs here.
- */
+frameFadeDuration: 250, // Duration of white frame highlight fade in/out
+```
+This allows for independent control of the white frame highlight transition timing.
+
+### 2. Enhanced `showActiveTurnHighlight()`
+Updated the `showActiveTurnHighlight()` method to call the white frame highlight method:
+```javascript
+// Apply white frame highlight to the visual component
+if (this.container && this.container.visualComponent && 
+    typeof this.container.visualComponent.setFrameWhiteHighlight === 'function') {
+    const frameFadeDuration = (this.config.activeTurn.frameFadeDuration !== undefined) ? 
+        this.config.activeTurn.frameFadeDuration : (this.config.activeTurn.pulseDuration / 2);
+    this.container.visualComponent.setFrameWhiteHighlight(true, frameFadeDuration);
+} else {
+    console.warn('CardFrameInteractionComponent: visualComponent or setFrameWhiteHighlight method not available.');
+}
 ```
 
-**CardFrameContentComponent.js**:
+### 3. Enhanced `hideActiveTurnHighlight()`
+Similarly updated the `hideActiveTurnHighlight()` method to remove the white frame highlight:
 ```javascript
-/**
- * CardFrameContentComponent.js
- * Handles character sprite and nameplate rendering for CardFrame.
- * Part of the component-based CardFrame refactoring project.
- * 
- * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all character content,
- * portrait window, and nameplate styling/behavior. To modify ANY aspect of these elements,
- * edit the configuration options in THIS file rather than in CardFrameManager.js.
- * 
- * CODE REVIEW GUIDELINE: Any PR that adds content-related configuration to
- * CardFrameManager.js should be rejected. All such configuration belongs here.
- */
+// Remove white frame highlight from the visual component
+if (this.container && this.container.visualComponent && 
+    typeof this.container.visualComponent.setFrameWhiteHighlight === 'function') {
+    const frameFadeDuration = (this.config.activeTurn.frameFadeDuration !== undefined) ? 
+        this.config.activeTurn.frameFadeDuration : (this.config.activeTurn.pulseDuration / 2);
+    this.container.visualComponent.setFrameWhiteHighlight(false, frameFadeDuration);
+} else {
+    console.warn('CardFrameInteractionComponent: visualComponent or setFrameWhiteHighlight method not available for hiding frame highlight.');
+}
 ```
 
-**CardFrameInteractionComponent.js**:
-```javascript
-/**
- * CardFrameInteractionComponent.js
- * Handles interaction behavior for the CardFrame component
- * Part of the component-based CardFrame refactoring project (Phase 3.4)
- * 
- * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all interaction behaviors,
- * hover effects, and selection/highlight animations. To modify ANY aspect of card
- * interaction, edit the configuration options in THIS file rather than in CardFrameManager.js.
- * 
- * CODE REVIEW GUIDELINE: Any PR that adds interaction-related configuration to
- * CardFrameManager.js should be rejected. All such configuration belongs here.
- */
-```
+### 4. Fail-Safe Component Communication
+Implemented comprehensive safety checks to ensure the code works even if the component structure is not as expected:
+- Verifying that `this.container` exists
+- Verifying that `this.container.visualComponent` exists
+- Checking if the `setFrameWhiteHighlight` method is available
+- Providing detailed warning messages when components or methods are missing
 
-### 2. Enhanced CardFrameManager Documentation
-Added comprehensive architecture notes to CardFrameManager.js:
+## Technical Details
 
-```javascript
-/**
- * CardFrameManager.js
- * Manages a component-based implementation of the card frame system
- * Acts as a delegation layer to coordinate visual, health, content, and interaction components
- *
- * IMPORTANT ARCHITECTURE NOTE: CardFrameManager serves as a coordinator/orchestrator
- * for specialized components. It should NOT define component-specific configuration.
- * Each component is the SINGLE SOURCE OF TRUTH for its domain:
- *
- * - CardFrameVisualComponent: ALL visual styling, dimensions, and effects
- * - CardFrameHealthComponent: ALL health bar styling and behavior
- * - CardFrameContentComponent: ALL character content, portrait window, and nameplate styling
- * - CardFrameInteractionComponent: ALL interaction behaviors and animations
- *
- * CODE REVIEW GUIDELINE: Any PR that adds component-specific configuration to
- * CardFrameManager.js should be rejected. Such configuration belongs in the respective
- * component files.
- */
-```
+### Component Communication
+This implementation relies on the component hierarchy established in the CardFrame system:
+1. `CardFrame` â†’ `CardFrameManager` â†’ `CardFrameVisualComponent`
+2. `CardFrameInteractionComponent` accesses the `visualComponent` through its container (the `CardFrameManager`)
 
-### 3. Strengthened Warning Messages
-Enhanced all warning comments in CardFrameManager.js to be more explicit and consistent:
+This access pattern follows the established component architecture where:
+- `CardFrameManager` is responsible for managing all components
+- Components can access each other through the manager
+- Each component maintains responsibility for its specific domain
 
-```javascript
-// NOTE: ALL visual styling, dimensions, and effects properties
-// should be configured ONLY in CardFrameVisualComponent.js.
-// DO NOT add any visual styling/appearance properties here.
-// This violates the SINGLE SOURCE OF TRUTH principle.
-```
+### Timing Coordination
+The implementation ensures smooth coordination of timing between different visual effects:
+- Team-colored glow effect (controlled by `CardFrameInteractionComponent`)
+- Size pulse animation (controlled by `CardFrameInteractionComponent`)
+- White frame highlight (implemented in `CardFrameVisualComponent` but triggered by `CardFrameInteractionComponent`)
 
-```javascript
-// NOTE: ALL content styling, portrait, and nameplate properties 
-// should be configured ONLY in CardFrameContentComponent.js.
-// DO NOT add any content-related properties here.
-// This violates the SINGLE SOURCE OF TRUTH principle.
-```
+The `frameFadeDuration` configuration option allows fine-tuning the white frame highlight transition timing independently from the pulse animation.
 
-```javascript
-// NOTE: ALL interaction, hover, and animation properties
-// should be configured ONLY in CardFrameInteractionComponent.js.
-// DO NOT add any interaction-related properties here.
-// This violates the SINGLE SOURCE OF TRUTH principle.
-```
+### Backward Compatibility
+The implementation maintains backward compatibility by:
+- Providing appropriate defaults if `frameFadeDuration` is not specified
+- Gracefully handling cases where components or methods are missing
+- Not altering the existing behavior of team-colored glows and size pulses
 
-### 4. Added Code Review Guidelines
-Added explicit code review guidelines to all components as part of their documentation headers. These guidelines instruct reviewers to reject PRs that add component-specific configuration to CardFrameManager.
+## Benefits
 
-## Architectural Benefits
+1. **Enhanced Visual Clarity**: The combination of white frame highlight, team-colored glow, and size pulse creates a multi-layered visual indicator that clearly identifies the active character
+2. **Customizable Timing**: The new `frameFadeDuration` configuration option allows fine-tuning the white frame highlight transition timing
+3. **Smooth User Experience**: All visual effects use smooth transitions to prevent jarring changes
+4. **Robust Implementation**: Comprehensive error handling ensures the system works even if components are missing or misconfigured
 
-1. **Clear Configuration Boundaries**: Each component is now explicitly designated as the single source of truth for its domain.
+## Complete Turn Indicator System
 
-2. **Developer Guidance**: Documentation clearly guides developers on where to place configuration values.
+With this implementation, the complete turn indicator visual system now includes:
+1. **White Frame Highlight**: The card's frame border smoothly transitions to white
+2. **Team-Colored External Glow**: Blue for player team characters, red for enemy team
+3. **Subtle Size Pulse**: The card gently pulses to draw attention
 
-3. **Code Review Enforcement**: Added guidelines create a mechanism to enforce architectural boundaries during code review.
+This layered approach ensures that the active character is clearly visible even in complex battle scenarios with multiple characters.
 
-4. **Reduced Ambiguity**: Enhanced warning messages leave no doubt about where configuration belongs.
+## Testing Considerations
 
-5. **Improved Maintainability**: Consistent documentation pattern makes the codebase more maintainable.
+This change should be tested by:
+1. Verifying that all three visual effects (white frame, team glow, size pulse) appear when a character's turn begins
+2. Confirming that all effects are properly removed when a character's turn ends
+3. Testing with different card variants, team types, and character types
+4. Ensuring smooth transitions between character turns
+5. Verifying proper behavior when characters are defeated or otherwise removed from battle
 
 ## Lessons Learned
 
-1. **Document Architecture Decisions**: Clearly documenting architectural decisions like "single source of truth" in code comments helps maintain proper boundaries.
-
-2. **Explicit Code Review Guidelines**: Adding explicit review guidelines in code helps enforce architectural principles over time.
-
-3. **Strong Warning Messages**: Using stronger, more consistent warnings prevents configuration drift better than subtle hints.
-
-4. **Progressive Implementation**: Breaking the refactoring into phases (of which this is Phase 1) helps manage complexity and risk.
-
-## Next Steps
-
-With Phase 1 complete, the CardFrame refactoring plan will proceed to:
-
-1. **Phase 2**: Configuration Cleanup - Remove all debug logging from components (especially CardFrameVisualComponent) and remove commented properties from CardFrameManager.
-
-2. **Phase 3**: Hardcoded Values Check - Review each component for hardcoded values that should be configurable.
-
-3. **Phase 4**: Testing - Verify all components render correctly with the new changes.
-
-4. **Phase 5**: Further Documentation - Enhance the refactoring pattern documentation for future reference.
-
-By implementing this phased approach, we are systematically improving the component architecture to follow best practices, ensuring each component properly serves as the single source of truth for its domain.
+1. **Component Communication**: Proper component communication is essential for creating cohesive visual effects that span multiple components
+2. **Layered Visual Indicators**: Using multiple visual indicators with different characteristics (color, animation, brightness) helps ensure information is accessible to all players
+3. **Defensive Programming**: Comprehensive error checking and fallbacks are crucial for maintaining system stability across different scenarios
+4. **Configuration Options**: Providing specific configuration options for timing and other properties allows for fine-tuning visual effects without code changes
 
 
-===== CHANGELOG_0.7.2.9_HealthComponentSingleSourceOfTruth =====
+===== CHANGELOG_0.7.5.5_CardFrameWhiteHighlight =====
 
-# CHANGELOG 0.7.2.9 - Health Component Single Source of Truth
+# CHANGELOG 0.7.5.5 - Card Frame White Highlight Implementation
 
 ## Overview
-This update corrects a key issue with the component-based architecture by properly establishing CardFrameHealthComponent as the single source of truth for all health bar styling, dimensions, and behavior. Previously, there was an incorrect configuration inheritance pattern that prevented CardFrameManager's values from properly overriding the component defaults, and a hardcoded font size was being used instead of the configured value.
+This update enhances the card frame turn indicator system by implementing a white frame highlight effect that appears when it's a character's turn. The highlight is a smooth, fading white border that overlays the card's existing type-colored frame, making it very clear which character is currently active.
 
 ## Problem Analysis
+After implementing the new card frame turn highlighting in previous versions (0.7.5.1-0.7.5.4), user testing revealed that while the team-colored glow and size pulsing were improvements over the old floor ellipses, the active character could still be difficult to identify at a glance, especially in complex battle scenarios with multiple characters.
 
-The analysis revealed several issues with the component configuration:
-
-1. **Incorrect Object.assign Order**: 
-   ```javascript
-   this.config = Object.assign({}, config, ourDefaults);
-   ```
-   This meant that the component's defaults (`ourDefaults`) would override any values coming from CardFrameManager (`config`), which is backwards from proper component architecture. Components should define defaults that can be overridden by their parent/manager.
-
-2. **Hardcoded Font Size**: 
-   ```javascript
-   fontSize: '11px', // Hardcoded value
-   ```
-   Despite having `healthTextFontSize` in the configuration, the text creation method was using a hardcoded value, ignoring any configured value.
-
-3. **Leftover Commented Code**: CardFrameManager still contained commented-out health bar properties, creating confusion about where configuration should live.
-
-4. **Insufficient Documentation**: The documentation didn't provide strong enough guidance about the single source of truth principle.
+The specific issues identified were:
+1. The external glow effect could sometimes blend with the background or be obscured by other UI elements
+2. The subtle size pulsing animation was not always immediately visible to players
+3. The type-colored frame remained the same during a character's turn, lacking visual differentiation
 
 ## Implementation Solution
 
-### 1. Fixed Configuration Hierarchy
+### 1. Added White Highlight Layer
+The solution implemented adds a separate graphic layer with a white frame border that:
+- Overlays the existing type-colored frame
+- Has the same dimensions and properties as the base frame
+- Smoothly fades in when activated and fades out when deactivated
 
-Changed the Object.assign call to use the correct order:
+### 2. CardFrameVisualComponent Extension
+Modified `CardFrameVisualComponent.js` by adding:
+- A new instance variable `this.whiteHighlightFrameLayer` to track the highlight layer
+- A new public method `setFrameWhiteHighlight(isHighlighted, duration = 250)` to manage the highlight state
+- Proper resource cleanup in the component's `destroy()` method
+
+### 3. Smooth Transitions
+Implemented smooth transitions using tweens:
+- Fade-in animation when a character becomes active
+- Fade-out animation when a character's turn ends
+- Resource cleanup after fade-out completes
+
+### 4. Robust Error Handling
+Added comprehensive error handling:
+- Validating scene and container references
+- Safely handling tween creation and cleanup
+- Providing fallbacks for environments where tweens aren't available
+
+## Technical Approach
+
+### White Highlight Implementation
+The white highlight is implemented as a separate graphics layer that directly mirrors the base frame's shape:
 
 ```javascript
-// Changed from:
-this.config = Object.assign({}, config, ourDefaults);
+// Create white highlight frame
+this.whiteHighlightFrameLayer = this.scene.add.graphics();
 
-// To:
-this.config = Object.assign({}, ourDefaults, config);
+// Draw the white frame border with same dimensions as the base frame
+this.whiteHighlightFrameLayer.lineStyle(this.config.borderWidth, WHITE_COLOR, this.config.frameAlpha);
+this.whiteHighlightFrameLayer.strokeRoundedRect(
+    -this.config.width / 2,
+    -this.config.height / 2,
+    this.config.width,
+    this.config.height,
+    this.config.cornerRadius
+);
 ```
 
-This ensures that component defaults are only used when not specified by the parent component (CardFrameManager), following proper component architecture principles.
-
-### 2. Removed Hardcoded Font Size
-
-Updated the font size in text creation to use the configured value:
+### Animation System
+The animation system uses Phaser's tween engine for smooth transitions:
 
 ```javascript
-// Changed from:
-fontSize: '11px', // Hardcoded value
-
-// To:
-fontSize: this.config.healthTextFontSize,
+// Animate fade-in
+this.scene.tweens.add({
+    targets: this.whiteHighlightFrameLayer,
+    alpha: this.config.frameAlpha,
+    duration: duration,
+    ease: 'Sine.easeOut'
+});
 ```
 
-This ensures that the font size can be properly configured and overridden when needed.
+### Resource Management
+The implementation includes careful resource management to prevent memory leaks:
 
-### 3. Enhanced Documentation
+```javascript
+// Clean up after fade-out completes
+if (this.whiteHighlightFrameLayer && this.whiteHighlightFrameLayer.scene) {
+    this.whiteHighlightFrameLayer.destroy();
+    this.whiteHighlightFrameLayer = null;
+}
+```
 
-Added stronger documentation with more explicit guidance:
+## Benefits
+
+1. **Improved Visual Clarity**: The white highlight provides a clear, universal indicator of the active character
+2. **Layered Visual Feedback**: The white frame works in conjunction with existing team-colored glow and size pulsing
+3. **Smooth Transitions**: Fade-in and fade-out animations prevent jarring visual changes
+4. **Consistent Visual Language**: White is universally recognized as a highlight color, reducing cognitive load
+
+## Future Improvements
+
+For the next phase (Part 2), we will:
+1. Connect this new visual effect to the active turn system by modifying the `CardFrameInteractionComponent`
+2. Ensure the white highlight works in harmony with the existing team-colored glow and pulsing effects
+3. Add configuration options to adjust the intensity and duration of the white highlight
+4. Add proper documentation for the new visual effect in the component architecture documentation
+
+## Testing Considerations
+
+This change should be tested by:
+1. Verifying that the white highlight appears and disappears with proper fade transitions
+2. Confirming that it stacks correctly with the existing team-colored glow
+3. Ensuring no memory leaks or performance impacts occur during extended play sessions
+4. Testing with different card variants and type colors to ensure visual consistency
+
+## Lessons Learned
+
+1. **Layered Visual Feedback**: Using multiple visual indicators (color, animation, highlight) helps ensure information is accessible to all players
+2. **Component Separation**: The clean separation between components allowed us to add this feature without modifying the interaction component yet
+3. **Resource Management**: Careful tracking and cleanup of graphics objects is essential for maintaining performance
+4. **Animation Timing**: Smooth transitions are critical for maintaining a polished visual experience
+
+
+===== CHANGELOG_0.7.5.4_DisableOldTurnIndicator =====
+
+# CHANGELOG 0.7.5.4 - Disable and Remove the Old TurnIndicator System
+
+## Overview
+This update completely disables and removes the old TurnIndicator system (that used flattened ellipses below characters) to fully transition to the new card frame turn highlighting system implemented in v0.7.5.1-0.7.5.3. This resolves the issue where both the old ellipse indicators and the new card frame pulse effects were appearing simultaneously.
+
+## Problem Analysis
+After implementing the new card frame turn highlighting in versions 0.7.5.1 through 0.7.5.3, we observed that both indicators were appearing at the same time:
+
+1. **The new pulsing card highlight** was properly working through the delegation chain:  
+   CharacterSprite â†’ CardFrame â†’ CardFrameManager â†’ CardFrameInteractionComponent
+
+2. **The old ellipse indicators** were still being created and shown through the original system:  
+   TeamDisplayManager â†’ TeamContainer â†’ TurnIndicator
+
+This dual visualization was confusing and visually cluttered. Since we have fully implemented the new card frame turn indicator system, the old system needed to be completely removed.
+
+## Implementation Solution
+
+To fully disable the old TurnIndicator system, we implemented changes across multiple files:
+
+### 1. TeamContainer.js
+- Commented out the TurnIndicator instantiation in the constructor
+- Modified `showTurnIndicator()` to:
+  - Remove all logic related to the old TurnIndicator
+  - Only call `sprite.highlight()` to activate the new card frame highlighting
+  - Add proper deprecation notice
+- Updated `clearTurnIndicators()` to:
+  - Remove all TurnIndicator-related code
+  - Directly call `sprite.unhighlight()` to clear card frame highlighting
+  - Add proper deprecation notice
+- Commented out TurnIndicator cleanup in the `destroy()` method
+
+### 2. TeamDisplayManager.js
+- Modified `createTurnIndicator()` to:
+  - Not create any TurnIndicator instances
+  - Set `this.turnIndicator = null`
+  - Add proper deprecation notice
+- Updated `updateTurnIndicator()` to:
+  - Remove all logic related to the old TurnIndicator
+  - Simply call `sprite.highlight()` to activate the new card frame highlighting
+  - Add proper deprecation notice
+- Commented out TurnIndicator cleanup in the `destroy()` method
+
+### 3. index.html
+- Commented out the `<script>` tag that loads TurnIndicator.js:
+  ```html
+  <!-- TurnIndicator - [DISABLED] Removed in v0.7.5.4 in favor of card frame turn highlighting -->
+  <!-- <script src="js/phaser/components/battle/TurnIndicator.js"></script> -->
+  ```
+
+## Technical Approach
+We took a strategic approach to "soft-deprecate" the TurnIndicator system rather than completely removing its code:
+
+1. **Method Preservation with Deprecation**:
+   - Maintained all TurnIndicator-related methods for backward compatibility
+   - Added `@deprecated` JSDoc tags to clearly mark deprecated methods
+   - Added descriptive comments explaining the deprecation reason
+   
+2. **Commented Code Instead of Removal**:
+   - Used commented blocks to preserve the original implementation
+   - Added `[DISABLED]` markers in comments
+   - Preserved the logic for documentation purposes while preventing execution
+
+3. **Method Redirection**:
+   - Modified methods to call the new system (`highlight()`/`unhighlight()`) directly
+   - Added log statements to indicate the deprecation when verbose logging is enabled
+
+4. **Script Loading Prevention**:
+   - Commented out the script loading in index.html to prevent the TurnIndicator class from being available
+   - This ensures that no new TurnIndicator instances can be created
+
+## Benefits
+1. **Visual Clarity**: Only one turn indicator system appears now, eliminating confusion and visual clutter
+2. **Code Cleanliness**: The new system uses proper component delegation and follows the established architecture
+3. **Performance**: Removes unnecessary object creation and animations
+4. **Backward Compatibility**: Any code calling the old methods still works through redirection to the new system
+5. **Documentation Preservation**: Original implementation is preserved in comments for future reference
+
+## Future Improvements
+As mentioned in the task description, the next phase will be to enhance the new card frame turn indicator to make the card frame brighter instead of just pulsing. This will involve modifying the `CardFrameInteractionComponent.js` file to adjust the visual feedback for active turns.
+
+## Testing Considerations
+This change should be tested by:
+1. Verifying that only the card frame pulse appears during battles
+2. Confirming no errors occur related to missing TurnIndicator class or methods
+3. Ensuring character turns are still clearly indicated throughout battle
+4. Checking that there are no console errors related to the TurnIndicator system
+
+## Lessons Learned
+1. **Component Isolation**: Proper component isolation makes it easier to replace one visual system with another
+2. **Deprecation Strategy**: Using a "comment-out" approach instead of complete code removal provides better backward compatibility
+3. **Method Redirection**: Redirecting old methods to new functionality minimizes the impact of architectural changes
+4. **Documentation Importance**: Clear explanations in comments help future developers understand the transition
+
+
+===== CHANGELOG_0.7.5.3_CompleteTurnIndicatorDelegationChain =====
+
+# CHANGELOG 0.7.5.3 - Complete Turn Indicator Delegation Chain
+
+## Overview
+This update resolves the TypeError encountered when attempting to use the new card frame turn indicator methods by completing the delegation chain that was missing between the components. The update adds the necessary `showActiveTurnHighlight` and `hideActiveTurnHighlight` methods to both CardFrameManager.js and CardFrame.js, ensuring the proper flow of method calls from CharacterSprite down to CardFrameInteractionComponent.
+
+## Problem Analysis
+After implementing the turn indicator functionality in CardFrameInteractionComponent (in version 0.7.5.1) and connecting it to CharacterSprite.js (in version 0.7.5.2), we encountered errors:
+
+```
+TypeError: this.cardFrame.hideActiveTurnHighlight is not a function
+```
+
+This error indicated that while CardFrameInteractionComponent had the new turn indicator methods, the intermediate components in the delegation chain (CardFrame and CardFrameManager) were missing the required methods to pass the calls down the chain.
+
+The delegation chain was incomplete:
+- CharacterSprite attempted to call `this.cardFrame.showActiveTurnHighlight()/hideActiveTurnHighlight()`
+- CardFrame lacked these methods, causing TypeError
+- CardFrameManager also lacked these methods, meaning even if CardFrame had been implemented, it couldn't delegate further
+- CardFrameInteractionComponent had the methods but was unreachable due to the broken chain
+
+## Implementation Solution
+
+### 1. Added Methods to CardFrameManager.js
+
+Added two new methods to CardFrameManager.js that delegate to the interaction component:
 
 ```javascript
 /**
- * IMPORTANT: This component is the SINGLE SOURCE OF TRUTH for all health bar styling,
- * dimensions, and positioning. To modify ANY aspect of the health bar, edit the
- * configuration options in THIS file rather than in CardFrameManager.js.
- * 
- * CODE REVIEW GUIDELINE: Any PR that adds health-related configuration to
- * CardFrameManager.js should be rejected. All such configuration belongs here.
+ * Show active turn highlighting for the character
+ * Indicates that it's this character's turn in battle
+ * @param {string} teamType - 'player' or 'enemy' team
+ * @returns {boolean} - Success state
  */
+showActiveTurnHighlight(teamType) {
+    // Delegate to interaction component if available
+    if (this.interactionComponent && typeof this.interactionComponent.showActiveTurnHighlight === 'function') {
+        return this.interactionComponent.showActiveTurnHighlight(teamType);
+    } else {
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): showActiveTurnHighlight called but interactionComponent is not available or lacks method.`);
+        return false;
+    }
+}
+
+/**
+ * Hide active turn highlighting for the character
+ * Used when it's no longer this character's turn
+ * @returns {boolean} - Success state
+ */
+hideActiveTurnHighlight() {
+    // Delegate to interaction component if available
+    if (this.interactionComponent && typeof this.interactionComponent.hideActiveTurnHighlight === 'function') {
+        return this.interactionComponent.hideActiveTurnHighlight();
+    } else {
+        console.warn(`CardFrameManager (${this.config.characterName || 'Unknown'}): hideActiveTurnHighlight called but interactionComponent is not available or lacks method.`);
+        return false;
+    }
+}
 ```
 
-### 4. Removed Commented-Out Properties
+### 2. Added Methods to CardFrame.js
 
-Completely removed all commented-out health bar properties from CardFrameManager and replaced with a clearer directive:
-
-```javascript
-// Changed from:
-// healthBarWidth: 180,        // Width of health bar
-// healthBarHeight: 20,        // Height of health bar
-// healthBarOffsetY: -148,     // Distance from center to health bar
-// showHealthText: true,       // Whether to show health text
-
-// To:
-// NOTE: ALL health bar styling, dimensions, and appearance properties
-// should be configured ONLY in CardFrameHealthComponent.js.
-// DO NOT add any health styling/dimensions properties here.
-```
-
-### 5. Added Warning Comments
-
-Added warning comments in strategic locations to prevent future configuration drift:
+Added corresponding methods to CardFrame.js that delegate to the manager:
 
 ```javascript
 /**
- * Initialize the health component for health bar and health updates.
- * IMPORTANT: All health bar styling, dimensions, and behavior should be configured
- * in CardFrameHealthComponent.js, not here in CardFrameManager.js.
+ * Show active turn highlighting for the character
+ * Indicates that it's this character's turn in battle
+ * @param {string} teamType - 'player' or 'enemy' team
+ * @returns {boolean} - Success state
+ */
+showActiveTurnHighlight(teamType) {
+    try {
+        // If component system is active, delegate to manager
+        if (this.getConfig('useComponentSystem', true) && this.manager) {
+            // Delegate to manager if method exists
+            if (typeof this.manager.showActiveTurnHighlight === 'function') {
+                return this.manager.showActiveTurnHighlight(teamType);
+            } else {
+                console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): Manager exists but has no showActiveTurnHighlight method`);
+            }
+        }
+        
+        // Log warning for delegation failure
+        console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): showActiveTurnHighlight delegation failed, turn highlight will be missing`);
+        return false;
+    } catch (error) {
+        console.error('CardFrame: Error delegating showActiveTurnHighlight:', error);
+        return false;
+    }
+}
+
+/**
+ * Hide active turn highlighting for the character
+ * Used when it's no longer this character's turn
+ * @returns {boolean} - Success state
+ */
+hideActiveTurnHighlight() {
+    try {
+        // If component system is active, delegate to manager
+        if (this.getConfig('useComponentSystem', true) && this.manager) {
+            // Delegate to manager if method exists
+            if (typeof this.manager.hideActiveTurnHighlight === 'function') {
+                return this.manager.hideActiveTurnHighlight();
+            } else {
+                console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): Manager exists but has no hideActiveTurnHighlight method`);
+            }
+        }
+        
+        // Log warning for delegation failure
+        console.warn(`CardFrame (${this.getConfig('characterName', 'Unknown')}): hideActiveTurnHighlight delegation failed, turn highlight will not be removed`);
+        return false;
+    } catch (error) {
+        console.error('CardFrame: Error delegating hideActiveTurnHighlight:', error);
+        return false;
+    }
+}
+```
+
+## Complete Delegation Chain
+
+With these changes, the complete delegation chain is now established:
+
+1. CharacterSprite.highlight() determines team type and calls CardFrame.showActiveTurnHighlight(teamType)
+2. CardFrame.showActiveTurnHighlight() delegates to CardFrameManager.showActiveTurnHighlight()
+3. CardFrameManager.showActiveTurnHighlight() delegates to CardFrameInteractionComponent.showActiveTurnHighlight()
+4. CardFrameInteractionComponent.showActiveTurnHighlight() implements the actual visual effects
+
+The same flow exists for the unhighlight/hideActiveTurnHighlight methods.
+
+## Key Implementation Features
+
+1. **Consistent Error Handling**: Both methods use the established pattern of checking for component/method existence and providing detailed error messages.
+
+2. **Comprehensive Warning Messages**: The delegation methods include clear warning messages that identify which component is missing if delegation fails.
+
+3. **Full Try-Catch Protection**: In CardFrame.js, all methods are wrapped in try-catch blocks to prevent errors from breaking the game logic.
+
+4. **Return Value Propagation**: All methods properly return boolean success values to allow callers to detect failures.
+
+5. **Method Documentation**: Complete JSDoc comments on all methods for consistent code documentation.
+
+## Benefits
+
+1. **Complete Component Chain**: The implementation completes the delegation chain, allowing all components to work together properly.
+
+2. **Error Resolution**: Fixes the TypeError by ensuring all required methods exist in the chain.
+
+3. **Consistent Architecture**: Maintains the established CardFrame component architecture with proper delegation patterns.
+
+4. **Detailed Error Reporting**: Provides detailed warning messages for debugging if any part of the component chain is unavailable.
+
+5. **Modularity**: Preserves the modular nature of the component system, with each component responsible for its specific domain.
+
+## Lessons Learned
+
+1. **Complete Delegation Chains**: When adding new features to a component-based system, all components in the delegation chain must be updated, not just the endpoints.
+
+2. **Consistent Method Signatures**: Maintaining consistent method signatures throughout the delegation chain is critical for proper function.
+
+3. **Error Handling at Every Level**: Each component in the chain needs its own error handling to provide detailed feedback about where issues occur.
+
+4. **Method Documentation**: Properly documenting methods across all components helps maintain consistency in implementation.
+
+5. **Testing the Full Chain**: When implementing new features, it's important to test the entire delegation chain, not just individual components.
+
+## Testing Considerations
+
+To verify the implementation, the following test scenarios should be considered:
+
+1. **Basic Turn Flow**: Ensure that turn indicators appear correctly on the active character and disappear when the turn ends.
+
+2. **Error Recovery**: Test how the system handles cases where one component in the chain is missing or invalid.
+
+3. **Team-Specific Styling**: Verify that player characters show blue highlighting and enemy characters show red highlighting.
+
+4. **Warning Message Clarity**: Check that warning messages clearly indicate which component or method is missing if errors occur.
+
+5. **Backward Compatibility**: Ensure that characters not using the card representation don't experience errors.
+
+
+===== CHANGELOG_0.7.5.2_CharacterSpriteTurnIndicatorIntegration =====
+
+# CHANGELOG 0.7.5.2 - Character Sprite Turn Indicator Integration
+
+## Overview
+This update completes the implementation of the new card frame turn indicator system by connecting the game's existing turn logic to the previously implemented CardFrameInteractionComponent methods. The changes focus on modifying CharacterSprite.js to properly invoke the new turn highlighting methods instead of relying on the now deprecated TurnIndicator system.
+
+## Problem Analysis
+After successfully implementing the new turn indicator functionality in CardFrameInteractionComponent (in version 0.7.5.1), we needed to connect this functionality to the existing game logic that determines whose turn it is. The key challenges were:
+
+1. **Maintaining Existing Logic Flow**: The game already had a well-established event flow (`CHARACTER_ACTION` event â†’ `BattleScene.updateActiveCharacterVisuals()` â†’ `TeamDisplayManager.updateActiveCharacterVisuals()` â†’ `CharacterSprite.highlight()/unhighlight()`). This flow needed to be preserved.
+
+2. **Supporting Both Representations**: While we're transitioning to the card-based representation, the system needed to handle characters regardless of their representation method.
+
+3. **Deprecating Old System**: The previous TurnIndicator system needed to be properly phased out without affecting gameplay.
+
+4. **Team-Specific Styling**: The new turn indicator uses team-specific colors, so the character's team information needed to be properly passed to the highlight method.
+
+## Implementation Solution
+
+### Modified `highlight()` Method
+The `highlight()` method was updated to:
+
+```javascript
+highlight() {
+    try {
+        // If this character is using a card frame, use the new highlight method
+        if (this.cardConfig && this.cardConfig.enabled && this.cardFrame) {
+            // Determine the character's team type (convert to lowercase to match expected parameter)
+            const teamType = this.character?.team?.toLowerCase() || 'player';
+            
+            // Apply the new card frame turn highlight
+            this.cardFrame.showActiveTurnHighlight(teamType);
+            console.log(`CharacterSprite (${this.character?.name}): Applied card frame turn highlight for team ${teamType}.`);
+            return true;
+        } else {
+            // Not using card frame - old turn indicator logic would apply, but is now deprecated
+            console.log(`CharacterSprite (${this.character?.name}): Not a card frame. Old turn indicator logic would apply (now deprecated and removed).`);
+            return false;
+        }
+    } catch (error) {
+        console.error(`CharacterSprite (${this.character?.name}): Error in highlight method:`, error);
+        return false;
+    }
+}
+```
+
+Key aspects of this implementation:
+- Uses a try-catch block for robust error handling
+- Checks if the character is using a card representation
+- Determines the team type from character data
+- Calls the new `showActiveTurnHighlight()` method with the team type
+- Logs appropriate messages for monitoring
+- Returns boolean success value
+
+### Modified `unhighlight()` Method
+Similarly, the `unhighlight()` method was updated to:
+
+```javascript
+unhighlight() {
+    try {
+        // If this character is using a card frame, use the new unhighlight method
+        if (this.cardConfig && this.cardConfig.enabled && this.cardFrame) {
+            // Remove the card frame turn highlight
+            this.cardFrame.hideActiveTurnHighlight();
+            console.log(`CharacterSprite (${this.character?.name}): Removed card frame turn highlight.`);
+            return true;
+        } else {
+            // Not using card frame - old turn indicator logic would apply, but is now deprecated
+            return false;
+        }
+    } catch (error) {
+        console.error(`CharacterSprite (${this.character?.name}): Error in unhighlight method:`, error);
+        return false;
+    }
+}
+```
+
+Key aspects of this implementation:
+- Uses a try-catch block for robust error handling
+- Checks if the character is using a card representation
+- Calls the new `hideActiveTurnHighlight()` method
+- Logs appropriate messages for monitoring
+- Returns boolean success value
+
+### Updated JSDoc Comments
+Both methods received improved JSDoc comments to document their purpose and return values:
+
+```javascript
+/**
+ * Highlight this character as active for its turn
+ * @returns {boolean} True if highlighting was successful, false otherwise
+ */
+
+/**
+ * Remove highlight effect from this character
+ * @returns {boolean} True if unhighlighting was successful, false otherwise
  */
 ```
 
 ## Benefits
 
-1. **True Modularization**: CardFrameHealthComponent is now the definitive source of truth for all health-related functionality.
+1. **Seamless Integration**: The existing turn logic flow is maintained, with only the visual implementation changed.
 
-2. **Proper Configuration Inheritance**: Parent components can override defaults in child components as needed, following standard component patterns.
+2. **Graceful Deprecation**: The old TurnIndicator system is gracefully phased out with appropriate logging.
 
-3. **Consistent Documentation**: Clear guidance across the codebase about where health-related configuration belongs.
+3. **Improved Visual Consistency**: All characters using the card representation now use the same visual style for turn indication.
 
-4. **Future-Proofing**: Strategic warning comments and code review guidelines help prevent configuration drift in the future.
+4. **Team-Specific Styling**: Player and enemy teams now have distinct visual indicators (blue for player, red for enemy).
 
-5. **Improved Font Size Control**: Font size is now properly controlled through configuration, making it easy to adjust.
+5. **Robust Error Handling**: The implementation includes comprehensive error handling to prevent any failures from affecting gameplay.
+
+## Testing Considerations
+
+To verify the implementation, the following test scenarios should be considered:
+
+1. **Basic Turn Flow**: Ensure that turn indicators appear on the correct character when it's their turn.
+
+2. **Mixed Representation Teams**: Test with teams that have both card-based and traditional representations to ensure both work correctly.
+
+3. **Team Coloring**: Verify that player characters show blue highlighting and enemy characters show red highlighting.
+
+4. **Error Recovery**: Test error cases (e.g., by temporarily breaking references) to ensure the error handling works properly.
+
+5. **Visual State Transitions**: Ensure that when a character's turn ends, any previous selection/highlight state is properly restored.
+
+## Future Improvements
+
+1. **Complete Deprecation**: Consider fully removing the old TurnIndicator.js file in a future update once the new system is proven stable.
+
+2. **Enhanced Transitions**: Add smoother transitions between turn changes for better visual feedback.
+
+3. **Sound Integration**: Add audio cues for turn changes to complement the visual indicators.
+
+4. **Accessibility Options**: Consider adding settings to adjust the intensity or type of turn indicators for accessibility.
 
 ## Lessons Learned
 
-1. **Configuration Inheritance Order Matters**: The order of parameters in Object.assign is critical - defaults should be first, followed by specific values that should override those defaults.
+1. **Event-Driven Architecture**: This implementation reinforces the value of the game's event-driven architecture, which made it possible to change the visual representation without modifying the core game logic.
 
-2. **Avoid Hardcoded Values**: Even during development, avoid hardcoding values that should be configurable, as they can easily be overlooked.
+2. **Component Delegation**: By using proper delegation patterns, we were able to add complex visual behaviors through a clean component interface.
 
-3. **Be Explicit About Architecture**: Clear documentation and code review guidelines are essential for maintaining architectural principles, especially in component-based systems.
+3. **Graceful Deprecation**: Rather than removing the old system entirely at once, we followed a pattern of gradual replacement, maintaining backward compatibility during the transition.
 
-4. **Complete Refactoring**: When moving functionality to a component, ensure ALL related code and configuration moves with it, including removing commented-out code from its original location.
+4. **Defensive Programming**: The comprehensive error handling ensures that any issues with the turn indicator won't affect the core gameplay.
 
-5. **Single Source of Truth**: This principle should be explicitly documented and enforced through code organization and review procedures.
-
-## Next Steps
-
-With CardFrameHealthComponent properly established as the single source of truth for health bar styling, we can consider:
-
-1. Applying the same pattern to ensure other components (Visual, Content, Interaction) properly follow the single source of truth principle.
-
-2. Potentially adding gradient fills or other advanced visual enhancements to the health bar now that the configuration system is working properly.
-
-3. Implementing automated tests to verify that configuration values are properly honored throughout the component hierarchy.
-
-
-===== CHANGELOG_0.7.2.8_HealthBarVisualEnhancements =====
-
-# CHANGELOG 0.7.2.8 - Health Bar Visual Enhancements
-
-## Overview
-This update focuses on improving the visual appearance of health bars in the CardFrame component. It adds rounded corners and beveled edges to create a more polished, dimensional look consistent with modern UI design practices. These enhancements make the health bars more visually appealing while maintaining their functionality.
-
-## Problem Analysis
-
-The original health bar implementation in CardFrameHealthComponent had several visual limitations:
-
-1. **Flat Appearance**: The health bar used basic rectangles with sharp corners, giving it a flat, outdated look
-2. **Lack of Dimensionality**: No visual cues provided depth or dimensionality to the UI element
-3. **Sharp Corners**: The rectangular design with 90-degree corners felt rigid compared to modern UI standards
-4. **Basic Implementation**: The code used simple Phaser Rectangle objects which limited styling options
-5. **Animation Limitations**: The animation system was tied directly to Rectangle properties
-
-These issues created a visual disconnect between the polished card frames and their relatively basic health bars, reducing the overall quality perception of the UI.
-
-## Implementation Solution
-
-### 1. Enhanced Configuration
-Added new configuration options to CardFrameHealthComponent:
-```javascript
-healthBarHeight: 14,            // Increased from 12px for better text visibility
-healthBarBorderRadius: 4,       // Rounded corners for health bar
-healthBarBevelWidth: 1,         // Width of the bevel effect
-```
-
-### 2. Graphics-Based Rendering
-Replaced Rectangle objects with Phaser Graphics objects to allow for more complex styling:
-```javascript
-// Create health bar background with rounded corners
-this.healthBarBg = this.scene.add.graphics();
-this.healthBarBg.fillStyle(0x000000, 0.7);
-this.healthBarBg.fillRoundedRect(
-    -this.config.healthBarWidth / 2,
-    -this.config.healthBarHeight / 2,
-    this.config.healthBarWidth,
-    this.config.healthBarHeight,
-    radius
-);
-```
-
-### 3. Beveled Edge Implementation
-Added subtle 3D effect through lighter top/left edges and darker bottom/right edges:
-```javascript
-// Convert health color to RGB components
-const colorObj = Phaser.Display.Color.ValueToColor(healthColor);
-const darkerColor = Phaser.Display.Color.GetColor(
-    Math.max(0, colorObj.r - 50),
-    Math.max(0, colorObj.g - 50),
-    Math.max(0, colorObj.b - 50)
-);
-const lighterColor = Phaser.Display.Color.GetColor(
-    Math.min(255, colorObj.r + 50),
-    Math.min(255, colorObj.g + 50),
-    Math.min(255, colorObj.b + 50)
-);
-```
-
-### 4. Improved Animation System
-Implemented a more robust animation system that redraws graphics during transitions:
-```javascript
-// Create a tween on a dummy object to track progress
-const dummyObj = { progress: 0 };
-this.scene.tweens.add({
-    targets: dummyObj,
-    progress: 1,
-    duration: this._healthAnimDuration,
-    ease: 'Sine.easeOut',
-    onUpdate: () => {
-        // Calculate interpolated values
-        const currentPercent = Phaser.Math.Linear(
-            this._startHealthPercent,
-            this._targetHealthPercent,
-            dummyObj.progress
-        );
-        
-        // Redraw health bar with current values
-        this._updateHealthBarGraphics(currentPercent);
-    }
-});
-```
-
-## Technical Details
-
-### Graphics Redraw Helper Method
-Added a new `_updateHealthBarGraphics` method to handle redrawing during animation:
-```javascript
-_updateHealthBarGraphics(healthPercent) {
-    // Clear existing graphics
-    this.healthBar.clear();
-    
-    // Get configuration values
-    const radius = this.config.healthBarBorderRadius || 3;
-    // [...]
-    
-    // Fill the health bar with rounded corners
-    this.healthBar.fillRoundedRect(
-        -barWidth / 2,
-        -barHeight / 2,
-        adjustedWidth,
-        barHeight,
-        healthPercent < 0.1 ? radius / 2 : radius
-    );
-    
-    // Update bevel graphics
-    // [...]
-}
-```
-
-### Smart Corner Handling
-Implemented adaptive corner radii that account for health percentage:
-- Uses reduced radii for very low health (< 10%) to prevent visual glitches
-- Completely skips rounded corners when health is 0
-- Properly handles the transition between states
-
-### Color Calculation
-Added dynamic color derivation for beveled edges:
-- Calculates darker color (shadow) by reducing RGB values by 50
-- Calculates lighter color (highlight) by increasing RGB values by 50
-- Applies different opacity to each for subtle effect
-
-### Element Naming
-Applied proper element naming to facilitate updates during animation:
-```javascript
-// Create inner bevel with a name
-const innerBevel = this.scene.add.graphics().setName('innerBevel');
-```
-
-## Benefits of This Approach
-
-1. **Improved Visual Quality**: The health bars now have a modern, polished appearance consistent with quality UI design
-2. **Enhanced Depth Perception**: Beveled edges create a subtle 3D effect that makes elements appear more tactile
-3. **Visual Harmony**: Rounded corners align with the card frame's overall design language
-4. **Flexible Animation**: The new animation system supports complex transitions and effects
-5. **Future Extensibility**: The graphics-based approach enables further visual enhancements in the future
-
-## Performance Considerations
-
-The implementation carefully balances visual quality with performance:
-- Uses a single graphics object for the health bar fill to minimize draw calls
-- Avoids excessive effects that would impact performance
-- Properly cleans up and manages resources during animations
-- Uses clipping to ensure efficient rendering
-
-## Next Steps
-
-Future enhancements to the health bar could include:
-1. **Gradient Fill**: Add a subtle vertical gradient for additional dimensionality
-2. **Pattern Overlay**: Implement a faint pattern overlay for added visual interest
-3. **Custom Font Integration**: Replace Arial with a more thematic game font
-4. **Type-Themed Styling**: Match health bar appearance to character type (water, fire, etc.)
-5. **Particle Effects**: Add subtle particle effects on significant health changes
-
-## Testing Recommendations
-
-To verify these changes function correctly, test:
-1. Health increases and decreases with different amounts
-2. Different health percentages (0%, 25%, 50%, 75%, 100%)
-3. Rapid successive health changes
-4. Health transitions at very low percentages
-5. Cards with varying types to ensure consistent appearance
+5. **Clear Visual Language**: The team-specific coloring provides a clearer visual language to distinguish player and enemy actions, improving gameplay clarity.
 
 
