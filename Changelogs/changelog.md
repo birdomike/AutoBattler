@@ -1,3 +1,21 @@
+## Version 0.7.5.11 - Battle Log UI Improvement (2025-05-17)
+
+### Changed
+- Relocated the "Copy Battle Log" button from the bottom Battle Control Panel to the battle log itself
+- Moved pause button outside the battle log frame to a dedicated control bar above the frame
+- Improved visual styling of both battle log control buttons with consistent card-style design
+- Added tooltips to pause and copy buttons for better user experience
+- Enhanced visual feedback when copying the battle log
+
+### Technical
+- Created a dedicated control buttons container to group related battle log controls
+- Improved render process to properly maintain control buttons during log updates
+- Refactored code to follow control proximity design principle (controls near what they affect)
+- Enhanced error handling for copy operations with better fallbacks
+- Removed redundant code from BattleControlPanel
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.5.11_BattleLogUIImprovement.md*
+
 ## 0.7.5.10 - Fixed-Size Battle Log Implementation (2025-05-17)
 
 ### Fixed

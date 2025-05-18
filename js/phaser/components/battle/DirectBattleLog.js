@@ -1,7 +1,7 @@
 /**
  * DirectBattleLog.js
  * A simplified battle log that displays text directly on screen
- * @version 0.6.3.15
+ * @version 0.7.5.11
  */
 class DirectBattleLog {
     constructor(scene, x, y, width, options = {}) {
@@ -81,6 +81,9 @@ class DirectBattleLog {
             // Add control button for pausing message flow
             this.addMessagePauseToggle();
             
+            // Add control button for copying battle log
+            this.addCopyButton();
+            
             // Set up event connection
             this.connectToBattleBridge();
             
@@ -104,6 +107,7 @@ class DirectBattleLog {
     
     /**
      * Add toggle button for pausing/resuming message flow
+     * Positioned in the control buttons container above the battle log frame
      */
     addMessagePauseToggle() {
         try {
@@ -112,48 +116,409 @@ class DirectBattleLog {
                 this.pauseToggle.destroy();
             }
             
-            // Important: Use local coordinates relative to container
-            const toggleButton = this.scene.add.text(
-                this.width - 30, 
-                10,
+            // Create a container for the button
+            const toggleContainer = this.scene.add.container(0, 0);
+            
+            // Button dimensions - square for icons
+            const buttonSize = 30;
+            
+            // Create button background (rounded rectangle)
+            const buttonGraphics = this.scene.add.graphics();
+            buttonGraphics.fillStyle(0x225588, 1);
+            buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+            buttonGraphics.lineStyle(1, 0x3498db, 1);
+            buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+            
+            // Create button icon
+            const iconText = this.scene.add.text(
+                0, 0, 
                 '⏸️',  // Pause icon
                 { 
-                    fontSize: '18px', 
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    padding: { x: 5, y: 5 }
+                    fontFamily: 'Arial', 
+                    fontSize: '20px', 
+                    color: '#FFFFFF',
+                    align: 'center'
                 }
-            )
-            .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
-                try {
-                    this.messageProcessingPaused = !this.messageProcessingPaused;
-                    toggleButton.setText(this.messageProcessingPaused ? '▶️' : '⏸️');
-                    
-                    if (!this.messageProcessingPaused && this.messageQueue.length > 0) {
-                        this.processMessageQueue(); // Resume processing
+            ).setOrigin(0.5, 0.5);
+            
+            // Add graphics and icon to container
+            toggleContainer.add([buttonGraphics, iconText]);
+            
+            // Add tooltip
+            buttonGraphics.on('pointerover', () => {
+                buttonGraphics.clear();
+                buttonGraphics.fillStyle(0x3daddf, 1);
+                buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                buttonGraphics.lineStyle(1, 0x3498db, 1);
+                buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                iconText.setScale(1.05);
+                
+                // Create tooltip
+                if (this.pauseTooltip) {
+                    this.pauseTooltip.destroy();
+                }
+                
+                this.pauseTooltip = this.scene.add.text(
+                    toggleContainer.x,
+                    toggleContainer.y - 30,
+                    this.messageProcessingPaused ? 'Resume Messages' : 'Pause Messages',
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '12px',
+                        color: '#ffffff',
+                        backgroundColor: '#000000',
+                        padding: { x: 5, y: 3 }
                     }
-                } catch (error) {
-                    console.error('Error handling toggle button click:', error);
+                ).setOrigin(0.5, 1)
+                 .setDepth(1000);
+                
+                this.controlButtonsContainer.add(this.pauseTooltip);
+            });
+            
+            buttonGraphics.on('pointerout', () => {
+                buttonGraphics.clear();
+                buttonGraphics.fillStyle(0x225588, 1);
+                buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                buttonGraphics.lineStyle(1, 0x3498db, 1);
+                buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                iconText.setScale(1);
+                
+                if (this.pauseTooltip) {
+                    this.pauseTooltip.destroy();
+                    this.pauseTooltip = null;
                 }
             });
             
-            // Store reference to the button object
-            this.pauseToggle = toggleButton;
+            // Make the button interactive
+            const hitArea = new Phaser.Geom.Rectangle(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize);
+            buttonGraphics.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains)
+                .on('pointerdown', () => {
+                    try {
+                        // Apply button press effect
+                        buttonGraphics.clear();
+                        buttonGraphics.fillStyle(0x1a4266, 1);
+                        buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                        buttonGraphics.lineStyle(1, 0x3498db, 1);
+                        buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                        iconText.setScale(0.95);
+                        
+                        // Toggle pause state
+                        this.messageProcessingPaused = !this.messageProcessingPaused;
+                        iconText.setText(this.messageProcessingPaused ? '▶️' : '⏸️');
+                        
+                        if (!this.messageProcessingPaused && this.messageQueue.length > 0) {
+                            this.processMessageQueue(); // Resume processing
+                        }
+                        
+                        // Play button sound if available
+                        if (window.soundManager) {
+                            window.soundManager.play('click');
+                        }
+                    } catch (error) {
+                        console.error('Error handling toggle button click:', error);
+                    }
+                })
+                .on('pointerup', () => {
+                    buttonGraphics.clear();
+                    buttonGraphics.fillStyle(0x3daddf, 1);
+                    buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                    buttonGraphics.lineStyle(1, 0x3498db, 1);
+                    buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                    iconText.setScale(1.05);
+                });
             
-            // Add to container safely
-            try {
-                if (this.container && this.container.add) {
-                    this.container.add(this.pauseToggle);
-                }
-            } catch (addError) {
-                console.error('Error adding pause button to container:', addError);
-            }
+            // Position the button in the control container (right edge)
+            toggleContainer.x = this.width / 2 - buttonSize - 15; // Positioned at right edge with space for copy button
+            
+            // Store references for updating
+            toggleContainer.graphics = buttonGraphics;
+            toggleContainer.icon = iconText;
+            this.pauseToggle = toggleContainer;
+            
+            // Add to control buttons container
+            this.controlButtonsContainer.add(this.pauseToggle);
             
             return this.pauseToggle;
         } catch (error) {
             console.error('Error creating pause toggle button:', error);
             return null;
         }
+    }
+    
+    /**
+     * Add copy button for copying battle log contents
+     * Positioned in the control buttons container above the battle log frame
+     */
+    addCopyButton() {
+        try {
+            // If we already have a copy button, remove it first
+            if (this.copyButton && this.copyButton.active) {
+                this.copyButton.destroy();
+            }
+            
+            // Create a container for the button
+            const copyContainer = this.scene.add.container(0, 0);
+            
+            // Button dimensions - square for icons
+            const buttonSize = 30;
+            
+            // Create button background (rounded rectangle)
+            const buttonGraphics = this.scene.add.graphics();
+            buttonGraphics.fillStyle(0x225588, 1);
+            buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+            buttonGraphics.lineStyle(1, 0x3498db, 1);
+            buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+            
+            // Create button icon
+            const iconText = this.scene.add.text(
+                0, 0, 
+                '📋',  // Clipboard icon
+                { 
+                    fontFamily: 'Arial', 
+                    fontSize: '20px', 
+                    color: '#FFFFFF',
+                    align: 'center'
+                }
+            ).setOrigin(0.5, 0.5);
+            
+            // Add graphics and icon to container
+            copyContainer.add([buttonGraphics, iconText]);
+            
+            // Add tooltip
+            buttonGraphics.on('pointerover', () => {
+                buttonGraphics.clear();
+                buttonGraphics.fillStyle(0x3daddf, 1);
+                buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                buttonGraphics.lineStyle(1, 0x3498db, 1);
+                buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                iconText.setScale(1.05);
+                
+                // Create tooltip
+                if (this.copyTooltip) {
+                    this.copyTooltip.destroy();
+                }
+                
+                this.copyTooltip = this.scene.add.text(
+                    copyContainer.x,
+                    copyContainer.y - 30,
+                    'Copy Battle Log',
+                    {
+                        fontFamily: 'Arial',
+                        fontSize: '12px',
+                        color: '#ffffff',
+                        backgroundColor: '#000000',
+                        padding: { x: 5, y: 3 }
+                    }
+                ).setOrigin(0.5, 1)
+                 .setDepth(1000);
+                
+                this.controlButtonsContainer.add(this.copyTooltip);
+            });
+            
+            buttonGraphics.on('pointerout', () => {
+                buttonGraphics.clear();
+                buttonGraphics.fillStyle(0x225588, 1);
+                buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                buttonGraphics.lineStyle(1, 0x3498db, 1);
+                buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                iconText.setScale(1);
+                
+                if (this.copyTooltip) {
+                    this.copyTooltip.destroy();
+                    this.copyTooltip = null;
+                }
+            });
+            
+            // Make the button interactive
+            const hitArea = new Phaser.Geom.Rectangle(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize);
+            buttonGraphics.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains)
+                .on('pointerdown', () => {
+                    try {
+                        // Apply button press effect
+                        buttonGraphics.clear();
+                        buttonGraphics.fillStyle(0x1a4266, 1);
+                        buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                        buttonGraphics.lineStyle(1, 0x3498db, 1);
+                        buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                        iconText.setScale(0.95);
+                        
+                        // Play button sound if available
+                        if (window.soundManager) {
+                            window.soundManager.play('click');
+                        }
+                    } catch (error) {
+                        console.error('Error handling copy button press:', error);
+                    }
+                })
+                .on('pointerup', () => {
+                    buttonGraphics.clear();
+                    buttonGraphics.fillStyle(0x3daddf, 1);
+                    buttonGraphics.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                    buttonGraphics.lineStyle(1, 0x3498db, 1);
+                    buttonGraphics.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 4);
+                    iconText.setScale(1.05);
+                    
+                    // Execute copy action
+                    this.copyBattleLog();
+                });
+            
+            // Position the button in the control container (right edge)
+            copyContainer.x = this.width / 2 - 10; // Positioned at right edge
+            
+            // Store references for updating
+            copyContainer.graphics = buttonGraphics;
+            copyContainer.icon = iconText;
+            this.copyButton = copyContainer;
+            
+            // Add to control buttons container
+            this.controlButtonsContainer.add(this.copyButton);
+            
+            return this.copyButton;
+        } catch (error) {
+            console.error('Error creating copy button:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Copy battle log to clipboard
+     */
+    copyBattleLog() {
+        try {
+            if (!this.completeLog || this.completeLog.length === 0) {
+                this.showFloatingMessage('No battle log to copy', 0xffaa00);
+                return;
+            }
+            
+            // Format log text
+            const logText = this.completeLog.map(entry => {
+                // Include turn number for context if available
+                const turnPrefix = entry.turn > 0 ? `[Turn ${entry.turn}] ` : '';
+                return `${turnPrefix}${entry.text}`;
+            }).join('\n');
+            
+            // Copy to clipboard
+            this.copyToClipboard(logText);
+        } catch (error) {
+            console.error('Error copying battle log:', error);
+            this.showFloatingMessage('Error copying log', 0xff0000);
+        }
+    }
+    
+    /**
+     * Copy text to clipboard with fallback
+     */
+    copyToClipboard(text) {
+        // Try using the clipboard API with fallback
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    this.showCopyFeedback(true);
+                })
+                .catch(err => {
+                    console.error('Clipboard API failed:', err);
+                    this.fallbackCopy(text);
+                });
+        } else {
+            this.fallbackCopy(text);
+        }
+    }
+    
+    /**
+     * Fallback copy method using textarea
+     */
+    fallbackCopy(text) {
+        try {
+            // Create temporary textarea element
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed'; // Avoid scrolling to bottom
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            // Execute copy command
+            const successful = document.execCommand('copy');
+            this.showCopyFeedback(successful);
+            
+            // Clean up
+            document.body.removeChild(textArea);
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+            this.showFloatingMessage('Copy failed', 0xff0000);
+        }
+    }
+    
+    /**
+     * Show visual feedback when copy succeeds
+     */
+    showCopyFeedback(success) {
+        if (success) {
+            // Flash the copy button
+            if (this.copyButton && this.copyButton.graphics) {
+                // Store original color
+                const originalFillColor = this.copyButton.graphics.fillStyle;
+                
+                // Change to success color
+                this.copyButton.graphics.clear();
+                this.copyButton.graphics.fillStyle(0x48bb78, 1); // Green success color
+                this.copyButton.graphics.fillRoundedRect(-15, -15, 30, 30, 4);
+                this.copyButton.graphics.lineStyle(1, 0x3498db, 1);
+                this.copyButton.graphics.strokeRoundedRect(-15, -15, 30, 30, 4);
+                
+                // Show "Copied!" message
+                this.showFloatingMessage('Battle log copied!', 0x48bb78);
+                
+                // Reset button color after delay
+                this.scene.time.delayedCall(1000, () => {
+                    if (this.copyButton && this.copyButton.graphics) {
+                        this.copyButton.graphics.clear();
+                        this.copyButton.graphics.fillStyle(0x225588, 1);
+                        this.copyButton.graphics.fillRoundedRect(-15, -15, 30, 30, 4);
+                        this.copyButton.graphics.lineStyle(1, 0x3498db, 1);
+                        this.copyButton.graphics.strokeRoundedRect(-15, -15, 30, 30, 4);
+                    }
+                });
+            } else {
+                this.showFloatingMessage('Battle log copied!', 0x48bb78);
+            }
+        } else {
+            // Show error message
+            this.showFloatingMessage('Failed to copy', 0xff0000);
+        }
+    }
+    
+    /**
+     * Show a floating message above the battle log
+     * @param {string} message - The message to display
+     * @param {number} color - Text color (hex)
+     */
+    showFloatingMessage(message, color = 0xffffff) {
+        const text = this.scene.add.text(
+            this.width / 2, -40, 
+            message, 
+            { 
+                fontFamily: 'Arial', 
+                fontSize: '14px', 
+                color: `#${color.toString(16).padStart(6, '0')}`,
+                stroke: '#000000',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5, 0.5);
+        
+        this.container.add(text);
+        
+        // Animate the message
+        this.scene.tweens.add({
+            targets: text,
+            y: -60,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Power2',
+            onComplete: () => {
+                text.destroy();
+            }
+        });
     }
     
     /**
@@ -729,13 +1094,13 @@ class DirectBattleLog {
         let totalHeightNeeded = 0;
         
         try {
-            // Store current pause button state and position
-            const pauseToggleState = this.messageProcessingPaused;
-            const hadPauseToggle = !!this.pauseToggle;
+            // Store control buttons container to preserve it
+            const controlButtons = this.controlButtonsContainer;
+            const pauseState = this.messageProcessingPaused;
             
-            // Remove the pause toggle from the container temporarily (without destroying it)
-            if (this.pauseToggle) {
-                this.container.remove(this.pauseToggle, false); // false = don't destroy
+            // Temporarily remove control buttons container from main container
+            if (controlButtons) {
+                this.container.remove(controlButtons, false); // false = don't destroy
             }
             
             // Now safely clear the container - this destroys all child objects including our frame elements
@@ -747,26 +1112,33 @@ class DirectBattleLog {
             // Legacy background reference
             this.background = this.backdrop;
             
-            // Readd the pause toggle if it existed, or create a new one
-            if (hadPauseToggle && this.pauseToggle && !this.pauseToggle.destroyed) {
-                // Re-add the existing toggle
-                this.container.add(this.pauseToggle);
-                // Ensure correct state is displayed
-                this.pauseToggle.setText(pauseToggleState ? '\u25b6\ufe0f' : '\u23f8\ufe0f');
+            // Re-add control buttons container if it existed
+            if (controlButtons && !controlButtons.destroyed) {
+                this.controlButtonsContainer = controlButtons;
+                this.container.add(this.controlButtonsContainer);
             } else {
-                // Create a new toggle if needed
+                // If container was somehow destroyed, recreate it
+                this.controlButtonsContainer = this.scene.add.container(0, -30);
+                this.container.add(this.controlButtonsContainer);
+                
+                // Also recreate the buttons
                 this.addMessagePauseToggle();
-                if (this.pauseToggle && pauseToggleState) {
-                    // Restore previous pause state
-                    this.messageProcessingPaused = pauseToggleState;
-                    this.pauseToggle.setText('\u25b6\ufe0f');
-                }
+                this.addCopyButton();
+            }
+            
+            // Ensure pause state is maintained
+            if (this.pauseToggle && this.pauseToggle.icon) {
+                this.messageProcessingPaused = pauseState;
+                this.pauseToggle.icon.setText(pauseState ? '▶️' : '⏸️');
             }
         } catch (error) {
             console.error('Error in renderMessages preparations:', error);
-            // If we encounter an error, try to recover by recreating the toggle
-            if (!this.pauseToggle || this.pauseToggle.destroyed) {
+            // If we encounter an error, try to recover by recreating the control buttons
+            if (!this.controlButtonsContainer || this.controlButtonsContainer.destroyed) {
+                this.controlButtonsContainer = this.scene.add.container(0, -30);
+                this.container.add(this.controlButtonsContainer);
                 this.addMessagePauseToggle();
+                this.addCopyButton();
             }
         }
         
@@ -880,11 +1252,11 @@ class DirectBattleLog {
             // Add animation for the most recent message if requested
             if (animate && messagesToShow.length > 0 && this.container) {
                 try {
-                    // Find the most recent text object (it might not be the last one due to pause button)
+                    // Find the most recent text object (it might not be the last one due to control buttons)
                     let lastMessageText = null;
                     for (let i = this.container.length - 1; i >= 0; i--) {
                         const obj = this.container.getAt(i);
-                        if (obj && obj.type === 'Text' && obj !== this.pauseToggle) {
+                        if (obj && obj.type === 'Text' && obj !== this.pauseToggle && obj !== this.nameplateText) {
                             lastMessageText = obj;
                             break;
                         }
@@ -908,12 +1280,12 @@ class DirectBattleLog {
                 }
             }
             
-            // Make sure pause toggle is at the front
-            if (this.pauseToggle && this.container) {
+            // Make sure control buttons container is at the front
+            if (this.controlButtonsContainer && this.container) {
                 try {
-                    this.container.bringToTop(this.pauseToggle);
+                    this.container.bringToTop(this.controlButtonsContainer);
                 } catch (error) {
-                    console.error('Error bringing pause toggle to top:', error);
+                    console.error('Error bringing control buttons to top:', error);
                 }
             }
         } catch (renderError) {
@@ -952,6 +1324,12 @@ class DirectBattleLog {
         if (this.nameplateText) {
             this.nameplateText.destroy();
             this.nameplateText = null;
+        }
+        
+        // Clean up control buttons
+        if (this.controlButtonsContainer) {
+            this.controlButtonsContainer.destroy();
+            this.controlButtonsContainer = null;
         }
         
         // Destroy container which will clean up any remaining child objects
