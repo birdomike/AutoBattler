@@ -1,4 +1,19 @@
-## [Latest] - 2025-05-18
+## [0.7.7.1] - 2025-05-18
+### Fixed
+- Fixed "Sound key not found in Phaser audio cache" errors by implementing Tier 4 default ability sound loading
+- Updated AudioAssetMappings.js to use Generic_Cast.wav as universal fallback for all ability events (cast, impact, effect, projectile)
+- Removed placeholder entries for abilities without actual sound files (drakarion_flame_strike, lumina_divine_protection)
+
+### Technical
+- Implemented missing Tier 4 loading logic in SoundAssetLoader.loadAbilitySounds() method
+- All abilities now properly fall back to Generic_Cast.wav when specific sounds are not available
+- 4-tier audio resolution system now fully functional with complete asset loading coverage
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.1_Tier4AbilitySoundLoading.md*
+
+---
+
+## [0.7.7.0] - 2025-05-18
 ### Fixed
 - Fixed Tier 1 ability sound resolution by adding `abilityId` property to CHARACTER_ACTION events
 - SoundEventHandler.js can now properly receive the actual ability ID (e.g., "zephyr_wind_slash") instead of just the display name (e.g., "Wind Slash")

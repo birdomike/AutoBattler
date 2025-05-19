@@ -273,8 +273,21 @@ export class SoundAssetLoader {
                 console.warn('[SoundAssetLoader] AudioAssetMappings.abilities not available for Tier 1 loading.');
             }
             
-            // --- Placeholder for Tier 4 loading logic to be added later ---
-            // console.log('[SoundAssetLoader] Tier 4 default ability sound loading would go here.');
+            // Load from defaults.abilities mappings in AudioAssetMappings (Tier 4)
+            if (AudioAssetMappings && AudioAssetMappings.defaults && AudioAssetMappings.defaults.abilities) {
+                console.log('[SoundAssetLoader] Processing Tier 4: Default ability sounds');
+                for (const [eventType, eventData] of Object.entries(AudioAssetMappings.defaults.abilities)) {
+                    if (eventData.path) {
+                        const pathToLoad = eventData.path;
+                        const keyToLoad = this.generateSoundKey(eventData.path);
+                        console.log(`[SoundAssetLoader]   Tier 4 Event: '${eventType}', Path: '${eventData.path}', Key: '${keyToLoad}'`);
+                        // Load the default ability sound
+                        promises.push(this.loadSoundGroup(`default_ability_${eventType}`, [eventData.path]));
+                    }
+                }
+            } else {
+                console.warn('[SoundAssetLoader] AudioAssetMappings.defaults.abilities not available for Tier 4 loading.');
+            }
             
             await Promise.all(promises);
             
