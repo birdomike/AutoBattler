@@ -437,6 +437,26 @@ export default class BattleScene extends Phaser.Scene {
             // Initialize sound event handler
             this.soundEventHandler = new SoundEventHandler(this.soundManager);
             
+            // Validate all characters for sound system compatibility
+            console.log('[BattleScene] 🔍 VALIDATING CHARACTER SOUND DATA...');
+            const validateCharacterSounds = (teamName, characters) => {
+                characters.forEach((char, index) => {
+                    const issues = [];
+                    if (!char.autoAttackType) issues.push('MISSING autoAttackType');
+                    if (!char.name) issues.push('MISSING name');
+                    
+                    if (issues.length > 0) {
+                        console.error(`[BattleScene] ❌ ${teamName} Character ${index + 1} (${char.name || 'UNNAMED'}): ${issues.join(', ')}`);
+                    } else {
+                        console.log(`[BattleScene] ✅ ${teamName} Character: ${char.name} (${char.autoAttackType})`);
+                    }
+                });
+            };
+            
+            if (this.playerTeam) validateCharacterSounds('PLAYER', this.playerTeam);
+            if (this.enemyTeam) validateCharacterSounds('ENEMY', this.enemyTeam);
+            console.log('[BattleScene] 🔍 CHARACTER VALIDATION COMPLETE');
+            
             // Register sound event handler with BattleEventManager
             if (this.eventManager) {
                 // Register for CHARACTER_ACTION events (primary focus for Phase 1)

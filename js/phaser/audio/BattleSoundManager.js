@@ -24,7 +24,46 @@ export class BattleSoundManager {
         // Debug mode for testing
         this.debugMode = true; // Enable debug mode by default for troubleshooting
         
+        // Audio context suspension handling
+        this.audioContextResumed = false;
+        this.setupAudioContextHandler();
+        
         console.log('[BattleSoundManager] Initialized sound manager for battle scene');
+    }
+    
+    /**
+     * Setup audio context resumption on user interaction
+     * This handles browser autoplay policy that suspends audio context
+     */
+    setupAudioContextHandler() {
+        const resumeAudioContext = async () => {
+            try {
+                if (this.scene.sound.context) {
+                    if (this.scene.sound.context.state === 'suspended') {
+                        await this.scene.sound.context.resume();
+                        console.log('[BattleSoundManager] Audio context resumed on user interaction');
+                    }
+                    this.audioContextResumed = true;
+                    
+                    // Remove the event listeners once resumed
+                    this.scene.input.off('pointerdown', resumeAudioContext);
+                    document.removeEventListener('click', resumeAudioContext);
+                    document.removeEventListener('keydown', resumeAudioContext);
+                }
+            } catch (error) {
+                console.error('[BattleSoundManager] Error resuming audio context:', error);
+            }
+        };
+        
+        // Set up multiple event listeners to catch user interaction
+        this.scene.input.on('pointerdown', resumeAudioContext);
+        document.addEventListener('click', resumeAudioContext);
+        document.addEventListener('keydown', resumeAudioContext);
+        
+        // Check initial audio context state
+        if (this.scene.sound.context) {
+            console.log('[BattleSoundManager] Initial audio context state:', this.scene.sound.context.state);
+        }
     }
     
     /**
@@ -105,6 +144,12 @@ export class BattleSoundManager {
         try {
             if (!soundResult || !soundResult.fullPath) {
                 console.warn('[BattleSoundManager] Cannot play sound - no valid sound result provided');
+                return false;
+            }
+            
+            // Check audio context state
+            if (this.scene.sound.context && this.scene.sound.context.state === 'suspended') {
+                console.warn('[BattleSoundManager] Audio context is suspended - user interaction required to resume audio');
                 return false;
             }
             
@@ -262,6 +307,13 @@ export class BattleSoundManager {
             
             // Clear cache
             this.loadedSounds.clear();
+            
+            // Clean up audio context event listeners
+            if (this.scene && this.scene.input) {
+                this.scene.input.removeAllListeners('pointerdown');
+            }
+            document.removeEventListener('click', this.resumeAudioContext);
+            document.removeEventListener('keydown', this.resumeAudioContext);
             
             console.log('[BattleSoundManager] Sound manager destroyed and resources cleaned up');
         } catch (error) {

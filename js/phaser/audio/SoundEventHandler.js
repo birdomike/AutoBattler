@@ -124,7 +124,25 @@ export class SoundEventHandler {
         try {
             const attackType = character.autoAttackType;
             
-            if (!attackType || !this.timingConfig[attackType]) {
+            // ENHANCED DEBUG: Character data validation
+            console.log(`[SoundEventHandler] 🎭 PROCESSING AUTO-ATTACK:`, {
+                character: character.name,
+                autoAttackType: attackType,
+                hasAutoAttackType: !!attackType,
+                characterData: {
+                    name: character.name,
+                    type: character.type,
+                    role: character.role,
+                    autoAttackType: character.autoAttackType
+                }
+            });
+            
+            if (!attackType) {
+                console.error(`[SoundEventHandler] ❌ MISSING autoAttackType for ${character.name}! This character will have no sounds.`);
+                return false;
+            }
+            
+            if (!this.timingConfig[attackType]) {
                 console.warn(`[SoundEventHandler] Unknown auto-attack type: ${attackType} for character ${character.name}`);
                 return false;
             }
@@ -142,17 +160,15 @@ export class SoundEventHandler {
                 this.scheduleDelayedSound(character, 'impact', timing.impact.delay);
                 
                 if (this.debugMode) {
-                    console.log(`[SoundEventHandler] Scheduled melee impact for ${character.name} with ${timing.impact.delay}ms delay`);
+                    console.log(`[SoundEventHandler] 🛡️ MELEE: Scheduled impact for ${character.name} with ${timing.impact.delay}ms delay`);
                 }
                 
             } else if (attackType === 'ranged') {
                 // Ranged: Immediate release sound when projectile fires
-                this.playCharacterSound(character, 'release');
-                
-                // Note: Impact sound will be handled by projectile system in future phases
+                const success = this.playCharacterSound(character, 'release');
                 
                 if (this.debugMode) {
-                    console.log(`[SoundEventHandler] Played ranged release for ${character.name}`);
+                    console.log(`[SoundEventHandler] 🏹 RANGED: ${success ? 'SUCCESS' : 'FAILED'} playing release for ${character.name}`);
                 }
             }
             
@@ -261,10 +277,24 @@ export class SoundEventHandler {
                 clearTimeout(this.delayedSounds.get(characterKey));
             }
             
-            // Schedule the new sound
-            const timeoutId = setTimeout(() => {
-                this.playCharacterSound(character, event);
-                this.delayedSounds.delete(characterKey);
+            // Schedule the new sound with audio context resumption
+            const timeoutId = setTimeout(async () => {
+                try {
+                    // CRITICAL FIX: Resume audio context if suspended before playing delayed sound
+                    if (this.soundManager.scene.sound.context && 
+                        this.soundManager.scene.sound.context.state === 'suspended') {
+                        console.log(`[SoundEventHandler] ⚡ Resuming suspended audio context for delayed ${event} sound (${character.name})`);
+                        await this.soundManager.scene.sound.context.resume();
+                    }
+                    
+                    // Play the scheduled sound
+                    this.playCharacterSound(character, event);
+                } catch (error) {
+                    console.error(`[SoundEventHandler] Error playing delayed sound for ${character.name}:`, error);
+                } finally {
+                    // Always clean up the timeout reference
+                    this.delayedSounds.delete(characterKey);
+                }
             }, delay);
             
             // Store the timeout ID for potential cancellation

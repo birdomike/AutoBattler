@@ -1,3 +1,27 @@
+## [Latest] - 2025-05-18
+### Fixed
+- Fixed audio context suspension during delayed sounds (melee attacks)
+  - Added audio context resumption logic in SoundEventHandler.js for delayed sound playback
+  - Prevented audio context suspension from stopping all subsequent sounds
+- Fixed default ranged sound configuration in AudioAssetMappings.js
+  - Changed `defaults.autoAttack.ranged.release.path` from directory to specific file
+  - Resolves sound not found errors for characters using default ranged sounds
+- Added Zephyr to sword_melee_genre sound profile in AbilityAnimationConfig.js
+  - Prevents Zephyr from falling back to problematic default sounds
+  - Ensures consistent sword attack sounds for all melee fighters
+
+### Improved
+- Enhanced audio context monitoring with state change listeners in SoundEventHandler.js
+- Added detailed debug logging for audio context state changes
+- Improved error handling for delayed sound playback with comprehensive try-catch blocks
+
+### Technical
+- Audio system now automatically resumes suspended audio context before playing delayed sounds
+- All melee characters now properly mapped to appropriate sound profiles
+- Fixed timing issue where setTimeout callbacks would fail due to suspended audio context
+
+*Note: For detailed information on specific implementation steps, see previous technical changelogs*
+
 ## [0.7.6.6] - 2025-05-18
 ### 🔊 Fixed - Phase 1 Sound System Critical Error Resolution
 - **EventEmitter Interface Implementation**: Added `on()`, `off()`, and `emit()` methods to BattleEventManager.js

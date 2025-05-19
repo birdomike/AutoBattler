@@ -268,6 +268,7 @@ export const AbilityAnimationConfig = {
     'drakarion': 'genre_specific/sword_melee_genre',   // Fire warrior with sword
     'caste': 'genre_specific/sword_melee_genre',       // Metal berserker with sword
     'vaelgor': 'genre_specific/sword_melee_genre',     // Dark sentinel with sword
+    'zephyr': 'genre_specific/sword_melee_genre',      // Air assassin with melee attacks
     'aqualia': 'genre_specific/frost_caster',          // Water/Ice mage (ice sounds for water magic)
     'nyria': 'genre_specific/frost_caster',            // Storm elementalist (ice sounds for storm magic)
     'zara': 'genre_specific/fire_caster',              // Fire mage character (if exists)
@@ -277,8 +278,7 @@ export const AbilityAnimationConfig = {
     'sylvanna': 'character_specific/sylvanna',         // Nature ranger with unique bow sounds
     
     // Default fallbacks (will use default sounds)
-    'lumina': null,                                    // Light cleric - uses default sounds
-    'zephyr': null                                     // Air assassin - uses default sounds (could add genre_specific/wind_assassin later)
+    'lumina': null                                     // Light cleric - uses default sounds
   },
 
   // ============ INFERENCE SYSTEM RULES ============

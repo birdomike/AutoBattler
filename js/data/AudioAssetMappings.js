@@ -24,16 +24,12 @@ export const AudioAssetMappings = {
       },
       ranged: {
         release: {
-          path: 'defaults/auto_attacks/ranged_release/',
-          files: ['Bow Attack 1.wav'],
-          variations: false,
-          randomSelect: false
+          path: 'defaults/auto_attacks/ranged_release/Bow Attack 1.wav',
+          variations: false
         },
         impact: {
-          path: 'defaults/auto_attacks/ranged_impact/',
-          files: ['Bow Impact Hit 1.wav'],
-          variations: false,
-          randomSelect: false
+          path: 'defaults/auto_attacks/ranged_impact/Bow Impact Hit 1.wav',
+          variations: false
         }
       }
     },
