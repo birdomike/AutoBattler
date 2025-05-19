@@ -13,6 +13,10 @@ export class SoundEventHandler {
         this.soundManager = battleSoundManager;
         this.delayedSounds = new Map(); // For managing scheduled sounds with timeouts
         
+        // Import AudioAssetMappings dynamically to avoid circular dependencies
+        this.audioMappings = null;
+        this.loadAudioMappings();
+        
         // Timing configuration for different attack types
         this.timingConfig = {
             melee: {
@@ -47,6 +51,25 @@ export class SoundEventHandler {
         }
         
         console.log('[SoundEventHandler] Initialized sound event handler');
+    }
+    
+    /**
+     * Dynamically load AudioAssetMappings to avoid circular dependencies
+     * @private
+     */
+    async loadAudioMappings() {
+        try {
+            const module = await import('../../data/AudioAssetMappings.js');
+            this.audioMappings = module.AudioAssetMappings;
+            console.log('[SoundEventHandler] AudioAssetMappings loaded successfully');
+        } catch (error) {
+            console.error('[SoundEventHandler] Failed to load AudioAssetMappings:', error);
+            // Fallback to global if available
+            if (window.AudioAssetMappings) {
+                this.audioMappings = window.AudioAssetMappings;
+                console.log('[SoundEventHandler] Using global AudioAssetMappings as fallback');
+            }
+        }
     }
     
     /**
@@ -186,48 +209,86 @@ export class SoundEventHandler {
      * @returns {boolean} Success state
      */
     handleAbilityAction(character, action) {
+        console.log('[SoundEventHandler] === ABILITY ACTION DEBUG START ===');
+        
         try {
-            // Get ability ID from action data
-            const abilityId = action.abilityId || action.id || action.name;
+            // Get ability ID from action data - use the correct property for sound lookup
+            const actualAbilityId = action.abilityId || action.id; // This should give us 'zephyr_wind_slash'
+            const eventCue = 'cast'; // Default to 'cast' for now
             
-            if (this.debugMode) {
-                console.log(`[SoundEventHandler] 🌟 PROCESSING ABILITY: ${abilityId} for ${character.name}`);
-            }
+            // Enhanced logging for resolution debugging
+            console.log(`[SoundEventHandler] 🌟 PROCESSING ABILITY:`);
+            console.log(`  Character: ${character.name}`);
+            console.log(`  Action object:`, action);
+            console.log(`  Extracted abilityId for sound lookup: '${actualAbilityId}'`);
+            console.log(`  Event cue to use: '${eventCue}'`);
             
-            if (!abilityId) {
-                console.warn(`[SoundEventHandler] No ability ID found in action:`, action);
+            if (!actualAbilityId) {
+                console.error(`[SoundEventHandler] ❌ No ability ID found in action:`, action);
+                console.log('[SoundEventHandler] === ABILITY ACTION DEBUG END ===');
                 return false;
             }
             
-            // Import AudioAssetMappings for ability sound resolution
-            // Note: This assumes AudioAssetMappings is available globally
-            if (typeof AudioAssetMappings === 'undefined' && window.AudioAssetMappings) {
-                window.AudioAssetMappings = AudioAssetMappings;
+            // Check AudioAssetMappings availability
+            let soundToPlay = null;
+            if (this.audioMappings && this.audioMappings.helpers) {
+                console.log('[SoundEventHandler] ✅ AudioAssetMappings is available');
+                
+                // Try Tier 1 resolution first
+                soundToPlay = this.audioMappings.helpers.getAbilitySound(actualAbilityId, eventCue);
+                console.log('[SoundEventHandler] Result from AudioAssetMappings.helpers.getAbilitySound():', soundToPlay);
+            } else {
+                console.error('[SoundEventHandler] ❌ AudioAssetMappings or its helpers are not available!');
+                console.log('[SoundEventHandler] === ABILITY ACTION DEBUG END ===');
+                return false;
             }
             
-            // Get ability cast sound using 4-tier resolution
-            const castSound = this.soundManager.resolve4TierSound({
-                type: 'ability',
-                abilityId: abilityId,
-                event: 'cast'
-            });
+            // Fallback to Tier 4 default if Tier 1 not found
+            if (!soundToPlay && this.audioMappings && this.audioMappings.helpers) {
+                console.log(`[SoundEventHandler] Tier 1 sound for '${actualAbilityId}' ('${eventCue}') not found. Attempting Tier 4 default.`);
+                
+                // For now, let's manually get the default ability sound since getDefaultAbilitySound might not exist yet
+                soundToPlay = this.audioMappings.helpers.resolveSound({
+                    type: 'ability',
+                    event: eventCue,
+                    abilityId: null // This will force it to use defaults
+                });
+                console.log('[SoundEventHandler] Result from Tier 4 fallback:', soundToPlay);
+            }
             
-            if (castSound) {
-                const success = this.soundManager.playSound(castSound, 'abilities');
+            if (soundToPlay && (soundToPlay.fullPath || soundToPlay.path)) {
+                // TODO: Implement timing retrieval here later
+                const delay = 0; // Placeholder for now
                 
-                if (this.debugMode) {
-                    console.log(`[SoundEventHandler] ${success ? '✅ SUCCESS' : '❌ FAILED'} playing ability sound: ${castSound.fullPath}`);
+                // Generate expected cache key for verification
+                const soundPath = soundToPlay.fullPath || soundToPlay.path;
+                const expectedCacheKey = soundPath.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                console.log(`[SoundEventHandler] 🔑 Expected cache key: '${expectedCacheKey}'`);
+                
+                if (delay > 0) {
+                    this.scene.time.delayedCall(delay, () => {
+                        const success = this.soundManager.playSound(soundToPlay, 'abilities');
+                        console.log(`[SoundEventHandler] ${success ? '✅' : '❌'} Delayed play result for ${actualAbilityId}`);
+                    });
+                } else {
+                    const success = this.soundManager.playSound(soundToPlay, 'abilities');
+                    console.log(`[SoundEventHandler] ${success ? '✅' : '❌'} Immediate play result for ${actualAbilityId}`);
                 }
                 
-                return success;
+                console.log(`[SoundEventHandler] ✅ Attempting to play sound for ${actualAbilityId} ('${eventCue}'): ${soundPath}`);
+                console.log('[SoundEventHandler] === ABILITY ACTION DEBUG END ===');
+                return true;
             } else {
-                if (this.debugMode) {
-                    console.warn(`[SoundEventHandler] No sound resolved for ability: ${abilityId}`);
+                console.warn(`[SoundEventHandler] ❌ No sound found (Tier 1 or Tier 4) for ability: '${actualAbilityId}', event: '${eventCue}'.`);
+                if (soundToPlay) {
+                    console.warn('[SoundEventHandler] Invalid soundToPlay object:', soundToPlay);
                 }
+                console.log('[SoundEventHandler] === ABILITY ACTION DEBUG END ===');
                 return false;
             }
         } catch (error) {
-            console.error(`[SoundEventHandler] Error handling ability action:`, error);
+            console.error(`[SoundEventHandler] ❌ Error handling ability action:`, error);
+            console.log('[SoundEventHandler] === ABILITY ACTION DEBUG END ===');
             return false;
         }
     }

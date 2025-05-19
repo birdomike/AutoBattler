@@ -1,5 +1,17 @@
 ## [Latest] - 2025-05-18
 ### Fixed
+- Fixed Tier 1 ability sound resolution by adding `abilityId` property to CHARACTER_ACTION events
+- SoundEventHandler.js can now properly receive the actual ability ID (e.g., "zephyr_wind_slash") instead of just the display name (e.g., "Wind Slash")
+- Zephyr's Wind Slash ability should now play its specific sound from ability_specific/Zephyr/Wind_Slash.mp3
+
+### Technical
+- Modified BattleFlowController.js executeNextAction() method to include `abilityId: action.ability.id` in the action object being dispatched
+- This enables proper Tier 1 sound resolution in the 4-tier audio system
+
+---
+
+## [0.7.5.14] - 2025-05-18
+### Fixed
 - Fixed audio context suspension during delayed sounds (melee attacks)
   - Added audio context resumption logic in SoundEventHandler.js for delayed sound playback
   - Prevented audio context suspension from stopping all subsequent sounds

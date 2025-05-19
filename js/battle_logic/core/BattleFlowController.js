@@ -463,6 +463,7 @@ class BattleFlowController {
                             actionType: 'ability', // Ensure both type and actionType are set for consistency
                             name: action.ability.name,
                             abilityName: action.ability.name,
+                            abilityId: action.ability.id, // Add the actual ability ID for sound resolution
                             target: action.target
                         }
                     });

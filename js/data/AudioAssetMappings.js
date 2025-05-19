@@ -173,33 +173,45 @@ export const AudioAssetMappings = {
       const { type, event, abilityId, characterKey, autoAttackType } = context;
       
       try {
+        console.log(`[AudioAssetMappings.resolveSound] === 4-TIER RESOLUTION DEBUG ===`);
+        console.log(`  Input context:`, context);
+        
         // 1. Ability-specific (highest priority)
         if (type === 'ability' && abilityId && AudioAssetMappings.abilities[abilityId]?.[event]) {
-          return this.buildSoundResult(AudioAssetMappings.abilities[abilityId][event]);
+          console.log(`  ✅ TIER 1 HIT: Found ability-specific sound for '${abilityId}.${event}'`);
+          const result = this.buildSoundResult(AudioAssetMappings.abilities[abilityId][event]);
+          console.log(`  Built result from Tier 1:`, result);
+          return result;
         }
+        console.log(`  ❌ TIER 1 MISS: No ability-specific sound for '${abilityId}.${event}'`);
         
         // 2. Character-specific (high priority)
         if (type === 'autoAttack' && characterKey?.startsWith('character_specific/')) {
           const charName = characterKey.split('/')[1];
           if (AudioAssetMappings.character_specific[charName]?.autoAttack?.[autoAttackType]?.[event]) {
+            console.log(`  ✅ TIER 2 HIT: Found character-specific sound`);
             return this.buildSoundResult(
               AudioAssetMappings.character_specific[charName].autoAttack[autoAttackType][event]
             );
           }
         }
+        console.log(`  ❌ TIER 2 MISS: No character-specific sound`);
         
         // 3. Genre-specific (medium priority)
         if (type === 'autoAttack' && characterKey?.startsWith('genre_specific/')) {
           const genreName = characterKey.split('/')[1];
           if (AudioAssetMappings.genre_specific[genreName]?.autoAttack?.[autoAttackType]?.[event]) {
+            console.log(`  ✅ TIER 3 HIT: Found genre-specific sound`);
             return this.buildSoundResult(
               AudioAssetMappings.genre_specific[genreName].autoAttack[autoAttackType][event]
             );
           }
         }
+        console.log(`  ❌ TIER 3 MISS: No genre-specific sound`);
         
         // 4. Defaults (lowest priority)
         if (type === 'autoAttack' && AudioAssetMappings.defaults.autoAttack?.[autoAttackType]?.[event]) {
+          console.log(`  ✅ TIER 4 HIT: Found default auto-attack sound`);
           return this.buildSoundResult(
             AudioAssetMappings.defaults.autoAttack[autoAttackType][event]
           );
@@ -207,8 +219,12 @@ export const AudioAssetMappings = {
         
         // 5. Ultimate fallback for abilities
         if (type === 'ability' && AudioAssetMappings.defaults.abilities?.[event]) {
-          return this.buildSoundResult(AudioAssetMappings.defaults.abilities[event]);
+          console.log(`  ✅ TIER 4 HIT: Found default ability sound for '${event}'`);
+          const result = this.buildSoundResult(AudioAssetMappings.defaults.abilities[event]);
+          console.log(`  Built result from Tier 4:`, result);
+          return result;
         }
+        console.log(`  ❌ TIER 4 MISS: No default ability sound for '${event}'`);
         
         console.warn(`AudioAssetMappings: Could not resolve sound for`, context);
         return null;
@@ -274,11 +290,30 @@ export const AudioAssetMappings = {
      * @returns {Object|null} Sound result object
      */
     getAbilitySound(abilityId, event) {
-      return this.resolveSound({
+      console.log('[AudioAssetMappings.helpers.getAbilitySound] === RESOLUTION DEBUG START ===');
+      console.log(`  abilityId received: '${abilityId}'`);
+      console.log(`  event received: '${event}'`);
+      
+      // Check if abilityId exists in abilities mapping
+      console.log(`  AudioAssetMappings.abilities['${abilityId}'] exists:`, !!AudioAssetMappings.abilities[abilityId]);
+      if (AudioAssetMappings.abilities[abilityId]) {
+        console.log(`  AudioAssetMappings.abilities['${abilityId}']['${event}'] exists:`, !!AudioAssetMappings.abilities[abilityId][event]);
+        if (AudioAssetMappings.abilities[abilityId][event]) {
+          console.log(`  Found Tier 1 ability mapping:`, AudioAssetMappings.abilities[abilityId][event]);
+        }
+      }
+      
+      // Call the main resolution logic
+      const result = this.resolveSound({
         type: 'ability',
         event: event,
         abilityId: abilityId
       });
+      
+      console.log(`  Final resolution result:`, result);
+      console.log('[AudioAssetMappings.helpers.getAbilitySound] === RESOLUTION DEBUG END ===');
+      
+      return result;
     },
 
     /**
