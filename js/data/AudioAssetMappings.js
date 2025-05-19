@@ -119,6 +119,12 @@ export const AudioAssetMappings = {
         variations: false
       }
     },
+    'aqualia_tidal_wave': {
+      cast: {
+        path: 'ability_specific/Aqualia/Tidal_Wave.wav',
+        variations: false
+      }
+    },
     'drakarion_flame_strike': {
       cast: {
         path: 'ability_specific/flame_strike/cast/fire_buildup_intense.wav',
@@ -133,16 +139,6 @@ export const AudioAssetMappings = {
         files: ['fire_explosion_1.wav', 'fire_explosion_2.wav'],
         variations: true,
         randomSelect: true
-      }
-    },
-    'aqualia_tidal_wave': {
-      cast: {
-        path: 'ability_specific/tidal_wave/cast/ocean_gathering.wav',
-        variations: false
-      },
-      impact: {
-        path: 'ability_specific/tidal_wave/impact/massive_splash.wav',
-        variations: false
       }
     },
     'lumina_divine_protection': {

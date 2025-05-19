@@ -53,22 +53,30 @@ STEP 1: PREPARE THE AUDIO FILE
 2. Test the file plays correctly in your audio editor
 3. Place it in: `assets/audio/InCombat_Sounds/ability_specific/[CharacterName]/[AbilityName].[ext]`
    Example: `assets/audio/InCombat_Sounds/ability_specific/Zephyr/Wind_Slash.mp3`
+   Example: `assets/audio/InCombat_Sounds/ability_specific/Aqualia/Tidal_Wave.wav`
 
 STEP 2: IDENTIFY THE ABILITY ID
 1. Open `data/characters.json`
 2. Find your character's ability definition
 3. Copy the exact `"id"` value (NOT the "name")
    Example: `"id": "zephyr_wind_slash"` (NOT "Wind Slash")
+   Example: `"id": "aqualia_tidal_wave"` (NOT "Tidal Wave")
 
 STEP 3: CONFIGURE AUDIDASSETMAPPINGS.JS
 1. Open `js/data/AudioAssetMappings.js`
 2. In the `abilities` section, add your mapping:
 
 ```javascript
-// Example implementation
+// Example implementations
 'zephyr_wind_slash': {
   cast: {
     path: 'ability_specific/Zephyr/Wind_Slash.mp3',
+    variations: false
+  }
+},
+'aqualia_tidal_wave': {
+  cast: {
+    path: 'ability_specific/Aqualia/Tidal_Wave.wav',
     variations: false
   }
 },
@@ -79,6 +87,8 @@ STEP 3: CONFIGURE AUDIDASSETMAPPINGS.JS
   }
 }
 ```
+
+⚠️ **IMPORTANT**: Check for duplicate entries! Ensure the ability ID appears only ONCE in the abilities section. Duplicate entries will cause the second one to override the first, leading to "Sound key not found" errors.
 
 Event Types Available:
 - `cast`: When ability is initiated (most common)
@@ -107,6 +117,14 @@ Check browser console for these logs:
 [SoundEventHandler] Extracted abilityId for sound lookup: 'zephyr_wind_slash'
 [SoundEventHandler] ✅ Found Tier 1 ability sound for zephyr_wind_slash.cast
 [BattleSoundManager] ✅ Playing ability sound: ability_specific_zephyr_wind_slash_mp3
+
+-- OR for Aqualia's Tidal Wave --
+
+[SoundAssetLoader] Found ability: aqualia_tidal_wave for event: cast
+[SoundAssetLoader] Path: ability_specific/Aqualia/Tidal_Wave.wav, Key: ability_specific_aqualia_tidal_wave_wav
+[SoundEventHandler] Extracted abilityId for sound lookup: 'aqualia_tidal_wave'
+[SoundEventHandler] ✅ Found Tier 1 ability sound for aqualia_tidal_wave.cast
+[BattleSoundManager] ✅ Playing ability sound: ability_specific_aqualia_tidal_wave_wav
 ```
 
 ❌ Error Indicators:
@@ -234,6 +252,14 @@ VII. TROUBLESHOOTING REFERENCE 🔧
 1. SoundAssetLoader.js is called in BattleScene.preload()
 2. File path is correct and accessible
 3. No typos in AudioAssetMappings.js entry
+4. **No duplicate entries**: Search for your abilityId in AudioAssetMappings.js - it should appear only ONCE
+
+**Problem**: Sound plays but wrong file or unexpected path in logs
+**Solution**: Duplicate mapping entries. Check:
+1. Search AudioAssetMappings.js for your abilityId (Ctrl+F)
+2. Ensure only ONE entry exists for the ability
+3. If duplicates exist, remove the incorrect one and keep your intended mapping
+4. Example: `aqualia_tidal_wave` appearing twice caused the second entry to override the first
 
 **Problem**: "No ability ID found in action"
 **Solution**: BattleFlowController.js issue (should be fixed):
