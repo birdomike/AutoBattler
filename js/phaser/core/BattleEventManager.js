@@ -31,6 +31,9 @@ class BattleEventManager {
         this.fxManager = null; // Will be set via setFXManager if available
         this.boundHandlers = new Map(); // For tracking bound handlers
         
+        // EventEmitter interface for external listeners (sound system, etc.)
+        this.eventListeners = new Map(); // Map<eventType, Set<callback>>
+        
         console.log("[BattleEventManager] Initializing with battleBridge:", {
             hasBattleBridge: !!this.battleBridge,
             eventTypesAvailable: this.battleBridge && this.battleBridge.eventTypes ? Object.keys(this.battleBridge.eventTypes) : 'none',
@@ -374,6 +377,9 @@ class BattleEventManager {
         if (!data || !data.character || !this.scene) return;
 
         try {
+            // Emit event to external listeners (sound system, etc.)
+            this.emit('CHARACTER_DAMAGED', data);
+            
             // Find the character sprite
             const characterSprite = this.getCharacterSprite(data.character);
             if (!characterSprite) return;
@@ -439,6 +445,9 @@ class BattleEventManager {
         if (!data || !data.character || !this.scene) return;
 
         try {
+            // Emit event to external listeners (sound system, etc.)
+            this.emit('CHARACTER_HEALED', data);
+            
             // Find the character sprite
             const characterSprite = this.getCharacterSprite(data.character);
             if (!characterSprite) return;
@@ -483,6 +492,8 @@ class BattleEventManager {
             isSubAction: data.action?._isAoeSubAction
         });
     
+        // Emit event to external listeners (sound system, etc.)
+        this.emit('CHARACTER_ACTION', data);
     
     // Update active character visuals using TeamDisplayManager if available
     if (this.teamManager && typeof this.teamManager.updateActiveCharacterVisuals === 'function') {
@@ -672,6 +683,113 @@ class BattleEventManager {
     }
 
     /**
+     * Add an external event listener (EventEmitter interface)
+     * @param {string} eventType - The event type to listen for
+     * @param {function} callback - The callback function to execute
+     * @returns {boolean} Success state
+     */
+    on(eventType, callback) {
+        try {
+            if (!eventType || typeof callback !== 'function') {
+                console.warn('[BattleEventManager] Invalid parameters for on():', { eventType, callback: typeof callback });
+                return false;
+            }
+            
+            // Get or create the set of listeners for this event type
+            if (!this.eventListeners.has(eventType)) {
+                this.eventListeners.set(eventType, new Set());
+            }
+            
+            const listeners = this.eventListeners.get(eventType);
+            listeners.add(callback);
+            
+            console.log(`[BattleEventManager] Added external listener for ${eventType}. Total listeners: ${listeners.size}`);
+            return true;
+        } catch (error) {
+            console.error('[BattleEventManager] Error adding event listener:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Remove an external event listener (EventEmitter interface)
+     * @param {string} eventType - The event type
+     * @param {function} callback - The callback function to remove
+     * @returns {boolean} Success state
+     */
+    off(eventType, callback) {
+        try {
+            if (!eventType || typeof callback !== 'function') {
+                console.warn('[BattleEventManager] Invalid parameters for off():', { eventType, callback: typeof callback });
+                return false;
+            }
+            
+            const listeners = this.eventListeners.get(eventType);
+            if (!listeners) {
+                console.warn(`[BattleEventManager] No listeners found for event type: ${eventType}`);
+                return false;
+            }
+            
+            const removed = listeners.delete(callback);
+            
+            // Clean up empty sets
+            if (listeners.size === 0) {
+                this.eventListeners.delete(eventType);
+            }
+            
+            if (removed) {
+                console.log(`[BattleEventManager] Removed external listener for ${eventType}. Remaining listeners: ${listeners.size}`);
+            } else {
+                console.warn(`[BattleEventManager] Callback not found for event type: ${eventType}`);
+            }
+            
+            return removed;
+        } catch (error) {
+            console.error('[BattleEventManager] Error removing event listener:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Emit an event to all registered external listeners (internal method)
+     * @param {string} eventType - The event type to emit
+     * @param {Object} data - The event data to pass to listeners
+     * @returns {boolean} Success state
+     */
+    emit(eventType, data) {
+        try {
+            const listeners = this.eventListeners.get(eventType);
+            if (!listeners || listeners.size === 0) {
+                // No listeners for this event type - this is normal, don't warn
+                return true;
+            }
+            
+            // Call each listener with the event data
+            let successCount = 0;
+            let totalListeners = listeners.size;
+            
+            for (const callback of listeners) {
+                try {
+                    callback(data);
+                    successCount++;
+                } catch (error) {
+                    console.error(`[BattleEventManager] Error in external listener for ${eventType}:`, error);
+                    // Continue with other listeners even if one fails
+                }
+            }
+            
+            if (successCount < totalListeners) {
+                console.warn(`[BattleEventManager] ${totalListeners - successCount} out of ${totalListeners} listeners failed for ${eventType}`);
+            }
+            
+            return successCount > 0;
+        } catch (error) {
+            console.error('[BattleEventManager] Error emitting event:', error);
+            return false;
+        }
+    }
+
+    /**
      * Clean up event listeners
      */
     cleanup() {
@@ -692,6 +810,9 @@ class BattleEventManager {
         // Clear tracking map
         this.boundHandlers.clear();
         
+        // Clean up external event listeners
+        this.eventListeners.clear();
+        
         console.log("[BattleEventManager] Event listeners cleaned up");
     }
 
@@ -707,6 +828,7 @@ class BattleEventManager {
         this.battleBridge = null;
         this.teamManager = null;
         this.fxManager = null;
+        this.eventListeners = null;
         
         console.log("[BattleEventManager] Destroyed");
     }

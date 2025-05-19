@@ -22,7 +22,7 @@ export class BattleSoundManager {
         };
         
         // Debug mode for testing
-        this.debugMode = false;
+        this.debugMode = true; // Enable debug mode by default for troubleshooting
         
         console.log('[BattleSoundManager] Initialized sound manager for battle scene');
     }
@@ -115,15 +115,43 @@ export class BattleSoundManager {
             // Generate a key for the sound (AudioAssetMappings includes the base path)
             const soundKey = this.generateSoundKey(soundResult.fullPath);
             
+            if (this.debugMode) {
+                console.log(`[BattleSoundManager] Attempting to play sound:`, {
+                    fullPath: soundResult.fullPath,
+                    soundKey: soundKey,
+                    finalVolume: finalVolume,
+                    category: category,
+                    masterVolume: this.volumeSettings.master,
+                    categoryVolume: categoryVolume
+                });
+            }
+            
             // Check if sound is already loaded
             if (this.loadedSounds.has(soundKey)) {
                 const sound = this.loadedSounds.get(soundKey);
+                
+                if (this.debugMode) {
+                    console.log(`[BattleSoundManager] Using cached sound. Sound state:`, {
+                        isPlaying: sound.isPlaying,
+                        isPaused: sound.isPaused,
+                        volume: sound.volume,
+                        duration: sound.duration
+                    });
+                }
+                
                 sound.play({ volume: finalVolume });
                 
                 if (this.debugMode) {
-                    console.log(`[BattleSoundManager] Playing cached sound: ${soundResult.fullPath} at volume ${finalVolume}`);
+                    console.log(`[BattleSoundManager] ✅ Played cached sound: ${soundResult.fullPath} at volume ${finalVolume}`);
                 }
                 return true;
+            }
+            
+            // Check if the sound key exists in Phaser's cache
+            if (!this.scene.cache.audio.exists(soundKey)) {
+                console.error(`[BattleSoundManager] Sound key '${soundKey}' not found in Phaser audio cache!`);
+                console.log('[BattleSoundManager] Available audio keys:', this.scene.cache.audio.entries.keys);
+                return false;
             }
             
             // The fullPath from AudioAssetMappings already includes the base path
@@ -133,14 +161,32 @@ export class BattleSoundManager {
                 pool: 2
             });
             
+            if (this.debugMode) {
+                console.log(`[BattleSoundManager] Created new sound object:`, {
+                    key: soundKey,
+                    sound: sound,
+                    soundManager: this.scene.sound,
+                    audioContext: this.scene.sound.context
+                });
+            }
+            
             // Store in cache for future use
             this.loadedSounds.set(soundKey, sound);
             
             // Play the sound
-            sound.play();
+            const playResult = sound.play();
             
             if (this.debugMode) {
-                console.log(`[BattleSoundManager] Playing new sound: ${soundResult.fullPath} at volume ${finalVolume}`);
+                console.log(`[BattleSoundManager] ✅ Play command sent:`, {
+                    fullPath: soundResult.fullPath,
+                    volume: finalVolume,
+                    playResult: playResult,
+                    soundState: {
+                        isPlaying: sound.isPlaying,
+                        isPaused: sound.isPaused,
+                        volume: sound.volume
+                    }
+                });
                 if (soundResult.hasVariations) {
                     console.log(`[BattleSoundManager] Selected variation: ${soundResult.selectedFile} (${soundResult.totalVariations} total)`);
                 }
@@ -160,8 +206,14 @@ export class BattleSoundManager {
      * @returns {string} Unique key for caching
      */
     generateSoundKey(soundPath) {
-        // Convert path to a valid cache key
-        return soundPath.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        // Extract relative path from full path to match SoundAssetLoader key generation
+        let relativePath = soundPath;
+        if (soundPath.startsWith(AudioAssetMappings.basePath)) {
+            relativePath = soundPath.substring(AudioAssetMappings.basePath.length);
+        }
+        
+        // Convert relative path to a valid cache key (same algorithm as SoundAssetLoader)
+        return relativePath.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     }
     
     /**

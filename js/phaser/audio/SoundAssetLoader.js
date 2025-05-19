@@ -208,6 +208,7 @@ export class SoundAssetLoader {
             
             // Create a promise that resolves when loading completes
             // Note: Phaser's load system is synchronous queue management, actual loading happens on load.start()
+            // Return a promise that resolves immediately since Phaser handles the async loading internally
             return Promise.resolve();
             
         } catch (error) {

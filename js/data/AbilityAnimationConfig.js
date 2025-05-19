@@ -268,8 +268,10 @@ export const AbilityAnimationConfig = {
     'drakarion': 'genre_specific/sword_melee_genre',   // Fire warrior with sword
     'caste': 'genre_specific/sword_melee_genre',       // Metal berserker with sword
     'vaelgor': 'genre_specific/sword_melee_genre',     // Dark sentinel with sword
-    'aqualia': 'genre_specific/fire_caster',           // Water/Ice mage (when fire caster sounds added)
-    'nyria': 'genre_specific/frost_caster',            // Storm elementalist (when frost caster sounds added)
+    'aqualia': 'genre_specific/frost_caster',          // Water/Ice mage (ice sounds for water magic)
+    'nyria': 'genre_specific/frost_caster',            // Storm elementalist (ice sounds for storm magic)
+    'zara': 'genre_specific/fire_caster',              // Fire mage character (if exists)
+    'ignis': 'genre_specific/fire_caster',             // Fire-based character (if exists)
     
     // Character-specific mappings (truly unique sounds)
     'sylvanna': 'character_specific/sylvanna',         // Nature ranger with unique bow sounds

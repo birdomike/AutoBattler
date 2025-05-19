@@ -20,24 +20,20 @@ export const AudioAssetMappings = {
         impact: {
           path: 'defaults/auto_attacks/melee_impact/punch_flesh_13.wav',
           variations: false
-        },
-        movement: {
-          path: 'defaults/auto_attacks/melee_movement/footstep_heavy.wav',
-          variations: false
         }
       },
       ranged: {
         release: {
           path: 'defaults/auto_attacks/ranged_release/',
-          files: ['bow_release_1.wav', 'bow_release_2.wav', 'bow_release_3.wav'],
-          variations: true,
-          randomSelect: true
+          files: ['Bow Attack 1.wav'],
+          variations: false,
+          randomSelect: false
         },
         impact: {
           path: 'defaults/auto_attacks/ranged_impact/',
-          files: ['arrow_impact_1.wav', 'arrow_impact_2.wav'],
-          variations: true,
-          randomSelect: true
+          files: ['Bow Impact Hit 1.wav'],
+          variations: false,
+          randomSelect: false
         }
       }
     },
@@ -70,10 +66,11 @@ export const AudioAssetMappings = {
     'fire_caster': {
       autoAttack: {
         ranged: {
-          cast: {
+          release: {
             path: 'genre_specific/Fire_Caster/',
-            files: [], // To be populated when sound files are added
-            variations: false
+            files: ['Firespray 1.wav', 'Firespray 2.wav'],
+            variations: true,
+            randomSelect: true
           }
         }
       }
@@ -81,10 +78,11 @@ export const AudioAssetMappings = {
     'frost_caster': {
       autoAttack: {
         ranged: {
-          cast: {
+          release: {
             path: 'genre_specific/Frost_Caster/',
-            files: [], // To be populated when sound files are added
-            variations: false
+            files: ['Ice Throw 1.wav', 'Ice Throw 2.wav'],
+            variations: true,
+            randomSelect: true
           }
         }
       }
@@ -164,16 +162,16 @@ export const AudioAssetMappings = {
       
       try {
         // 1. Ability-specific (highest priority)
-        if (type === 'ability' && abilityId && this.abilities[abilityId]?.[event]) {
-          return this.buildSoundResult(this.abilities[abilityId][event]);
+        if (type === 'ability' && abilityId && AudioAssetMappings.abilities[abilityId]?.[event]) {
+          return this.buildSoundResult(AudioAssetMappings.abilities[abilityId][event]);
         }
         
         // 2. Character-specific (high priority)
         if (type === 'autoAttack' && characterKey?.startsWith('character_specific/')) {
           const charName = characterKey.split('/')[1];
-          if (this.character_specific[charName]?.autoAttack?.[autoAttackType]?.[event]) {
+          if (AudioAssetMappings.character_specific[charName]?.autoAttack?.[autoAttackType]?.[event]) {
             return this.buildSoundResult(
-              this.character_specific[charName].autoAttack[autoAttackType][event]
+              AudioAssetMappings.character_specific[charName].autoAttack[autoAttackType][event]
             );
           }
         }
@@ -181,23 +179,23 @@ export const AudioAssetMappings = {
         // 3. Genre-specific (medium priority)
         if (type === 'autoAttack' && characterKey?.startsWith('genre_specific/')) {
           const genreName = characterKey.split('/')[1];
-          if (this.genre_specific[genreName]?.autoAttack?.[autoAttackType]?.[event]) {
+          if (AudioAssetMappings.genre_specific[genreName]?.autoAttack?.[autoAttackType]?.[event]) {
             return this.buildSoundResult(
-              this.genre_specific[genreName].autoAttack[autoAttackType][event]
+              AudioAssetMappings.genre_specific[genreName].autoAttack[autoAttackType][event]
             );
           }
         }
         
         // 4. Defaults (lowest priority)
-        if (type === 'autoAttack' && this.defaults.autoAttack?.[autoAttackType]?.[event]) {
+        if (type === 'autoAttack' && AudioAssetMappings.defaults.autoAttack?.[autoAttackType]?.[event]) {
           return this.buildSoundResult(
-            this.defaults.autoAttack[autoAttackType][event]
+            AudioAssetMappings.defaults.autoAttack[autoAttackType][event]
           );
         }
         
         // 5. Ultimate fallback for abilities
-        if (type === 'ability' && this.defaults.abilities?.[event]) {
-          return this.buildSoundResult(this.defaults.abilities[event]);
+        if (type === 'ability' && AudioAssetMappings.defaults.abilities?.[event]) {
+          return this.buildSoundResult(AudioAssetMappings.defaults.abilities[event]);
         }
         
         console.warn(`AudioAssetMappings: Could not resolve sound for`, context);
@@ -222,14 +220,14 @@ export const AudioAssetMappings = {
             ? mapping.files[Math.floor(Math.random() * mapping.files.length)]
             : mapping.files[0];
           return {
-            fullPath: this.basePath + mapping.path + selectedFile,
+            fullPath: AudioAssetMappings.basePath + mapping.path + selectedFile,
             hasVariations: true,
             totalVariations: mapping.files.length,
             selectedFile: selectedFile
           };
         } else {
           return {
-            fullPath: this.basePath + mapping.path,
+            fullPath: AudioAssetMappings.basePath + mapping.path,
             hasVariations: false,
             totalVariations: 1,
             selectedFile: null

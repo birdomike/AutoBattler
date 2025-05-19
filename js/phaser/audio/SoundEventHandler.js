@@ -30,7 +30,21 @@ export class SoundEventHandler {
         };
         
         // Debug logging
-        this.debugMode = false;
+        this.debugMode = true; // Enable for troubleshooting
+        
+        // Add audio context monitoring for debugging
+        if (this.scene && this.scene.sound && this.scene.sound.context) {
+            const audioContext = this.scene.sound.context;
+            console.log(`[SoundEventHandler] 🎵 AUDIO CONTEXT INITIAL STATE: ${audioContext.state}`);
+            
+            // Monitor audio context state changes
+            audioContext.addEventListener('statechange', () => {
+                console.log(`[SoundEventHandler] 🔄 AUDIO CONTEXT STATE CHANGED: ${audioContext.state} at ${new Date().toLocaleTimeString()}`);
+                if (audioContext.state === 'suspended') {
+                    console.warn('[SoundEventHandler] ⚠️ AUDIO CONTEXT SUSPENDED - This likely explains why sounds stop working!');
+                }
+            });
+        }
         
         console.log('[SoundEventHandler] Initialized sound event handler');
     }
