@@ -82,6 +82,16 @@ export const AudioAssetMappings = {
           }
         }
       }
+    },
+    'electric_caster': {
+      autoAttack: {
+        ranged: {
+          release: {
+            path: 'genre_specific/Electric_Caster/LightningStrike.mp3',
+            variations: false
+          }
+        }
+      }
     }
   },
 
@@ -103,6 +113,12 @@ export const AudioAssetMappings = {
 
   // ============ ABILITY-SPECIFIC MAPPINGS ============
   abilities: {
+    'zephyr_wind_slash': {
+      cast: {
+        path: 'ability_specific/Zephyr/Wind_Slash.mp3',
+        variations: false
+      }
+    },
     'drakarion_flame_strike': {
       cast: {
         path: 'ability_specific/flame_strike/cast/fire_buildup_intense.wav',

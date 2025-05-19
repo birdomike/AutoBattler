@@ -19,7 +19,7 @@ export class SoundEventHandler {
                 // Optional movement sound at action start
                 movement: { delay: 0 },
                 // Impact sound delayed to sync with animation
-                impact: { delay: 500 }
+                impact: { delay: 0 }
             },
             ranged: {
                 // Immediate release sound when projectile fires
@@ -180,22 +180,52 @@ export class SoundEventHandler {
     }
     
     /**
-     * Handle ability sound logic (basic implementation for Phase 1)
+     * Handle ability sound logic
      * @param {Object} character - Character using the ability
      * @param {Object} action - Action object containing ability details
      * @returns {boolean} Success state
      */
     handleAbilityAction(character, action) {
         try {
-            // Basic ability sound handling - will be expanded in Phase 5
+            // Get ability ID from action data
+            const abilityId = action.abilityId || action.id || action.name;
+            
             if (this.debugMode) {
-                console.log(`[SoundEventHandler] Ability sound handling not yet implemented for: ${action.name || 'Unknown Ability'}`);
+                console.log(`[SoundEventHandler] 🌟 PROCESSING ABILITY: ${abilityId} for ${character.name}`);
             }
             
-            // Placeholder: Could play a generic cast sound here
-            // Will be properly implemented when AbilityAnimationConfig integration is complete
+            if (!abilityId) {
+                console.warn(`[SoundEventHandler] No ability ID found in action:`, action);
+                return false;
+            }
             
-            return true;
+            // Import AudioAssetMappings for ability sound resolution
+            // Note: This assumes AudioAssetMappings is available globally
+            if (typeof AudioAssetMappings === 'undefined' && window.AudioAssetMappings) {
+                window.AudioAssetMappings = AudioAssetMappings;
+            }
+            
+            // Get ability cast sound using 4-tier resolution
+            const castSound = this.soundManager.resolve4TierSound({
+                type: 'ability',
+                abilityId: abilityId,
+                event: 'cast'
+            });
+            
+            if (castSound) {
+                const success = this.soundManager.playSound(castSound, 'abilities');
+                
+                if (this.debugMode) {
+                    console.log(`[SoundEventHandler] ${success ? '✅ SUCCESS' : '❌ FAILED'} playing ability sound: ${castSound.fullPath}`);
+                }
+                
+                return success;
+            } else {
+                if (this.debugMode) {
+                    console.warn(`[SoundEventHandler] No sound resolved for ability: ${abilityId}`);
+                }
+                return false;
+            }
         } catch (error) {
             console.error(`[SoundEventHandler] Error handling ability action:`, error);
             return false;

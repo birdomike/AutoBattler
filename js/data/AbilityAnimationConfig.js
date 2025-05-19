@@ -270,7 +270,7 @@ export const AbilityAnimationConfig = {
     'vaelgor': 'genre_specific/sword_melee_genre',     // Dark sentinel with sword
     'zephyr': 'genre_specific/sword_melee_genre',      // Air assassin with melee attacks
     'aqualia': 'genre_specific/frost_caster',          // Water/Ice mage (ice sounds for water magic)
-    'nyria': 'genre_specific/frost_caster',            // Storm elementalist (ice sounds for storm magic)
+    'nyria': 'genre_specific/electric_caster',         // Storm elementalist (electric lightning sounds)
     'zara': 'genre_specific/fire_caster',              // Fire mage character (if exists)
     'ignis': 'genre_specific/fire_caster',             // Fire-based character (if exists)
     
