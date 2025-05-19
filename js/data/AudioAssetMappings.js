@@ -35,11 +35,19 @@ export const AudioAssetMappings = {
     },
     abilities: {
       cast: {
-        path: 'defaults/abilities/generic_cast/magic_buildup.wav',
+        path: 'defaults/abilities/generic_cast/Generic_Cast.wav',
         variations: false
       },
       impact: {
-        path: 'defaults/abilities/generic_impact/magic_impact.wav',
+        path: 'defaults/abilities/generic_cast/Generic_Cast.wav',
+        variations: false
+      },
+      effect: {
+        path: 'defaults/abilities/generic_cast/Generic_Cast.wav',
+        variations: false
+      },
+      projectile: {
+        path: 'defaults/abilities/generic_cast/Generic_Cast.wav',
         variations: false
       }
     }
@@ -122,32 +130,6 @@ export const AudioAssetMappings = {
     'aqualia_tidal_wave': {
       cast: {
         path: 'ability_specific/Aqualia/Tidal_Wave.wav',
-        variations: false
-      }
-    },
-    'drakarion_flame_strike': {
-      cast: {
-        path: 'ability_specific/flame_strike/cast/fire_buildup_intense.wav',
-        variations: false
-      },
-      projectile: {
-        path: 'ability_specific/flame_strike/projectile/fireball_travel.wav',
-        variations: false
-      },
-      impact: {
-        path: 'ability_specific/flame_strike/impact/',
-        files: ['fire_explosion_1.wav', 'fire_explosion_2.wav'],
-        variations: true,
-        randomSelect: true
-      }
-    },
-    'lumina_divine_protection': {
-      cast: {
-        path: 'ability_specific/divine_protection/cast/holy_invocation.wav',
-        variations: false
-      },
-      effect: {
-        path: 'ability_specific/divine_protection/effect/healing_chime.wav',
         variations: false
       }
     }
