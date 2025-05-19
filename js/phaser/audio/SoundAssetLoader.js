@@ -232,36 +232,59 @@ export class SoundAssetLoader {
      * @returns {Promise} Promise that resolves when ability sounds are loaded
      */
     async loadAbilitySounds() {
+        console.log('[SoundAssetLoader] --- loadAbilitySounds() method CALLED ---');
         try {
+            console.log('[SoundAssetLoader] Attempting to access AudioAssetMappings.abilities. Are AudioAssetMappings loaded here?', AudioAssetMappings);
             if (this.debugMode) {
                 console.log('[SoundAssetLoader] Loading ability-specific sounds...');
             }
+            // Additional logs:
+            console.log('[SoundAssetLoader] AudioAssetMappings.abilities found (keys):', Object.keys(AudioAssetMappings.abilities || {}));
+            console.log('[SoundAssetLoader] AudioAssetMappings.defaults.abilities found:', AudioAssetMappings.defaults?.abilities || 'NOT FOUND OR N/A YET');
             
             const promises = [];
             
-            // Load from abilities mappings in AudioAssetMappings
-            for (const [abilityId, abilityData] of Object.entries(AudioAssetMappings.abilities)) {
-                for (const [eventType, eventData] of Object.entries(abilityData)) {
-                    if (eventData.files && Array.isArray(eventData.files)) {
-                        // Load multiple files for this event
-                        const soundPaths = eventData.files.map(file => `${eventData.path}${file}`);
-                        promises.push(this.loadSoundGroup(`ability_${abilityId}_${eventType}`, soundPaths));
-                    } else if (eventData.path) {
-                        // Load single file
-                        promises.push(this.loadSoundGroup(`ability_${abilityId}_${eventType}`, [eventData.path]));
+            // Load from abilities mappings in AudioAssetMappings (Tier 1)
+            if (AudioAssetMappings && AudioAssetMappings.abilities) { // Defensive check
+                for (const [abilityId, abilityData] of Object.entries(AudioAssetMappings.abilities)) {
+                    // Log each Tier 1 ability being processed
+                    console.log(`[SoundAssetLoader] Processing Tier 1: abilityId='${abilityId}'`);
+                    for (const [eventType, eventData] of Object.entries(abilityData)) {
+                        let keyToLoad = `ability_${abilityId}_${eventType}`;
+                        let pathToLoad = '';
+                        if (eventData.files && Array.isArray(eventData.files)) {
+                            // For variations, log the base path and first file for simplicity
+                            pathToLoad = `${eventData.path}${eventData.files[0]}`;
+                            keyToLoad = this.generateSoundKey(pathToLoad); // Use existing generateSoundKey method
+                            console.log(`[SoundAssetLoader]   Tier 1 Event: '${eventType}', Path (first of variations): '${eventData.path}${eventData.files[0]}', Key: '${keyToLoad}'`);
+                            // The actual loading logic for variations
+                            const soundPaths = eventData.files.map(file => `${eventData.path}${file}`);
+                            promises.push(this.loadSoundGroup(`ability_${abilityId}_${eventType}`, soundPaths));
+                        } else if (eventData.path) {
+                            pathToLoad = eventData.path;
+                            keyToLoad = this.generateSoundKey(eventData.path);
+                            console.log(`[SoundAssetLoader]   Tier 1 Event: '${eventType}', Path: '${eventData.path}', Key: '${keyToLoad}'`);
+                            // The actual loading logic for single file
+                            promises.push(this.loadSoundGroup(`ability_${abilityId}_${eventType}`, [eventData.path]));
+                        }
                     }
                 }
+            } else {
+                console.warn('[SoundAssetLoader] AudioAssetMappings.abilities not available for Tier 1 loading.');
             }
+            
+            // --- Placeholder for Tier 4 loading logic to be added later ---
+            // console.log('[SoundAssetLoader] Tier 4 default ability sound loading would go here.');
             
             await Promise.all(promises);
             
             if (this.debugMode) {
-                console.log('[SoundAssetLoader] Ability-specific sounds loaded');
+                console.log('[SoundAssetLoader] Ability-specific sounds (Tier 1) processing complete.');
             }
             
             return true;
         } catch (error) {
-            console.error('[SoundAssetLoader] Error loading ability-specific sounds:', error);
+            console.error('[SoundAssetLoader] XXXX ERROR in loadAbilitySounds XXXX:', error);
             throw error;
         }
     }
