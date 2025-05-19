@@ -228,27 +228,38 @@ export class SoundAssetLoader {
     }
     
     /**
-     * Load ability-specific sounds (Tier 1) - placeholder for future phases
+     * Load ability-specific sounds from AudioAssetMappings
      * @returns {Promise} Promise that resolves when ability sounds are loaded
      */
     async loadAbilitySounds() {
         try {
             if (this.debugMode) {
-                console.log('[SoundAssetLoader] Loading ability-specific sounds (placeholder)...');
+                console.log('[SoundAssetLoader] Loading ability-specific sounds...');
             }
             
-            // Placeholder implementation for Phase 5
-            // Will load from AudioAssetMappings.abilities when implemented
             const promises = [];
             
-            // TODO: Implement in Phase 5 when ability sounds are needed
+            // Load from abilities mappings in AudioAssetMappings
+            for (const [abilityId, abilityData] of Object.entries(AudioAssetMappings.abilities)) {
+                for (const [eventType, eventData] of Object.entries(abilityData)) {
+                    if (eventData.files && Array.isArray(eventData.files)) {
+                        // Load multiple files for this event
+                        const soundPaths = eventData.files.map(file => `${eventData.path}${file}`);
+                        promises.push(this.loadSoundGroup(`ability_${abilityId}_${eventType}`, soundPaths));
+                    } else if (eventData.path) {
+                        // Load single file
+                        promises.push(this.loadSoundGroup(`ability_${abilityId}_${eventType}`, [eventData.path]));
+                    }
+                }
+            }
             
             await Promise.all(promises);
             
             if (this.debugMode) {
-                console.log('[SoundAssetLoader] Ability-specific sounds loaded (placeholder)');
+                console.log('[SoundAssetLoader] Ability-specific sounds loaded');
             }
             
+            return true;
         } catch (error) {
             console.error('[SoundAssetLoader] Error loading ability-specific sounds:', error);
             throw error;

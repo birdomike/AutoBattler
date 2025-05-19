@@ -194,12 +194,15 @@ export default class BattleScene extends Phaser.Scene {
         // Initialize sound asset loader for auto-attack sounds (Phase 1)
         this.soundAssetLoader = new SoundAssetLoader(this);
         
-        // Load auto-attack sounds using 4-tier system
-        console.log('[BattleScene] Loading auto-attack sound assets...');
-        this.soundAssetLoader.loadAutoAttackSounds().then(() => {
-            console.log('[BattleScene] Auto-attack sound assets loaded successfully');
+        // Load both auto-attack sounds and ability sounds
+        console.log('[BattleScene] Loading audio assets...');
+        Promise.all([
+            this.soundAssetLoader.loadAutoAttackSounds(),
+            this.soundAssetLoader.loadAbilitySounds()
+        ]).then(() => {
+            console.log('[BattleScene] All audio assets loaded successfully');
         }).catch((error) => {
-            console.error('[BattleScene] Error loading auto-attack sound assets:', error);
+            console.error('[BattleScene] Error loading audio assets:', error);
         });
     }
 
