@@ -166,6 +166,24 @@ export const AudioAssetMappings = {
         path: 'ability_specific/Drakarion/Flame_Strike.mp3',
         variations: false
       }
+    },
+    'lumina_divine_protection': {
+      cast: {
+        path: 'ability_specific/Lumina/Divine_Protection.mp3',
+        variations: false
+      }
+    },
+    'vaelgor_shadow_strike': {
+      cast: {
+        path: 'ability_specific/Vaelgor/Shadow_Strike.mp3',
+        variations: false
+      }
+    },
+    'caste_shatter_blade': {
+      cast: {
+        path: 'ability_specific/Caste/Shatter_Blade.mp3',
+        variations: false
+      }
     }
   },
 

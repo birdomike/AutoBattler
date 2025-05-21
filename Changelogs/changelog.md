@@ -1,3 +1,13 @@
+## [0.7.7.6] - 2025-05-20
+### Added
+- Ability-specific sounds for Lumina's Divine Protection, Vaelgor's Shadow Strike, and Caste's Shatter Blade
+- Completed implementation of all high-priority ability sounds
+- Enhanced audio feedback for light/healing, dark/offensive, and metal/physical ability types
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.6_MultipleKeyAbilitySounds.md*
+
+---
+
 ## [0.7.7.5] - 2025-05-20
 ### Added
 - Ability-specific sound for Drakarion's Flame Strike ability
