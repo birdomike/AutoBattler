@@ -1,3 +1,12 @@
+## [0.7.7.5] - 2025-05-20
+### Added
+- Ability-specific sound for Drakarion's Flame Strike ability
+- Enhanced fire-themed audio feedback for Drakarion's signature offensive ability
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.5_DrakarionFlameStrikeSound.md*
+
+---
+
 ## [0.7.7.4] - 2025-05-20
 ### Added
 - Ability-specific sounds for Sylvanna's Vine Whip and Nature's Blessing abilities

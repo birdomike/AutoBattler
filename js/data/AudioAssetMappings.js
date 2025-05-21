@@ -160,6 +160,12 @@ export const AudioAssetMappings = {
         path: 'ability_specific/Sylvanna/Natures_Blessing.mp3',
         variations: false
       }
+    },
+    'drakarion_flame_strike': {
+      cast: {
+        path: 'ability_specific/Drakarion/Flame_Strike.mp3',
+        variations: false
+      }
     }
   },
 
