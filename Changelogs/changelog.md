@@ -1,3 +1,25 @@
+---
+
+## [0.7.7.7] - 2025-05-21
+### Added
+- Ability-specific sound for Drakarion's Restore Wounds healing ability
+- Enhanced fire-themed healing audio feedback with warm restorative qualities
+- Completed sound implementation for all of Drakarion's active abilities
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.7_DrakarionRestoreWoundsSound.md*
+
+---
+
+## [0.7.7.7] - 2025-05-21
+### Added
+- Ability-specific sound for Aqualia's Ice Shield ability
+- Enhanced audio feedback for ice/defensive ability types
+- WAV format sound implementation for maximum browser compatibility
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.7_AqualiaIceShieldSound.md*
+
+---
+
 ## [0.7.7.6] - 2025-05-20
 ### Added
 - Ability-specific sounds for Lumina's Divine Protection, Vaelgor's Shadow Strike, and Caste's Shatter Blade

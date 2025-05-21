@@ -143,6 +143,12 @@ export const AudioAssetMappings = {
         variations: false
       }
     },
+    'aqualia_ice_shield': {
+      cast: {
+        path: 'ability_specific/Aqualia/Ice_Shield.wav',
+        variations: false
+      }
+    },
     'caste_battle_fury': {
       cast: {
         path: 'ability_specific/Caste/Battle_Fury.mp3',
@@ -164,6 +170,12 @@ export const AudioAssetMappings = {
     'drakarion_flame_strike': {
       cast: {
         path: 'ability_specific/Drakarion/Flame_Strike.mp3',
+        variations: false
+      }
+    },
+    'drakarion_restore_wounds': {
+      cast: {
+        path: 'ability_specific/Drakarion/Restore_Wounds.mp3',
         variations: false
       }
     },
