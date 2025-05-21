@@ -1,3 +1,12 @@
+## [0.7.7.4] - 2025-05-20
+### Added
+- Ability-specific sounds for Sylvanna's Vine Whip and Nature's Blessing abilities
+- Enhanced nature-themed audio feedback for Sylvanna's offensive and healing abilities
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.4_SylvannaAbilitySounds.md*
+
+---
+
 ## [0.7.7.3] - 2025-05-20
 ### Added
 - Ability-specific sound for Caste's Battle Fury ability
