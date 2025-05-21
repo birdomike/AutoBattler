@@ -1,3 +1,27 @@
+## [0.7.7.3] - 2025-05-20
+### Added
+- Ability-specific sound for Caste's Battle Fury ability
+- Enhanced ability audio feedback for Caste's signature buff ability
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.3_CasteBattleFurySound.md*
+
+---
+
+## [0.7.7.2] - 2025-05-19
+### Added
+- Implemented character-specific auto-attack sound for Vaelgor using Heavy_Sword_AutoAttack.mp3
+- Added Vaelgor mapping to AudioAssetMappings.js character_specific section for melee impact sounds
+- Updated AbilityAnimationConfig.js to change Vaelgor from genre-specific to character-specific sound profile
+
+### Technical
+- Vaelgor now uses unique heavy sword sound instead of generic sword melee genre sounds
+- System automatically prioritizes character-specific sounds (Tier 2) over genre-specific sounds (Tier 3)
+- Follows exact same implementation pattern as Sylvanna's character-specific bow sounds
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.2_VaelgorCharacterSpecificSound.md*
+
+---
+
 ## [0.7.7.1] - 2025-05-18
 ### Fixed
 - Fixed "Sound key not found in Phaser audio cache" errors by implementing Tier 4 default ability sound loading

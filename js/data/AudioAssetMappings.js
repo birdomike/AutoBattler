@@ -116,6 +116,16 @@ export const AudioAssetMappings = {
           }
         }
       }
+    },
+    'vaelgor': {
+      autoAttack: {
+        melee: {
+          impact: {
+            path: 'character_specific/Vaelgor/Heavy_Sword_AutoAttack.mp3',
+            variations: false
+          }
+        }
+      }
     }
   },
 
@@ -130,6 +140,24 @@ export const AudioAssetMappings = {
     'aqualia_tidal_wave': {
       cast: {
         path: 'ability_specific/Aqualia/Tidal_Wave.wav',
+        variations: false
+      }
+    },
+    'caste_battle_fury': {
+      cast: {
+        path: 'ability_specific/Caste/Battle_Fury.mp3',
+        variations: false
+      }
+    },
+    'sylvanna_vine_whip': {
+      cast: {
+        path: 'ability_specific/Sylvanna/Vine_Whip.mp3',
+        variations: false
+      }
+    },
+    'sylvanna_natures_blessing': {
+      cast: {
+        path: 'ability_specific/Sylvanna/Natures_Blessing.mp3',
         variations: false
       }
     }

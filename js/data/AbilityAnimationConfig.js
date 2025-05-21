@@ -267,7 +267,6 @@ export const AbilityAnimationConfig = {
     // Genre-specific mappings (shared sounds for similar character types)
     'drakarion': 'genre_specific/sword_melee_genre',   // Fire warrior with sword
     'caste': 'genre_specific/sword_melee_genre',       // Metal berserker with sword
-    'vaelgor': 'genre_specific/sword_melee_genre',     // Dark sentinel with sword
     'zephyr': 'genre_specific/sword_melee_genre',      // Air assassin with melee attacks
     'aqualia': 'genre_specific/frost_caster',          // Water/Ice mage (ice sounds for water magic)
     'nyria': 'genre_specific/electric_caster',         // Storm elementalist (electric lightning sounds)
@@ -276,6 +275,7 @@ export const AbilityAnimationConfig = {
     
     // Character-specific mappings (truly unique sounds)
     'sylvanna': 'character_specific/sylvanna',         // Nature ranger with unique bow sounds
+    'vaelgor': 'character_specific/vaelgor',           // Dark sentinel with unique heavy sword sounds
     
     // Default fallbacks (will use default sounds)
     'lumina': null                                     // Light cleric - uses default sounds
