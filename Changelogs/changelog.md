@@ -1,5 +1,26 @@
 ---
 
+## [0.7.7.9] - 2025-05-22
+### Added
+- Ability-specific sound for Lumina's Holy Smite offensive ability
+- Enhanced audio feedback for light-themed offensive abilities
+- Completed audio profile for Lumina with both healing (Divine Protection) and offensive (Holy Smite) abilities
+- WAV format sound implementation for maximum browser compatibility
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.9_LuminaHolySmiteSound.md*
+
+---
+
+## [0.7.7.8] - 2025-05-22
+### Added
+- Ability-specific sound for Vaelgor's Void Barrier defensive ability
+- Enhanced audio feedback for void-themed defensive abilities
+- Completed audio profile for Vaelgor with both offensive (Shadow Strike) and defensive (Void Barrier) abilities
+
+*Note: For detailed information on specific implementation steps, see CHANGELOG_0.7.7.8_VaelgorVoidBarrierSound.md*
+
+---
+
 ## [0.7.8.0] - 2025-05-21
 ### Added
 - **Settings Manager System**: Complete replacement of standalone volume button with expandable settings system

@@ -196,6 +196,18 @@ export const AudioAssetMappings = {
         path: 'ability_specific/Caste/Shatter_Blade.mp3',
         variations: false
       }
+    },
+    'vaelgor_void_barrier': {
+      cast: {
+        path: 'ability_specific/Vaelgor/Void_Barrier.mp3',
+        variations: false
+      }
+    },
+    'lumina_holy_smite': {
+      cast: {
+        path: 'ability_specific/Lumina/Holy_Smite.wav',
+        variations: false
+      }
     }
   },
 

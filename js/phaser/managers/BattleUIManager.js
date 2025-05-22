@@ -147,7 +147,7 @@ class BattleUIManager {
     createReturnButton() {
         try {
             const button = this.scene.add.text(
-                this.scene.cameras.main.width - 100,
+                this.scene.cameras.main.width - 120,
                 50,
                 'Return',
                 {

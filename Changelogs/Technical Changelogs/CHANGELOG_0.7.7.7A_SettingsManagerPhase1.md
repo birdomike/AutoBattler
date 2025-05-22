@@ -1,4 +1,4 @@
-# CHANGELOG 0.7.8.0 - Settings Manager Implementation (Phase 1)
+# CHANGELOG 0.7.7.7A - Settings Manager Implementation (Phase 1)
 
 ## Overview
 This update implements Phase 1 of the Settings Manager system, replacing the standalone volume button with a comprehensive, expandable settings system accessible via a gear icon. The new system provides a clean separation of concerns between audio functionality and settings UI, while establishing a framework for future settings categories.
