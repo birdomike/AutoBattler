@@ -37,9 +37,6 @@ class CoordinateDisplay {
         
         // Create the display elements
         this.create();
-        
-        // Make available globally for debugging
-        window.CoordinateDisplay = this;
     }
     
     /**

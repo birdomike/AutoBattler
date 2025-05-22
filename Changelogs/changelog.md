@@ -1,5 +1,24 @@
 ---
 
+## [0.7.7.9] - 2025-05-21
+### Fixed
+- **✅ CONFIRMED WORKING**: Fixed global constructor overwriting issue that prevented second battles from starting
+- Removed `window.CoordinateDisplay = this;` from CoordinateDisplay constructor to prevent class reference corruption
+- Removed `window.BattleScene = this;` from BattleScene constructor to prevent class reference corruption
+- Enhanced PhaserDebugManager with robust CoordinateDisplay instantiation including function type checking and fallback mechanism
+- Added createFallbackCoordinateDisplay() method for graceful degradation when main CoordinateDisplay class is unavailable
+
+### Technical
+- **✅ RESOLVED**: "window.CoordinateDisplay is not a constructor" error that occurred when starting second battles
+- Maintained proper class references at file endings (`window.BattleScene = BattleScene;`)
+- Implemented defensive programming patterns in PhaserDebugManager with try-catch blocks and fallback systems
+- Added comprehensive error handling and logging for debug tool initialization failures
+- **✅ TESTED**: Multiple battle sessions now work correctly without initialization errors
+
+*Note: For detailed information on implementation approach and architectural analysis, see CHANGELOG_0.7.7.9_FixGlobalConstructorHandling.md*
+
+---
+
 ## [0.7.7.8] - 2025-05-21
 ### Fixed
 - Fixed CardFrameManager destroy error that occurred at the end of battles

@@ -61,9 +61,6 @@ export default class BattleScene extends Phaser.Scene {
         this.components = {};
         this.playerTeamContainer = null; // Initialize to null
         this.enemyTeamContainer = null; // Initialize to null
-
-        // Make available globally for debugging
-        window.BattleScene = this;
     }
 
     /**

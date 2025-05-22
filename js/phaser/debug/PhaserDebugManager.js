@@ -47,11 +47,31 @@ class PhaserDebugManager {
             }
             
             // Initialize CoordinateDisplay if available and configured
-            if (window.CoordinateDisplay && this.config.showCoordinates) {
-                this.coordinateDisplay = new window.CoordinateDisplay(this.scene);
-                console.log("[PhaserDebugManager] CoordinateDisplay initialized (toggle with Alt+G)");
-            } else if (this.config.showCoordinates) {
-                console.warn("[PhaserDebugManager] CoordinateDisplay class not found");
+            if (this.config.showCoordinates) {
+                if (typeof window.CoordinateDisplay === 'function') {
+                    try {
+                        this.coordinateDisplay = new window.CoordinateDisplay(this.scene);
+                        console.log("[PhaserDebugManager] CoordinateDisplay initialized (toggle with Alt+G)");
+                    } catch (err) {
+                        console.error("[PhaserDebugManager] Error instantiating CoordinateDisplay:", err.message, err.stack);
+                        if (typeof this.createFallbackCoordinateDisplay === 'function') {
+                            this.createFallbackCoordinateDisplay();
+                            console.warn("[PhaserDebugManager] Instantiated fallback CoordinateDisplay due to error.");
+                        } else {
+                            console.error("[PhaserDebugManager] createFallbackCoordinateDisplay method not found!");
+                        }
+                    }
+                } else {
+                    console.warn("[PhaserDebugManager] CoordinateDisplay class not found or not a constructor. Attempting fallback.");
+                    if (typeof this.createFallbackCoordinateDisplay === 'function') {
+                        this.createFallbackCoordinateDisplay();
+                        console.warn("[PhaserDebugManager] Instantiated fallback CoordinateDisplay.");
+                    } else {
+                        console.error("[PhaserDebugManager] createFallbackCoordinateDisplay method not found!");
+                    }
+                }
+            } else if (this.config.showCoordinates === undefined) {
+                console.warn("[PhaserDebugManager] this.config.showCoordinates is undefined. CoordinateDisplay not loaded.");
             }
             
             // Initialize ObjectIdentifier if available and configured
@@ -71,6 +91,90 @@ class PhaserDebugManager {
         } catch (error) {
             console.error("[PhaserDebugManager] Error initializing debug tools:", error);
             return false;
+        }
+    }
+    
+    /**
+     * Create a fallback coordinate display when the main CoordinateDisplay class is unavailable
+     * @private
+     */
+    createFallbackCoordinateDisplay() {
+        try {
+            console.log('[PhaserDebugManager] Creating fallback coordinate display');
+            
+            // Create a simple text object for coordinates
+            this.coordinateDisplay = {
+                coordinateText: this.scene.add.text(10, 10, 'X: 0 Y: 0', {
+                    fontFamily: 'Arial',
+                    fontSize: 14,
+                    color: '#00ff00',
+                    backgroundColor: '#000000aa',
+                    padding: { x: 5, y: 2 }
+                }),
+                enabled: false,
+                
+                // Store bound function reference for cleanup
+                boundUpdateCoordinates: null,
+                
+                // Initialize the fallback
+                init: function() {
+                    this.coordinateText.setDepth(1001);
+                    this.coordinateText.setScrollFactor(0);
+                    this.coordinateText.visible = this.enabled;
+                    
+                    // Bind the update function
+                    this.boundUpdateCoordinates = this.updateCoordinates.bind(this);
+                    
+                    // Add mouse move listener
+                    this.coordinateText.scene.input.on('pointermove', this.boundUpdateCoordinates);
+                    
+                    // Add keyboard shortcut (Ctrl+G for fallback)
+                    this.coordinateText.scene.input.keyboard.on('keydown-G', (event) => {
+                        if (event.ctrlKey) { // Use Ctrl+G instead of Alt+G for fallback
+                            event.preventDefault();
+                            this.toggle();
+                        }
+                    });
+                },
+                
+                updateCoordinates: function(pointer) {
+                    if (!this.enabled) return;
+                    
+                    const x = Math.floor(pointer.worldX);
+                    const y = Math.floor(pointer.worldY);
+                    this.coordinateText.setText(`X: ${x} Y: ${y}`);
+                },
+                
+                toggle: function() {
+                    this.enabled = !this.enabled;
+                    this.coordinateText.visible = this.enabled;
+                    console.log(`[PhaserDebugManager] Fallback coordinate display ${this.enabled ? 'enabled' : 'disabled'} (toggle with Ctrl+G)`);
+                },
+                
+                destroy: function() {
+                    // Remove event listeners
+                    if (this.boundUpdateCoordinates) {
+                        this.coordinateText.scene.input.off('pointermove', this.boundUpdateCoordinates);
+                        this.boundUpdateCoordinates = null;
+                    }
+                    
+                    // Destroy text object
+                    if (this.coordinateText) {
+                        this.coordinateText.destroy();
+                        this.coordinateText = null;
+                    }
+                    
+                    console.log('[PhaserDebugManager] Fallback coordinate display destroyed');
+                }
+            };
+            
+            // Initialize the fallback
+            this.coordinateDisplay.init();
+            
+            console.log('[PhaserDebugManager] Fallback coordinate display created (toggle with Ctrl+G)');
+        } catch (error) {
+            console.error('[PhaserDebugManager] Error creating fallback coordinate display:', error);
+            this.coordinateDisplay = null;
         }
     }
     
