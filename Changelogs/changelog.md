@@ -1,5 +1,16 @@
 ---
 
+## [0.7.7.8] - 2025-05-21
+### Fixed
+- Fixed CardFrameManager destroy error that occurred at the end of battles
+- Added robust scene validity checks to prevent "Cannot read properties of undefined (reading 'sys')" error
+- Implemented defensive cleanup path that skips super.destroy() when scene is invalid
+- Enhanced component destruction with better error isolation and logging
+
+*Note: For detailed information on implementation steps, see CHANGELOG_0.7.7.8_CardFrameManagerDestroyFix.md*
+
+---
+
 ## [0.7.7.7] - 2025-05-21
 ### Added
 - Ability-specific sound for Drakarion's Restore Wounds healing ability

@@ -703,49 +703,102 @@ class CardFrameManager extends Phaser.GameObjects.Container {
     /**
      * Clean up all resources when card is destroyed
      */
-    destroy() {
+    destroy(fromScene) { // Standard Phaser destroy signature, fromScene indicates if called during scene shutdown
+        const cardIdForLog = (this.config && this.config.cardID) || (this.character && this.character.name) || 'CardFrameManagerInstance';
+
         try {
-            // Stop any active tweens
-            if (this.scene && this.scene.tweens) {
-                this.scene.tweens.killTweensOf(this);
+            // Pre-emptive check: If scene or its systems are gone, or if it's a scene-initiated destroy and the scene is transitioning
+            if (!this.scene || !this.scene.sys || this.scene.sys.isDestroyed || (fromScene && this.scene.sys.isTransitioning)) {
+                console.warn(`CardFrameManager '${cardIdForLog}': Scene or scene.sys is invalid or shutting down. Attempting minimal cleanup and SKIPPING Phaser's Container.destroy (super.destroy).`);
+
+                // Attempt to destroy child components individually.
+                // These child components should ideally have their own similar destroy safeguards.
+                if (this.visualComponent && typeof this.visualComponent.destroy === 'function') {
+                    try { this.visualComponent.destroy(fromScene); } catch (e) { console.error(`CardFrameManager '${cardIdForLog}': Error destroying visualComponent:`, e.message); }
+                }
+                this.visualComponent = null;
+
+                if (this.healthComponent && typeof this.healthComponent.destroy === 'function') {
+                    try { this.healthComponent.destroy(fromScene); } catch (e) { console.error(`CardFrameManager '${cardIdForLog}': Error destroying healthComponent:`, e.message); }
+                }
+                this.healthComponent = null;
+
+                if (this.contentComponent && typeof this.contentComponent.destroy === 'function') {
+                    try { this.contentComponent.destroy(fromScene); } catch (e) { console.error(`CardFrameManager '${cardIdForLog}': Error destroying contentComponent:`, e.message); }
+                }
+                this.contentComponent = null;
+
+                if (this.interactionComponent && typeof this.interactionComponent.destroy === 'function') {
+                    try { this.interactionComponent.destroy(fromScene); } catch (e) { console.error(`CardFrameManager '${cardIdForLog}': Error destroying interactionComponent:`, e.message); }
+                }
+                this.interactionComponent = null;
+                
+                // Nullify other direct references
+                this.character = null;
+                this.config = null;
+                
+                // IMPORTANT: We do NOT call super.destroy(fromScene) here because this.scene.sys is invalid,
+                // and super.destroy() would try to use it (e.g., for removeFromDisplayList), causing the error.
+                console.log(`CardFrameManager '${cardIdForLog}' minimal cleanup performed. super.destroy() was intentionally skipped.`);
+                return; // Exit to prevent further errors from this instance
             }
-            
-            // Reset cursor if interactive
-            if (this.config.interactive) {
+
+            // If scene and scene.sys appear valid, proceed with the normal destruction sequence.
+            console.log(`CardFrameManager '${cardIdForLog}': Scene and scene.sys appear valid. Proceeding with normal destroy process (fromScene: ${fromScene}).`);
+
+            // Kill tweens associated with this manager and its children
+            // Check this.scene.tweens again, as it could be destroyed in a race condition if not careful
+            if (this.scene && this.scene.tweens) { 
+                this.scene.tweens.killTweensOf(this);
+                if (this.visualComponent) this.scene.tweens.killTweensOf(this.visualComponent);
+                if (this.healthComponent) this.scene.tweens.killTweensOf(this.healthComponent);
+                if (this.contentComponent) this.scene.tweens.killTweensOf(this.contentComponent);
+                if (this.interactionComponent) this.scene.tweens.killTweensOf(this.interactionComponent);
+            }
+
+            // Reset cursor (DOM operation)
+            if (this.config && this.config.interactive && typeof document !== 'undefined' && document.body) {
                 document.body.style.cursor = 'default';
             }
-            
-            // Destroy components
-            if (this.visualComponent) {
-                console.log("CardFrameManager.destroy: Destroying visualComponent");
-                this.visualComponent.destroy();
-                this.visualComponent = null;
+
+            // Destroy child components first
+            if (this.visualComponent && typeof this.visualComponent.destroy === 'function') {
+                this.visualComponent.destroy(fromScene);
             }
+            this.visualComponent = null;
             
-            if (this.healthComponent) {
-                console.log("CardFrameManager.destroy: Destroying healthComponent");
-                this.healthComponent.destroy();
-                this.healthComponent = null;
+            if (this.healthComponent && typeof this.healthComponent.destroy === 'function') {
+                this.healthComponent.destroy(fromScene);
             }
+            this.healthComponent = null;
             
-            if (this.contentComponent) {
-                console.log("CardFrameManager.destroy: Destroying contentComponent");
-                this.contentComponent.destroy();
-                this.contentComponent = null;
+            if (this.contentComponent && typeof this.contentComponent.destroy === 'function') {
+                this.contentComponent.destroy(fromScene);
             }
+            this.contentComponent = null;
             
-            if (this.interactionComponent) {
-                console.log("CardFrameManager.destroy: Destroying interactionComponent");
-                this.interactionComponent.destroy();
-                this.interactionComponent = null;
+            if (this.interactionComponent && typeof this.interactionComponent.destroy === 'function') {
+                this.interactionComponent.destroy(fromScene);
             }
+            this.interactionComponent = null;
             
-            // Call parent destroy method to clean up container and children
-            super.destroy(true);
+            this.character = null;
+            this.config = null;
+
+            // Call the parent (Phaser.GameObjects.Container) destroy method
+            super.destroy(fromScene);
+            console.log(`CardFrameManager '${cardIdForLog}' normal destroy completed, super.destroy() called.`);
+
         } catch (error) {
-            console.error('CardFrameManager: Error during destroy:', error);
-            // Try parent destroy as fallback
-            super.destroy(true);
+            console.error(`CardFrameManager '${cardIdForLog}': Critical error during destroy:`, error.message, error.stack);
+            // Fallback: ensure direct references are nullified to minimize further issues.
+            this.visualComponent = null;
+            this.healthComponent = null;
+            this.contentComponent = null;
+            this.interactionComponent = null;
+            this.character = null;
+            this.config = null;
+            // Avoid calling super.destroy() here if it might have been the source or if scene is still invalid.
         }
     }
 }
