@@ -1,5 +1,36 @@
 ---
 
+## [0.7.8.0] - 2025-05-21
+### Added
+- **Settings Manager System**: Complete replacement of standalone volume button with expandable settings system
+  - New `SettingsManager.js` with gear icon and slide-out panel
+  - Persistent settings across TeamBuilder and Battle UIs using localStorage
+  - Audio section with master volume slider, mute toggle, and sound effects toggle
+  - Smooth animations and outside-click/ESC-key closing
+  - Framework ready for future settings categories (gameplay, graphics, data)
+- **Enhanced SoundManager Integration**: Added public API methods for settings synchronization
+  - `setMasterVolume()`, `getMasterVolume()`, `setMuted()`, `isMuted()` methods
+  - Proper integration bridge between SettingsManager and audio systems
+
+### Changed
+- **SoundManager Refactoring**: Removed UI creation responsibilities from SoundManager
+  - Removed `createSoundControls()` method and DOM manipulation code
+  - SoundManager now focuses purely on audio functionality
+  - Cleaner separation of concerns between audio system and settings UI
+- **Initialization Order**: SettingsManager now initializes before other UI systems
+  - Ensures settings are available when other systems start
+  - Proper synchronization of audio settings on game startup
+
+### Technical
+- Added SettingsManager.js script loading to index.html
+- Updated game.js initialization sequence
+- Implemented localStorage persistence for all settings
+- Created expandable framework for future settings categories
+
+*Note: For detailed implementation information, see CHANGELOG_0.7.8.0_SettingsManagerPhase1.md*
+
+---
+
 ## [0.7.7.9] - 2025-05-21
 ### Fixed
 - **✅ CONFIRMED WORKING**: Fixed global constructor overwriting issue that prevented second battles from starting

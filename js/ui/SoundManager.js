@@ -22,8 +22,7 @@ class SoundManager {
             console.warn('Web Audio API not supported', e);
         }
         
-        // Create DOM element for controlling sound
-        this.createSoundControls();
+        // Initialize sound system (no UI creation - handled by SettingsManager)
         this.initialize();
     }
 
@@ -45,59 +44,36 @@ class SoundManager {
     }
     
     /**
-     * Create sound control UI elements
+     * Set master volume (for SettingsManager integration)
+     * @param {number} volume - Volume level (0-1)
      */
-    createSoundControls() {
-        // Create sound controls container
-        const soundControls = document.createElement('div');
-        soundControls.className = 'sound-controls';
-        soundControls.style.position = 'fixed';
-        soundControls.style.bottom = '20px';
-        soundControls.style.right = '20px';
-        soundControls.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        soundControls.style.padding = '10px';
-        soundControls.style.borderRadius = '5px';
-        soundControls.style.zIndex = '1000';
-        
-        // Create sound toggle button
-        const soundToggle = document.createElement('button');
-        soundToggle.textContent = '🔊';
-        soundToggle.style.background = 'none';
-        soundToggle.style.border = 'none';
-        soundToggle.style.color = 'white';
-        soundToggle.style.fontSize = '24px';
-        soundToggle.style.cursor = 'pointer';
-        soundToggle.title = 'Toggle Sound';
-        
-        // Add click event
-        soundToggle.addEventListener('click', () => {
-            this.toggleMute();
-            soundToggle.textContent = this.muted ? '🔇' : '🔊';
-        });
-        
-        // Add to container
-        soundControls.appendChild(soundToggle);
-        
-        // Add volume slider
-        const volumeSlider = document.createElement('input');
-        volumeSlider.type = 'range';
-        volumeSlider.min = '0';
-        volumeSlider.max = '100';
-        volumeSlider.value = this.volume * 100;
-        volumeSlider.style.width = '100px';
-        volumeSlider.style.marginLeft = '10px';
-        volumeSlider.title = 'Volume';
-        
-        // Add change event
-        volumeSlider.addEventListener('input', (e) => {
-            this.setVolume(e.target.value / 100);
-        });
-        
-        // Add to container
-        soundControls.appendChild(volumeSlider);
-        
-        // Add to document
-        document.body.appendChild(soundControls);
+    setMasterVolume(volume) {
+        this.setVolume(volume);
+    }
+    
+    /**
+     * Get master volume (for SettingsManager integration)
+     * @returns {number} - Current volume level (0-1)
+     */
+    getMasterVolume() {
+        return this.volume;
+    }
+    
+    /**
+     * Set mute state (for SettingsManager integration)
+     * @param {boolean} muted - Mute state
+     */
+    setMuted(muted) {
+        this.muted = muted;
+        console.log(`Sound ${this.muted ? 'muted' : 'unmuted'} via SettingsManager`);
+    }
+    
+    /**
+     * Get mute state (for SettingsManager integration)
+     * @returns {boolean} - Current mute state
+     */
+    isMuted() {
+        return this.muted;
     }
 
     /**

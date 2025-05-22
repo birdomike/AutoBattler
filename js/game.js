@@ -9,6 +9,7 @@
 let teamManager;
 let teamBuilderUI;
 let battleManager; // Declared here
+let settingsManager; // Settings management system
 let gameConfig = {
     width: 3840,
     height: 2160
@@ -37,6 +38,10 @@ window.onload = async function() {
     // Initialize team manager
     teamManager = new TeamManager();
     console.log('TeamManager initialized');
+
+    // Initialize settings manager (before other systems)
+    settingsManager = new SettingsManager();
+    console.log('SettingsManager initialized');
 
     // Initialize team builder UI
     teamBuilderUI = new TeamBuilderUI(teamManager);
@@ -110,6 +115,7 @@ window.onload = async function() {
     window.teamManager = teamManager;
     window.teamBuilderUI = teamBuilderUI;
     window.battleManager = battleManager; // Expose the created instance
+    window.settingsManager = settingsManager; // Expose settings manager
     console.log("Managers exposed globally for debugging.");
 };
 
